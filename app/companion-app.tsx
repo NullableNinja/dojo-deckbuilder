@@ -1,0 +1,422 @@
+"use client";
+
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import brandEmblemUrl from "./assets/art/brand-emblem.webp?inline";
+import cardPlaceholderUrl from "./assets/art/card-placeholder.webp?inline";
+import headerBackstoryUrl from "./assets/art/header-backstory.webp?inline";
+import headerCardsUrl from "./assets/art/header-cards.webp?inline";
+import headerGlossaryUrl from "./assets/art/header-glossary.webp?inline";
+import headerHouseRulesUrl from "./assets/art/header-house-rules.webp?inline";
+import headerQuickstartUrl from "./assets/art/header-quickstart.webp?inline";
+import headerRulesUrl from "./assets/art/header-rules.webp?inline";
+import headerRulingsUrl from "./assets/art/header-rulings.webp?inline";
+import heroPaperFuUrl from "./assets/art/hero-paper-fu.webp?inline";
+import rulesMarginaliaUrl from "./assets/art/rules-marginalia.webp?inline";
+import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp?inline";
+import mrBobbyUrl from "./assets/characters/mr-bobby.webp?inline";
+import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp?inline";
+import waveyDaveyUrl from "./assets/characters/wavey-davey.webp?inline";
+import starterJabArtUrl from "./assets/starter/starter-jab-art.webp?inline";
+import highGuardArtUrl from "./assets/starter/high-guard-art.webp?inline";
+import cardsJson from "./data/cards.json";
+import rulesJson from "./data/rules.json";
+
+type ViewId = "home" | "quickstart" | "story" | "rules" | "cards" | "rulings" | "glossary" | "house-rules";
+type CardEntry = {
+  id: string; name: string; cardType: string; subtype: string; category?: string | null;
+  catalogId: string; catalogOrder: number;
+  expansion: string; deck: string; rulesVersion: string; lineage?: string | null;
+  fpCost?: string | number | null; chiCost?: string | number | null; focusValue?: string | number | null;
+  zone?: string | null; timing?: string | null; rulesText?: string | null; flavorText?: string | null;
+  tags: string[]; buildPaths: string[]; stats: Record<string, string | number>;
+  image?: string | null; sourceSheet: string; searchText: string; details: Record<string, string | number>;
+};
+type RuleBlock =
+  | { kind: "paragraph" | "bullet"; text: string }
+  | { kind: "table"; rows: (string | number)[][] };
+type RuleSection = { id: string; title: string; content: RuleBlock[] };
+type RuleChapter = { id: string; number: number; title: string; fullTitle: string; intro: RuleBlock[]; sections: RuleSection[] };
+type HouseRule = { name: string; rule: string; category?: string; summary?: string; notes?: string };
+
+const cardData = cardsJson as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; decks: string[]; total: number };
+const rulesData = rulesJson as { version: string; chapters: RuleChapter[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
+const CORE_EXPANSION = cardData.expansions.includes("Core Game") ? "Core Game" : cardData.expansions[0] ?? "All";
+const storyChapter = rulesData.chapters.find((chapter) => chapter.number === 1);
+const ruleChapters = rulesData.chapters.filter((chapter) => chapter.number >= 2 && chapter.number <= 16);
+
+const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
+  { id: "quickstart", label: "Quick Start", short: "Start" },
+  { id: "story", label: "Backstory", short: "Story" },
+  { id: "rules", label: "Full Rules", short: "Rules" },
+  { id: "cards", label: "Card Library", short: "Cards" },
+  { id: "rulings", label: "Rulings & Errata", short: "Rulings" },
+  { id: "glossary", label: "Glossary", short: "Terms" },
+  { id: "house-rules", label: "House Rules", short: "Variants" },
+];
+const ALL_VIEWS: ViewId[] = ["home", ...NAV_ITEMS.map((item) => item.id)];
+const HERO_FIGHTERS = [
+  { name: "El Pollo Rojo", image: elPolloRojoUrl, type: "Pressure" },
+  { name: "Mr. Bobby", image: mrBobbyUrl, type: "Fortress" },
+  { name: "Sensei Ducktape", image: senseiDucktapeUrl, type: "Arsenal" },
+  { name: "Wavey Davey", image: waveyDaveyUrl, type: "Counter" },
+];
+const CARD_IMAGE_URLS: Record<string, string> = {
+  "/characters/el-pollo-rojo.webp": elPolloRojoUrl,
+  "/characters/mr-bobby.webp": mrBobbyUrl,
+  "/characters/sensei-ducktape.webp": senseiDucktapeUrl,
+  "/characters/wavey-davey.webp": waveyDaveyUrl,
+};
+const PHASES = [
+  { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
+  { letter: "I", name: "Initiate", text: "Ready cards, optionally tag, then equip permanent gear." },
+  { letter: "Y", name: "Yell", text: "Play cards, attack, use Items, and trigger Combos." },
+  { letter: "A", name: "Ascend", text: "Spend Focus, buy cards, and promote one Belt." },
+  { letter: "H", name: "Hide", text: "Resolve end effects, clean up, draw, lose unspent Focus." },
+];
+const PHASE_DETAILS = [
+  { name: "Honor", when: "Once at the beginning of the round", who: "Everyone together", steps: ["Scene Change and resolve the new Location.", "Every surviving player gains 1 XP.", "Refresh each player's Tempo.", "Lock initiative from highest current Speed to lowest."], quip: "One Honor. One Location. Several people insisting they were faster." },
+  { name: "Initiate", when: "At the beginning of each player's turn", who: "The active player", steps: ["Ready exhausted cards and resolve start-of-turn effects.", "Tag once if the mode allows it.", "Equip permanent Equipment from your hand.", "Generate printed Focus from each card legally Equipped from hand."], quip: "Stretch, breathe, attach the suspicious helmet." },
+  { name: "Yell", when: "The active player's main phase", who: "The active player, with Reactions from others", steps: ["Play cards one at a time; there is no general play cost.", "Make up to two normal Attacks.", "One Flow Attack and one Combo finisher may exceed that limit.", "Generate printed Focus from cards legally played on your turn."], quip: "This is where the plan encounters other people's Defense cards." },
+  { name: "Ascend", when: "After the active player finishes acting", who: "The active player", steps: ["Spend Focus on face-up Market cards.", "Refill every purchased Market slot immediately.", "Attempt to learn at most one Combo from the separate deck.", "Promote at most one Belt if its XP and task are complete."], quip: "Turn questionable decisions into a slightly better deck." },
+  { name: "Hide", when: "At the end of each player's turn", who: "The active player", steps: ["Resolve end-of-turn effects.", "Discard played cards and the remaining hand.", "Draw the next hand.", "Lose unspent Focus."], quip: "Clean the paper cuts off the mat and pretend it was tactical." },
+];
+const STARTER_CARDS = [
+  { group: "Attacks", count: 4, icon: "A", purpose: "Deal damage and declare a combat zone.", cards: ["Basic Jab", "Basic Body Kick", "Basic Shin Kick", "Wild Swing"] },
+  { group: "Defenses", count: 4, icon: "D", purpose: "Answer an Attack matching its zone.", cards: ["High Guard", "Center Guard", "Low Guard", "Cover Up"] },
+  { group: "Katas", count: 2, icon: "K", purpose: "Set up your next move or alter your Speed.", cards: ["Breathing Drill", "Footwork Drill"] },
+  { group: "Junk", count: 5, icon: "!", purpose: "Clog the opening deck and generate no Focus.", cards: ["Bad Habit ×5"] },
+];
+const GOLDEN_RULE = "When a card directly contradicts this rulebook, the card wins. When two cards conflict, use the timing and priority rules. If the table still cannot agree, the active player makes the temporary ruling, finishes the turn, and everyone may yell about it afterward.";
+const RULE_VISUALS: Record<number, { label: string; quip: string }> = {
+  2: { label: "Sort the chaos", quip: "Separate the decks now. Prevent the ritual sorting disaster later." },
+  3: { label: "Pick your flavor of trouble", quip: "One box, four increasingly questionable ways to settle things." },
+  4: { label: "Stack the dojo", quip: "A clean table is simply chaos that has not received cards yet." },
+  5: { label: "Count the important bits", quip: "Focus buys the helmet. XP earns the belt. HP keeps you vertical." },
+  6: { label: "Say it with your whole turn", quip: "Honor once. Then every fighter gets their own I.Y.A.H." },
+  7: { label: "Read before yelling", quip: "Pay costs first; invent loopholes never." },
+  8: { label: "Math with consequences", quip: "Declare a zone. Invite interference. Subtract responsibly." },
+  9: { label: "Wear the nonsense", quip: "If the slot fits, somebody will equip it." },
+  10: { label: "Buy competence", quip: "The Market is random. The regret is carefully curated." },
+  11: { label: "Earn the belt", quip: "Promotion requires XP, a task, and the confidence to announce it." },
+  12: { label: "Meet the weirdos", quip: "Every fighter brought a specialty and at least one unresolved issue." },
+  13: { label: "Tag, you're complicated", quip: "Three fighters. One active spot. Infinite bench commentary." },
+  14: { label: "Fight the cardboard villain", quip: "The Boss has no hand, no mercy, and remarkably tidy automation." },
+  15: { label: "Settle it like scholars", quip: "Read the card aloud before establishing a tiny courtroom." },
+  16: { label: "Fall down correctly", quip: "Even getting knocked out has an order of operations." },
+};
+const GAME_MODES = [
+  { id: "tag-team", label: "Recommended", title: "Tag Team: Swap-Fu", players: "2–6 players", fighters: "3 Characters each", win: "Black Belt Victory or Last Fighter Standing", detail: "The recommended Core Format, especially for two players. Each player owns a three-fighter roster but controls only one active fighter at a time. Tag during Initiate, protect injured teammates on the bench, and keep fighting after a single KO.", notes: ["Use the complete Tag Team rules in Section 13.", "Equipment stays with the fighter who equipped it.", "Learned Combos belong to the player and may be triggered by any active fighter."] },
+  { id: "standard-clash", label: "Classic", title: "Standard Clash", players: "2–6 players", fighters: "1 Character each", win: "Black Belt Victory or Last Fighter Standing", detail: "Every player controls one Character and one Starter Deck. Players may attack any opposing active fighter unless a card says otherwise. This is the cleanest free-for-all format and supports both normal victory paths.", notes: ["Start at 25 HP, White Belt, 0 XP, 0 Focus, and unused Tempo.", "There is no bench and no tagging.", "Resolve simultaneous victory using the tiebreakers in Section 16."] },
+  { id: "quick-duel", label: "Fast", title: "Quick Duel: Face-Punch Finals", players: "Exactly 2 players", fighters: "1 Character each", win: "Last Fighter Standing only", detail: "A fast 1v1 combat-testing format. Belt progression still operates—you earn XP, complete promotion tasks, and receive stat rewards—but reaching Black Belt does not end the game.", notes: ["Black Belt Victory is disabled unless a scenario restores it.", "Use normal initiative, Tempo, combat, and Market rules.", "Ideal for shorter sessions and focused card testing."] },
+  { id: "boss-blitz", label: "Solo / Co-op", title: "Dojo Drama: Boss Blitz", players: "Solo or 2-player co-op", fighters: "3 Characters each", win: "Defeat the Final Boss", detail: "A three-stage Boss Rush against a Rival, Mini-Boss, and Final Boss. Players use Tag Team rules while each Boss combines an unused Character card with a Boss Stage overlay and automated Boss Techniques.", notes: ["Use the Boss setup and turn rules in Section 14.", "A player wins Speed ties against a Boss.", "After a stage victory, each player heals their active fighter 8 HP."] },
+];
+const OFFICIAL_RULINGS = [
+  ["Boss Blitz", "Boss KO during your Yell Phase", "Finish only that player’s Ascend and Hide Phases, then transition stages. Remaining players skip their turns for that round."],
+  ["Boss Blitz", "Boss KO outside your own Yell Phase", "If the KO occurs during a player turn, that player may complete Ascend and Hide. Otherwise, transition immediately."],
+  ["Tempo", "Speed comparisons use current Speed", "Tempo and other Speed comparisons use current Speed after active modifiers. Printed Speed is the base value."],
+  ["Timing", "Initiative is locked for the round", "Honor determines initiative. Later Speed changes and tagging do not reorder turns until the next Honor Phase."],
+  ["Boss Blitz", "Player wins a Speed tie with a Boss", "When a player and Boss have the same current Speed, the player acts before the Boss."],
+  ["Combos", "Multiple learned Combos may share a finisher", "Multiple eligible learned Combos may use the same final card or action. Resolve each payoff separately and obey every printed timing limit."],
+  ["Co-op", "Co-op stage victory healing", "After a Boss stage victory in two-player co-op, each player heals their active fighter 8 HP."],
+  ["Team Variant", "Shared Rank team variant", "Teammates share XP, Belt, promotion tasks, and rewards. Each player keeps normal individual initiative."],
+];
+
+const valueLabel = (value: string | number | null | undefined) => value === null || value === undefined || value === "" ? "—" : String(value);
+const numeric = (value: string | number | null | undefined) => {
+  if (typeof value === "number") return value;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+};
+const cardImageUrl = (image: string | null | undefined) => image ? CARD_IMAGE_URLS[image] ?? image : cardPlaceholderUrl;
+
+function RuleTable({ rows }: { rows: (string | number)[][] }) {
+  if (!rows.length) return null;
+  if (rows.length === 1 || (rows[0]?.length === 1 && rows.length <= 2)) {
+    return <aside className="rule-callout">{rows.flat().filter(Boolean).map((cell, index) => <p key={index}>{cell}</p>)}</aside>;
+  }
+  const [head, ...body] = rows;
+  return <div className="table-scroll"><table className="rule-table"><thead><tr>{head.map((cell, index) => <th key={index}>{cell}</th>)}</tr></thead><tbody>{body.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>;
+}
+
+function RuleBlocks({ blocks }: { blocks: RuleBlock[] }) {
+  const content: ReactNode[] = [];
+  let bullets: string[] = [];
+  const flush = () => {
+    if (!bullets.length) return;
+    content.push(<ul className="rule-bullets" key={`bullets-${content.length}`}>{bullets.map((bullet, index) => <li key={index}>{bullet}</li>)}</ul>);
+    bullets = [];
+  };
+  blocks.forEach((block, index) => {
+    if (block.kind === "bullet") return void bullets.push(block.text);
+    flush();
+    content.push(block.kind === "table" ? <RuleTable rows={block.rows} key={`table-${index}`} /> : <p key={`p-${index}`}>{block.text}</p>);
+  });
+  flush();
+  return <>{content}</>;
+}
+
+function SectionHeader({ eyebrow, title, intro, art }: { eyebrow: string; title: string; intro: string; art: string }) {
+  return <header className="section-header paper-stack"><div className="section-header-copy"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{intro}</p></div><img src={art} alt="" aria-hidden="true" /></header>;
+}
+
+function BrandMark() {
+  return <span className="brand-mark"><img src={brandEmblemUrl} alt="" aria-hidden="true" /></span>;
+}
+
+function StarterExampleCard({ kind, name, zone, timing, power, focus, art, catalogId }: { kind: "Attack" | "Defense"; name: string; zone: string; timing: string; power: number; focus: number; art?: string; catalogId: string }) {
+  return <article className={`starter-example-card starter-${kind.toLocaleLowerCase()}`}>
+    <header><span>{kind}</span><b>{zone}</b></header>
+    <div className="starter-example-art">{art ? <img src={art} alt="" aria-hidden="true" /> : <span>{kind === "Attack" ? "A" : "D"}</span>}</div>
+    <div className="starter-example-body"><small>Starter Technique</small><h4>{name}</h4><div className="starter-example-stats"><span><b>{power}</b>{kind === "Attack" ? "Power" : "Guard"}</span><span><b>{focus}</b>Focus</span></div><p>No additional effect.</p></div>
+    <footer><span>{timing}</span><b>{catalogId}</b></footer>
+  </article>;
+}
+
+function StarterDeckLesson({ jabArt, guardArt }: { jabArt?: string; guardArt?: string }) {
+  const [selectedGroup, setSelectedGroup] = useState(0);
+  const selected = STARTER_CARDS[selectedGroup];
+  return <section className="starter-lesson" aria-labelledby="starter-deck-title">
+    <div className="starter-lesson-heading"><div><span className="eyebrow">Your opening toolkit</span><h3 id="starter-deck-title">Build this exact 15-card deck.</h3><p>Every player begins with the same cards. Shuffle all fifteen together, then draw five.</p></div><strong><b>15</b> cards<br />per player</strong></div>
+    <div className="starter-tabs" role="tablist" aria-label="Starter Deck card groups">{STARTER_CARDS.map((entry, index) => <button type="button" role="tab" aria-selected={selectedGroup === index} className={selectedGroup === index ? "active" : ""} onClick={() => setSelectedGroup(index)} onMouseEnter={() => setSelectedGroup(index)} onFocus={() => setSelectedGroup(index)} key={entry.group}><span aria-hidden="true">{entry.icon}</span><div><small>{entry.count} cards</small><b>{entry.group}</b></div></button>)}</div>
+    <div className="starter-group-detail" role="tabpanel"><div><span className="eyebrow">{selected.count} of 15 · {selected.group}</span><h4>{selected.purpose}</h4></div><ul>{selected.cards.map((card) => <li key={card}>{card}</li>)}</ul></div>
+    <div className="starter-example-section"><div className="starter-example-copy"><span className="eyebrow">What a starter card looks like</span><h3>Read the big numbers first.</h3><p>The colored header tells you the card’s job. Power or Guard drives combat, and the zone tells you where it applies. Printed Focus is generated only when the card is legally played during your own turn.</p><ol><li><b>1.</b> Identify Attack or Defense.</li><li><b>2.</b> Match High, Mid, or Low.</li><li><b>3.</b> Add Power or Guard to the fighter’s stat.</li></ol></div><div className="starter-card-pair"><StarterExampleCard kind="Attack" name="Basic Jab" zone="High" timing="Turn" power={2} focus={1} art={jabArt} catalogId="DDB-COR-STR-003" /><StarterExampleCard kind="Defense" name="High Guard" zone="High" timing="Reaction" power={2} focus={1} art={guardArt} catalogId="DDB-COR-STR-009" /></div></div>
+  </section>;
+}
+
+function CombatExample() {
+  const [defensePlayed, setDefensePlayed] = useState(true);
+  const attackPower = 4;
+  const defense = 2 + (defensePlayed ? 2 : 0);
+  const damage = Math.max(0, attackPower - defense);
+  return <article className={`combat-example ${damage === 0 ? "is-blocked" : "is-hit"}`} aria-live="polite">
+    <header className="combat-example-heading">
+      <div><span className="eyebrow">Worked example · Mid Attack</span><h3>Rita attacks Devin. Count the paper.</h3><p>Every number below comes from a card or Character stat already on the table.</p></div>
+      <button type="button" className="combat-example-toggle" aria-pressed={!defensePlayed} onClick={() => setDefensePlayed((current) => !current)}><span aria-hidden="true">{defensePlayed ? "−" : "+"}</span>{defensePlayed ? "Remove Devin’s Defense" : "Play Devin’s Defense"}</button>
+    </header>
+    <div className="combat-sides">
+      <section className="combat-side attack-side" aria-label="Rita's Attack Power calculation">
+        <div className="combat-side-title"><span>1 · Attacker</span><h4>Rita plays <b>Wild Swing</b></h4></div>
+        <div className="combat-terms">
+          <div className="combat-term"><span className="mini-combat-card attack-card"><b>Wild Swing</b><small>Mid · Attack</small></span><strong>1</strong><small>card Damage</small></div>
+          <i aria-hidden="true">+</i>
+          <div className="combat-term"><span className="combat-stat-token">ATK</span><strong>2</strong><small>Rita’s ATK</small></div>
+          <i aria-hidden="true">+</i>
+          <div className="combat-term"><span className="combat-stat-token weapon-token">W</span><strong>1</strong><small>Weapon</small></div>
+        </div>
+        <footer><span>Attack Power</span><strong>{attackPower}</strong></footer>
+      </section>
+      <div className="combat-versus" aria-hidden="true">VS</div>
+      <section className="combat-side defense-side" aria-label="Devin's Defense calculation">
+        <div className="combat-side-title"><span>2 · Defender</span><h4>Devin {defensePlayed ? "plays Desperate Cover" : "does not play a Defense"}</h4></div>
+        <div className="combat-terms">
+          <div className="combat-term"><span className="combat-stat-token defense-token">DEF</span><strong>1</strong><small>Devin’s DEF</small></div>
+          <i aria-hidden="true">+</i>
+          <div className="combat-term"><span className="combat-stat-token armor-token">A</span><strong>1</strong><small>Mid Armor</small></div>
+          <i aria-hidden="true">+</i>
+          <div className={`combat-term optional-defense ${defensePlayed ? "is-played" : "is-skipped"}`}><span className="mini-combat-card defense-card"><b>{defensePlayed ? "Desperate Cover" : "No Defense card"}</b><small>{defensePlayed ? "Mid · Reaction" : "Reaction skipped"}</small></span><strong>{defensePlayed ? 2 : 0}</strong><small>Defense card</small></div>
+        </div>
+        <footer><span>Defense</span><strong>{defense}</strong></footer>
+      </section>
+    </div>
+    <section className="combat-outcome" aria-label={`Combat result: ${damage === 0 ? "Blocked" : `${damage} damage`}`}>
+      <div className="combat-outcome-math"><span>{attackPower}<small>Attack</small></span><i>−</i><span>{defense}<small>Defense</small></span><i>=</i><strong>{damage}</strong></div>
+      <div><span className="eyebrow">{damage === 0 ? "Blocked" : "Hit"}</span><h4>{damage === 0 ? "Devin loses 0 HP." : `Devin loses ${damage} HP.`}</h4><p>{damage === 0 ? "The totals tie, so the Attack is Blocked. Rita still earns Attack XP and Devin earns Defense XP." : "Attack is higher than Defense, so Devin loses the difference in HP."}</p></div>
+    </section>
+    <p className="combat-example-note"><b>Never forget:</b> Character DEF and matching Armor still count even when no Defense card is played.</p>
+  </article>;
+}
+
+function DetailModal({ eyebrow, title, children, onClose, accent = "red" }: { eyebrow: string; title: string; children: ReactNode; onClose: () => void; accent?: "red" | "green" | "gold" }) {
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", close);
+    return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
+  }, [onClose]);
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className={`detail-modal paper-stack accent-${accent}`} role="dialog" aria-modal="true" aria-labelledby="detail-modal-title"><i className="modal-burst" aria-hidden="true" /><button autoFocus className="modal-close" onClick={onClose} aria-label="Close details">×</button><span className="eyebrow">{eyebrow}</span><h2 id="detail-modal-title">{title}</h2>{children}</article></div>;
+}
+
+function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
+  return <>
+    <section className="hero shell">
+      <div className="hero-copy">
+        <span className="version-pill"><span className="status-dot" /> v1.6 economy draft</span>
+        <p className="kicker">A deckbuilder with a black-belt problem.</p>
+        <h1>Shuffle.<br />Strike. Ascend.</h1>
+        <p className="hero-lede">The definitive companion for Dojo Deckbuilder—quick start, full rules, deck-aware card lookup, rulings, glossary, and sanctioned nonsense.</p>
+        <div className="hero-actions"><button className="button primary" onClick={() => goTo("quickstart")}>Start playing <span>→</span></button><button className="button ghost" onClick={() => goTo("rules")}>Read full rules</button></div>
+        <div className="hero-note"><span>⏱</span><strong>First game?</strong> Get the table moving in about 10 minutes.</div>
+      </div>
+      <div className="hero-art-new"><span className="paper-shadow shadow-one" /><span className="paper-shadow shadow-two" /><img src={heroPaperFuUrl} alt="Four whimsical paper martial artists springing from a stack of cards" /><div className="impact-word" aria-hidden="true">HIYAH!</div></div>
+    </section>
+    <section className="stats-strip"><div className="shell stats-inner"><div><strong>{ruleChapters.length}</strong><span>Focused chapters</span></div><div><strong>{cardData.total}</strong><span>Card entries</span></div><div><strong>{cardData.decks.length}</strong><span>Separate decks</span></div><div><strong>4</strong><span>Game modes</span></div></div></section>
+    <section className="shell route-section">
+      <div className="section-title-row"><div><span className="eyebrow">Choose your path</span><h2>Everything the table needs</h2></div><p>Built to answer the question in front of you without making you reread a giant manual.</p></div>
+      <div className="route-grid">{[
+        ["quickstart", "01", "Quick Start", "Set up, learn the turn, and throw the first punch."],
+        ["story", "02", "Backstory", "The tournament scandal, the three elders, and the birth of Paper-Fu."],
+        ["rules", "03", "Full Rules", "Every gameplay chapter from the revised rulebook, made searchable."],
+        ["cards", "04", "Card Library", `Search and filter all ${cardData.total} numbered card entries.`],
+        ["rulings", "05", "Rules Desk", "Official clarifications, priority, and discrepancy handling."],
+      ].map(([view, number, title, text]) => <button className="route-card paper-stack interactive-paper" key={view} onClick={() => goTo(view as ViewId)}><span>{number}</span><h3>{title}</h3><p>{text}</p><b>Open section →</b></button>)}</div>
+    </section>
+    <section className="phase-section"><div className="shell"><div className="section-title-row inverse"><div><span className="eyebrow">One round. Five beats.</span><h2>Remember H.I.Y.A.H.</h2></div><button className="text-link light" onClick={() => goTo("quickstart")}>See the complete turn →</button></div><div className="phase-track">{PHASES.map((phase, index) => <article key={`${phase.name}-${index}`}><span className="phase-letter">{phase.letter}</span><div><b>0{index + 1}</b><h3>{phase.name}</h3><p>{phase.text}</p></div></article>)}</div></div></section>
+    <section className="shell roster-section"><div className="section-title-row"><div><span className="eyebrow">Meet the dojo</span><h2>Original fighters. Questionable judgment.</h2></div><button className="text-link" onClick={() => goTo("cards")}>Browse Characters →</button></div><div className="roster-grid">{HERO_FIGHTERS.map((fighter) => <article className="paper-stack" key={fighter.name}><div className="roster-image"><img src={fighter.image} alt={fighter.name} /></div><span>{fighter.type}</span><h3>{fighter.name}</h3></article>)}</div></section>
+  </>;
+}
+
+function StoryView({ goTo }: { goTo: (view: ViewId) => void }) {
+  const storyParagraphs = storyChapter?.intro.filter((block): block is Extract<RuleBlock, { kind: "paragraph" }> => block.kind === "paragraph").map((block) => block.text) ?? [];
+  return <main className="page-shell shell story-page">
+    <SectionHeader eyebrow="The Backstory" title="Everyone cheated. Paper-Fu happened." intro="The completely reputable origin of Dojo Deckbuilder, preserved here so nobody has to dig through the gameplay chapters to find the ferret incident." art={headerBackstoryUrl} />
+    <section className="story-lede paper-stack"><span className="story-dropcap">P</span><div><span className="eyebrow">Long ago—roughly last fiscal quarter</span><h2>{storyParagraphs[1] ?? "A great martial-arts tournament attempted to determine the strongest fighting style."}</h2></div></section>
+    <section className="story-panels">
+      <article className="paper-stack"><span>01</span><h2>The tournament</h2><p>{storyParagraphs[2] ?? "There was only one problem: everyone cheated."}</p><i>Hidden weapons · bribed judges · ferret-based interference</i></article>
+      <article className="paper-stack"><span>02</span><h2>The ruling</h2><p>{storyParagraphs[3] ?? "The Council of Martial Arts Elders declared a reset."}</p><i>Three elders · one robe · absolutely no appeals process</i></article>
+      <article className="paper-stack"><span>03</span><h2>The new art</h2><p>Advancement would be earned through combat, deckbuilding, increasingly ridiculous promotion tasks, and the sacred discipline of reading the card before arguing about it.</p><i>Paper cards · real grudges · fewer legal reviews</i></article>
+    </section>
+    <section className="golden-rule-card paper-stack"><div><span className="eyebrow">The Golden Rule</span><h2>The card wins.</h2></div><p>{GOLDEN_RULE}</p><span className="golden-stamp" aria-hidden="true">!</span></section>
+    <section className="story-cta paper-stack"><div><span className="eyebrow">Enough lore?</span><h2>Go make the elders regret approving this.</h2></div><button className="button primary" onClick={() => goTo("quickstart")}>Set up the first fight →</button></section>
+  </main>;
+}
+
+function QuickStartView({ goTo }: { goTo: (view: ViewId) => void }) {
+  const [selectedMode, setSelectedMode] = useState<(typeof GAME_MODES)[number] | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState(0);
+  const setup = [
+    "Choose a mode. Tag Team is the recommended core format.",
+    "Choose fighters: three each for Tag Team or Boss Blitz; one each for Clash or Quick Duel.",
+    "Set every fighter to 25 HP. Begin at White Belt, 0 XP, 0 Focus, and unused Tempo.",
+    "Take the fixed 15-card Starter Deck shown below, shuffle, and draw five.",
+    "Shuffle Techniques, Katas, and Items into one Market Deck; reveal seven random cards. Keep Combos separate and face-down.",
+    "Shuffle Locations. Reveal the first Location during the first Honor Phase.",
+    "Randomly choose the opening referee marker for first-round Speed ties.",
+  ];
+  return <main className="page-shell shell">
+    <SectionHeader eyebrow="Quick Start" title="From box to battle in 10 minutes" intro="The teach-at-the-table version: enough to play correctly, with every game mode one click away." art={headerQuickstartUrl} />
+    <section className="quick-mode-grid">{GAME_MODES.map((mode) => <button className={`mode-card paper-stack interactive-paper ${mode.id === "tag-team" ? "recommended" : ""}`} onClick={() => setSelectedMode(mode)} key={mode.id}><span>{mode.label}</span><h2>{mode.title}</h2><p>{mode.players} · {mode.fighters}</p><b>{mode.win}</b><small>Open full mode →</small></button>)}</section>
+    <section className="golden-rule-card quick-golden paper-stack"><div><span className="eyebrow">Before anybody argues</span><h2>The Golden Rule</h2></div><p>{GOLDEN_RULE}</p><span className="golden-stamp" aria-hidden="true">!</span></section>
+    <section className="paper-panel setup-panel paper-stack"><div className="panel-heading"><span className="step-stamp">01</span><div><span className="eyebrow">Set the table</span><h2>Seven things before the first HIYAH</h2></div></div><ol className="setup-list">{setup.map((item, index) => <li className={index === 3 ? "starter-step" : undefined} key={index}><span>{index + 1}</span><p>{item}</p></li>)}</ol><StarterDeckLesson jabArt={starterJabArtUrl} guardArt={highGuardArtUrl} /></section>
+    <section className="quick-section interactive-round"><div className="panel-heading"><span className="step-stamp">02</span><div><span className="eyebrow">Play the round</span><h2>Honor once. Then each player completes I.Y.A.H.</h2><p className="round-clarifier">Resolve the global Honor Phase once, lock Speed order, then let each player finish their entire turn before moving to the next fighter.</p></div></div><div className="quick-phases">{PHASES.map((phase, index) => <button className={selectedPhase === index ? "active" : ""} onClick={() => setSelectedPhase(index)} key={phase.name}><span>{phase.letter}</span><div><small>{index === 0 ? "Once per round" : "Each player"}</small><h3>{phase.name}</h3><p>{phase.text}</p></div></button>)}</div><article className="phase-explainer paper-stack"><div><span className="phase-explainer-letter">{PHASES[selectedPhase].letter}</span><div><span className="eyebrow">{PHASE_DETAILS[selectedPhase].when}</span><h3>{PHASE_DETAILS[selectedPhase].name}</h3><p>{PHASE_DETAILS[selectedPhase].who}</p></div></div><ol>{PHASE_DETAILS[selectedPhase].steps.map((step) => <li key={step}>{step}</li>)}</ol><blockquote>{PHASE_DETAILS[selectedPhase].quip}</blockquote></article></section>
+    <section className="combat-primer paper-stack"><div className="combat-copy"><span className="eyebrow">03 · Resolve combat</span><h2>Attack a zone. Let everybody interfere.</h2><ol><li>Declare the target and High, Mid, or Low zone.</li><li>Identify card Damage, ATK, Weapons, DEF, Armor, and modifiers.</li><li>Open the Reaction Window and resolve the Dojo Stack.</li><li>Calculate both final totals, then deal the difference as damage.</li><li>Hit at 1+ damage; Block at 0. Award normal Attack/Defense XP.</li></ol></div><div className="formula-card"><span>Final combat formula</span><p><b>Attack</b> = card Damage + Character ATK + Weapons + modifiers</p><p><b>Defense</b> = Character DEF + matching Armor + one Defense + modifiers</p><strong>Damage = max(0, Attack − Defense)</strong></div><CombatExample /></section>
+    <section className="quick-footer-card paper-stack"><div><span className="eyebrow">The whole game</span><h2>Fight → generate Focus → buy stronger cards → complete Belt tasks → win.</h2></div><button className="button primary" onClick={() => goTo("rules")}>Open the full rules →</button></section>
+    {selectedMode && <DetailModal eyebrow={`${selectedMode.players} · ${selectedMode.fighters}`} title={selectedMode.title} onClose={() => setSelectedMode(null)} accent={selectedMode.id === "tag-team" ? "green" : "red"}><p className="modal-lede">{selectedMode.detail}</p><div className="modal-win"><span>How to win</span><strong>{selectedMode.win}</strong></div><ul className="modal-list">{selectedMode.notes.map((note) => <li key={note}>{note}</li>)}</ul></DetailModal>}
+  </main>;
+}
+
+function RulesView() {
+  const [selectedId, setSelectedId] = useState(ruleChapters[0]?.id ?? "");
+  const [query, setQuery] = useState("");
+  const selected = ruleChapters.find((chapter) => chapter.id === selectedId) ?? ruleChapters[0];
+  const matches = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase();
+    if (!term) return [];
+    return ruleChapters.flatMap((chapter) => {
+      if (!JSON.stringify(chapter).toLocaleLowerCase().includes(term)) return [];
+      const section = chapter.sections.find((entry) => JSON.stringify(entry).toLocaleLowerCase().includes(term));
+      return [{ chapter, section }];
+    });
+  }, [query]);
+  const chooseChapter = (id: string) => { setSelectedId(id); setQuery(""); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  return <main className="rules-page shell page-shell">
+    <SectionHeader eyebrow="Official Full Rules" title="The complete dojo law" intro="The v1.6 gameplay draft, organized for fast lookup. Quick Start, glossary, rulings, and house rules live in their purpose-built sections instead of appearing twice." art={headerRulesUrl} />
+    <div className="rules-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all rules—Flow, Tempo, KO, Combo…" aria-label="Search all rules" />{query && <button onClick={() => setQuery("")} aria-label="Clear rules search">×</button>}</label><span className="source-badge">{ruleChapters.length} focused chapters · v1.6 draft</span></div>
+    {query ? <section className="rule-search-results"><h2>{matches.length} matching chapter{matches.length === 1 ? "" : "s"}</h2>{matches.length ? matches.map(({ chapter, section }) => <button key={chapter.id} onClick={() => chooseChapter(chapter.id)}><span>Chapter {chapter.number}</span><h3>{chapter.title}</h3><p>{section ? `Match in ${section.title}` : "Match in chapter overview"}</p></button>) : <div className="empty-state"><strong>No rule found.</strong><p>Try a shorter term or search the Card Library for printed card text.</p></div>}</section> :
+      <div className="rules-layout"><aside className="chapter-nav" aria-label="Rule chapters"><span>Contents</span>{ruleChapters.map((chapter) => <button className={chapter.id === selected.id ? "active" : ""} onClick={() => chooseChapter(chapter.id)} key={chapter.id}><b>{String(chapter.number).padStart(2, "0")}</b><span>{chapter.title}</span></button>)}</aside><article className="rule-article paper-stack"><header><span>Chapter {selected.number}</span><h1>{selected.title}</h1></header><div className="chapter-art"><img src={rulesMarginaliaUrl} alt="Playful Paper-Fu rulebook marginalia" /><div><span>{RULE_VISUALS[selected.number]?.label}</span><p>{RULE_VISUALS[selected.number]?.quip}</p></div></div><RuleBlocks blocks={selected.intro} />{selected.sections.map((section) => <section id={section.id} key={section.id}><h2>{section.title}</h2><RuleBlocks blocks={section.content} /></section>)}<footer className="chapter-footer"><span>End of Chapter {selected.number}</span>{ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1] && <button onClick={() => chooseChapter(ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].id)}>Next: {ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].title} →</button>}</footer></article></div>}
+  </main>;
+}
+
+function CardTile({ card, onOpen }: { card: CardEntry; onOpen: () => void }) {
+  const statPairs = Object.entries(card.stats).slice(0, 3);
+  return <button className={`library-card paper-stack interactive-paper type-${card.cardType.toLocaleLowerCase().replaceAll(" ", "-")}`} onClick={onOpen}>
+    <div className="card-topline"><span>{card.cardType}</span><b>{card.deck}</b></div><div className="card-art"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} /><span>{card.catalogId}</span></div>
+    <div className="card-body"><small>{card.expansion}</small><h3>{card.name}</h3><div className="card-costs">{card.fpCost !== null && card.fpCost !== undefined && <span><b>{valueLabel(card.fpCost)}</b> Focus Cost</span>}{card.focusValue !== null && card.focusValue !== undefined && <span><b>{valueLabel(card.focusValue)}</b> Focus</span>}{card.zone && <span>{card.zone}</span>}</div>{statPairs.length > 0 && <div className="mini-stats">{statPairs.map(([key, value]) => <span key={key}><b>{value}</b>{key}</span>)}</div>}<p>{card.rulesText || card.flavorText || "Open for complete card details."}</p><div className="tag-row">{[...card.tags, ...card.buildPaths].slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div></div><span className="open-card">View card →</span>
+  </button>;
+}
+
+function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) {
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [onClose]);
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span><span>{card.expansion}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet} · {card.rulesVersion}</footer></article></div>;
+}
+
+function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
+  const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [expansion, setExpansion] = useState(CORE_EXPANSION); const [deck, setDeck] = useState("All");
+  const [sort, setSort] = useState("catalog"); const [visible, setVisible] = useState(24); const [selectedCard, setSelectedCard] = useState<CardEntry | null>(null);
+  const activeCard = selectedCard ?? initialCard;
+  const types = ["All", ...Object.keys(cardData.counts)];
+  const cardsInScope = useMemo(() => {
+    const term = query.trim().toLocaleLowerCase();
+    return cardData.cards.filter((card) => (expansion === "All" || card.expansion === expansion) && (deck === "All" || card.deck === deck) && (!term || card.searchText.includes(term)));
+  }, [query, expansion, deck]);
+  const typeCounts = useMemo(() => cardsInScope.reduce<Record<string, number>>((counts, card) => { counts[card.cardType] = (counts[card.cardType] ?? 0) + 1; return counts; }, {}), [cardsInScope]);
+  const filtered = useMemo(() => {
+    return cardsInScope.filter((card) => type === "All" || card.cardType === type).sort((a, b) => {
+      if (sort === "catalog") return a.catalogOrder - b.catalogOrder;
+      if (sort === "focus") return numeric(a.fpCost) - numeric(b.fpCost) || a.name.localeCompare(b.name);
+      if (sort === "type") return a.cardType.localeCompare(b.cardType) || a.name.localeCompare(b.name);
+      if (sort === "expansion") return a.expansion.localeCompare(b.expansion) || a.name.localeCompare(b.name);
+      if (sort === "deck") return a.deck.localeCompare(b.deck) || a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name);
+    });
+  }, [cardsInScope, type, sort]);
+  const resetFilters = () => { setQuery(""); setType("All"); setExpansion(CORE_EXPANSION); setDeck("All"); setVisible(24); };
+  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} numbered cards. Zero mystery boosters.`} intro="Search the v1.6 economy draft by catalog ID, deck, release set, type, rules text, or Focus Cost. Placeholder art will be replaced as finished cards arrive." art={headerCardsUrl} />
+    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Expansion</span><select value={expansion} onChange={(event) => setExpansion(event.target.value)}><option>All</option>{cardData.expansions.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option><option value="expansion">Expansion</option></select></label></section>
+    <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
+    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || expansion !== "All" || deck !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
+    {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} onOpen={() => setSelectedCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
+    {activeCard && <CardModal card={activeCard} onClose={() => { setSelectedCard(null); clearInitialCard(); }} />}
+  </main>;
+}
+
+function RulingsView() {
+  const [query, setQuery] = useState("");
+  const rulings = OFFICIAL_RULINGS.filter((entry) => entry.join(" ").toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  return <main className="page-shell shell rulings-page"><SectionHeader eyebrow="Rules Desk" title="Clarifications, errata, and table peace" intro="Official project rulings live here instead of being duplicated inside the Full Rules reader." art={headerRulingsUrl} />
+    <section className="priority-panel"><div><span className="eyebrow">Rule priority</span><h2>When two things disagree</h2><p>Use this order. Stop as soon as the conflict is resolved.</p></div><ol><li><span>1</span>Scenario or mode rules</li><li><span>2</span>Specific card text</li><li><span>3</span>“Cannot” beats “can”</li><li><span>4</span>Later effect</li><li><span>5</span>Active-player temporary ruling</li></ol></section>
+    <section className="ruling-list-section"><div className="rulings-heading"><div><span className="eyebrow">Official clarifications</span><h2>{OFFICIAL_RULINGS.length} current rulings</h2></div><label className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search rulings…" aria-label="Search official rulings" /></label></div><div className="ruling-list">{rulings.map(([tag, title, ruling], index) => <article key={title}><span>{String(index + 1).padStart(2, "0")}</span><div><b>{tag}</b><h3>{title}</h3><p>{ruling}</p></div><strong>Official</strong></article>)}</div></section>
+    <section className="judge-procedure"><div><span className="step-stamp">?</span><h2>The two-minute table judge</h2></div><ol><li>Pause for no more than two minutes.</li><li>Read the exact card text aloud.</li><li>Apply Rule Priority.</li><li>Make a temporary ruling and finish the turn.</li><li>Record the question for a permanent ruling after the game.</li></ol></section>
+  </main>;
+}
+
+function HouseRulesView() {
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<HouseRule | null>(null);
+  const filtered = rulesData.houseRules.filter((entry) => `${entry.name} ${entry.rule}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  return <main className="page-shell shell house-page"><SectionHeader eyebrow="Sanctioned Shenanigans" title="Nine variants. All guardrails attached." intro="Every house rule was re-audited for the no-Chi v1.6 economy, current Tag Team, Tempo, Market, Combo, and Belt mechanics. Tap any tile for exact timing and design notes." art={headerHouseRulesUrl} /><div className="house-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search variants…" aria-label="Search house rules" /></label><span>{filtered.length} variants</span></div><section className="house-grid">{filtered.map((entry, index) => <button className="paper-stack interactive-paper" onClick={() => setSelected(entry)} key={entry.name}><span>{String(index + 1).padStart(2, "0")}</span><small>{entry.category}</small><h2>{entry.name}</h2><p>{entry.summary || entry.rule}</p><b>Open full variant →</b></button>)}</section><section className="new-rule-panel paper-stack"><span className="eyebrow">Build your own</span><h2>A good house rule answers four questions.</h2><div><p><b>When</b> does it trigger?</p><p><b>Who</b> makes choices?</p><p><b>What</b> if it is impossible?</p><p><b>Where</b> is the cap?</p></div></section>{selected && <DetailModal eyebrow={selected.category || "House Rule"} title={selected.name} onClose={() => setSelected(null)} accent="green"><p className="modal-lede">{selected.summary}</p><aside className="modal-rule"><span>Variant rule</span><p>{selected.rule}</p></aside>{selected.notes && <div className="modal-design-note"><span>Why this wording works</span><p>{selected.notes}</p></div>}<p className="agreement-note">Agree on this variant before setup. It changes only the current game and never rewrites printed card text.</p></DetailModal>}</main>;
+}
+
+function GlossaryView({ initialQuery }: { initialQuery: string }) {
+  const [query, setQuery] = useState(initialQuery);
+  const [selected, setSelected] = useState<{ term: string; meaning: string } | null>(null);
+  const filtered = rulesData.glossary.filter((entry) => `${entry.term} ${entry.meaning}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  return <main className="page-shell shell glossary-page"><SectionHeader eyebrow="Glossary" title="Speak fluent Paper-Fu" intro="Every defined v1.6 rules term, separated from the rulebook for fast table lookup. Tap any tile for the full definition." art={headerGlossaryUrl} /><div className="glossary-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Flow, Focus, Tempo, Reaction…" aria-label="Search glossary" />{query && <button onClick={() => setQuery("")} aria-label="Clear glossary search">×</button>}</label><span>{filtered.length} of {rulesData.glossary.length} terms</span></div>{filtered.length ? <div className="glossary-grid">{filtered.map((entry, index) => <button className="interactive-paper" onClick={() => setSelected(entry)} key={entry.term}><span>{String(index + 1).padStart(2, "0")}</span><strong>{entry.term}</strong><p>{entry.meaning}</p><b>Open term →</b></button>)}</div> : <div className="empty-state"><strong>No term found.</strong><p>Try a shorter word or search the full rules for a phrase that is not a defined term.</p></div>}{selected && <DetailModal eyebrow="Defined v1.6 term" title={selected.term} onClose={() => setSelected(null)}><aside className="modal-rule"><span>Definition</span><p>{selected.meaning}</p></aside><div className="modal-design-note"><span>At the table</span><p>Use this defined meaning unless a more specific scenario rule or card instruction says otherwise.</p></div></DetailModal>}</main>;
+}
+
+export default function CompanionApp() {
+  const [view, setView] = useState<ViewId>("home"); const [menuOpen, setMenuOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState(""); const [searchedCard, setSearchedCard] = useState<CardEntry | null>(null); const [searchedTerm, setSearchedTerm] = useState("");
+  useEffect(() => {
+    const sync = () => { const next = window.location.hash.replace("#", "") as ViewId; if (ALL_VIEWS.includes(next)) setView(next); };
+    sync(); window.addEventListener("hashchange", sync); return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const goTo = (next: ViewId) => { setView(next); setMenuOpen(false); setGlobalSearch(""); window.history.pushState(null, "", `#${next}`); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const globalResults = useMemo(() => {
+    const term = globalSearch.trim().toLocaleLowerCase(); if (term.length < 2) return [];
+    const cards = cardData.cards.filter((card) => card.searchText.includes(term)).slice(0, 5).map((card) => ({ type: "Card", title: card.name, detail: `${card.cardType} · ${card.subtype}`, card }));
+    const terms = rulesData.glossary.filter((entry) => `${entry.term} ${entry.meaning}`.toLocaleLowerCase().includes(term)).slice(0, 3).map((entry) => ({ type: "Glossary", title: entry.term, detail: entry.meaning, card: null }));
+    return [...cards, ...terms].slice(0, 7);
+  }, [globalSearch]);
+  const chooseResult = (result: (typeof globalResults)[number]) => { if (result.card) { setSearchedCard(result.card); goTo("cards"); } else { setSearchedTerm(result.title); goTo("glossary"); } };
+  return <div className="site-frame">
+    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav className={menuOpen ? "open" : ""} aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search cards & terms" aria-label="Search cards and glossary" /></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-label="Toggle navigation"><span /><span /><span /></button></div></header>
+    <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView />}{view === "glossary" && <GlossaryView key={searchedTerm} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView />}</div>
+    <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Rules source: v1.6 economy draft</span></div></footer>
+    <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}>Home</button>{NAV_ITEMS.slice(0, 4).map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.short}</button>)}</nav>
+  </div>;
+}
