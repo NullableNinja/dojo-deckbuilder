@@ -32,13 +32,14 @@ type CardEntry = {
   image?: string | null; sourceSheet: string; searchText: string; details: Record<string, string | number>;
 };
 type RuleBlock =
-  | { kind: "paragraph" | "bullet"; text: string }
+  | { kind: "paragraph"; text: string }
+  | { kind: "bullet"; text: string }
   | { kind: "table"; rows: (string | number)[][] };
 type RuleSection = { id: string; title: string; content: RuleBlock[] };
 type RuleChapter = { id: string; number: number; title: string; fullTitle: string; intro: RuleBlock[]; sections: RuleSection[] };
 type HouseRule = { name: string; rule: string; category?: string; summary?: string; notes?: string };
 
-const cardData = cardsJson as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; decks: string[]; total: number };
+const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; decks: string[]; total: number };
 const rulesData = rulesJson as { version: string; chapters: RuleChapter[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
 const CORE_EXPANSION = cardData.expansions.includes("Core Game") ? "Core Game" : cardData.expansions[0] ?? "All";
 const storyChapter = rulesData.chapters.find((chapter) => chapter.number === 1);
