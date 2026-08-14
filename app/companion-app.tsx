@@ -1,23 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import brandEmblemUrl from "./assets/art/brand-emblem.webp?inline";
-import cardPlaceholderUrl from "./assets/art/card-placeholder.webp?inline";
-import headerBackstoryUrl from "./assets/art/header-backstory.webp?inline";
-import headerCardsUrl from "./assets/art/header-cards.webp?inline";
-import headerGlossaryUrl from "./assets/art/header-glossary.webp?inline";
-import headerHouseRulesUrl from "./assets/art/header-house-rules.webp?inline";
-import headerQuickstartUrl from "./assets/art/header-quickstart.webp?inline";
-import headerRulesUrl from "./assets/art/header-rules.webp?inline";
-import headerRulingsUrl from "./assets/art/header-rulings.webp?inline";
-import heroPaperFuUrl from "./assets/art/hero-paper-fu.webp?inline";
-import rulesMarginaliaUrl from "./assets/art/rules-marginalia.webp?inline";
-import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp?inline";
-import mrBobbyUrl from "./assets/characters/mr-bobby.webp?inline";
-import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp?inline";
-import waveyDaveyUrl from "./assets/characters/wavey-davey.webp?inline";
-import starterJabArtUrl from "./assets/starter/starter-jab-art.webp?inline";
-import highGuardArtUrl from "./assets/starter/high-guard-art.webp?inline";
+import brandEmblemUrl from "./assets/art/brand-emblem.webp";
+import cardPlaceholderUrl from "./assets/art/card-placeholder.webp";
+import headerBackstoryUrl from "./assets/art/header-backstory.webp";
+import headerCardsUrl from "./assets/art/header-cards.webp";
+import headerGlossaryUrl from "./assets/art/header-glossary.webp";
+import headerHouseRulesUrl from "./assets/art/header-house-rules.webp";
+import headerQuickstartUrl from "./assets/art/header-quickstart.webp";
+import headerRulesUrl from "./assets/art/header-rules.webp";
+import headerRulingsUrl from "./assets/art/header-rulings.webp";
+import heroPaperFuUrl from "./assets/art/hero-paper-fu.webp";
+import rulesMarginaliaUrl from "./assets/art/rules-marginalia.webp";
+import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp";
+import mrBobbyUrl from "./assets/characters/mr-bobby.webp";
+import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp";
+import waveyDaveyUrl from "./assets/characters/wavey-davey.webp";
+import starterJabArtUrl from "./assets/starter/starter-jab-art.webp";
+import highGuardArtUrl from "./assets/starter/high-guard-art.webp";
 import cardsJson from "./data/cards.json";
 import rulesJson from "./data/rules.json";
 
@@ -157,7 +157,7 @@ function RuleBlocks({ blocks }: { blocks: RuleBlock[] }) {
 }
 
 function SectionHeader({ eyebrow, title, intro, art }: { eyebrow: string; title: string; intro: string; art: string }) {
-  return <header className="section-header paper-stack"><div className="section-header-copy"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{intro}</p></div><img src={art} alt="" aria-hidden="true" /></header>;
+  return <header className="section-header paper-stack"><div className="section-header-copy"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{intro}</p></div><img src={art} alt="" aria-hidden="true" decoding="async" /></header>;
 }
 
 function BrandMark() {
@@ -167,7 +167,7 @@ function BrandMark() {
 function StarterExampleCard({ kind, name, zone, timing, power, focus, art, catalogId }: { kind: "Attack" | "Defense"; name: string; zone: string; timing: string; power: number; focus: number; art?: string; catalogId: string }) {
   return <article className={`starter-example-card starter-${kind.toLocaleLowerCase()}`}>
     <header><span>{kind}</span><b>{zone}</b></header>
-    <div className="starter-example-art">{art ? <img src={art} alt="" aria-hidden="true" /> : <span>{kind === "Attack" ? "A" : "D"}</span>}</div>
+    <div className="starter-example-art">{art ? <img src={art} alt="" aria-hidden="true" loading="lazy" decoding="async" /> : <span>{kind === "Attack" ? "A" : "D"}</span>}</div>
     <div className="starter-example-body"><small>Starter Technique</small><h4>{name}</h4><div className="starter-example-stats"><span><b>{power}</b>{kind === "Attack" ? "Power" : "Guard"}</span><span><b>{focus}</b>Focus</span></div><p>No additional effect.</p></div>
     <footer><span>{timing}</span><b>{catalogId}</b></footer>
   </article>;
@@ -249,7 +249,7 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
         <div className="hero-actions"><button className="button primary" onClick={() => goTo("quickstart")}>Start playing <span>→</span></button><button className="button ghost" onClick={() => goTo("rules")}>Read full rules</button></div>
         <div className="hero-note"><span>⏱</span><strong>First game?</strong> Get the table moving in about 10 minutes.</div>
       </div>
-      <div className="hero-art-new"><span className="paper-shadow shadow-one" /><span className="paper-shadow shadow-two" /><img src={heroPaperFuUrl} alt="Four whimsical paper martial artists springing from a stack of cards" /><div className="impact-word" aria-hidden="true">HIYAH!</div></div>
+      <div className="hero-art-new"><span className="paper-shadow shadow-one" /><span className="paper-shadow shadow-two" /><img src={heroPaperFuUrl} alt="Four whimsical paper martial artists springing from a stack of cards" fetchPriority="high" decoding="async" /><div className="impact-word" aria-hidden="true">HIYAH!</div></div>
     </section>
     <section className="stats-strip"><div className="shell stats-inner"><div><strong>{ruleChapters.length}</strong><span>Focused chapters</span></div><div><strong>{cardData.total}</strong><span>Card entries</span></div><div><strong>{cardData.decks.length}</strong><span>Separate decks</span></div><div><strong>4</strong><span>Game modes</span></div></div></section>
     <section className="shell route-section">
@@ -263,7 +263,7 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
       ].map(([view, number, title, text]) => <button className="route-card paper-stack interactive-paper" key={view} onClick={() => goTo(view as ViewId)}><span>{number}</span><h3>{title}</h3><p>{text}</p><b>Open section →</b></button>)}</div>
     </section>
     <section className="phase-section"><div className="shell"><div className="section-title-row inverse"><div><span className="eyebrow">One round. Five beats.</span><h2>Remember H.I.Y.A.H.</h2></div><button className="text-link light" onClick={() => goTo("quickstart")}>See the complete turn →</button></div><div className="phase-track">{PHASES.map((phase, index) => <article key={`${phase.name}-${index}`}><span className="phase-letter">{phase.letter}</span><div><b>0{index + 1}</b><h3>{phase.name}</h3><p>{phase.text}</p></div></article>)}</div></div></section>
-    <section className="shell roster-section"><div className="section-title-row"><div><span className="eyebrow">Meet the dojo</span><h2>Original fighters. Questionable judgment.</h2></div><button className="text-link" onClick={() => goTo("cards")}>Browse Characters →</button></div><div className="roster-grid">{HERO_FIGHTERS.map((fighter) => <article className="paper-stack" key={fighter.name}><div className="roster-image"><img src={fighter.image} alt={fighter.name} /></div><span>{fighter.type}</span><h3>{fighter.name}</h3></article>)}</div></section>
+    <section className="shell roster-section"><div className="section-title-row"><div><span className="eyebrow">Meet the dojo</span><h2>Original fighters. Questionable judgment.</h2></div><button className="text-link" onClick={() => goTo("cards")}>Browse Characters →</button></div><div className="roster-grid">{HERO_FIGHTERS.map((fighter) => <article className="paper-stack" key={fighter.name}><div className="roster-image"><img src={fighter.image} alt={fighter.name} loading="lazy" decoding="async" /></div><span>{fighter.type}</span><h3>{fighter.name}</h3></article>)}</div></section>
   </>;
 }
 
@@ -319,19 +319,24 @@ function RulesView() {
       return [{ chapter, section }];
     });
   }, [query]);
-  const chooseChapter = (id: string) => { setSelectedId(id); setQuery(""); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const chooseChapter = (id: string) => {
+    setSelectedId(id);
+    setQuery("");
+    window.requestAnimationFrame(() => document.getElementById("rule-reader")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
   return <main className="rules-page shell page-shell">
     <SectionHeader eyebrow="Official Full Rules" title="The complete dojo law" intro="The v1.6 gameplay draft, organized for fast lookup. Quick Start, glossary, rulings, and house rules live in their purpose-built sections instead of appearing twice." art={headerRulesUrl} />
     <div className="rules-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all rules—Flow, Tempo, KO, Combo…" aria-label="Search all rules" />{query && <button onClick={() => setQuery("")} aria-label="Clear rules search">×</button>}</label><span className="source-badge">{ruleChapters.length} focused chapters · v1.6 draft</span></div>
+    <label className="mobile-chapter-picker"><span>Jump to a chapter</span><select value={selected.id} onChange={(event) => chooseChapter(event.target.value)}>{ruleChapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{String(chapter.number).padStart(2, "0")} · {chapter.title}</option>)}</select></label>
     {query ? <section className="rule-search-results"><h2>{matches.length} matching chapter{matches.length === 1 ? "" : "s"}</h2>{matches.length ? matches.map(({ chapter, section }) => <button key={chapter.id} onClick={() => chooseChapter(chapter.id)}><span>Chapter {chapter.number}</span><h3>{chapter.title}</h3><p>{section ? `Match in ${section.title}` : "Match in chapter overview"}</p></button>) : <div className="empty-state"><strong>No rule found.</strong><p>Try a shorter term or search the Card Library for printed card text.</p></div>}</section> :
-      <div className="rules-layout"><aside className="chapter-nav" aria-label="Rule chapters"><span>Contents</span>{ruleChapters.map((chapter) => <button className={chapter.id === selected.id ? "active" : ""} onClick={() => chooseChapter(chapter.id)} key={chapter.id}><b>{String(chapter.number).padStart(2, "0")}</b><span>{chapter.title}</span></button>)}</aside><article className="rule-article paper-stack"><header><span>Chapter {selected.number}</span><h1>{selected.title}</h1></header><div className="chapter-art"><img src={rulesMarginaliaUrl} alt="Playful Paper-Fu rulebook marginalia" /><div><span>{RULE_VISUALS[selected.number]?.label}</span><p>{RULE_VISUALS[selected.number]?.quip}</p></div></div><RuleBlocks blocks={selected.intro} />{selected.sections.map((section) => <section id={section.id} key={section.id}><h2>{section.title}</h2><RuleBlocks blocks={section.content} /></section>)}<footer className="chapter-footer"><span>End of Chapter {selected.number}</span>{ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1] && <button onClick={() => chooseChapter(ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].id)}>Next: {ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].title} →</button>}</footer></article></div>}
+      <div className="rules-layout" id="rule-reader"><aside className="chapter-nav" aria-label="Rule chapters"><span>Contents</span>{ruleChapters.map((chapter) => <button className={chapter.id === selected.id ? "active" : ""} onClick={() => chooseChapter(chapter.id)} key={chapter.id}><b>{String(chapter.number).padStart(2, "0")}</b><span>{chapter.title}</span></button>)}</aside><article className="rule-article paper-stack"><header><span>Chapter {selected.number}</span><h1>{selected.title}</h1></header><div className="chapter-art"><img src={rulesMarginaliaUrl} alt="Playful Paper-Fu rulebook marginalia" loading="lazy" decoding="async" /><div><span>{RULE_VISUALS[selected.number]?.label}</span><p>{RULE_VISUALS[selected.number]?.quip}</p></div></div><RuleBlocks blocks={selected.intro} />{selected.sections.map((section) => <section id={section.id} key={section.id}><h2>{section.title}</h2><RuleBlocks blocks={section.content} /></section>)}<footer className="chapter-footer"><span>End of Chapter {selected.number}</span>{ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1] && <button onClick={() => chooseChapter(ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].id)}>Next: {ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].title} →</button>}</footer></article></div>}
   </main>;
 }
 
 function CardTile({ card, onOpen }: { card: CardEntry; onOpen: () => void }) {
   const statPairs = Object.entries(card.stats).slice(0, 3);
   return <button className={`library-card paper-stack interactive-paper type-${card.cardType.toLocaleLowerCase().replaceAll(" ", "-")}`} onClick={onOpen}>
-    <div className="card-topline"><span>{card.cardType}</span><b>{card.deck}</b></div><div className="card-art"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} /><span>{card.catalogId}</span></div>
+    <div className="card-topline"><span>{card.cardType}</span><b>{card.deck}</b></div><div className="card-art"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} loading="lazy" decoding="async" /><span>{card.catalogId}</span></div>
     <div className="card-body"><small>{card.expansion}</small><h3>{card.name}</h3><div className="card-costs">{card.fpCost !== null && card.fpCost !== undefined && <span><b>{valueLabel(card.fpCost)}</b> Focus Cost</span>}{card.focusValue !== null && card.focusValue !== undefined && <span><b>{valueLabel(card.focusValue)}</b> Focus</span>}{card.zone && <span>{card.zone}</span>}</div>{statPairs.length > 0 && <div className="mini-stats">{statPairs.map(([key, value]) => <span key={key}><b>{value}</b>{key}</span>)}</div>}<p>{card.rulesText || card.flavorText || "Open for complete card details."}</p><div className="tag-row">{[...card.tags, ...card.buildPaths].slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div></div><span className="open-card">View card →</span>
   </button>;
 }
@@ -339,10 +344,12 @@ function CardTile({ card, onOpen }: { card: CardEntry; onOpen: () => void }) {
 function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) {
   useEffect(() => {
     const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
+    return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
   }, [onClose]);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span><span>{card.expansion}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet} · {card.rulesVersion}</footer></article></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button autoFocus className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span><span>{card.expansion}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet} · {card.rulesVersion}</footer></article></div>;
 }
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
@@ -406,6 +413,14 @@ export default function CompanionApp() {
     const sync = () => { const next = window.location.hash.replace("#", "") as ViewId; if (ALL_VIEWS.includes(next)) setView(next); };
     sync(); window.addEventListener("hashchange", sync); return () => window.removeEventListener("hashchange", sync);
   }, []);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (event: KeyboardEvent) => event.key === "Escape" && setMenuOpen(false);
+    const previous = document.body.style.overflow;
+    if (window.matchMedia("(max-width: 840px)").matches) document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", close);
+    return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
+  }, [menuOpen]);
   const goTo = (next: ViewId) => { setView(next); setMenuOpen(false); setGlobalSearch(""); window.history.pushState(null, "", `#${next}`); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const globalResults = useMemo(() => {
     const term = globalSearch.trim().toLocaleLowerCase(); if (term.length < 2) return [];
@@ -414,10 +429,11 @@ export default function CompanionApp() {
     return [...cards, ...terms].slice(0, 7);
   }, [globalSearch]);
   const chooseResult = (result: (typeof globalResults)[number]) => { if (result.card) { setSearchedCard(result.card); goTo("cards"); } else { setSearchedTerm(result.title); goTo("glossary"); } };
+  const moreActive = view === "story" || view === "rulings" || view === "glossary" || view === "house-rules";
   return <div className="site-frame">
-    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav className={menuOpen ? "open" : ""} aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search cards & terms" aria-label="Search cards and glossary" /></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-label="Toggle navigation"><span /><span /><span /></button></div></header>
+    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" className={menuOpen ? "open" : ""} aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search cards & terms" aria-label="Search cards and glossary" /></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="primary-navigation" aria-expanded={menuOpen} aria-label={menuOpen ? "Close navigation" : "Open navigation"}><span /><span /><span /></button></div>{menuOpen && <button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}</header>
     <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView />}{view === "glossary" && <GlossaryView key={searchedTerm} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView />}</div>
     <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Rules source: v1.6 economy draft</span></div></footer>
-    <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}>Home</button>{NAV_ITEMS.slice(0, 4).map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.short}</button>)}</nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}><span aria-hidden="true">⌂</span>Home</button><button className={view === "quickstart" ? "active" : ""} onClick={() => goTo("quickstart")}><span aria-hidden="true">▶</span>Start</button><button className={view === "rules" ? "active" : ""} onClick={() => goTo("rules")}><span aria-hidden="true">§</span>Rules</button><button className={view === "cards" ? "active" : ""} onClick={() => goTo("cards")}><span aria-hidden="true">▤</span>Cards</button><button className={moreActive || menuOpen ? "active" : ""} onClick={() => setMenuOpen((open) => !open)} aria-controls="primary-navigation" aria-expanded={menuOpen}><span aria-hidden="true">•••</span>More</button></nav>
   </div>;
 }
