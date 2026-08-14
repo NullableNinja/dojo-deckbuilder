@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import test from "node:test";
 
 test("builds a GitHub Pages index with repository-relative assets", async () => {
@@ -18,5 +18,9 @@ test("bundles the complete interactive companion", async () => {
     assert.ok(bundle.includes(expected), `Missing site content: ${expected}`);
   }
   const embeddedWebpImages = bundle.match(/data:image\/webp;base64,/g)?.length ?? 0;
-  assert.ok(embeddedWebpImages >= 17, `Expected embedded artwork; found ${embeddedWebpImages} images.`);
+  assert.equal(embeddedWebpImages, 0, "Artwork should be cacheable files, not embedded in the JavaScript bundle.");
+  const webpAssets = (await readdir(assetDirectory)).filter((name) => name.endsWith(".webp"));
+  assert.ok(webpAssets.length >= 17, `Expected emitted WebP artwork; found ${webpAssets.length} files.`);
+  const bundleSize = (await stat(new URL(scripts[0], assetDirectory))).size;
+  assert.ok(bundleSize < 1_500_000, `JavaScript bundle is too large for a mobile-first companion: ${bundleSize} bytes.`);
 });
