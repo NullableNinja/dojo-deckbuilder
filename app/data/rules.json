@@ -101,7 +101,7 @@
             },
             {
               "kind": "bullet",
-              "text": "Boss Materials — three Boss Stage cards plus a dedicated 12-card Boss Technique Deck for Dojo Drama."
+              "text": "Boss Materials — three Boss Stage cards plus a dedicated 32-card Boss Arsenal Deck containing Attacks, Boss Guards, and Boss Techniques for Dojo Drama."
             },
             {
               "kind": "bullet",
@@ -169,7 +169,7 @@
                 [
                   "Boss Technique",
                   "A simplified automated Attack used only by Bosses in Dojo Drama.",
-                  "Shuffled into the dedicated 12-card Boss Technique Deck."
+                  "Shuffled into the dedicated 32-card Boss Arsenal Deck."
                 ]
               ]
             }
@@ -1994,11 +1994,11 @@
             },
             {
               "kind": "paragraph",
-              "text": "4. Shuffle the dedicated 12-card Boss Technique Deck: four High, four Mid, and four Low Boss Techniques. This deck is separate from the normal Technique Deck and does not remove cards from the Market."
+              "text": "4. Shuffle the dedicated 32-card Boss Arsenal Deck. It contains the twelve original Boss Attacks, eight additional Boss Attacks, six Boss Guards, and six Boss Techniques. This deck is separate from the normal Technique Deck and does not remove cards from the Market."
             },
             {
               "kind": "paragraph",
-              "text": "5. Prepare your fixed Starter Deck, shared Market Deck, separate face-down Combo Deck, Market row, and Location Deck normally. At the beginning of each Boss stage, shuffle all 12 Boss Techniques to form a fresh Boss Technique Deck."
+              "text": "5. Prepare your fixed Starter Deck, shared Market Deck, separate face-down Combo Deck, Market row, and Location Deck normally. At the beginning of each Boss stage, shuffle all 32 Boss Arsenal cards to form a fresh Boss Arsenal Deck."
             }
           ]
         },
@@ -2055,11 +2055,11 @@
             },
             {
               "kind": "paragraph",
-              "text": "1. Reveal the top Boss Technique card."
+              "text": "1. Reveal Boss Arsenal cards until an Attack is revealed. Resolve any Boss Guard or Boss Technique revealed along the way immediately. Place a Boss Guard face up in Boss Guard; if one is already there, discard the old Guard first. Boss Techniques resolve, then you continue revealing."
             },
             {
               "kind": "paragraph",
-              "text": "2. The Boss targets your active Character and attacks the printed zone."
+              "text": "2. The Boss targets your active Character and attacks the printed zone. If Boss Guard is active for that zone, apply its Guard value to this Attack, then discard it. If the zone does not match, discard Boss Guard without applying it."
             },
             {
               "kind": "paragraph",
@@ -2067,11 +2067,11 @@
             },
             {
               "kind": "paragraph",
-              "text": "4. Open and resolve the normal Reaction Window. Then calculate final Attack Power and Defense using the normal combat rules."
+              "text": "4. Open and resolve the normal Reaction Window. Then calculate final Attack Power and Defense using the normal combat rules. Resolve any printed Boss Technique effect after the Attack resolves."
             },
             {
               "kind": "paragraph",
-              "text": "5. Discard the Boss Technique after the Attack resolves. If the Boss Technique Deck empties, shuffle its discard pile."
+              "text": "5. Discard the Boss Attack after the Attack resolves. If the Boss Arsenal Deck empties, shuffle its discard pile."
             },
             {
               "kind": "paragraph",
@@ -2119,7 +2119,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "4. If the game continues, discard all remaining Market cards to the Market discard and reveal seven fresh random Market cards, reveal the next Boss at the beginning of the next Honor Phase, and shuffle all 12 Boss Techniques for the new stage. This Boss-transition Market refresh replaces the normal end-of-round Market refresh for the round in which a Boss is KO'd — do not refresh twice."
+              "text": "4. If the game continues, discard all remaining Market cards to the Market discard and reveal seven fresh random Market cards, reveal the next Boss at the beginning of the next Honor Phase, and shuffle all 32 Boss Arsenal cards for the new stage. This Boss-transition Market refresh replaces the normal end-of-round Market refresh for the round in which a Boss is KO'd — do not refresh twice."
             }
           ]
         },
