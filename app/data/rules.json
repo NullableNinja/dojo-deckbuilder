@@ -2039,7 +2039,7 @@
               "kind": "table",
               "rows": [
                 [
-                  "ENRAGED\nWhile the solo Final Boss has 30 HP or less, it makes two Boss Technique Attacks during each Boss Turn instead of one. Resolve the first Attack completely before revealing the second. In Cooperative Dojo Drama, the Enraged rule does not apply — the co-op Final Boss already makes two attacks per round."
+                  "ENRAGED\nWhile the solo Final Boss has 30 HP or less, it makes two Boss Attacks during each Boss Turn instead of one. Resolve the first Attack completely before revealing the second. In Cooperative Dojo Drama, the Enraged rule does not apply — the co-op Final Boss already makes two attacks per round."
                 ]
               ]
             }
@@ -2063,7 +2063,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "3. Boss Attack Power = Boss Technique Damage + printed Boss ATK + the current Boss Stage Attack Bonus."
+              "text": "3. Boss Attack Power = Boss Attack Damage + printed Boss ATK + the current Boss Stage Attack Bonus."
             },
             {
               "kind": "paragraph",
@@ -2147,7 +2147,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "For two players, each brings three Characters and uses Tag Team rules. Set Boss HP to 45 / 65 / 85. Each Boss makes two Boss Technique Attacks per round, targeting different players when possible; otherwise target the active fighter with the lowest current HP and break ties randomly. The solo Final Boss Enraged rule does not apply in cooperative play — the co-op Final Boss already makes two attacks per round. Players win or lose together."
+              "text": "For two players, each brings three Characters and uses Tag Team rules. Set Boss HP to 45 / 65 / 85. Each Boss makes two Boss Attacks per round, targeting different players when possible; otherwise target the active fighter with the lowest current HP and break ties randomly. The solo Final Boss Enraged rule does not apply in cooperative play — the co-op Final Boss already makes two attacks per round. Players win or lose together."
             }
           ]
         }
