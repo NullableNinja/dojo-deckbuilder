@@ -359,7 +359,8 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
   const types = ["All", ...Object.keys(cardData.counts)];
   const cardsInScope = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
-    return cardData.cards.filter((card) => (expansion === "All" || card.expansion === expansion) && (deck === "All" || card.deck === deck) && (!term || card.searchText.includes(term)));
+    const matches = (card: CardEntry) => !term || [card.searchText, card.name, card.rulesText, card.flavorText].filter(Boolean).join(" ").toLowerCase().includes(term);
+    return cardData.cards.filter((card) => (expansion === "All" || card.expansion === expansion) && (deck === "All" || card.deck === deck) && matches(card));
   }, [query, expansion, deck]);
   const typeCounts = useMemo(() => cardsInScope.reduce<Record<string, number>>((counts, card) => { counts[card.cardType] = (counts[card.cardType] ?? 0) + 1; return counts; }, {}), [cardsInScope]);
   const filtered = useMemo(() => {
@@ -424,7 +425,7 @@ export default function CompanionApp() {
   const goTo = (next: ViewId) => { setView(next); setMenuOpen(false); setGlobalSearch(""); window.history.pushState(null, "", `#${next}`); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const globalResults = useMemo(() => {
     const term = globalSearch.trim().toLocaleLowerCase(); if (term.length < 2) return [];
-    const cards = cardData.cards.filter((card) => card.searchText.includes(term)).slice(0, 5).map((card) => ({ type: "Card", title: card.name, detail: `${card.cardType} · ${card.subtype}`, card }));
+    const cards = cardData.cards.filter((card) => [card.searchText, card.name, card.rulesText, card.flavorText].filter(Boolean).join(" ").toLowerCase().includes(term)).slice(0, 5).map((card) => ({ type: "Card", title: card.name, detail: `${card.cardType} · ${card.subtype}`, card }));
     const terms = rulesData.glossary.filter((entry) => `${entry.term} ${entry.meaning}`.toLocaleLowerCase().includes(term)).slice(0, 3).map((entry) => ({ type: "Glossary", title: entry.term, detail: entry.meaning, card: null }));
     return [...cards, ...terms].slice(0, 7);
   }, [globalSearch]);
