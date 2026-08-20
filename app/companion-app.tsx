@@ -256,7 +256,7 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
       <div className="section-title-row"><div><span className="eyebrow">Choose your path</span><h2>Everything the table needs</h2></div><p>Built to answer the question in front of you without making you reread a giant manual.</p></div>
       <div className="route-grid">{[
         ["quickstart", "01", "Quick Start", "Set up, learn the turn, and throw the first punch."],
-        ["story", "02", "Backstory", "The tournament scandal, the three elders, and the birth of Paper-Fu."],
+        ["story", "02", "Backstory", "A permit renewal, an emergency ordinance, and the birth of Paper-Fu."],
         ["rules", "03", "Full Rules", "Every gameplay chapter from the revised rulebook, made searchable."],
         ["cards", "04", "Card Library", `Search and filter all ${cardData.total} numbered card entries.`],
         ["rulings", "05", "Rules Desk", "Official clarifications, priority, and discrepancy handling."],
@@ -270,15 +270,15 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
 function StoryView({ goTo }: { goTo: (view: ViewId) => void }) {
   const storyParagraphs = storyChapter?.intro.filter((block): block is Extract<RuleBlock, { kind: "paragraph" }> => block.kind === "paragraph").map((block) => block.text) ?? [];
   return <main className="page-shell shell story-page">
-    <SectionHeader eyebrow="The Backstory" title="The tournament was rigged. The rematch is worse." intro="The official Paper-Fu origin, preserved here so nobody has to dig through the gameplay chapters to find the ferret incident." art={headerBackstoryUrl} />
-    <section className="story-lede paper-stack"><span className="story-dropcap">P</span><div><span className="eyebrow">Five years ago, give or take the legal paperwork</span><h2>{storyParagraphs[1] ?? "A great martial-arts tournament attempted to determine the strongest fighting style."}</h2></div></section>
+    <SectionHeader eyebrow="The Backstory" title="The permit expired. Honor followed." intro="The official Paper-Fu origin, filed under “Temporary Civic Measure” and immediately treated as sacred history." art={headerBackstoryUrl} />
+    <section className="story-lede paper-stack"><span className="story-dropcap">P</span><div><span className="eyebrow">The Tuesday the paperwork fought back</span><h2>{storyParagraphs[1] ?? "A routine Dojo Permit Renewal Day became a municipal martial-arts crisis."}</h2></div></section>
     <section className="story-panels">
-      <article className="paper-stack"><span>01</span><h2>The grand nonsense</h2><p>{storyParagraphs[2] ?? "There was only one problem: everyone cheated."}</p><i>Hidden weapons · bribed judges · ferret-based interference</i></article>
-      <article className="paper-stack"><span>02</span><h2>The emergency ruling</h2><p>{storyParagraphs[3] ?? "The Council of Martial Arts Elders declared a reset."}</p><i>Three elders · one robe · zero due process</i></article>
-      <article className="paper-stack"><span>03</span><h2>The Paper-Fu solution</h2><p>{storyParagraphs[4] ?? "Advancement would be earned through combat, deckbuilding, increasingly ridiculous promotion tasks, and the sacred discipline of reading the card before arguing about it."}</p><i>Paper cards · Belt Exams · real grudges</i></article>
+      <article className="paper-stack"><span>01</span><h2>The audit</h2><p>{storyParagraphs[2] ?? "One form met forty-seven martial-arts schools and absolutely no adult supervision."}</p><i>47 dojos · one form · no adult supervision</i></article>
+      <article className="paper-stack"><span>02</span><h2>The ordinance</h2><p>{storyParagraphs[3] ?? "The Department of Competitive Safety accidentally made the first five-round certified demonstration."}</p><i>Five rounds · city seal · absolutely not optional</i></article>
+      <article className="paper-stack"><span>03</span><h2>The accidental art</h2><p>{storyParagraphs[4] ?? "The masters found an old filing cabinet, called it ancient wisdom, and never looked back."}</p><i>Paper cards · Belt Exams · municipal glory</i></article>
     </section>
     <section className="golden-rule-card paper-stack"><div><span className="eyebrow">The Golden Rule</span><h2>The card wins.</h2></div><p>{GOLDEN_RULE}</p><span className="golden-stamp" aria-hidden="true">!</span></section>
-    <section className="story-cta paper-stack"><div><span className="eyebrow">Enough lore?</span><h2>Go make the elders regret approving this.</h2></div><button className="button primary" onClick={() => goTo("quickstart")}>Set up the first fight →</button></section>
+    <section className="story-cta paper-stack"><div><span className="eyebrow">Enough lore?</span><h2>Go make the city regret issuing permits.</h2></div><button className="button primary" onClick={() => goTo("quickstart")}>Set up the first fight →</button></section>
   </main>;
 }
 
