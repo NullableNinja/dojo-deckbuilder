@@ -2,22 +2,22 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import brandEmblemUrl from "./assets/art/brand-emblem.webp";
-import cardPlaceholderUrl from "./assets/art/card-placeholder.webp";
-import headerBackstoryUrl from "./assets/art/header-backstory.webp";
-import headerCardsUrl from "./assets/art/header-cards.webp";
-import headerGlossaryUrl from "./assets/art/header-glossary.webp";
-import headerHouseRulesUrl from "./assets/art/header-house-rules.webp";
-import headerQuickstartUrl from "./assets/art/header-quickstart.webp";
-import headerRulesUrl from "./assets/art/header-rules.webp";
-import headerRulingsUrl from "./assets/art/header-rulings.webp";
-import heroPaperFuUrl from "./assets/art/hero-paper-fu.webp";
-import rulesMarginaliaUrl from "./assets/art/rules-marginalia.webp";
+import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
+import headerBackstoryUrl from "./assets/art/header-backstory-v2.webp";
+import headerCardsUrl from "./assets/art/header-cards-v2.webp";
+import headerGlossaryUrl from "./assets/art/header-glossary-v2.webp";
+import headerHouseRulesUrl from "./assets/art/header-house-rules-v2.webp";
+import headerQuickstartUrl from "./assets/art/header-quickstart-v2.webp";
+import headerRulesUrl from "./assets/art/header-rules-v2.webp";
+import headerRulingsUrl from "./assets/art/header-rulings-v2.webp";
+import heroPaperFuUrl from "./assets/art/hero-paper-fu-v2.webp";
+import rulesMarginaliaUrl from "./assets/art/rules-marginalia-v2.webp";
 import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp";
 import mrBobbyUrl from "./assets/characters/mr-bobby.webp";
 import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp";
 import waveyDaveyUrl from "./assets/characters/wavey-davey.webp";
-import starterJabArtUrl from "./assets/starter/starter-jab-art.webp";
-import highGuardArtUrl from "./assets/starter/high-guard-art.webp";
+import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
+import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import rulesJson from "./data/rules.json";
 
@@ -56,10 +56,10 @@ const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
 ];
 const ALL_VIEWS: ViewId[] = ["home", ...NAV_ITEMS.map((item) => item.id)];
 const HERO_FIGHTERS = [
-  { name: "El Pollo Rojo", image: elPolloRojoUrl, type: "Pressure" },
-  { name: "Mr. Bobby", image: mrBobbyUrl, type: "Fortress" },
-  { name: "Sensei Ducktape", image: senseiDucktapeUrl, type: "Arsenal" },
-  { name: "Wavey Davey", image: waveyDaveyUrl, type: "Counter" },
+  { name: "El Pollo Rojo", image: elPolloRojoUrl, type: "Never Backs Down" },
+  { name: "Mr. Bobby", image: mrBobbyUrl, type: "Built Like a Filing Cabinet" },
+  { name: "Sensei Ducktape", image: senseiDucktapeUrl, type: "Improvised Equipment Expert" },
+  { name: "Wavey Davey", image: waveyDaveyUrl, type: "Opening-Seeking Specialist" },
 ];
 const CARD_IMAGE_URLS: Record<string, string> = {
   "/characters/el-pollo-rojo.webp": elPolloRojoUrl,
@@ -89,21 +89,21 @@ const STARTER_CARDS = [
 ];
 const GOLDEN_RULE = "When a card directly contradicts this rulebook, the card wins. When two cards conflict, use the timing and priority rules. If the table still cannot agree, the active player makes the temporary ruling, finishes the turn, and everyone may yell about it afterward.";
 const RULE_VISUALS: Record<number, { label: string; quip: string }> = {
-  2: { label: "Sort the chaos", quip: "Separate the decks now. Prevent the ritual sorting disaster later." },
-  3: { label: "Pick your flavor of trouble", quip: "One box, four increasingly questionable ways to settle things." },
-  4: { label: "Stack the dojo", quip: "A clean table is simply chaos that has not received cards yet." },
-  5: { label: "Count the important bits", quip: "Focus buys the helmet. XP earns the belt. HP keeps you vertical." },
-  6: { label: "Say it with your whole turn", quip: "Honor once. Then every fighter gets their own I.Y.A.H." },
-  7: { label: "Read before yelling", quip: "Pay costs first; invent loopholes never." },
-  8: { label: "Math with consequences", quip: "Declare a zone. Invite interference. Subtract responsibly." },
-  9: { label: "Wear the nonsense", quip: "If the slot fits, somebody will equip it." },
-  10: { label: "Buy competence", quip: "The Market is random. The regret is carefully curated." },
-  11: { label: "Earn the belt", quip: "Promotion requires XP, a task, and the confidence to announce it." },
-  12: { label: "Meet the weirdos", quip: "Every fighter brought a specialty and at least one unresolved issue." },
-  13: { label: "Tag, you're complicated", quip: "Three fighters. One active spot. Infinite bench commentary." },
-  14: { label: "Fight the cardboard villain", quip: "The Boss has no hand, no mercy, and remarkably tidy automation." },
-  15: { label: "Settle it like scholars", quip: "Read the card aloud before establishing a tiny courtroom." },
-  16: { label: "Fall down correctly", quip: "Even getting knocked out has an order of operations." },
+  2: { label: "Sort the field kit", quip: "The Department catalogued this once. Do not make it happen again." },
+  3: { label: "Choose a demonstration", quip: "Every format has been certified as ‘controlled.’" },
+  4: { label: "Register the delegation", quip: "Set up the table before the inspector finds the snacks." },
+  5: { label: "Count the useful things", quip: "Focus buys the helmet. XP earns the Belt. HP keeps the report short." },
+  6: { label: "Follow the protocol", quip: "Honor once. Then every delegation completes Initiate, Yell, Ascend, and Hide." },
+  7: { label: "Read before yelling", quip: "Resolve printed costs first; invent loopholes never." },
+  8: { label: "Math with witnesses", quip: "Declare a zone. Invite interference. Subtract responsibly." },
+  9: { label: "Pass equipment inspection", quip: "If the slot fits, somebody completed a form for it." },
+  10: { label: "Access the reserve curriculum", quip: "The Market is random. The Department calls that a field test." },
+  11: { label: "Pass the certification", quip: "Promotion requires XP, a task, and a committee-approved amount of confidence." },
+  12: { label: "Meet the delegation", quip: "Every fighter brought a specialty and at least one unresolved form." },
+  13: { label: "Demonstrate as a team", quip: "Three fighters. One active spot. Infinite bench commentary." },
+  14: { label: "Survive the stress test", quip: "The Boss has no hand, no mercy, and an official funding line." },
+  15: { label: "File the dispute", quip: "Read the card aloud before opening a tiny municipal courtroom." },
+  16: { label: "Complete the safety report", quip: "Even getting knocked out has an order of operations." },
 };
 const GAME_MODES = [
   { id: "tag-team", label: "Recommended", title: "Tag Team: Swap-Fu", players: "2–6 players", fighters: "3 Characters each", win: "Black Belt Victory or Last Fighter Standing", detail: "The recommended Core Format, especially for two players. Each player owns a three-fighter roster but controls only one active fighter at a time. Tag during Initiate, protect injured teammates on the bench, and keep fighting after a single KO.", notes: ["Use the complete Tag Team rules in Section 13.", "Equipment stays with the fighter who equipped it.", "Learned Combos belong to the player and may be triggered by any active fighter."] },
@@ -157,7 +157,7 @@ function RuleBlocks({ blocks }: { blocks: RuleBlock[] }) {
 }
 
 function SectionHeader({ eyebrow, title, intro, art }: { eyebrow: string; title: string; intro: string; art: string }) {
-  return <header className="section-header paper-stack"><div className="section-header-copy"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{intro}</p></div><img src={art} alt="" aria-hidden="true" decoding="async" /></header>;
+  return <header className="section-header paper-stack"><i className="fastener paperclip header-paperclip" aria-hidden="true" /><div className="section-header-copy"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{intro}</p></div><img src={art} alt="" aria-hidden="true" decoding="async" /></header>;
 }
 
 function BrandMark() {
@@ -242,21 +242,21 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
   return <>
     <section className="hero shell">
       <div className="hero-copy">
-        <span className="version-pill"><span className="status-dot" /> v1.6 economy draft</span>
-        <p className="kicker">A deckbuilder with a black-belt problem.</p>
+        <span className="version-pill"><span className="status-dot" /> v2.0 alpha field test</span>
+        <p className="kicker">Government-certified card combat. Mostly.</p>
         <h1>Shuffle.<br />Strike. Ascend.</h1>
-        <p className="hero-lede">The definitive companion for Dojo Deckbuilder—quick start, full rules, deck-aware card lookup, rulings, glossary, and sanctioned nonsense.</p>
+        <p className="hero-lede">Build a registered deck, survive the field test, and help decide whether Paper-Fu deserves another year of public funding.</p>
         <div className="hero-actions"><button className="button primary" onClick={() => goTo("quickstart")}>Start playing <span>→</span></button><button className="button ghost" onClick={() => goTo("rules")}>Read full rules</button></div>
         <div className="hero-note"><span>⏱</span><strong>First game?</strong> Get the table moving in about 10 minutes.</div>
       </div>
-      <div className="hero-art-new"><span className="paper-shadow shadow-one" /><span className="paper-shadow shadow-two" /><img src={heroPaperFuUrl} alt="Four whimsical paper martial artists springing from a stack of cards" fetchPriority="high" decoding="async" /><div className="impact-word" aria-hidden="true">HIYAH!</div></div>
+      <div className="hero-art-new"><span className="paper-shadow shadow-one" /><span className="paper-shadow shadow-two" /><i className="fastener tape-strip hero-tape-one" aria-hidden="true" /><i className="fastener tape-strip hero-tape-two" aria-hidden="true" /><img src={heroPaperFuUrl} alt="Paper-Fu fighters and a city inspector at the annual licensing tournament" fetchPriority="high" decoding="async" /><div className="impact-word" aria-hidden="true">HIYAH!</div></div>
     </section>
     <section className="stats-strip"><div className="shell stats-inner"><div><strong>{ruleChapters.length}</strong><span>Focused chapters</span></div><div><strong>{cardData.total}</strong><span>Card entries</span></div><div><strong>{cardData.decks.length}</strong><span>Separate decks</span></div><div><strong>4</strong><span>Game modes</span></div></div></section>
     <section className="shell route-section">
       <div className="section-title-row"><div><span className="eyebrow">Choose your path</span><h2>Everything the table needs</h2></div><p>Built to answer the question in front of you without making you reread a giant manual.</p></div>
       <div className="route-grid">{[
         ["quickstart", "01", "Quick Start", "Set up, learn the turn, and throw the first punch."],
-        ["story", "02", "Backstory", "The tournament scandal, the three elders, and the birth of Paper-Fu."],
+        ["story", "02", "Backstory", "The Department built a martial art from thousands of submissions. It is legally working."],
         ["rules", "03", "Full Rules", "Every gameplay chapter from the revised rulebook, made searchable."],
         ["cards", "04", "Card Library", `Search and filter all ${cardData.total} numbered card entries.`],
         ["rulings", "05", "Rules Desk", "Official clarifications, priority, and discrepancy handling."],
@@ -270,15 +270,15 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
 function StoryView({ goTo }: { goTo: (view: ViewId) => void }) {
   const storyParagraphs = storyChapter?.intro.filter((block): block is Extract<RuleBlock, { kind: "paragraph" }> => block.kind === "paragraph").map((block) => block.text) ?? [];
   return <main className="page-shell shell story-page">
-    <SectionHeader eyebrow="The Backstory" title="Everyone cheated. Paper-Fu happened." intro="The completely reputable origin of Dojo Deckbuilder, preserved here so nobody has to dig through the gameplay chapters to find the ferret incident." art={headerBackstoryUrl} />
-    <section className="story-lede paper-stack"><span className="story-dropcap">P</span><div><span className="eyebrow">Long ago—roughly last fiscal quarter</span><h2>{storyParagraphs[1] ?? "A great martial-arts tournament attempted to determine the strongest fighting style."}</h2></div></section>
+    <SectionHeader eyebrow="The Backstory" title="The field test was approved. The filing cabinet was not." intro="The official Paper-Fu origin, preserved by the Department of Competitive Safety and immediately declared ancient history." art={headerBackstoryUrl} />
+    <section className="story-lede paper-stack"><i className="fastener tape-strip story-tape" aria-hidden="true" /><span className="story-dropcap">P</span><div><span className="eyebrow">The Department’s original mistake</span><h2>{storyParagraphs[1] ?? "The Department of Competitive Safety had one job, and martial artists made it complicated."}</h2></div></section>
     <section className="story-panels">
-      <article className="paper-stack"><span>01</span><h2>The tournament</h2><p>{storyParagraphs[2] ?? "There was only one problem: everyone cheated."}</p><i>Hidden weapons · bribed judges · ferret-based interference</i></article>
-      <article className="paper-stack"><span>02</span><h2>The ruling</h2><p>{storyParagraphs[3] ?? "The Council of Martial Arts Elders declared a reset."}</p><i>Three elders · one robe · absolutely no appeals process</i></article>
-      <article className="paper-stack"><span>03</span><h2>The new art</h2><p>Advancement would be earned through combat, deckbuilding, increasingly ridiculous promotion tasks, and the sacred discipline of reading the card before arguing about it.</p><i>Paper cards · real grudges · fewer legal reviews</i></article>
+      <article className="paper-stack"><span>01</span><h2>The Expo</h2><p>{storyParagraphs[2] ?? "Coupons, ferret-based interference, and a fountain-related monk incident ended self-certification."}</p><i>coupons · ferret · fire marshal</i></article>
+      <article className="paper-stack"><span>02</span><h2>The Cabinet</h2><p>{storyParagraphs[3] ?? "A tax-receipts filing cabinet became ancient wisdom before anyone could stop it."}</p><i>TAX RECEIPTS → ancient wisdom</i></article>
+      <article className="paper-stack"><span>03</span><h2>The Tournament</h2><p>{storyParagraphs[4] ?? "Certified delegations now field-test Paper-Fu for public funding and a temporary plaque."}</p><i>delegations · field test · Model Dojo</i></article>
     </section>
     <section className="golden-rule-card paper-stack"><div><span className="eyebrow">The Golden Rule</span><h2>The card wins.</h2></div><p>{GOLDEN_RULE}</p><span className="golden-stamp" aria-hidden="true">!</span></section>
-    <section className="story-cta paper-stack"><div><span className="eyebrow">Enough lore?</span><h2>Go make the elders regret approving this.</h2></div><button className="button primary" onClick={() => goTo("quickstart")}>Set up the first fight →</button></section>
+    <section className="story-cta paper-stack"><div><span className="eyebrow">Enough lore?</span><h2>Go make the Department regret funding this.</h2></div><button className="button primary" onClick={() => goTo("quickstart")}>Set up the first fight →</button></section>
   </main>;
 }
 
@@ -325,8 +325,8 @@ function RulesView() {
     window.requestAnimationFrame(() => document.getElementById("rule-reader")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
   return <main className="rules-page shell page-shell">
-    <SectionHeader eyebrow="Official Full Rules" title="The complete dojo law" intro="The v1.6 gameplay draft, organized for fast lookup. Quick Start, glossary, rulings, and house rules live in their purpose-built sections instead of appearing twice." art={headerRulesUrl} />
-    <div className="rules-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all rules—Flow, Tempo, KO, Combo…" aria-label="Search all rules" />{query && <button onClick={() => setQuery("")} aria-label="Clear rules search">×</button>}</label><span className="source-badge">{ruleChapters.length} focused chapters · v1.6 draft</span></div>
+    <SectionHeader eyebrow="Official Full Rules" title="The complete dojo law" intro="The Department’s current approved procedures, organized for fast table use. Quick Start, glossary, rulings, and house rules live in their purpose-built sections." art={headerRulesUrl} />
+    <div className="rules-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all rules—Flow, Tempo, KO, Combo…" aria-label="Search all rules" />{query && <button onClick={() => setQuery("")} aria-label="Clear rules search">×</button>}</label><span className="source-badge">{ruleChapters.length} focused chapters · v2.0 alpha</span></div>
     <label className="mobile-chapter-picker"><span>Jump to a chapter</span><select value={selected.id} onChange={(event) => chooseChapter(event.target.value)}>{ruleChapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{String(chapter.number).padStart(2, "0")} · {chapter.title}</option>)}</select></label>
     {query ? <section className="rule-search-results"><h2>{matches.length} matching chapter{matches.length === 1 ? "" : "s"}</h2>{matches.length ? matches.map(({ chapter, section }) => <button key={chapter.id} onClick={() => chooseChapter(chapter.id)}><span>Chapter {chapter.number}</span><h3>{chapter.title}</h3><p>{section ? `Match in ${section.title}` : "Match in chapter overview"}</p></button>) : <div className="empty-state"><strong>No rule found.</strong><p>Try a shorter term or search the Card Library for printed card text.</p></div>}</section> :
       <div className="rules-layout" id="rule-reader"><aside className="chapter-nav" aria-label="Rule chapters"><span>Contents</span>{ruleChapters.map((chapter) => <button className={chapter.id === selected.id ? "active" : ""} onClick={() => chooseChapter(chapter.id)} key={chapter.id}><b>{String(chapter.number).padStart(2, "0")}</b><span>{chapter.title}</span></button>)}</aside><article className="rule-article paper-stack"><header><span>Chapter {selected.number}</span><h1>{selected.title}</h1></header><div className="chapter-art"><img src={rulesMarginaliaUrl} alt="Playful Paper-Fu rulebook marginalia" loading="lazy" decoding="async" /><div><span>{RULE_VISUALS[selected.number]?.label}</span><p>{RULE_VISUALS[selected.number]?.quip}</p></div></div><RuleBlocks blocks={selected.intro} />{selected.sections.map((section) => <section id={section.id} key={section.id}><h2>{section.title}</h2><RuleBlocks blocks={section.content} /></section>)}<footer className="chapter-footer"><span>End of Chapter {selected.number}</span>{ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1] && <button onClick={() => chooseChapter(ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].id)}>Next: {ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].title} →</button>}</footer></article></div>}
@@ -337,7 +337,7 @@ function CardTile({ card, onOpen }: { card: CardEntry; onOpen: () => void }) {
   const statPairs = Object.entries(card.stats).slice(0, 3);
   return <button className={`library-card paper-stack interactive-paper type-${card.cardType.toLocaleLowerCase().replaceAll(" ", "-")}`} onClick={onOpen}>
     <div className="card-topline"><span>{card.cardType}</span><b>{card.deck}</b></div><div className="card-art"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} loading="lazy" decoding="async" /><span>{card.catalogId}</span></div>
-    <div className="card-body"><small>{card.expansion}</small><h3>{card.name}</h3><div className="card-costs">{card.fpCost !== null && card.fpCost !== undefined && <span><b>{valueLabel(card.fpCost)}</b> Focus Cost</span>}{card.focusValue !== null && card.focusValue !== undefined && <span><b>{valueLabel(card.focusValue)}</b> Focus</span>}{card.zone && <span>{card.zone}</span>}</div>{statPairs.length > 0 && <div className="mini-stats">{statPairs.map(([key, value]) => <span key={key}><b>{value}</b>{key}</span>)}</div>}<p>{card.rulesText || card.flavorText || "Open for complete card details."}</p><div className="tag-row">{[...card.tags, ...card.buildPaths].slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div></div><span className="open-card">View card →</span>
+    <div className="card-body"><small>{card.expansion}</small><h3>{card.name}</h3><div className="card-costs">{card.fpCost !== null && card.fpCost !== undefined && <span><b>{valueLabel(card.fpCost)}</b> Focus Cost</span>}{card.focusValue !== null && card.focusValue !== undefined && <span><b>{valueLabel(card.focusValue)}</b> Focus</span>}{card.zone && <span>{card.zone}</span>}</div>{statPairs.length > 0 && <div className="mini-stats">{statPairs.map(([key, value]) => <span key={key}><b>{value}</b>{key}</span>)}</div>}<p>{card.rulesText || card.flavorText || "Open for complete card details."}</p><div className="tag-row">{card.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div></div><span className="open-card">View card →</span>
   </button>;
 }
 
@@ -349,7 +349,7 @@ function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) 
     window.addEventListener("keydown", close);
     return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
   }, [onClose]);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button autoFocus className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span><span>{card.expansion}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet} · {card.rulesVersion}</footer></article></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button autoFocus className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span><span>{card.expansion}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).filter(([key]) => key !== "Favored Build Paths").map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet} · {card.rulesVersion}</footer></article></div>;
 }
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
@@ -374,7 +374,7 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
     });
   }, [cardsInScope, type, sort]);
   const resetFilters = () => { setQuery(""); setType("All"); setExpansion(CORE_EXPANSION); setDeck("All"); setVisible(24); };
-  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} numbered cards. Zero mystery boosters.`} intro="Search the v1.6 economy draft by catalog ID, deck, release set, type, rules text, or Focus Cost. Placeholder art will be replaced as finished cards arrive." art={headerCardsUrl} />
+  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Publicly inspectable.`} intro="Search the v2.0 alpha catalog by ID, deck, release set, type, rules text, or Focus Cost. Certified card artwork is arriving alongside the field test." art={headerCardsUrl} />
     <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Expansion</span><select value={expansion} onChange={(event) => setExpansion(event.target.value)}><option>All</option>{cardData.expansions.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option><option value="expansion">Expansion</option></select></label></section>
     <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
     <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || expansion !== "All" || deck !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
@@ -386,7 +386,7 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
 function RulingsView() {
   const [query, setQuery] = useState("");
   const rulings = OFFICIAL_RULINGS.filter((entry) => entry.join(" ").toLocaleLowerCase().includes(query.toLocaleLowerCase()));
-  return <main className="page-shell shell rulings-page"><SectionHeader eyebrow="Rules Desk" title="Clarifications, errata, and table peace" intro="Official project rulings live here instead of being duplicated inside the Full Rules reader." art={headerRulingsUrl} />
+  return <main className="page-shell shell rulings-page"><SectionHeader eyebrow="Department Guidance" title="Clarifications, errata, and table peace" intro="Official Paper-Fu guidance lives here instead of being duplicated inside the Full Rules reader." art={headerRulingsUrl} />
     <section className="priority-panel"><div><span className="eyebrow">Rule priority</span><h2>When two things disagree</h2><p>Use this order. Stop as soon as the conflict is resolved.</p></div><ol><li><span>1</span>Scenario or mode rules</li><li><span>2</span>Specific card text</li><li><span>3</span>“Cannot” beats “can”</li><li><span>4</span>Later effect</li><li><span>5</span>Active-player temporary ruling</li></ol></section>
     <section className="ruling-list-section"><div className="rulings-heading"><div><span className="eyebrow">Official clarifications</span><h2>{OFFICIAL_RULINGS.length} current rulings</h2></div><label className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search rulings…" aria-label="Search official rulings" /></label></div><div className="ruling-list">{rulings.map(([tag, title, ruling], index) => <article key={title}><span>{String(index + 1).padStart(2, "0")}</span><div><b>{tag}</b><h3>{title}</h3><p>{ruling}</p></div><strong>Official</strong></article>)}</div></section>
     <section className="judge-procedure"><div><span className="step-stamp">?</span><h2>The two-minute table judge</h2></div><ol><li>Pause for no more than two minutes.</li><li>Read the exact card text aloud.</li><li>Apply Rule Priority.</li><li>Make a temporary ruling and finish the turn.</li><li>Record the question for a permanent ruling after the game.</li></ol></section>
@@ -397,14 +397,14 @@ function HouseRulesView() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<HouseRule | null>(null);
   const filtered = rulesData.houseRules.filter((entry) => `${entry.name} ${entry.rule}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
-  return <main className="page-shell shell house-page"><SectionHeader eyebrow="Sanctioned Shenanigans" title="Nine variants. All guardrails attached." intro="Every house rule was re-audited for the no-Chi v1.6 economy, current Tag Team, Tempo, Market, Combo, and Belt mechanics. Tap any tile for exact timing and design notes." art={headerHouseRulesUrl} /><div className="house-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search variants…" aria-label="Search house rules" /></label><span>{filtered.length} variants</span></div><section className="house-grid">{filtered.map((entry, index) => <button className="paper-stack interactive-paper" onClick={() => setSelected(entry)} key={entry.name}><span>{String(index + 1).padStart(2, "0")}</span><small>{entry.category}</small><h2>{entry.name}</h2><p>{entry.summary || entry.rule}</p><b>Open full variant →</b></button>)}</section><section className="new-rule-panel paper-stack"><span className="eyebrow">Build your own</span><h2>A good house rule answers four questions.</h2><div><p><b>When</b> does it trigger?</p><p><b>Who</b> makes choices?</p><p><b>What</b> if it is impossible?</p><p><b>Where</b> is the cap?</p></div></section>{selected && <DetailModal eyebrow={selected.category || "House Rule"} title={selected.name} onClose={() => setSelected(null)} accent="green"><p className="modal-lede">{selected.summary}</p><aside className="modal-rule"><span>Variant rule</span><p>{selected.rule}</p></aside>{selected.notes && <div className="modal-design-note"><span>Why this wording works</span><p>{selected.notes}</p></div>}<p className="agreement-note">Agree on this variant before setup. It changes only the current game and never rewrites printed card text.</p></DetailModal>}</main>;
+  return <main className="page-shell shell house-page"><SectionHeader eyebrow="Sanctioned Shenanigans" title="Nine variants. Most guardrails attached." intro="Nine approved deviations. The Department has initialed most of them. Tap any tile for exact timing and design notes." art={headerHouseRulesUrl} /><div className="house-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search variants…" aria-label="Search house rules" /></label><span>{filtered.length} variants</span></div><section className="house-grid">{filtered.map((entry, index) => <button className="paper-stack interactive-paper" onClick={() => setSelected(entry)} key={entry.name}><span>{String(index + 1).padStart(2, "0")}</span><small>{entry.category}</small><h2>{entry.name}</h2><p>{entry.summary || entry.rule}</p><b>Open full variant →</b></button>)}</section><section className="new-rule-panel paper-stack"><span className="eyebrow">Build your own</span><h2>A good house rule answers four questions.</h2><div><p><b>When</b> does it trigger?</p><p><b>Who</b> makes choices?</p><p><b>What</b> if it is impossible?</p><p><b>Where</b> is the cap?</p></div></section>{selected && <DetailModal eyebrow={selected.category || "House Rule"} title={selected.name} onClose={() => setSelected(null)} accent="green"><p className="modal-lede">{selected.summary}</p><aside className="modal-rule"><span>Variant rule</span><p>{selected.rule}</p></aside>{selected.notes && <div className="modal-design-note"><span>Why this wording works</span><p>{selected.notes}</p></div>}<p className="agreement-note">Agree on this variant before setup. It changes only the current game and never rewrites printed card text.</p></DetailModal>}</main>;
 }
 
 function GlossaryView({ initialQuery }: { initialQuery: string }) {
   const [query, setQuery] = useState(initialQuery);
   const [selected, setSelected] = useState<{ term: string; meaning: string } | null>(null);
   const filtered = rulesData.glossary.filter((entry) => `${entry.term} ${entry.meaning}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
-  return <main className="page-shell shell glossary-page"><SectionHeader eyebrow="Glossary" title="Speak fluent Paper-Fu" intro="Every defined v1.6 rules term, separated from the rulebook for fast table lookup. Tap any tile for the full definition." art={headerGlossaryUrl} /><div className="glossary-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Flow, Focus, Tempo, Reaction…" aria-label="Search glossary" />{query && <button onClick={() => setQuery("")} aria-label="Clear glossary search">×</button>}</label><span>{filtered.length} of {rulesData.glossary.length} terms</span></div>{filtered.length ? <div className="glossary-grid">{filtered.map((entry, index) => <button className="interactive-paper" onClick={() => setSelected(entry)} key={entry.term}><span>{String(index + 1).padStart(2, "0")}</span><strong>{entry.term}</strong><p>{entry.meaning}</p><b>Open term →</b></button>)}</div> : <div className="empty-state"><strong>No term found.</strong><p>Try a shorter word or search the full rules for a phrase that is not a defined term.</p></div>}{selected && <DetailModal eyebrow="Defined v1.6 term" title={selected.term} onClose={() => setSelected(null)}><aside className="modal-rule"><span>Definition</span><p>{selected.meaning}</p></aside><div className="modal-design-note"><span>At the table</span><p>Use this defined meaning unless a more specific scenario rule or card instruction says otherwise.</p></div></DetailModal>}</main>;
+  return <main className="page-shell shell glossary-page"><SectionHeader eyebrow="Glossary" title="Speak fluent Paper-Fu" intro="Every defined v2.0 rules term, separated from the rulebook for fast table lookup. Tap any tile for the full definition." art={headerGlossaryUrl} /><div className="glossary-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Flow, Focus, Tempo, Reaction…" aria-label="Search glossary" />{query && <button onClick={() => setQuery("")} aria-label="Clear glossary search">×</button>}</label><span>{filtered.length} of {rulesData.glossary.length} terms</span></div>{filtered.length ? <div className="glossary-grid">{filtered.map((entry, index) => <button className="interactive-paper" onClick={() => setSelected(entry)} key={entry.term}><span>{String(index + 1).padStart(2, "0")}</span><strong>{entry.term}</strong><p>{entry.meaning}</p><b>Open term →</b></button>)}</div> : <div className="empty-state"><strong>No term found.</strong><p>Try a shorter word or search the full rules for a phrase that is not a defined term.</p></div>}{selected && <DetailModal eyebrow="Defined v2.0 term" title={selected.term} onClose={() => setSelected(null)}><aside className="modal-rule"><span>Definition</span><p>{selected.meaning}</p></aside><div className="modal-design-note"><span>At the table</span><p>Use this defined meaning unless a more specific scenario rule or card instruction says otherwise.</p></div></DetailModal>}</main>;
 }
 
 export default function CompanionApp() {
@@ -434,7 +434,7 @@ export default function CompanionApp() {
   return <div className="site-frame">
     <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" className={menuOpen ? "open" : ""} aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search cards & terms" aria-label="Search cards and glossary" /></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="primary-navigation" aria-expanded={menuOpen} aria-label={menuOpen ? "Close navigation" : "Open navigation"}><span /><span /><span /></button></div>{menuOpen && <button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}</header>
     <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView />}{view === "glossary" && <GlossaryView key={searchedTerm} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView />}</div>
-    <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Rules source: v1.6 economy draft</span></div></footer>
+    <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Rules source: v2.0 alpha field test</span></div></footer>
     <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}><span aria-hidden="true">⌂</span>Home</button><button className={view === "quickstart" ? "active" : ""} onClick={() => goTo("quickstart")}><span aria-hidden="true">▶</span>Start</button><button className={view === "rules" ? "active" : ""} onClick={() => goTo("rules")}><span aria-hidden="true">§</span>Rules</button><button className={view === "cards" ? "active" : ""} onClick={() => goTo("cards")}><span aria-hidden="true">▤</span>Cards</button><button className={moreActive || menuOpen ? "active" : ""} onClick={() => setMenuOpen((open) => !open)} aria-controls="primary-navigation" aria-expanded={menuOpen}><span aria-hidden="true">•••</span>More</button></nav>
   </div>;
 }
