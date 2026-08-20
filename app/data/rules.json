@@ -1,6 +1,6 @@
 {
-  "version": "v1.6 Economy Draft",
-  "source": "Dojo Deckbuilder v1.6 Economy Draft — no-Chi rules migration",
+  "version": "v2.0 Alpha",
+  "source": "Dojo Deckbuilder v2.0 Alpha — Paper-Fu field-test rewrite",
   "chapters": [
     {
       "id": "1-welcome-to-paper-fu",
@@ -10,23 +10,23 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "The world’s only combat sport born from a municipal form, a crowded parking lot, and too many masters who refused to use the word ‘appointment.’"
+          "text": "A government-approved martial-art system, publicly tested through card combat and an amount of paperwork nobody has successfully escaped."
         },
         {
           "kind": "paragraph",
-          "text": "Paper-Fu began on the annual Dojo Permit Renewal Day, when forty-seven martial-arts schools arrived at the Department of Competitive Safety to renew the right to teach self-defense next to a frozen-yogurt shop. Every master insisted their method was ancient, unstoppable, and definitely not the one that had knocked over the traffic cone."
+          "text": "The Department of Competitive Safety has one straightforward job: make sure martial-arts schools do not injure the public, endanger property, or claim that a parking lot is a sacred training ground."
         },
         {
           "kind": "paragraph",
-          "text": "The clerk had one form and a headache worthy of its own belt rank. It asked each instructor to list a technique, a defense, a piece of equipment, and a special ability. Nobody could agree on whose paperwork ranked first. One master submitted a sword, three business cards, and a note reading ‘ASK MY STUDENTS.’ The parking lot became a demonstration area before anyone could locate the stapler."
+          "text": "For years, every dojo certified itself. That policy ended during the Municipal Demonstration Expo, when three judges accepted discount coupons as evidence, an emotional-support ferret interfered with the final two bouts, and the flaming monks spent six minutes arguing that the fountain was ‘part of the ceremony.’ They are now under restraining orders from the fountain, the fire marshal, and each other."
         },
         {
           "kind": "paragraph",
-          "text": "To restore order, the Department issued Emergency Dojo Ordinance 11-B: disputes about combat credentials would be settled by five-round certified demonstrations, using only whatever techniques, equipment, and excuses a school could register in advance. It was intended to last until Friday. By lunch, spectators were taking notes, apprentices were trading methods, and several instructors had started selling official clipboards."
+          "text": "Rather than decide who was to blame, the Department created a standardized system from techniques submitted by every participating school. A junior clerk filed thousands of entries in a rusty cabinet marked TAX RECEIPTS and went home early. When the cabinet collapsed, the Department named it the Archive of Practical Fighting Wisdom. The masters immediately declared it ancient."
         },
         {
           "kind": "paragraph",
-          "text": "The masters named the new system Paper-Fu, claimed it had been preserved in a very old filing cabinet, and immediately began designing increasingly unreasonable Belt Exams. Now dojos travel from location to location, assemble the sharpest decks they can, and prove their honor in the only way the ordinance recognizes: by reading the card, declaring the zone, and yelling with municipal approval."
+          "text": "The result was Paper-Fu: a government-approved discipline built from registered techniques, defenses, equipment, drills, and wildly optimistic professional opinions. Every player leads a certified delegation—one competitor or a three-fighter demonstration team—for the annual Licensing Tournament. Every approved dojo keeps its license; the tournament tests whether Paper-Fu earns another year of funding and names a Provisional Model Dojo."
         },
         {
           "kind": "table",
@@ -42,11 +42,11 @@
         },
         {
           "kind": "paragraph",
-          "text": "Dojo Deckbuilder is a competitive martial-arts deckbuilding game. Every player starts with the same awkward 15-card deck, plays cards to fight and generate Focus, buys stronger cards from a shared Market, equips deeply questionable gear, learns Combos, passes Belt Exams, and climbs from White Belt to Black Belt."
+          "text": "Dojo Deckbuilder is a competitive martial-arts deckbuilding game. Each player leads a certified delegation, starts with the same awkward 15-card curriculum, plays cards to fight and generate Focus, acquires stronger registered techniques from a shared Market, learns Combos, completes Belt certification tasks, and climbs from White Belt to Black Belt."
         },
         {
           "kind": "bullet",
-          "text": "Fixed packs, not randomized boosters. Everyone knows what is in the box; nobody needs to sell a kidney for a foil raccoon."
+          "text": "Fixed packs, not randomized boosters. Every registered technique is in the field kit; the Department had enough trouble cataloging them once."
         },
         {
           "kind": "bullet",
@@ -75,7 +75,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Separate the decks now. Prevent the ritual sorting disaster later."
+          "text": "Sort the Department’s standardized field kit now. The filing cabinet has already had a difficult day."
         }
       ],
       "sections": [
@@ -232,7 +232,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Choose how many people are getting kicked, and whether they are allowed teammates."
+          "text": "Choose a certified demonstration format. The Department considers all of these ‘controlled.’"
         },
         {
           "kind": "table",
@@ -339,7 +339,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "A clean table is simply chaos that has not received cards yet."
+          "text": "Register your delegation, unpack the approved curriculum, and give the safety cone the amount of respect it has earned."
         }
       ],
       "sections": [
@@ -439,7 +439,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "4. Each player then takes their own I.Y.A.H. turn: Initiate, Yell, Ascend, Hide."
+          "text": "4. Each player then takes their own H.I.Y.A.H. turn after the global Honor Phase: Initiate, Yell, Ascend, Hide."
             },
             {
               "kind": "paragraph",
@@ -477,7 +477,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Two progression resources, three combat stats, and one tiny Tempo edge. The accountants have left the dojo."
+          "text": "Focus buys registered equipment. XP certifies advancement. HP keeps the demonstration from becoming paperwork."
         }
       ],
       "sections": [
@@ -645,7 +645,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Honor • Initiate • Yell • Ascend • Hide"
+          "text": "Honor • Initiate • Yell • Ascend • Hide — the Department’s five-stage Demonstration Safety Protocol. It has never been shortened."
         },
         {
           "kind": "paragraph",
@@ -826,7 +826,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Announce it, pay for it, resolve it, and only then discover why it was a mistake."
+          "text": "Announce it, check it, resolve it, and only then discover why the inspector wrote another note."
         }
       ],
       "sections": [
@@ -964,7 +964,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Choose a zone. Commit to the bit. Allow everyone else to ruin it."
+          "text": "Declare a zone. The Department requires it after the incident involving a left shin, three witnesses, and a zoning dispute."
         }
       ],
       "sections": [
@@ -1186,7 +1186,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Equipment is a family of permanent and one-use cards. There is no general cost to Equip or use them; follow timing, slots, Hand limits, and any specific printed cost."
+          "text": "Equipment is a family of permanent and one-use cards. The Department has official slot paperwork for helmets, weapons, and several objects that should not have been approved. There is no general cost to Equip or use them; follow timing, slots, Hand limits, and any specific printed cost."
         }
       ],
       "sections": [
@@ -1352,7 +1352,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Start with flailing. Buy competence. Learn sequences. Occasionally get thrown through a different set."
+          "text": "Begin with the basic curriculum. Acquire approved reserve techniques, document a sequence, and relocate when an inspector closes the venue."
         }
       ],
       "sections": [
@@ -1393,12 +1393,12 @@
           ]
         },
         {
-          "id": "builds-not-archetypes",
-          "title": "Builds, Not Archetypes",
+          "id": "building-a-curriculum",
+          "title": "Building a Curriculum",
           "content": [
             {
               "kind": "paragraph",
-              "text": "You never declare a deck archetype. Builds emerge through purchases. Common engines include Momentum, Fortress, Sustain, Pressure, Arsenal, Economy, Flow/Kata, Counter, Control, Combo, and Deck-Thin. These are strategy labels, not restrictions."
+              "text": "You never declare a required deck identity. Your curriculum emerges from the cards you acquire: you may improve your offense, protection, hand flow, equipment, Combos, Focus generation, or a mix of all of them. Let the cards define the plan at the table."
             }
           ]
         },
@@ -1518,7 +1518,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Belts are earned through combat, competence, and increasingly specific nonsense."
+          "text": "Belts are public certification milestones. Every requirement survived a committee meeting, which explains why some are oddly specific."
         }
       ],
       "sections": [
@@ -1716,7 +1716,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Every fighter begins with 25 HP and an unhealthy amount of narrative confidence."
+          "text": "Every fighter begins with 25 HP, a certified role in the delegation, and an unhealthy amount of professional confidence."
         }
       ],
       "sections": [
@@ -1752,8 +1752,8 @@
                   "Unlocks immediately upon reaching Green Belt; follow its printed ability type and timing."
                 ],
                 [
-                  "Affinity",
-                  "A strategy hint such as Momentum, Fortress, Arsenal, or Combo. Not a restriction and does not define your deck."
+                  "Training Note",
+                  "A nonbinding note about a fighter’s strengths. It has no rules effect and never restricts deckbuilding."
                 ],
                 [
                   "Tags / Traits",
@@ -1856,7 +1856,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Three fighters, one deck, and a bench full of unsolicited advice."
+          "text": "The Department’s officially sanctioned team demonstration: three fighters, one shared curriculum, and a bench full of unsolicited advice."
         }
       ],
       "sections": [
@@ -1972,7 +1972,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "You are the hero of a bootleg martial arts movie. Budget accordingly."
+          "text": "You are attending the Department’s wildly underfunded viability stress test. Budget your confidence accordingly."
         },
         {
           "kind": "paragraph",
@@ -2165,7 +2165,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "The section everyone ignores until a raccoon creates an infinite combo."
+          "text": "The Department’s Field Dispute Protocol, consulted only after a ferret discovers priority."
         }
       ],
       "sections": [
@@ -2393,7 +2393,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "House rules live in the dedicated House Rules section of the companion site so they can be searched and opened individually."
+          "text": "House rules live in the dedicated House Rules section of the companion site: approved deviations the Department wishes it had not initialed."
         }
       ],
       "sections": []
@@ -2406,7 +2406,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "The glossary lives in the dedicated Glossary section of the companion site."
+          "text": "The glossary lives in the dedicated Glossary section of the companion site: the Department’s attempt to define its own vocabulary before someone gives it a Combo tag."
         }
       ],
       "sections": []
@@ -2419,7 +2419,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "The Quick Start lives in the dedicated Quick Start section of the companion site."
+          "text": "The Quick Start lives in the dedicated Quick Start section of the companion site: the field-reference version for delegations that would like to begin before the next inspection."
         }
       ],
       "sections": []
