@@ -11,7 +11,21 @@ import headerQuickstartUrl from "./assets/art/header-quickstart-v2.webp";
 import headerRulesUrl from "./assets/art/header-rules-v2.webp";
 import headerRulingsUrl from "./assets/art/header-rulings-v2.webp";
 import heroPaperFuUrl from "./assets/art/hero-paper-fu-v2.webp";
-import rulesMarginaliaUrl from "./assets/art/rules-marginalia-v2.webp";
+import chapterComponentsUrl from "./assets/rules/chapter-02-components-v2.webp";
+import chapterModesUrl from "./assets/rules/chapter-03-modes-v2.webp";
+import chapterSetupUrl from "./assets/rules/chapter-04-setup-v2.webp";
+import chapterStatsUrl from "./assets/rules/chapter-05-stats-v2.webp";
+import chapterRoundUrl from "./assets/rules/chapter-06-round-v2.webp";
+import chapterTimingUrl from "./assets/rules/chapter-07-timing-v2.webp";
+import chapterCombatUrl from "./assets/rules/chapter-08-combat-v2.webp";
+import chapterEquipmentUrl from "./assets/rules/chapter-09-equipment-v2.webp";
+import chapterMarketUrl from "./assets/rules/chapter-10-market-v2.webp";
+import chapterBeltsUrl from "./assets/rules/chapter-11-belts-v2.webp";
+import chapterCharactersUrl from "./assets/rules/chapter-12-characters-v2.webp";
+import chapterTagTeamUrl from "./assets/rules/chapter-13-tag-team-v2.webp";
+import chapterBossUrl from "./assets/rules/chapter-14-boss-v2.webp";
+import chapterPriorityUrl from "./assets/rules/chapter-15-priority-v2.webp";
+import chapterEndgameUrl from "./assets/rules/chapter-16-endgame-v2.webp";
 import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp";
 import mrBobbyUrl from "./assets/characters/mr-bobby.webp";
 import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp";
@@ -38,12 +52,14 @@ type RuleBlock =
 type RuleSection = { id: string; title: string; content: RuleBlock[] };
 type RuleChapter = { id: string; number: number; title: string; fullTitle: string; intro: RuleBlock[]; sections: RuleSection[] };
 type HouseRule = { name: string; rule: string; category?: string; summary?: string; notes?: string };
+type Theme = "light" | "dark";
+type RuleVisual = { label: string; quip: string; art: string; alt: string };
 
 const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; decks: string[]; total: number };
 const rulesData = rulesJson as { version: string; chapters: RuleChapter[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
 const CORE_EXPANSION = cardData.expansions.includes("Core Game") ? "Core Game" : cardData.expansions[0] ?? "All";
 const storyChapter = rulesData.chapters.find((chapter) => chapter.number === 1);
-const ruleChapters = rulesData.chapters.filter((chapter) => chapter.number >= 2 && chapter.number <= 16);
+const ruleChapters = rulesData.chapters.filter((chapter) => chapter.number >= 1 && chapter.number <= 16);
 
 const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
   { id: "quickstart", label: "Quick Start", short: "Start" },
@@ -53,6 +69,16 @@ const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
   { id: "rulings", label: "Rulings & Errata", short: "Rulings" },
   { id: "glossary", label: "Glossary", short: "Terms" },
   { id: "house-rules", label: "House Rules", short: "Variants" },
+];
+const MOBILE_MENU_ITEMS: { id: ViewId; label: string; detail: string }[] = [
+  { id: "home", label: "Home", detail: "Return to the field test." },
+  { id: "quickstart", label: "Quick Start", detail: "Set up and play the first round." },
+  { id: "story", label: "Backstory", detail: "Why a filing cabinet became sacred." },
+  { id: "rules", label: "Full Rules", detail: "Every official procedure." },
+  { id: "cards", label: "Card Library", detail: "Search the registered curriculum." },
+  { id: "rulings", label: "Rulings & Errata", detail: "The Department’s clarifications." },
+  { id: "glossary", label: "Glossary", detail: "Find every defined term." },
+  { id: "house-rules", label: "House Rules", detail: "Approved deviations and variants." },
 ];
 const ALL_VIEWS: ViewId[] = ["home", ...NAV_ITEMS.map((item) => item.id)];
 const HERO_FIGHTERS = [
@@ -88,22 +114,32 @@ const STARTER_CARDS = [
   { group: "Junk", count: 5, icon: "!", purpose: "Clog the opening deck and generate no Focus.", cards: ["Bad Habit ×5"] },
 ];
 const GOLDEN_RULE = "When a card directly contradicts this rulebook, the card wins. When two cards conflict, use the timing and priority rules. If the table still cannot agree, the active player makes the temporary ruling, finishes the turn, and everyone may yell about it afterward.";
-const RULE_VISUALS: Record<number, { label: string; quip: string }> = {
-  2: { label: "Sort the field kit", quip: "The Department catalogued this once. Do not make it happen again." },
-  3: { label: "Choose a demonstration", quip: "Every format has been certified as ‘controlled.’" },
-  4: { label: "Register the delegation", quip: "Set up the table before the inspector finds the snacks." },
-  5: { label: "Count the useful things", quip: "Focus buys the helmet. XP earns the Belt. HP keeps the report short." },
-  6: { label: "Follow the protocol", quip: "Honor once. Then every delegation completes Initiate, Yell, Ascend, and Hide." },
-  7: { label: "Read before yelling", quip: "Resolve printed costs first; invent loopholes never." },
-  8: { label: "Math with witnesses", quip: "Declare a zone. Invite interference. Subtract responsibly." },
-  9: { label: "Pass equipment inspection", quip: "If the slot fits, somebody completed a form for it." },
-  10: { label: "Access the reserve curriculum", quip: "The Market is random. The Department calls that a field test." },
-  11: { label: "Pass the certification", quip: "Promotion requires XP, a task, and a committee-approved amount of confidence." },
-  12: { label: "Meet the delegation", quip: "Every fighter brought a specialty and at least one unresolved form." },
-  13: { label: "Demonstrate as a team", quip: "Three fighters. One active spot. Infinite bench commentary." },
-  14: { label: "Survive the stress test", quip: "The Boss has no hand, no mercy, and an official funding line." },
-  15: { label: "File the dispute", quip: "Read the card aloud before opening a tiny municipal courtroom." },
-  16: { label: "Complete the safety report", quip: "Even getting knocked out has an order of operations." },
+const RULE_VISUALS: Record<number, RuleVisual> = {
+  1: { label: "Open the official file", quip: "The filing cabinet was never supposed to become ancient wisdom.", art: headerBackstoryUrl, alt: "The Department of Competitive Safety's improvised Paper-Fu origin story" },
+  2: { label: "Sort the field kit", quip: "The Department catalogued this once. Do not make it happen again.", art: chapterComponentsUrl, alt: "Paper-Fu components organized on an official inventory desk" },
+  3: { label: "Choose a demonstration", quip: "Every format has been certified as ‘controlled.’", art: chapterModesUrl, alt: "Four Paper-Fu tournament demonstrations viewed by an inspector" },
+  4: { label: "Register the delegation", quip: "Set up the table before the inspector finds the snacks.", art: chapterSetupUrl, alt: "A complete Paper-Fu game setup from above" },
+  5: { label: "Count the useful things", quip: "Focus buys the helmet. XP earns the Belt. HP keeps the report short.", art: chapterStatsUrl, alt: "A fighter and official tokens used to track Paper-Fu stats" },
+  6: { label: "Follow the protocol", quip: "Honor once. Then every delegation completes Initiate, Yell, Ascend, and Hide.", art: chapterRoundUrl, alt: "A Paper-Fu round protocol board showing five phase panels" },
+  7: { label: "Read before yelling", quip: "Resolve printed costs first; invent loopholes never.", art: chapterTimingUrl, alt: "Fighters and an official resolving cards in timing order" },
+  8: { label: "Math with witnesses", quip: "Declare a zone. Invite interference. Subtract responsibly.", art: chapterCombatUrl, alt: "A Paper-Fu combat demonstration across high, mid, and low zones" },
+  9: { label: "Pass equipment inspection", quip: "If the slot fits, somebody completed a form for it.", art: chapterEquipmentUrl, alt: "A fighter showing improvised gear to a safety inspector" },
+  10: { label: "Access the reserve curriculum", quip: "The Market is random. The Department calls that a field test.", art: chapterMarketUrl, alt: "A Paper-Fu market display and a separate combo cabinet" },
+  11: { label: "Pass the certification", quip: "Promotion requires XP, a task, and a committee-approved amount of confidence.", art: chapterBeltsUrl, alt: "A fighter progressing through a colorful belt certification ceremony" },
+  12: { label: "Meet the delegation", quip: "Every fighter brought a specialty and at least one unresolved form.", art: chapterCharactersUrl, alt: "Original Paper-Fu character dossiers pinned to an official board" },
+  13: { label: "Demonstrate as a team", quip: "Three fighters. One active spot. Infinite bench commentary.", art: chapterTagTeamUrl, alt: "A Paper-Fu tag-team handoff between three fighters" },
+  14: { label: "Survive the stress test", quip: "The Boss has no hand, no mercy, and an official funding line.", art: chapterBossUrl, alt: "A three-fighter delegation confronting a Paper-Fu boss stage" },
+  15: { label: "File the dispute", quip: "Read the card aloud before opening a tiny municipal courtroom.", art: chapterPriorityUrl, alt: "A Department official resolving a tall stack of Paper-Fu reactions" },
+  16: { label: "Complete the safety report", quip: "Even getting knocked out has an order of operations.", art: chapterEndgameUrl, alt: "A safe Paper-Fu end-of-game ceremony with officials and fighters" },
+};
+
+const displayRuleNumber = (chapter: RuleChapter) => String(ruleChapters.findIndex((entry) => entry.id === chapter.id) + 1).padStart(2, "0");
+
+const initialTheme = (): Theme => {
+  if (typeof window === "undefined") return "light";
+  const saved = window.localStorage.getItem("paper-fu-theme");
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 const GAME_MODES = [
   { id: "tag-team", label: "Recommended", title: "Tag Team: Swap-Fu", players: "2–6 players", fighters: "3 Characters each", win: "Black Belt Victory or Last Fighter Standing", detail: "The recommended Core Format, especially for two players. Each player owns a three-fighter roster but controls only one active fighter at a time. Tag during Initiate, protect injured teammates on the bench, and keep fighting after a single KO.", notes: ["Use the complete Tag Team rules in Section 13.", "Equipment stays with the fighter who equipped it.", "Learned Combos belong to the player and may be triggered by any active fighter."] },
@@ -162,6 +198,11 @@ function SectionHeader({ eyebrow, title, intro, art }: { eyebrow: string; title:
 
 function BrandMark() {
   return <span className="brand-mark"><img src={brandEmblemUrl} alt="" aria-hidden="true" /></span>;
+}
+
+function ThemeToggle({ theme, onToggle, full = false }: { theme: Theme; onToggle: () => void; full?: boolean }) {
+  const next = theme === "dark" ? "light" : "dark";
+  return <button className={`theme-toggle${full ? " theme-toggle-full" : ""}`} type="button" onClick={onToggle} aria-label={`Switch to ${next} mode`} title={`Switch to ${next} mode`}><span aria-hidden="true">{theme === "dark" ? "☀" : "◐"}</span>{full && <b>{theme === "dark" ? "Light mode" : "Dark mode"}</b>}</button>;
 }
 
 function StarterExampleCard({ kind, name, zone, timing, power, focus, art, catalogId }: { kind: "Attack" | "Defense"; name: string; zone: string; timing: string; power: number; focus: number; art?: string; catalogId: string }) {
@@ -310,6 +351,8 @@ function RulesView() {
   const [selectedId, setSelectedId] = useState(ruleChapters[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const selected = ruleChapters.find((chapter) => chapter.id === selectedId) ?? ruleChapters[0];
+  const selectedIndex = ruleChapters.findIndex((chapter) => chapter.id === selected.id);
+  const selectedVisual = RULE_VISUALS[selected.number];
   const matches = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
     if (!term) return [];
@@ -327,9 +370,9 @@ function RulesView() {
   return <main className="rules-page shell page-shell">
     <SectionHeader eyebrow="Official Full Rules" title="The complete dojo law" intro="The Department’s current approved procedures, organized for fast table use. Quick Start, glossary, rulings, and house rules live in their purpose-built sections." art={headerRulesUrl} />
     <div className="rules-toolbar"><label className="search-box large"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search all rules—Flow, Tempo, KO, Combo…" aria-label="Search all rules" />{query && <button onClick={() => setQuery("")} aria-label="Clear rules search">×</button>}</label><span className="source-badge">{ruleChapters.length} focused chapters · v2.0 alpha</span></div>
-    <label className="mobile-chapter-picker"><span>Jump to a chapter</span><select value={selected.id} onChange={(event) => chooseChapter(event.target.value)}>{ruleChapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{String(chapter.number).padStart(2, "0")} · {chapter.title}</option>)}</select></label>
-    {query ? <section className="rule-search-results"><h2>{matches.length} matching chapter{matches.length === 1 ? "" : "s"}</h2>{matches.length ? matches.map(({ chapter, section }) => <button key={chapter.id} onClick={() => chooseChapter(chapter.id)}><span>Chapter {chapter.number}</span><h3>{chapter.title}</h3><p>{section ? `Match in ${section.title}` : "Match in chapter overview"}</p></button>) : <div className="empty-state"><strong>No rule found.</strong><p>Try a shorter term or search the Card Library for printed card text.</p></div>}</section> :
-      <div className="rules-layout" id="rule-reader"><aside className="chapter-nav" aria-label="Rule chapters"><span>Contents</span>{ruleChapters.map((chapter) => <button className={chapter.id === selected.id ? "active" : ""} onClick={() => chooseChapter(chapter.id)} key={chapter.id}><b>{String(chapter.number).padStart(2, "0")}</b><span>{chapter.title}</span></button>)}</aside><article className="rule-article paper-stack"><header><span>Chapter {selected.number}</span><h1>{selected.title}</h1></header><div className="chapter-art"><img src={rulesMarginaliaUrl} alt="Playful Paper-Fu rulebook marginalia" loading="lazy" decoding="async" /><div><span>{RULE_VISUALS[selected.number]?.label}</span><p>{RULE_VISUALS[selected.number]?.quip}</p></div></div><RuleBlocks blocks={selected.intro} />{selected.sections.map((section) => <section id={section.id} key={section.id}><h2>{section.title}</h2><RuleBlocks blocks={section.content} /></section>)}<footer className="chapter-footer"><span>End of Chapter {selected.number}</span>{ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1] && <button onClick={() => chooseChapter(ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].id)}>Next: {ruleChapters[ruleChapters.findIndex((chapter) => chapter.id === selected.id) + 1].title} →</button>}</footer></article></div>}
+    <label className="mobile-chapter-picker"><span>Jump to a chapter</span><select value={selected.id} onChange={(event) => chooseChapter(event.target.value)}>{ruleChapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{displayRuleNumber(chapter)} · {chapter.title}</option>)}</select></label>
+    {query ? <section className="rule-search-results"><h2>{matches.length} matching chapter{matches.length === 1 ? "" : "s"}</h2>{matches.length ? matches.map(({ chapter, section }) => <button key={chapter.id} onClick={() => chooseChapter(chapter.id)}><span>Chapter {displayRuleNumber(chapter)}</span><h3>{chapter.title}</h3><p>{section ? `Match in ${section.title}` : "Match in chapter overview"}</p></button>) : <div className="empty-state"><strong>No rule found.</strong><p>Try a shorter term or search the Card Library for printed card text.</p></div>}</section> :
+      <div className="rules-layout" id="rule-reader"><aside className="chapter-nav" aria-label="Rule chapters"><span>Contents</span>{ruleChapters.map((chapter) => <button className={chapter.id === selected.id ? "active" : ""} onClick={() => chooseChapter(chapter.id)} key={chapter.id}><b>{displayRuleNumber(chapter)}</b><span>{chapter.title}</span></button>)}</aside><article className="rule-article paper-stack"><header><span>Chapter {displayRuleNumber(selected)}</span><h1>{selected.title}</h1></header><div className="chapter-art"><img src={selectedVisual.art} alt={selectedVisual.alt} loading="lazy" decoding="async" /><div><span>{selectedVisual.label}</span><p>{selectedVisual.quip}</p></div></div><RuleBlocks blocks={selected.intro} />{selected.sections.map((section) => <section id={section.id} key={section.id}><h2>{section.title}</h2><RuleBlocks blocks={section.content} /></section>)}<footer className="chapter-footer"><span>End of Chapter {displayRuleNumber(selected)}</span>{ruleChapters[selectedIndex + 1] && <button onClick={() => chooseChapter(ruleChapters[selectedIndex + 1].id)}>Next: {ruleChapters[selectedIndex + 1].title} →</button>}</footer></article></div>}
   </main>;
 }
 
@@ -408,7 +451,7 @@ function GlossaryView({ initialQuery }: { initialQuery: string }) {
 }
 
 export default function CompanionApp() {
-  const [view, setView] = useState<ViewId>("home"); const [menuOpen, setMenuOpen] = useState(false);
+  const [view, setView] = useState<ViewId>("home"); const [menuOpen, setMenuOpen] = useState(false); const [theme, setTheme] = useState<Theme>(initialTheme);
   const [globalSearch, setGlobalSearch] = useState(""); const [searchedCard, setSearchedCard] = useState<CardEntry | null>(null); const [searchedTerm, setSearchedTerm] = useState("");
   useEffect(() => {
     const sync = () => { const next = window.location.hash.replace("#", "") as ViewId; if (ALL_VIEWS.includes(next)) setView(next); };
@@ -422,6 +465,10 @@ export default function CompanionApp() {
     window.addEventListener("keydown", close);
     return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
   }, [menuOpen]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem("paper-fu-theme", theme);
+  }, [theme]);
   const goTo = (next: ViewId) => { setView(next); setMenuOpen(false); setGlobalSearch(""); window.history.pushState(null, "", `#${next}`); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const globalResults = useMemo(() => {
     const term = globalSearch.trim().toLocaleLowerCase(); if (term.length < 2) return [];
@@ -431,10 +478,12 @@ export default function CompanionApp() {
   }, [globalSearch]);
   const chooseResult = (result: (typeof globalResults)[number]) => { if (result.card) { setSearchedCard(result.card); goTo("cards"); } else { setSearchedTerm(result.title); goTo("glossary"); } };
   const moreActive = view === "story" || view === "rulings" || view === "glossary" || view === "house-rules";
+  const toggleTheme = () => setTheme((current) => current === "light" ? "dark" : "light");
   return <div className="site-frame">
-    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" className={menuOpen ? "open" : ""} aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search cards & terms" aria-label="Search cards and glossary" /></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="primary-navigation" aria-expanded={menuOpen} aria-label={menuOpen ? "Close navigation" : "Open navigation"}><span /><span /><span /></button></div>{menuOpen && <button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}</header>
+    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search cards & terms" aria-label="Search cards and glossary" /></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><ThemeToggle theme={theme} onToggle={toggleTheme} /><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen} aria-label={menuOpen ? "Close site menu" : "Open site menu"}><span /><span /><span /></button></div></header>
+    {menuOpen && <><button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close site menu" /><aside className="mobile-menu-panel" id="mobile-menu" aria-label="Site menu"><div className="mobile-menu-heading"><div><span className="eyebrow">Department directory</span><h2>Find your fight.</h2></div><button className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Close site menu">×</button></div><label className="mobile-global-search"><span aria-hidden="true">⌕</span><input autoFocus value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search cards & terms" aria-label="Search cards and glossary" /></label>{globalSearch.trim().length >= 2 && <div className="mobile-search-results">{globalResults.length ? globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>) : <p>No matching filing number. Try a shorter search.</p>}</div>}<nav className="mobile-menu-links" aria-label="All site pages">{MOBILE_MENU_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}><span>{item.label}</span><small>{item.detail}</small></button>)}</nav><ThemeToggle theme={theme} onToggle={toggleTheme} full /></aside></>}
     <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView />}{view === "glossary" && <GlossaryView key={searchedTerm} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView />}</div>
     <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Rules source: v2.0 alpha field test</span></div></footer>
-    <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}><span aria-hidden="true">⌂</span>Home</button><button className={view === "quickstart" ? "active" : ""} onClick={() => goTo("quickstart")}><span aria-hidden="true">▶</span>Start</button><button className={view === "rules" ? "active" : ""} onClick={() => goTo("rules")}><span aria-hidden="true">§</span>Rules</button><button className={view === "cards" ? "active" : ""} onClick={() => goTo("cards")}><span aria-hidden="true">▤</span>Cards</button><button className={moreActive || menuOpen ? "active" : ""} onClick={() => setMenuOpen((open) => !open)} aria-controls="primary-navigation" aria-expanded={menuOpen}><span aria-hidden="true">•••</span>More</button></nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}><span aria-hidden="true">⌂</span>Home</button><button className={view === "quickstart" ? "active" : ""} onClick={() => goTo("quickstart")}><span aria-hidden="true">▶</span>Start</button><button className={view === "rules" ? "active" : ""} onClick={() => goTo("rules")}><span aria-hidden="true">§</span>Rules</button><button className={view === "cards" ? "active" : ""} onClick={() => goTo("cards")}><span aria-hidden="true">▤</span>Cards</button><button className={moreActive || menuOpen ? "active" : ""} onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen}><span aria-hidden="true">☰</span>Menu</button></nav>
   </div>;
 }
