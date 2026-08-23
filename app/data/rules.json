@@ -1,6 +1,6 @@
 {
-  "version": "v2.0 Alpha",
-  "source": "Dojo Deckbuilder v2.0 Alpha — Paper-Fu field-test rewrite",
+  "version": "v2.0 Alpha — Unified Card List",
+  "source": "Dojo Deckbuilder v2.0 Alpha — Unified Paper-Fu field-test rules",
   "chapters": [
     {
       "id": "1-welcome-to-paper-fu",
@@ -105,7 +105,7 @@
             },
             {
               "kind": "bullet",
-              "text": "Boss Materials — three Boss Stage cards plus a dedicated 32-card Boss Arsenal Deck containing Attacks, Boss Guards, and Boss Techniques for Dojo Drama."
+              "text": "Boss Materials — three Boss Stage cards, eight Boss Profile cards, and a dedicated 32-card Boss Arsenal Deck containing Boss Attacks, Boss Defenses, and Boss Techniques for Dojo Drama."
             },
             {
               "kind": "bullet",
@@ -171,8 +171,13 @@
                   "Placed beside one unused Character card during Dojo Drama."
                 ],
                 [
-                  "Boss Technique",
-                  "A simplified automated Attack used only by Bosses in Dojo Drama.",
+                  "Boss Profile",
+                  "A named opponent with printed ATK, DEF, Speed, stage fit, and one deterministic rule.",
+                  "Paired with the matching Boss Stage in Dojo Drama."
+                ],
+                [
+                  "Boss Arsenal",
+                  "Automated Boss Attacks, Boss Defenses, and Boss Techniques used only in Dojo Drama.",
                   "Shuffled into the dedicated 32-card Boss Arsenal Deck."
                 ]
               ]
@@ -439,7 +444,7 @@
             },
             {
               "kind": "paragraph",
-          "text": "4. Each player then takes their own H.I.Y.A.H. turn after the global Honor Phase: Initiate, Yell, Ascend, Hide."
+              "text": "4. Each player then takes their own H.I.Y.A.H. turn after the global Honor Phase: Initiate, Yell, Ascend, Hide."
             },
             {
               "kind": "paragraph",
@@ -782,7 +787,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "2. Discard all cards in your play area and hand except Equipped, Ongoing, Reserved, otherwise retained cards, and cards set aside by Step 1."
+              "text": "2. Discard all cards in your play area and hand except Equipped, Ongoing, otherwise retained cards, and cards set aside by Step 1."
             },
             {
               "kind": "paragraph",
@@ -945,12 +950,12 @@
           ]
         },
         {
-          "id": "reserved-and-ongoing-cards",
-          "title": "Reserved and Ongoing Cards",
+          "id": "ongoing-cards",
+          "title": "Ongoing Cards",
           "content": [
             {
               "kind": "paragraph",
-              "text": "A Reserved card remains where its effect places it until its trigger occurs. An Ongoing card remains active in play. Neither is discarded during Hide unless its text says so. Equipped cards are permanent but are not considered Ongoing unless they also have that keyword."
+              "text": "An Ongoing card remains active in play until its text ends or removes it. It is not discarded during Hide unless its text says so. Equipped cards are permanent but are not considered Ongoing unless they also have that keyword."
             }
           ]
         }
@@ -1124,6 +1129,28 @@
           ]
         },
         {
+          "id": "reversal",
+          "title": "Reversal",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Once per round, after a Defense card you played Blocks an Attack, you may immediately play one Attack from your hand against that attacker. This is a Reversal. Resolve that Attack normally."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Reversal does not count against your normal Attack limit. The original attacker may defend normally."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Reversal Attack cannot trigger another Reversal. There is no automatic draw, and it does not generate Focus because it was not played during your turn."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Reversal earns the normal Attack XP if eligible. Specific card text may improve a Reversal only as written."
+            }
+          ]
+        },
+        {
           "id": "critical-terms",
           "title": "Critical Terms",
           "content": [
@@ -1292,7 +1319,7 @@
             },
             {
               "kind": "bullet",
-              "text": "An exhausted Equipment card remains equipped but cannot be activated again until readied."
+              "text": "Equipment enters play ready. To exhaust it, turn it sideways and pay that card's exhaust cost. All of your exhausted Equipment readies at your Initiate Phase. Exhausting never turns off printed passive stats such as Guard or Attack Bonus; it only prevents another exhaust ability until the card readies."
             }
           ]
         },
@@ -1317,6 +1344,10 @@
             {
               "kind": "paragraph",
               "text": "Items are utility Equipment. Most are played during your Yell Phase and discarded after resolving. Items marked Ongoing, Equip, or with a slot remain in play according to their text."
+            },
+            {
+              "kind": "paragraph",
+              "text": "Reaction Items are one-use Items played during a Reaction Window. They do not occupy a permanent Equipment slot; resolve their printed effect, then destroy or discard them exactly as the card says."
             }
           ]
         },
@@ -1334,7 +1365,7 @@
             },
             {
               "kind": "bullet",
-              "text": "When a Character is KO'd, discard all permanent Equipment attached to that Character. Reserved cards attached to that fighter are also discarded unless stated otherwise."
+              "text": "When a Character is KO'd, discard all permanent Equipment attached to that Character. Any Ongoing cards attached to that fighter are discarded unless stated otherwise."
             },
             {
               "kind": "bullet",
@@ -1352,7 +1383,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "Begin with the basic curriculum. Acquire approved reserve techniques, document a sequence, and relocate when an inspector closes the venue."
+          "text": "Begin with the basic curriculum. Acquire approved techniques, document a sequence, and relocate when an inspector closes the venue."
         }
       ],
       "sections": [
@@ -1581,6 +1612,10 @@
             },
             {
               "kind": "bullet",
+              "text": "Keep your current Belt Exam visible. When you complete it, mark it PASSED immediately; it remains public until you promote during Ascend."
+            },
+            {
+              "kind": "bullet",
               "text": "A challenge begins when you enter the previous Belt. Earlier accomplishments are not retroactive."
             },
             {
@@ -1703,6 +1738,16 @@
             {
               "kind": "bullet",
               "text": "Black Belt Target: While Brown Belt, KO any opposing fighter. Bosses count. Complete the task immediately, but promote during your Ascend unless a scenario says otherwise."
+            }
+          ]
+        },
+        {
+          "id": "belt-licensed-equipment",
+          "title": "Belt-Licensed Equipment",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Some Equipment has a base function for every fighter and a stronger line that begins ‘At [Color] Belt or higher.’ You may buy and equip that card at any Belt; only the stronger line waits for the printed rank. This is a reward for promotion, not a Market lockout."
             }
           ]
         }
@@ -1976,7 +2021,7 @@
         },
         {
           "kind": "paragraph",
-          "text": "You fight exactly three opponents: Rival → Mini-Boss → Final Boss. Each stage uses one unused Character card as the Boss identity plus one Boss Stage card for its automated rules. You are not fighting the entire Character roster."
+          "text": "You fight exactly three opponents: Rival → Mini-Boss → Final Boss. Each stage pairs a Boss Profile with a Boss Stage card. The Profile supplies identity, printed stats, and one rule; the Stage supplies HP and attack count."
         }
       ],
       "sections": [
@@ -1990,15 +2035,15 @@
             },
             {
               "kind": "paragraph",
-              "text": "2. Choose three unused Character cards. Assign one to each Boss Stage card: Rival, Mini-Boss, and Final Boss. Place the Rival face up and the other two face down."
+              "text": "2. Choose one Boss Profile for each stage. In Quick Boss Blitz, reveal a random Profile whose printed Stage Fit includes Rival, Mini-Boss, or Final Boss as needed. In Challenge Boss Blitz, deliberately choose the three Profiles before setup."
             },
             {
               "kind": "paragraph",
-              "text": "3. A Boss Character contributes only its printed ATK, DEF, and Speed. Ignore its White Ability, Green Ability, Affinity, and any text that would require a hand, deck, Focus, Equipment, or player choice."
+              "text": "3. Pair each Profile with the matching Boss Stage card. A Boss Profile contributes only its printed ATK, DEF, Speed, and one Boss Rule. Ignore anything that would require a Boss hand, deck, Focus, Equipment, or choice."
             },
             {
               "kind": "paragraph",
-              "text": "4. Shuffle the dedicated 32-card Boss Arsenal Deck. It contains the twelve original Boss Attacks, eight additional Boss Attacks, six Boss Guards, and six Boss Techniques. This deck is separate from the normal Technique Deck and does not remove cards from the Market."
+              "text": "4. Shuffle the dedicated 32-card Boss Arsenal Deck. It contains the twelve original Boss Attacks, eight additional Boss Attacks, six Boss Defenses, and six Boss Techniques. This deck is separate from the normal Technique Deck and does not remove cards from the Market."
             },
             {
               "kind": "paragraph",
@@ -2059,11 +2104,11 @@
             },
             {
               "kind": "paragraph",
-              "text": "1. Reveal Boss Arsenal cards until an Attack is revealed. Resolve any Boss Guard or Boss Technique revealed along the way immediately. Place a Boss Guard face up in Boss Guard; if one is already there, discard the old Guard first. Boss Techniques resolve, then you continue revealing."
+              "text": "1. Reveal Boss Arsenal cards until an Attack is revealed. Resolve any Boss Defense or Boss Technique revealed along the way immediately. Place a Boss Defense face up in Boss Defense; if one is already there, discard the old Guard first. Boss Techniques resolve, then you continue revealing."
             },
             {
               "kind": "paragraph",
-              "text": "2. The Boss targets your active Character and attacks the printed zone. If Boss Guard is active for that zone, apply its Guard value to this Attack, then discard it. If the zone does not match, discard Boss Guard without applying it."
+              "text": "2. The Boss targets your active Character and attacks the printed zone. If Boss Defense is active for that zone, apply its Guard value to this Attack, then discard it. If the zone does not match, discard Boss Defense without applying it."
             },
             {
               "kind": "paragraph",
@@ -2439,6 +2484,46 @@
       "meaning": "A player may normally play two Attacks per turn. Flow and Combo Extension are the only core exceptions."
     },
     {
+      "term": "Belt Exam",
+      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
+    },
+    {
+      "term": "Belt Exam",
+      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
+    },
+    {
+      "term": "Belt Exam",
+      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
+    },
+    {
+      "term": "Belt Exam",
+      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
+    },
+    {
+      "term": "Belt Exam",
+      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
+    },
+    {
+      "term": "Boss Profile",
+      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
+    },
+    {
+      "term": "Boss Profile",
+      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
+    },
+    {
+      "term": "Boss Profile",
+      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
+    },
+    {
+      "term": "Boss Profile",
+      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
+    },
+    {
+      "term": "Boss Profile",
+      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
+    },
+    {
       "term": "Boss Stage",
       "meaning": "A Rival, Mini-Boss, or Final Boss overlay supplying HP, Attack Bonus, attack count, and stage rules."
     },
@@ -2519,8 +2604,44 @@
       "meaning": "A card or ability played during a specific response window."
     },
     {
-      "term": "Reserved",
-      "meaning": "A card held in a marked area until its future trigger."
+      "term": "Ready",
+      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
+    },
+    {
+      "term": "Ready",
+      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
+    },
+    {
+      "term": "Ready",
+      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
+    },
+    {
+      "term": "Ready",
+      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
+    },
+    {
+      "term": "Ready",
+      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
+    },
+    {
+      "term": "Reversal",
+      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
+    },
+    {
+      "term": "Reversal",
+      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
+    },
+    {
+      "term": "Reversal",
+      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
+    },
+    {
+      "term": "Reversal",
+      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
+    },
+    {
+      "term": "Reversal",
+      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
     },
     {
       "term": "Revive",

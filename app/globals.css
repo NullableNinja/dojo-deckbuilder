@@ -308,6 +308,11 @@ img { display: block; max-width: 100%; }
 .library-control > span, .library-search-control > label { color: #6b756f; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; }
 .library-search-control .search-box { min-height: 52px; }
 .library-controls select { min-height: 52px; border: 1px solid var(--line); border-radius: 0; padding: 0 12px; color: var(--ink); background: var(--paper-light); }
+.planned-expansion-toggle { min-height: 52px; display: flex; grid-column: 1 / -1; gap: 10px; align-items: center; border: 1px dashed var(--line); padding: 9px 12px; color: var(--ink); background: rgba(229,179,78,.11); cursor: pointer; }
+.planned-expansion-toggle input { width: 18px; height: 18px; accent-color: var(--red); }
+.planned-expansion-toggle span { display: grid; gap: 2px; }
+.planned-expansion-toggle b { font-size: 11px; }
+.planned-expansion-toggle small { color: #6b756f; font-size: 10px; line-height: 1.2; }
 .type-filters { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 6px; }
 .type-filters button { flex: 0 0 auto; border: 1px solid var(--line); padding: 8px 11px; background: rgba(255,250,240,.5); font-size: 11px; font-weight: 750; cursor: pointer; }
 .type-filters button span { margin-left: 7px; color: #818b85; font-size: 9px; }
@@ -1312,7 +1317,7 @@ body,
 
   .library-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .library-search-control,
-  .library-control:last-child { grid-column: 1 / -1; }
+  .planned-expansion-toggle { grid-column: 1 / -1; }
   .library-controls select { width: 100%; font-size: 14px; }
   .type-filters { margin-inline: -12px; padding-inline: 12px; scroll-padding-inline: 12px; }
   .type-filters button { min-height: 44px; font-size: 12px; }
@@ -1461,6 +1466,8 @@ body,
 :root[data-theme="dark"] .rule-search-results > button,
 :root[data-theme="dark"] .type-filters button,
 :root[data-theme="dark"] .roster-grid article { background: var(--paper-light); }
+
+:root[data-theme="dark"] .planned-expansion-toggle { background: rgba(232,190,84,.1); }
 
 :root[data-theme="dark"] .rule-callout,
 :root[data-theme="dark"] .modal-rule,

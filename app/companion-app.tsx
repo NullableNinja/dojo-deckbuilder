@@ -39,11 +39,11 @@ type ViewId = "home" | "quickstart" | "story" | "rules" | "cards" | "rulings" | 
 type CardEntry = {
   id: string; name: string; cardType: string; subtype: string; category?: string | null;
   catalogId: string; catalogOrder: number;
-  expansion: string; deck: string; rulesVersion: string; lineage?: string | null;
+  expansion: string; deck: string; rulesVersion: string; lineage?: string | null; availability?: "Core Field Test" | "Planned Expansion" | string; v2Status?: string;
   fpCost?: string | number | null; chiCost?: string | number | null; focusValue?: string | number | null;
   zone?: string | null; timing?: string | null; rulesText?: string | null; flavorText?: string | null;
   tags: string[]; buildPaths: string[]; stats: Record<string, string | number>;
-  image?: string | null; sourceSheet: string; searchText: string; details: Record<string, string | number>;
+  image?: string | null; sourceSheet: string; searchText?: string; details: Record<string, string | number>;
 };
 type RuleBlock =
   | { kind: "paragraph"; text: string }
@@ -55,11 +55,12 @@ type HouseRule = { name: string; rule: string; category?: string; summary?: stri
 type Theme = "light" | "dark";
 type RuleVisual = { label: string; quip: string; art: string; alt: string };
 
-const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; decks: string[]; total: number };
+const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; plannedExpansions?: string[]; decks: string[]; total: number };
 const rulesData = rulesJson as { version: string; chapters: RuleChapter[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
 const CORE_EXPANSION = cardData.expansions.includes("Core Game") ? "Core Game" : cardData.expansions[0] ?? "All";
 const storyChapter = rulesData.chapters.find((chapter) => chapter.number === 1);
 const ruleChapters = rulesData.chapters.filter((chapter) => chapter.number >= 1 && chapter.number <= 16);
+const cardSearchText = (card: CardEntry) => [card.searchText, card.catalogId, card.name, card.cardType, card.subtype, card.category, card.expansion, card.deck, card.rulesVersion, card.lineage, card.zone, card.timing, card.rulesText, card.flavorText, ...card.tags, ...card.buildPaths, ...Object.keys(card.stats), ...Object.values(card.stats), ...Object.keys(card.details), ...Object.values(card.details)].filter((value) => value !== null && value !== undefined && value !== "").join(" ").toLocaleLowerCase();
 
 const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
   { id: "quickstart", label: "Quick Start", short: "Start" },
@@ -396,15 +397,18 @@ function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) 
 }
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
-  const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [expansion, setExpansion] = useState(CORE_EXPANSION); const [deck, setDeck] = useState("All");
+  const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [expansion, setExpansion] = useState(CORE_EXPANSION); const [deck, setDeck] = useState("All"); const [includePlanned, setIncludePlanned] = useState(false);
   const [sort, setSort] = useState("catalog"); const [visible, setVisible] = useState(24); const [selectedCard, setSelectedCard] = useState<CardEntry | null>(null);
   const activeCard = selectedCard ?? initialCard;
   const types = ["All", ...Object.keys(cardData.counts)];
+  const plannedExpansions = cardData.plannedExpansions ?? [];
+  const expansions = includePlanned ? cardData.expansions : cardData.expansions.filter((entry) => !plannedExpansions.includes(entry));
+  const fieldTestCount = cardData.cards.filter((card) => card.availability !== "Planned Expansion").length;
   const cardsInScope = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
-    const matches = (card: CardEntry) => !term || [card.searchText, card.name, card.rulesText, card.flavorText].filter(Boolean).join(" ").toLowerCase().includes(term);
-    return cardData.cards.filter((card) => (expansion === "All" || card.expansion === expansion) && (deck === "All" || card.deck === deck) && matches(card));
-  }, [query, expansion, deck]);
+    const matches = (card: CardEntry) => !term || cardSearchText(card).includes(term);
+    return cardData.cards.filter((card) => (includePlanned || card.availability !== "Planned Expansion") && (expansion === "All" || card.expansion === expansion) && (deck === "All" || card.deck === deck) && matches(card));
+  }, [query, expansion, deck, includePlanned]);
   const typeCounts = useMemo(() => cardsInScope.reduce<Record<string, number>>((counts, card) => { counts[card.cardType] = (counts[card.cardType] ?? 0) + 1; return counts; }, {}), [cardsInScope]);
   const filtered = useMemo(() => {
     return cardsInScope.filter((card) => type === "All" || card.cardType === type).sort((a, b) => {
@@ -416,11 +420,11 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
       return a.name.localeCompare(b.name);
     });
   }, [cardsInScope, type, sort]);
-  const resetFilters = () => { setQuery(""); setType("All"); setExpansion(CORE_EXPANSION); setDeck("All"); setVisible(24); };
-  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Publicly inspectable.`} intro="Search the v2.0 alpha catalog by ID, deck, release set, type, rules text, or Focus Cost. Certified card artwork is arriving alongside the field test." art={headerCardsUrl} />
-    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Expansion</span><select value={expansion} onChange={(event) => setExpansion(event.target.value)}><option>All</option>{cardData.expansions.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option><option value="expansion">Expansion</option></select></label></section>
+  const resetFilters = () => { setQuery(""); setType("All"); setExpansion(CORE_EXPANSION); setDeck("All"); setIncludePlanned(false); setVisible(24); };
+  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. ${fieldTestCount} in the field test.`} intro="Search the v2.0 catalog by ID, deck, release set, type, rules text, or Focus Cost. Legends of the Dojo stays hidden unless you deliberately open planned expansions." art={headerCardsUrl} />
+    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.filter((entry) => includePlanned || entry !== "Legends of the Dojo Character Deck").map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Expansion</span><select value={expansion} onChange={(event) => setExpansion(event.target.value)}><option>All</option>{expansions.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option><option value="expansion">Expansion</option></select></label><label className="planned-expansion-toggle"><input type="checkbox" checked={includePlanned} onChange={(event) => { const checked = event.target.checked; setIncludePlanned(checked); if (checked && expansion === CORE_EXPANSION) setExpansion("All"); if (!checked && plannedExpansions.includes(expansion)) setExpansion(CORE_EXPANSION); setVisible(24); }} /><span><b>Planned expansions</b><small>Show Legends of the Dojo ({cardData.cards.filter((card) => card.availability === "Planned Expansion").length})</small></span></label></section>
     <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
-    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || expansion !== "All" || deck !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
+    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || expansion !== "All" || deck !== "All" || includePlanned) && <button onClick={resetFilters}>Reset filters</button>}</div>
     {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} onOpen={() => setSelectedCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
     {activeCard && <CardModal card={activeCard} onClose={() => { setSelectedCard(null); clearInitialCard(); }} />}
   </main>;
@@ -472,7 +476,7 @@ export default function CompanionApp() {
   const goTo = (next: ViewId) => { setView(next); setMenuOpen(false); setGlobalSearch(""); window.history.pushState(null, "", `#${next}`); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const globalResults = useMemo(() => {
     const term = globalSearch.trim().toLocaleLowerCase(); if (term.length < 2) return [];
-    const cards = cardData.cards.filter((card) => [card.searchText, card.name, card.rulesText, card.flavorText].filter(Boolean).join(" ").toLowerCase().includes(term)).slice(0, 5).map((card) => ({ type: "Card", title: card.name, detail: `${card.cardType} · ${card.subtype}`, card }));
+    const cards = cardData.cards.filter((card) => cardSearchText(card).includes(term)).slice(0, 5).map((card) => ({ type: "Card", title: card.name, detail: `${card.cardType} · ${card.subtype}`, card }));
     const terms = rulesData.glossary.filter((entry) => `${entry.term} ${entry.meaning}`.toLocaleLowerCase().includes(term)).slice(0, 3).map((entry) => ({ type: "Glossary", title: entry.term, detail: entry.meaning, card: null }));
     return [...cards, ...terms].slice(0, 7);
   }, [globalSearch]);
