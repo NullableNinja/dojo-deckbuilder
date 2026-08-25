@@ -30,28 +30,28 @@ import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp";
 import mrBobbyUrl from "./assets/characters/mr-bobby.webp";
 import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp";
 import waveyDaveyUrl from "./assets/characters/wavey-davey.webp";
-import baronVonBackflipUrl from "./assets/characters/character-pack-1/baron-von-backflip.webp";
-import blurryMonkUrl from "./assets/characters/character-pack-1/blurry-monk.webp";
-import booFuUrl from "./assets/characters/character-pack-1/boo-fu.webp";
-import dojoDummyBobUrl from "./assets/characters/character-pack-1/century-bob.webp";
-import coachKarenUrl from "./assets/characters/character-pack-1/coach-karen.webp";
-import crashTestDummyUrl from "./assets/characters/character-pack-1/crash-test-dummy.webp";
-import discoDojoDanUrl from "./assets/characters/character-pack-1/disco-dojo-dan.webp";
-import doppleBopperUrl from "./assets/characters/character-pack-1/dopplebopper.webp";
-import flamingMonkDudeBroskiUrl from "./assets/characters/character-pack-1/flaming-monk-dude-broski.webp";
-import glitterpunchUrl from "./assets/characters/character-pack-1/glitterpunch.webp";
-import honorableTrashPandaUrl from "./assets/characters/character-pack-1/honorable-trash-panda.webp";
-import inkFistUrl from "./assets/characters/character-pack-1/ink-fist.webp";
-import janitorJoeUrl from "./assets/characters/character-pack-1/janitor-joe.webp";
-import karatesaurusUrl from "./assets/characters/character-pack-1/karatesaurus.webp";
-import masterMimefuUrl from "./assets/characters/character-pack-1/master-mimefu.webp";
-import missDirectionUrl from "./assets/characters/character-pack-1/miss-direction.webp";
-import paperCraneUrl from "./assets/characters/character-pack-1/paper-crain.webp";
-import punchlinePeteUrl from "./assets/characters/character-pack-1/punchline-pete.webp";
-import sleepyChadUrl from "./assets/characters/character-pack-1/sleepy-chad.webp";
-import theBeltCollectorUrl from "./assets/characters/character-pack-1/the-belt-collector.webp";
-import theBalanceHammerUrl from "./assets/characters/character-pack-1/the-nerfhammer.webp";
-import theRebooterUrl from "./assets/characters/character-pack-1/the-rebooter.webp";
+import baronVonBackflipUrl from "./assets/characters/core-roster/baron-von-backflip.webp";
+import blurryMonkUrl from "./assets/characters/core-roster/blurry-monk.webp";
+import booFuUrl from "./assets/characters/core-roster/boo-fu.webp";
+import dojoDummyBobUrl from "./assets/characters/core-roster/century-bob.webp";
+import coachKarenUrl from "./assets/characters/core-roster/coach-karen.webp";
+import crashTestDummyUrl from "./assets/characters/core-roster/crash-test-dummy.webp";
+import discoDojoDanUrl from "./assets/characters/core-roster/disco-dojo-dan.webp";
+import doppleBopperUrl from "./assets/characters/core-roster/dopplebopper.webp";
+import flamingMonkDudeBroskiUrl from "./assets/characters/core-roster/flaming-monk-dude-broski.webp";
+import glitterpunchUrl from "./assets/characters/core-roster/glitterpunch.webp";
+import honorableTrashPandaUrl from "./assets/characters/core-roster/honorable-trash-panda.webp";
+import inkFistUrl from "./assets/characters/core-roster/ink-fist.webp";
+import janitorJoeUrl from "./assets/characters/core-roster/janitor-joe.webp";
+import karatesaurusUrl from "./assets/characters/core-roster/karatesaurus.webp";
+import masterMimefuUrl from "./assets/characters/core-roster/master-mimefu.webp";
+import missDirectionUrl from "./assets/characters/core-roster/miss-direction.webp";
+import paperCraneUrl from "./assets/characters/core-roster/paper-crain.webp";
+import punchlinePeteUrl from "./assets/characters/core-roster/punchline-pete.webp";
+import sleepyChadUrl from "./assets/characters/core-roster/sleepy-chad.webp";
+import theBeltCollectorUrl from "./assets/characters/core-roster/the-belt-collector.webp";
+import theBalanceHammerUrl from "./assets/characters/core-roster/the-nerfhammer.webp";
+import theRebooterUrl from "./assets/characters/core-roster/the-rebooter.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
@@ -114,28 +114,28 @@ const CARD_IMAGE_URLS: Record<string, string> = {
   "/characters/mr-bobby.webp": mrBobbyUrl,
   "/characters/sensei-ducktape.webp": senseiDucktapeUrl,
   "/characters/wavey-davey.webp": waveyDaveyUrl,
-  "/characters/character-pack-1/baron-von-backflip.webp": baronVonBackflipUrl,
-  "/characters/character-pack-1/blurry-monk.webp": blurryMonkUrl,
-  "/characters/character-pack-1/boo-fu.webp": booFuUrl,
-  "/characters/character-pack-1/century-bob.webp": dojoDummyBobUrl,
-  "/characters/character-pack-1/coach-karen.webp": coachKarenUrl,
-  "/characters/character-pack-1/crash-test-dummy.webp": crashTestDummyUrl,
-  "/characters/character-pack-1/disco-dojo-dan.webp": discoDojoDanUrl,
-  "/characters/character-pack-1/dopplebopper.webp": doppleBopperUrl,
-  "/characters/character-pack-1/flaming-monk-dude-broski.webp": flamingMonkDudeBroskiUrl,
-  "/characters/character-pack-1/glitterpunch.webp": glitterpunchUrl,
-  "/characters/character-pack-1/honorable-trash-panda.webp": honorableTrashPandaUrl,
-  "/characters/character-pack-1/ink-fist.webp": inkFistUrl,
-  "/characters/character-pack-1/janitor-joe.webp": janitorJoeUrl,
-  "/characters/character-pack-1/karatesaurus.webp": karatesaurusUrl,
-  "/characters/character-pack-1/master-mimefu.webp": masterMimefuUrl,
-  "/characters/character-pack-1/miss-direction.webp": missDirectionUrl,
-  "/characters/character-pack-1/paper-crain.webp": paperCraneUrl,
-  "/characters/character-pack-1/punchline-pete.webp": punchlinePeteUrl,
-  "/characters/character-pack-1/sleepy-chad.webp": sleepyChadUrl,
-  "/characters/character-pack-1/the-belt-collector.webp": theBeltCollectorUrl,
-  "/characters/character-pack-1/the-nerfhammer.webp": theBalanceHammerUrl,
-  "/characters/character-pack-1/the-rebooter.webp": theRebooterUrl,
+  "/characters/core-roster/baron-von-backflip.webp": baronVonBackflipUrl,
+  "/characters/core-roster/blurry-monk.webp": blurryMonkUrl,
+  "/characters/core-roster/boo-fu.webp": booFuUrl,
+  "/characters/core-roster/century-bob.webp": dojoDummyBobUrl,
+  "/characters/core-roster/coach-karen.webp": coachKarenUrl,
+  "/characters/core-roster/crash-test-dummy.webp": crashTestDummyUrl,
+  "/characters/core-roster/disco-dojo-dan.webp": discoDojoDanUrl,
+  "/characters/core-roster/dopplebopper.webp": doppleBopperUrl,
+  "/characters/core-roster/flaming-monk-dude-broski.webp": flamingMonkDudeBroskiUrl,
+  "/characters/core-roster/glitterpunch.webp": glitterpunchUrl,
+  "/characters/core-roster/honorable-trash-panda.webp": honorableTrashPandaUrl,
+  "/characters/core-roster/ink-fist.webp": inkFistUrl,
+  "/characters/core-roster/janitor-joe.webp": janitorJoeUrl,
+  "/characters/core-roster/karatesaurus.webp": karatesaurusUrl,
+  "/characters/core-roster/master-mimefu.webp": masterMimefuUrl,
+  "/characters/core-roster/miss-direction.webp": missDirectionUrl,
+  "/characters/core-roster/paper-crain.webp": paperCraneUrl,
+  "/characters/core-roster/punchline-pete.webp": punchlinePeteUrl,
+  "/characters/core-roster/sleepy-chad.webp": sleepyChadUrl,
+  "/characters/core-roster/the-belt-collector.webp": theBeltCollectorUrl,
+  "/characters/core-roster/the-nerfhammer.webp": theBalanceHammerUrl,
+  "/characters/core-roster/the-rebooter.webp": theRebooterUrl,
 };
 const PHASES = [
   { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
