@@ -61,7 +61,7 @@ type ViewId = "home" | "quickstart" | "story" | "rules" | "cards" | "rulings" | 
 type CardEntry = {
   id: string; name: string; cardType: string; subtype: string; category?: string | null;
   catalogId: string; catalogOrder: number;
-  expansion: string; deck: string; rulesVersion: string; lineage?: string | null; availability?: "Core Field Test" | "Planned Expansion" | string; v2Status?: string;
+  deck: string; rulesVersion: string; lineage?: string | null; availability?: "Core Field Test" | string; v2Status?: string;
   fpCost?: string | number | null; chiCost?: string | number | null; focusValue?: string | number | null;
   zone?: string | null; timing?: string | null; rulesText?: string | null; flavorText?: string | null;
   tags: string[]; buildPaths: string[]; stats: Record<string, string | number>;
@@ -77,12 +77,11 @@ type HouseRule = { name: string; rule: string; category?: string; summary?: stri
 type Theme = "light" | "dark";
 type RuleVisual = { label: string; quip: string; art: string; alt: string };
 
-const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; decks: string[]; total: number };
+const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; decks: string[]; total: number };
 const rulesData = rulesJson as { version: string; chapters: RuleChapter[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
-const CORE_EXPANSION = cardData.expansions.includes("Core Game") ? "Core Game" : cardData.expansions[0] ?? "All";
 const storyChapter = rulesData.chapters.find((chapter) => chapter.number === 1);
 const ruleChapters = rulesData.chapters.filter((chapter) => chapter.number >= 1 && chapter.number <= 16);
-const cardSearchText = (card: CardEntry) => [card.searchText, card.catalogId, card.name, card.cardType, card.subtype, card.category, card.expansion, card.deck, card.rulesVersion, card.lineage, card.zone, card.timing, card.rulesText, card.flavorText, ...card.tags, ...card.buildPaths, ...Object.keys(card.stats), ...Object.values(card.stats), ...Object.keys(card.details), ...Object.values(card.details)].filter((value) => value !== null && value !== undefined && value !== "").join(" ").toLocaleLowerCase();
+const cardSearchText = (card: CardEntry) => [card.searchText, card.catalogId, card.name, card.cardType, card.subtype, card.category, card.deck, card.rulesVersion, card.lineage, card.zone, card.timing, card.rulesText, card.flavorText, ...card.tags, ...card.buildPaths, ...Object.keys(card.stats), ...Object.values(card.stats), ...Object.keys(card.details), ...Object.values(card.details)].filter((value) => value !== null && value !== undefined && value !== "").join(" ").toLocaleLowerCase();
 
 const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
   { id: "quickstart", label: "Quick Start", short: "Start" },
@@ -425,7 +424,7 @@ function CardTile({ card, onOpen }: { card: CardEntry; onOpen: () => void }) {
   const statPairs = Object.entries(card.stats).slice(0, 3);
   return <button className={`library-card paper-stack interactive-paper type-${card.cardType.toLocaleLowerCase().replaceAll(" ", "-")}`} onClick={onOpen}>
     <div className="card-topline"><span>{card.cardType}</span><b>{card.deck}</b></div><div className="card-art"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} loading="lazy" decoding="async" /><span>{card.catalogId}</span></div>
-    <div className="card-body"><small>{card.expansion}</small><h3>{card.name}</h3><div className="card-costs">{card.fpCost !== null && card.fpCost !== undefined && <span><b>{valueLabel(card.fpCost)}</b> Focus Cost</span>}{card.focusValue !== null && card.focusValue !== undefined && <span><b>{valueLabel(card.focusValue)}</b> Focus</span>}{card.zone && <span>{card.zone}</span>}</div>{statPairs.length > 0 && <div className="mini-stats">{statPairs.map(([key, value]) => <span key={key}><b>{value}</b>{key}</span>)}</div>}<p>{card.rulesText || card.flavorText || "Open for complete card details."}</p><div className="tag-row">{card.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div></div><span className="open-card">View card →</span>
+    <div className="card-body"><small>{card.cardType}</small><h3>{card.name}</h3><div className="card-costs">{card.fpCost !== null && card.fpCost !== undefined && <span><b>{valueLabel(card.fpCost)}</b> Focus Cost</span>}{card.focusValue !== null && card.focusValue !== undefined && <span><b>{valueLabel(card.focusValue)}</b> Focus</span>}{card.zone && <span>{card.zone}</span>}</div>{statPairs.length > 0 && <div className="mini-stats">{statPairs.map(([key, value]) => <span key={key}><b>{value}</b>{key}</span>)}</div>}<p>{card.rulesText || card.flavorText || "Open for complete card details."}</p><div className="tag-row">{card.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div></div><span className="open-card">View card →</span>
   </button>;
 }
 
@@ -437,36 +436,34 @@ function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) 
     window.addEventListener("keydown", close);
     return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
   }, [onClose]);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button autoFocus className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span><span>{card.expansion}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).filter(([key]) => key !== "Favored Build Paths").map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet} · {card.rulesVersion}</footer></article></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button autoFocus className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img src={cardImageUrl(card.image)} alt={card.image ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).filter(([key]) => key !== "Favored Build Paths" && key !== "Release Set").map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet} · {card.rulesVersion}</footer></article></div>;
 }
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
-  const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [expansion, setExpansion] = useState(CORE_EXPANSION); const [deck, setDeck] = useState("All");
+  const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [deck, setDeck] = useState("All");
   const [sort, setSort] = useState("catalog"); const [visible, setVisible] = useState(24); const [selectedCard, setSelectedCard] = useState<CardEntry | null>(null);
   const activeCard = selectedCard ?? initialCard;
   const types = ["All", ...Object.keys(cardData.counts)];
-  const expansions = cardData.expansions;
   const cardsInScope = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
     const matches = (card: CardEntry) => !term || cardSearchText(card).includes(term);
-    return cardData.cards.filter((card) => (expansion === "All" || card.expansion === expansion) && (deck === "All" || card.deck === deck) && matches(card));
-  }, [query, expansion, deck]);
+    return cardData.cards.filter((card) => (deck === "All" || card.deck === deck) && matches(card));
+  }, [query, deck]);
   const typeCounts = useMemo(() => cardsInScope.reduce<Record<string, number>>((counts, card) => { counts[card.cardType] = (counts[card.cardType] ?? 0) + 1; return counts; }, {}), [cardsInScope]);
   const filtered = useMemo(() => {
     return cardsInScope.filter((card) => type === "All" || card.cardType === type).sort((a, b) => {
       if (sort === "catalog") return a.catalogOrder - b.catalogOrder;
       if (sort === "focus") return numeric(a.fpCost) - numeric(b.fpCost) || a.name.localeCompare(b.name);
       if (sort === "type") return a.cardType.localeCompare(b.cardType) || a.name.localeCompare(b.name);
-      if (sort === "expansion") return a.expansion.localeCompare(b.expansion) || a.name.localeCompare(b.name);
       if (sort === "deck") return a.deck.localeCompare(b.deck) || a.name.localeCompare(b.name);
       return a.name.localeCompare(b.name);
     });
   }, [cardsInScope, type, sort]);
-  const resetFilters = () => { setQuery(""); setType("All"); setExpansion(CORE_EXPANSION); setDeck("All"); setVisible(24); };
-  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Exactly 500 in the main pool.`} intro="Search the complete v2.0 catalog by ID, deck, release set, type, rules text, or Focus Cost. The 500-card main pool excludes Starter, Character, and Boss-module cards. Character Pack 1 is included as a separate fighter roster." art={headerCardsUrl} />
-    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Expansion</span><select value={expansion} onChange={(event) => setExpansion(event.target.value)}><option>All</option>{expansions.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option><option value="expansion">Expansion</option></select></label></section>
+  const resetFilters = () => { setQuery(""); setType("All"); setDeck("All"); setVisible(24); };
+  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Exactly 500 in the main pool.`} intro="Search the complete v2.0 Core catalog by ID, deck, type, rules text, or Focus Cost. The 500-card main pool excludes Starter, Character, and Boss-module cards." art={headerCardsUrl} />
+    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option></select></label></section>
     <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
-    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || expansion !== "All" || deck !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
+    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || deck !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
     {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} onOpen={() => setSelectedCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
     {activeCard && <CardModal card={activeCard} onClose={() => { setSelectedCard(null); clearInitialCard(); }} />}
   </main>;
