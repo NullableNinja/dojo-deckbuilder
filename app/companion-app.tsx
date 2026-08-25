@@ -30,6 +30,28 @@ import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp";
 import mrBobbyUrl from "./assets/characters/mr-bobby.webp";
 import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp";
 import waveyDaveyUrl from "./assets/characters/wavey-davey.webp";
+import baronVonBackflipUrl from "./assets/characters/character-pack-1/baron-von-backflip.webp";
+import blurryMonkUrl from "./assets/characters/character-pack-1/blurry-monk.webp";
+import booFuUrl from "./assets/characters/character-pack-1/boo-fu.webp";
+import dojoDummyBobUrl from "./assets/characters/character-pack-1/century-bob.webp";
+import coachKarenUrl from "./assets/characters/character-pack-1/coach-karen.webp";
+import crashTestDummyUrl from "./assets/characters/character-pack-1/crash-test-dummy.webp";
+import discoDojoDanUrl from "./assets/characters/character-pack-1/disco-dojo-dan.webp";
+import doppleBopperUrl from "./assets/characters/character-pack-1/dopplebopper.webp";
+import flamingMonkDudeBroskiUrl from "./assets/characters/character-pack-1/flaming-monk-dude-broski.webp";
+import glitterpunchUrl from "./assets/characters/character-pack-1/glitterpunch.webp";
+import honorableTrashPandaUrl from "./assets/characters/character-pack-1/honorable-trash-panda.webp";
+import inkFistUrl from "./assets/characters/character-pack-1/ink-fist.webp";
+import janitorJoeUrl from "./assets/characters/character-pack-1/janitor-joe.webp";
+import karatesaurusUrl from "./assets/characters/character-pack-1/karatesaurus.webp";
+import masterMimefuUrl from "./assets/characters/character-pack-1/master-mimefu.webp";
+import missDirectionUrl from "./assets/characters/character-pack-1/miss-direction.webp";
+import paperCraneUrl from "./assets/characters/character-pack-1/paper-crain.webp";
+import punchlinePeteUrl from "./assets/characters/character-pack-1/punchline-pete.webp";
+import sleepyChadUrl from "./assets/characters/character-pack-1/sleepy-chad.webp";
+import theBeltCollectorUrl from "./assets/characters/character-pack-1/the-belt-collector.webp";
+import theBalanceHammerUrl from "./assets/characters/character-pack-1/the-nerfhammer.webp";
+import theRebooterUrl from "./assets/characters/character-pack-1/the-rebooter.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
@@ -55,7 +77,7 @@ type HouseRule = { name: string; rule: string; category?: string; summary?: stri
 type Theme = "light" | "dark";
 type RuleVisual = { label: string; quip: string; art: string; alt: string };
 
-const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; plannedExpansions?: string[]; decks: string[]; total: number };
+const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; expansions: string[]; decks: string[]; total: number };
 const rulesData = rulesJson as { version: string; chapters: RuleChapter[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
 const CORE_EXPANSION = cardData.expansions.includes("Core Game") ? "Core Game" : cardData.expansions[0] ?? "All";
 const storyChapter = rulesData.chapters.find((chapter) => chapter.number === 1);
@@ -93,6 +115,28 @@ const CARD_IMAGE_URLS: Record<string, string> = {
   "/characters/mr-bobby.webp": mrBobbyUrl,
   "/characters/sensei-ducktape.webp": senseiDucktapeUrl,
   "/characters/wavey-davey.webp": waveyDaveyUrl,
+  "/characters/character-pack-1/baron-von-backflip.webp": baronVonBackflipUrl,
+  "/characters/character-pack-1/blurry-monk.webp": blurryMonkUrl,
+  "/characters/character-pack-1/boo-fu.webp": booFuUrl,
+  "/characters/character-pack-1/century-bob.webp": dojoDummyBobUrl,
+  "/characters/character-pack-1/coach-karen.webp": coachKarenUrl,
+  "/characters/character-pack-1/crash-test-dummy.webp": crashTestDummyUrl,
+  "/characters/character-pack-1/disco-dojo-dan.webp": discoDojoDanUrl,
+  "/characters/character-pack-1/dopplebopper.webp": doppleBopperUrl,
+  "/characters/character-pack-1/flaming-monk-dude-broski.webp": flamingMonkDudeBroskiUrl,
+  "/characters/character-pack-1/glitterpunch.webp": glitterpunchUrl,
+  "/characters/character-pack-1/honorable-trash-panda.webp": honorableTrashPandaUrl,
+  "/characters/character-pack-1/ink-fist.webp": inkFistUrl,
+  "/characters/character-pack-1/janitor-joe.webp": janitorJoeUrl,
+  "/characters/character-pack-1/karatesaurus.webp": karatesaurusUrl,
+  "/characters/character-pack-1/master-mimefu.webp": masterMimefuUrl,
+  "/characters/character-pack-1/miss-direction.webp": missDirectionUrl,
+  "/characters/character-pack-1/paper-crain.webp": paperCraneUrl,
+  "/characters/character-pack-1/punchline-pete.webp": punchlinePeteUrl,
+  "/characters/character-pack-1/sleepy-chad.webp": sleepyChadUrl,
+  "/characters/character-pack-1/the-belt-collector.webp": theBeltCollectorUrl,
+  "/characters/character-pack-1/the-nerfhammer.webp": theBalanceHammerUrl,
+  "/characters/character-pack-1/the-rebooter.webp": theRebooterUrl,
 };
 const PHASES = [
   { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
@@ -397,18 +441,16 @@ function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) 
 }
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
-  const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [expansion, setExpansion] = useState(CORE_EXPANSION); const [deck, setDeck] = useState("All"); const [includePlanned, setIncludePlanned] = useState(false);
+  const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [expansion, setExpansion] = useState(CORE_EXPANSION); const [deck, setDeck] = useState("All");
   const [sort, setSort] = useState("catalog"); const [visible, setVisible] = useState(24); const [selectedCard, setSelectedCard] = useState<CardEntry | null>(null);
   const activeCard = selectedCard ?? initialCard;
   const types = ["All", ...Object.keys(cardData.counts)];
-  const plannedExpansions = cardData.plannedExpansions ?? [];
-  const expansions = includePlanned ? cardData.expansions : cardData.expansions.filter((entry) => !plannedExpansions.includes(entry));
-  const fieldTestCount = cardData.cards.filter((card) => card.availability !== "Planned Expansion").length;
+  const expansions = cardData.expansions;
   const cardsInScope = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
     const matches = (card: CardEntry) => !term || cardSearchText(card).includes(term);
-    return cardData.cards.filter((card) => (includePlanned || card.availability !== "Planned Expansion") && (expansion === "All" || card.expansion === expansion) && (deck === "All" || card.deck === deck) && matches(card));
-  }, [query, expansion, deck, includePlanned]);
+    return cardData.cards.filter((card) => (expansion === "All" || card.expansion === expansion) && (deck === "All" || card.deck === deck) && matches(card));
+  }, [query, expansion, deck]);
   const typeCounts = useMemo(() => cardsInScope.reduce<Record<string, number>>((counts, card) => { counts[card.cardType] = (counts[card.cardType] ?? 0) + 1; return counts; }, {}), [cardsInScope]);
   const filtered = useMemo(() => {
     return cardsInScope.filter((card) => type === "All" || card.cardType === type).sort((a, b) => {
@@ -420,11 +462,11 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
       return a.name.localeCompare(b.name);
     });
   }, [cardsInScope, type, sort]);
-  const resetFilters = () => { setQuery(""); setType("All"); setExpansion(CORE_EXPANSION); setDeck("All"); setIncludePlanned(false); setVisible(24); };
-  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Exactly 500 in the main pool.`} intro="Search the complete v2.0 catalog by ID, deck, release set, type, rules text, or Focus Cost. The 500-card main pool excludes Starter, Character, and Boss-module cards; Legends of the Dojo stays hidden unless you deliberately open planned expansions." art={headerCardsUrl} />
-    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.filter((entry) => includePlanned || entry !== "Legends of the Dojo Character Deck").map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Expansion</span><select value={expansion} onChange={(event) => setExpansion(event.target.value)}><option>All</option>{expansions.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option><option value="expansion">Expansion</option></select></label><label className="planned-expansion-toggle"><input type="checkbox" checked={includePlanned} onChange={(event) => { const checked = event.target.checked; setIncludePlanned(checked); if (checked && expansion === CORE_EXPANSION) setExpansion("All"); if (!checked && plannedExpansions.includes(expansion)) setExpansion(CORE_EXPANSION); setVisible(24); }} /><span><b>Planned expansions</b><small>Show Legends of the Dojo ({cardData.cards.filter((card) => card.availability === "Planned Expansion").length})</small></span></label></section>
+  const resetFilters = () => { setQuery(""); setType("All"); setExpansion(CORE_EXPANSION); setDeck("All"); setVisible(24); };
+  return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Exactly 500 in the main pool.`} intro="Search the complete v2.0 catalog by ID, deck, release set, type, rules text, or Focus Cost. The 500-card main pool excludes Starter, Character, and Boss-module cards. Character Pack 1 is included as a separate fighter roster." art={headerCardsUrl} />
+    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Expansion</span><select value={expansion} onChange={(event) => setExpansion(event.target.value)}><option>All</option>{expansions.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option><option value="expansion">Expansion</option></select></label></section>
     <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
-    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || expansion !== "All" || deck !== "All" || includePlanned) && <button onClick={resetFilters}>Reset filters</button>}</div>
+    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || expansion !== "All" || deck !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
     {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} onOpen={() => setSelectedCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
     {activeCard && <CardModal card={activeCard} onClose={() => { setSelectedCard(null); clearInitialCard(); }} />}
   </main>;
