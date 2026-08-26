@@ -307,7 +307,7 @@ img { display: block; max-width: 100%; }
 .library-control { min-width: 0; display: grid; gap: 5px; }
 .library-control > span, .library-search-control > label { color: #6b756f; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; }
 .library-search-control .search-box { min-height: 52px; }
-.library-controls select { min-height: 52px; border: 1px solid var(--line); border-radius: 0; padding: 0 12px; color: var(--ink); background: var(--paper-light); }
+.library-controls select { width: 100%; min-width: 0; min-height: 52px; border: 1px solid var(--line); border-radius: 0; padding: 0 12px; color: var(--ink); background: var(--paper-light); }
 .library-controls select:disabled { color: #8b938f; background: rgba(233,226,209,.7); cursor: not-allowed; }
 .type-filters { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 6px; }
 .type-filters button { flex: 0 0 auto; border: 1px solid var(--line); padding: 8px 11px; background: rgba(255,250,240,.5); font-size: 11px; font-weight: 750; cursor: pointer; }
@@ -1539,6 +1539,34 @@ body,
 :root[data-theme="dark"] .rule-table td:first-child { background: var(--paper-light); }
 :root[data-theme="dark"] .rule-table tbody tr:nth-child(even) td:first-child { background: #223126; }
 :root[data-theme="dark"] .combat-term { border-color: #354a3d; }
+
+/* Keep the Quick Start calculation cards paper-light and ink-readable in dark mode. */
+:root[data-theme="dark"] .combat-example-heading p { color: #b9c9bf; }
+:root[data-theme="dark"] .combat-side {
+  color: #18221d;
+  background: #e8e6dc;
+  border-color: #8c968f;
+}
+:root[data-theme="dark"] .combat-side-title span,
+:root[data-theme="dark"] .combat-term > small,
+:root[data-theme="dark"] .combat-side footer { color: #4e5d55; }
+:root[data-theme="dark"] .combat-side-title h4,
+:root[data-theme="dark"] .combat-term > strong,
+:root[data-theme="dark"] .combat-side footer strong { color: #18221d; }
+:root[data-theme="dark"] .combat-side footer { border-color: #aab0aa; }
+:root[data-theme="dark"] .combat-outcome {
+  color: #18221d;
+  background: #fff8e8;
+  border-color: #a99d82;
+}
+:root[data-theme="dark"] .combat-example.is-hit .combat-outcome { background: #fff0df; }
+:root[data-theme="dark"] .combat-outcome-math span,
+:root[data-theme="dark"] .combat-outcome h4 { color: #18221d; }
+:root[data-theme="dark"] .combat-outcome-math small,
+:root[data-theme="dark"] .combat-outcome p { color: #4e5d55; }
+:root[data-theme="dark"] .combat-outcome-math i { color: #6d624d; }
+:root[data-theme="dark"] .combat-example-note { color: #d4dfd8; }
+:root[data-theme="dark"] .combat-example-note b { color: #f4f8f5; }
 
 .theme-toggle {
   width: 40px;
