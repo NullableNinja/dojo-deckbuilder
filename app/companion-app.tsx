@@ -441,6 +441,7 @@ function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) 
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
   const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [deck, setDeck] = useState("All");
+  const [subtype, setSubtype] = useState("All"); const [timing, setTiming] = useState("All"); const [focusCost, setFocusCost] = useState("All");
   const [sort, setSort] = useState("catalog"); const [visible, setVisible] = useState(24); const [selectedCard, setSelectedCard] = useState<CardEntry | null>(null);
   const activeCard = selectedCard ?? initialCard;
   const types = ["All", ...Object.keys(cardData.counts)];
@@ -450,20 +451,33 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
     return cardData.cards.filter((card) => (deck === "All" || card.deck === deck) && matches(card));
   }, [query, deck]);
   const typeCounts = useMemo(() => cardsInScope.reduce<Record<string, number>>((counts, card) => { counts[card.cardType] = (counts[card.cardType] ?? 0) + 1; return counts; }, {}), [cardsInScope]);
+  const typedCards = useMemo(() => cardsInScope.filter((card) => type === "All" || card.cardType === type), [cardsInScope, type]);
+  const optionCounts = (values: (string | number | null | undefined)[]) => values.reduce<Record<string, number>>((counts, value) => {
+    const label = value === null || value === undefined ? "" : String(value).trim();
+    if (label && label !== "—") counts[label] = (counts[label] ?? 0) + 1;
+    return counts;
+  }, {});
+  const subtypeCounts = useMemo(() => optionCounts(typedCards.map((card) => card.subtype)), [typedCards]);
+  const timingCounts = useMemo(() => optionCounts(typedCards.map((card) => card.timing)), [typedCards]);
+  const focusCostCounts = useMemo(() => optionCounts(typedCards.map((card) => Number.isFinite(numeric(card.fpCost)) ? numeric(card.fpCost) : null)), [typedCards]);
+  const subtypeOptions = Object.keys(subtypeCounts).sort();
+  const timingOptions = Object.keys(timingCounts).sort();
+  const focusCostOptions = Object.keys(focusCostCounts).sort((a, b) => Number(a) - Number(b));
   const filtered = useMemo(() => {
-    return cardsInScope.filter((card) => type === "All" || card.cardType === type).sort((a, b) => {
+    return typedCards.filter((card) => (subtype === "All" || card.subtype === subtype) && (timing === "All" || card.timing === timing) && (focusCost === "All" || numeric(card.fpCost) === Number(focusCost))).sort((a, b) => {
       if (sort === "catalog") return a.catalogOrder - b.catalogOrder;
       if (sort === "focus") return numeric(a.fpCost) - numeric(b.fpCost) || a.name.localeCompare(b.name);
       if (sort === "type") return a.cardType.localeCompare(b.cardType) || a.name.localeCompare(b.name);
       if (sort === "deck") return a.deck.localeCompare(b.deck) || a.name.localeCompare(b.name);
       return a.name.localeCompare(b.name);
     });
-  }, [cardsInScope, type, sort]);
-  const resetFilters = () => { setQuery(""); setType("All"); setDeck("All"); setVisible(24); };
+  }, [typedCards, subtype, timing, focusCost, sort]);
+  const resetSecondaryFilters = () => { setSubtype("All"); setTiming("All"); setFocusCost("All"); };
+  const resetFilters = () => { setQuery(""); setType("All"); setDeck("All"); resetSecondaryFilters(); setVisible(24); };
   return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Exactly 500 in the main pool.`} intro="Search the complete v2.0 Core catalog by ID, deck, type, rules text, or Focus Cost. The 500-card main pool excludes Starter, Character, and Boss-module cards." art={headerCardsUrl} />
-    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => setDeck(event.target.value)}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option></select></label></section>
-    <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
-    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || deck !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
+    <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => { setDeck(event.target.value); resetSecondaryFilters(); setVisible(24); }}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Subtype</span><select value={subtype} onChange={(event) => { setSubtype(event.target.value); setVisible(24); }} disabled={!subtypeOptions.length}><option value="All">All subtypes</option>{subtypeOptions.map((entry) => <option value={entry} key={entry}>{entry} ({subtypeCounts[entry]})</option>)}</select></label><label className="library-control"><span>Timing</span><select value={timing} onChange={(event) => { setTiming(event.target.value); setVisible(24); }} disabled={!timingOptions.length}><option value="All">All timings</option>{timingOptions.map((entry) => <option value={entry} key={entry}>{entry} ({timingCounts[entry]})</option>)}</select></label><label className="library-control"><span>Focus Cost</span><select value={focusCost} onChange={(event) => { setFocusCost(event.target.value); setVisible(24); }} disabled={!focusCostOptions.length}><option value="All">Any cost</option>{focusCostOptions.map((entry) => <option value={entry} key={entry}>{entry} Focus ({focusCostCounts[entry]})</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option></select></label></section>
+    <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); resetSecondaryFilters(); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
+    <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || deck !== "All" || subtype !== "All" || timing !== "All" || focusCost !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
     {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} onOpen={() => setSelectedCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
     {activeCard && <CardModal card={activeCard} onClose={() => { setSelectedCard(null); clearInitialCard(); }} />}
   </main>;
