@@ -30,32 +30,19 @@ import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp";
 import mrBobbyUrl from "./assets/characters/mr-bobby.webp";
 import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp";
 import waveyDaveyUrl from "./assets/characters/wavey-davey.webp";
-import baronVonBackflipUrl from "./assets/characters/core-roster/baron-von-backflip.webp";
-import blurryMonkUrl from "./assets/characters/core-roster/blurry-monk.webp";
-import booFuUrl from "./assets/characters/core-roster/boo-fu.webp";
-import dojoDummyBobUrl from "./assets/characters/core-roster/century-bob.webp";
-import coachKarenUrl from "./assets/characters/core-roster/coach-karen.webp";
-import crashTestDummyUrl from "./assets/characters/core-roster/crash-test-dummy.webp";
-import discoDojoDanUrl from "./assets/characters/core-roster/disco-dojo-dan.webp";
-import doppleBopperUrl from "./assets/characters/core-roster/dopplebopper.webp";
-import flamingMonkDudeBroskiUrl from "./assets/characters/core-roster/flaming-monk-dude-broski.webp";
-import glitterpunchUrl from "./assets/characters/core-roster/glitterpunch.webp";
-import honorableTrashPandaUrl from "./assets/characters/core-roster/honorable-trash-panda.webp";
-import inkFistUrl from "./assets/characters/core-roster/ink-fist.webp";
-import janitorJoeUrl from "./assets/characters/core-roster/janitor-joe.webp";
-import karatesaurusUrl from "./assets/characters/core-roster/karatesaurus.webp";
-import masterMimefuUrl from "./assets/characters/core-roster/master-mimefu.webp";
-import missDirectionUrl from "./assets/characters/core-roster/miss-direction.webp";
-import paperCraneUrl from "./assets/characters/core-roster/paper-crain.webp";
-import punchlinePeteUrl from "./assets/characters/core-roster/punchline-pete.webp";
-import sleepyChadUrl from "./assets/characters/core-roster/sleepy-chad.webp";
-import theBeltCollectorUrl from "./assets/characters/core-roster/the-belt-collector.webp";
-import theBalanceHammerUrl from "./assets/characters/core-roster/the-nerfhammer.webp";
-import theRebooterUrl from "./assets/characters/core-roster/the-rebooter.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import rulesJson from "./data/rules.json";
+
+const characterCardModules = import.meta.glob<string>("./assets/cards/characters/*.webp", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const CHARACTER_CARD_URLS = Object.fromEntries(
+  Object.entries(characterCardModules).map(([path, url]) => [`/cards/characters/${path.split("/").at(-1)}`, url]),
+);
 
 type ViewId = "home" | "quickstart" | "story" | "rules" | "cards" | "rulings" | "glossary" | "house-rules";
 type CardEntry = {
@@ -110,32 +97,7 @@ const HERO_FIGHTERS = [
   { name: "Wavey Davey", image: waveyDaveyUrl, type: "Opening-Seeking Specialist" },
 ];
 const CARD_IMAGE_URLS: Record<string, string> = {
-  "/characters/el-pollo-rojo.webp": elPolloRojoUrl,
-  "/characters/mr-bobby.webp": mrBobbyUrl,
-  "/characters/sensei-ducktape.webp": senseiDucktapeUrl,
-  "/characters/wavey-davey.webp": waveyDaveyUrl,
-  "/characters/core-roster/baron-von-backflip.webp": baronVonBackflipUrl,
-  "/characters/core-roster/blurry-monk.webp": blurryMonkUrl,
-  "/characters/core-roster/boo-fu.webp": booFuUrl,
-  "/characters/core-roster/century-bob.webp": dojoDummyBobUrl,
-  "/characters/core-roster/coach-karen.webp": coachKarenUrl,
-  "/characters/core-roster/crash-test-dummy.webp": crashTestDummyUrl,
-  "/characters/core-roster/disco-dojo-dan.webp": discoDojoDanUrl,
-  "/characters/core-roster/dopplebopper.webp": doppleBopperUrl,
-  "/characters/core-roster/flaming-monk-dude-broski.webp": flamingMonkDudeBroskiUrl,
-  "/characters/core-roster/glitterpunch.webp": glitterpunchUrl,
-  "/characters/core-roster/honorable-trash-panda.webp": honorableTrashPandaUrl,
-  "/characters/core-roster/ink-fist.webp": inkFistUrl,
-  "/characters/core-roster/janitor-joe.webp": janitorJoeUrl,
-  "/characters/core-roster/karatesaurus.webp": karatesaurusUrl,
-  "/characters/core-roster/master-mimefu.webp": masterMimefuUrl,
-  "/characters/core-roster/miss-direction.webp": missDirectionUrl,
-  "/characters/core-roster/paper-crain.webp": paperCraneUrl,
-  "/characters/core-roster/punchline-pete.webp": punchlinePeteUrl,
-  "/characters/core-roster/sleepy-chad.webp": sleepyChadUrl,
-  "/characters/core-roster/the-belt-collector.webp": theBeltCollectorUrl,
-  "/characters/core-roster/the-nerfhammer.webp": theBalanceHammerUrl,
-  "/characters/core-roster/the-rebooter.webp": theRebooterUrl,
+  ...CHARACTER_CARD_URLS,
 };
 const PHASES = [
   { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
