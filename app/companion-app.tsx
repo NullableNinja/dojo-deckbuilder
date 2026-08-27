@@ -44,6 +44,15 @@ const CHARACTER_CARD_URLS = Object.fromEntries(
   Object.entries(characterCardModules).map(([path, url]) => [`/cards/characters/${path.split("/").at(-1)}`, url]),
 );
 
+const bossCardModules = import.meta.glob<string>("./assets/cards/bosses/*.webp", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const BOSS_CARD_URLS = Object.fromEntries(
+  Object.entries(bossCardModules).map(([path, url]) => [`/cards/bosses/${path.split("/").at(-1)}`, url]),
+);
+
 type ViewId = "home" | "quickstart" | "story" | "rules" | "cards" | "rulings" | "glossary" | "house-rules";
 type CardEntry = {
   id: string; name: string; cardType: string; subtype: string; category?: string | null;
@@ -98,6 +107,7 @@ const HERO_FIGHTERS = [
 ];
 const CARD_IMAGE_URLS: Record<string, string> = {
   ...CHARACTER_CARD_URLS,
+  ...BOSS_CARD_URLS,
 };
 const PHASES = [
   { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
