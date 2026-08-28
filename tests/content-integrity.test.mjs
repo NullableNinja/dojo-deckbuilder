@@ -36,3 +36,11 @@ test("rulings have stable IDs and filing dates", async () => {
   }
   assert.ok(source.includes("Filed Aug 27, 2026"));
 });
+
+test("rendered glossary deduplicates terms at the UI boundary", async () => {
+  const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
+  assert.match(source, /const GLOSSARY_ENTRIES = Array\.from\(new Map/);
+  assert.match(source, /const glossaryKey =/);
+  assert.ok(!source.includes("rulesData.glossary.filter("), "Glossary rendering/search must use the deduplicated collection");
+  assert.ok(source.includes("{GLOSSARY_ENTRIES.length} terms"), "Glossary count must reflect the deduplicated collection");
+});
