@@ -11,6 +11,10 @@ test("glossary terms are unique", async () => {
   }
 });
 
+test("deployment gates publication on the test suite", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
+  assert.match(workflow, /run: npm test/);
+});
 
 test("rulings have stable IDs and filing dates", async () => {
   const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
