@@ -1,0 +1,48 @@
+name: Apply targeted Dojo Deckbuilder site fixes
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply targeted fixes
+        run: node scripts/apply-targeted-site-fixes.mjs
+
+      - name: Verify the complete site
+        run: npm test
+
+      - name: Commit verified fixes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm .github/workflows/apply-targeted-site-fixes.yml
+          rm scripts/apply-targeted-site-fixes.mjs
+          rmdir scripts 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Clean companion content and unify search"
+          git push origin HEAD:main
+          gh workflow run deploy-pages.yml --ref main
