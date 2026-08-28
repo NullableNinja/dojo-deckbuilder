@@ -24,11 +24,11 @@ test("ships the phone and small-tablet responsive contract", async () => {
 test("mobile navigation reaches every section without crowding the bottom bar", async () => {
   const app = await readFile(appUrl, "utf8");
   assert.match(app, /aria-label="Mobile navigation"/);
-  for (const label of [">Home<", ">Start<", ">Rules<", ">Cards<", ">More<"]) {
+  for (const label of [">Home<", ">Start<", ">Rules<", ">Cards<", ">Menu<"]) {
     assert.ok(app.includes(label), `Missing mobile destination: ${label}`);
   }
-  assert.match(app, /id="primary-navigation"/);
-  assert.match(app, /aria-controls="primary-navigation"/);
+  assert.match(app, /id="mobile-menu"/);
+  assert.match(app, /aria-controls="mobile-menu"/);
   assert.match(app, /view === "house-rules"/);
 });
 

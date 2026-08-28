@@ -1,6 +1,6 @@
 {
-  "version": "v2.0 Alpha — Unified Card List",
-  "source": "Dojo Deckbuilder v2.0 Alpha — Unified Paper-Fu field-test rules",
+  "version": "Official Rules",
+  "source": "Dojo Deckbuilder Paper-Fu field-test rules",
   "chapters": [
     {
       "id": "1-welcome-to-paper-fu",
@@ -2488,38 +2488,6 @@
       "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
     },
     {
-      "term": "Belt Exam",
-      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
-    },
-    {
-      "term": "Belt Exam",
-      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
-    },
-    {
-      "term": "Belt Exam",
-      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
-    },
-    {
-      "term": "Belt Exam",
-      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
-    },
-    {
-      "term": "Boss Profile",
-      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
-    },
-    {
-      "term": "Boss Profile",
-      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
-    },
-    {
-      "term": "Boss Profile",
-      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
-    },
-    {
-      "term": "Boss Profile",
-      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
-    },
-    {
       "term": "Boss Profile",
       "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
     },
@@ -2606,38 +2574,6 @@
     {
       "term": "Ready",
       "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
-    },
-    {
-      "term": "Ready",
-      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
-    },
-    {
-      "term": "Ready",
-      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
-    },
-    {
-      "term": "Ready",
-      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
-    },
-    {
-      "term": "Ready",
-      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
-    },
-    {
-      "term": "Reversal",
-      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
-    },
-    {
-      "term": "Reversal",
-      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
-    },
-    {
-      "term": "Reversal",
-      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
-    },
-    {
-      "term": "Reversal",
-      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
     },
     {
       "term": "Reversal",

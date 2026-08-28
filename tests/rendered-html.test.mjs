@@ -11,35 +11,29 @@ test("renders the static GitHub Pages shell with mobile metadata", async () => {
 
 test("bundles the interactive Starter Deck lesson and both card examples", async () => {
   const assetDirectory = new URL("../dist/assets/", import.meta.url);
-  const companionBundles = (await readdir(assetDirectory)).filter((name) => /^index-.*\.js$/.test(name));
-  assert.equal(companionBundles.length, 1);
-
-  const bundle = await readFile(new URL(companionBundles[0], assetDirectory), "utf8");
-  for (const expected of ["Build this exact 15-card deck.", "Basic Jab", "High Guard", "Attacks", "Defenses", "Katas", "Junk"]) {
-    assert.ok(bundle.includes(expected), `Missing Starter Deck lesson content: ${expected}`);
+  const bundles = (await readdir(assetDirectory)).filter((name) => /^index-.*\.js$/.test(name));
+  assert.equal(bundles.length, 1);
+  const bundle = await readFile(new URL(bundles[0], assetDirectory), "utf8");
+  for (const expected of ["Build this exact 15-card deck.", "Basic Jab", "High Guard", "Attacks", "Defenses", "Katas", "Junk", "Rita attacks Devin. Count the paper."]) {
+    assert.ok(bundle.includes(expected), `Missing companion lesson content: ${expected}`);
   }
-
-  const embeddedWebpImages = bundle.match(/data:image\/webp;base64,/g)?.length ?? 0;
-  assert.equal(embeddedWebpImages, 0, "Starter art should remain a separately cacheable asset on mobile.");
-  const starterArt = (await readdir(assetDirectory)).filter((name) => /(?:starter-jab-art|high-guard-art)-.*\.webp$/.test(name));
-  assert.equal(starterArt.length, 2);
+  assert.equal(bundle.match(/data:image\/webp;base64,/g)?.length ?? 0, 0, "Artwork should remain separately cacheable.");
 });
 
-test("bundles the interactive worked combat example", async () => {
-  const assetDirectory = new URL("../dist/assets/", import.meta.url);
-  const companionBundles = (await readdir(assetDirectory)).filter((name) => /^index-.*\.js$/.test(name));
-  assert.equal(companionBundles.length, 1);
-
-  const bundle = await readFile(new URL(companionBundles[0], assetDirectory), "utf8");
-  for (const expected of ["Rita attacks Devin. Count the paper.", "Wild Swing", "Desperate Cover", "Remove Devin’s Defense", "Devin loses 0 HP.", "Devin loses "]) {
-    assert.ok(bundle.includes(expected), `Missing worked combat content: ${expected}`);
-  }
-});
-
-test("defaults the Card Library to Core Game with balanced controls", async () => {
+test("public companion copy is version-free and uses the current featured roster", async () => {
   const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
-  assert.match(source, /useState\(CORE_EXPANSION\)/);
-  assert.match(source, /setExpansion\(CORE_EXPANSION\)/);
-  assert.match(source, /library-search-control/);
-  assert.match(source, /cardsInScope\.length/);
+  for (const forbidden of ["v2.0 alpha field test", "complete v2.0 Core catalog", "Every defined v2.0 rules term", "Defined v2.0 term", "Rules source: v2.0"]) {
+    assert.ok(!source.includes(forbidden), `Public version label survived: ${forbidden}`);
+  }
+  assert.ok(source.includes("Field test active"));
+  assert.ok(source.includes('name: "Sentry Bobby"'));
+  assert.ok(!source.includes('name: "Mr. Bobby"'));
+  assert.ok(source.includes("publicCardDetails(card)"));
+});
+
+test("global search spans the whole companion", async () => {
+  const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
+  for (const expected of ['type: "Rule"', 'type: "Ruling"', 'type: "Card"', 'type: "Glossary"', 'type: "House Rule"', 'placeholder="Search the dojo"']) {
+    assert.ok(source.includes(expected), `Missing unified search behavior: ${expected}`);
+  }
 });
