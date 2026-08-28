@@ -16,6 +16,19 @@ test("deployment gates publication on the test suite", async () => {
   assert.match(workflow, /run: npm test/);
 });
 
+test("deployment stamps a build fingerprint and cache-busts the app shell", async () => {
+  const index = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const entry = await readFile(new URL("../src/main.tsx", import.meta.url), "utf8");
+  const workflow = await readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
+  assert.match(index, /name="ddb-build" content="__DDB_BUILD__"/);
+  assert.match(index, /Cache-Control/);
+  assert.match(entry, /build\.json\?ts=/);
+  assert.match(entry, /cache: "no-store"/);
+  assert.match(entry, /_ddb_build/);
+  assert.match(workflow, /Stamp deployment and bust stale app-shell caches/);
+  assert.match(workflow, /build\.json/);
+});
+
 test("rulings have stable IDs and filing dates", async () => {
   const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
   for (let number = 1; number <= 8; number += 1) {

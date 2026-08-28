@@ -36,6 +36,29 @@ jobs:
       - name: Test and build static site
         run: npm test
 
+      - name: Stamp deployment and bust stale app-shell caches
+        env:
+          DDB_BUILD: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          build = os.environ["DDB_BUILD"]
+          index = Path("dist/index.html")
+          html = index.read_text()
+          html = html.replace("__DDB_BUILD__", build)
+          html = re.sub(
+              r'((?:src|href)="/dojo-deckbuilder/assets/[^"?]+\.(?:js|css))"',
+              lambda match: f'{match.group(1)}?build={build[:12]}"',
+              html,
+          )
+          index.write_text(html)
+          Path("dist/build.json").write_text(json.dumps({"build": build}) + "\n")
+          PY
+
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
