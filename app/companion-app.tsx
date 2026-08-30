@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import brandEmblemUrl from "./assets/art/brand-emblem.webp";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import headerBackstoryUrl from "./assets/art/header-backstory-v2.webp";
@@ -443,15 +443,90 @@ function CardTile({ card, onOpen }: { card: CardEntry; onOpen: () => void }) {
   </button>;
 }
 
-function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) {
+function CardModal({
+  card,
+  previousCard,
+  nextCard,
+  position,
+  total,
+  onPrevious,
+  onNext,
+  onClose,
+}: {
+  card: CardEntry;
+  previousCard: CardEntry | null;
+  nextCard: CardEntry | null;
+  position: number;
+  total: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
-    const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", close);
-    return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
-  }, [onClose]);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button autoFocus className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img className={isCompleteCardArt(card) ? "modal-card-art--complete" : undefined} src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).filter(([key]) => key !== "Favored Build Paths" && key !== "Release Set").map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet}</footer></article></div>;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const body = document.body;
+    const root = document.documentElement;
+    const previousBodyStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      width: body.style.width,
+      overflow: body.style.overflow,
+      paddingRight: body.style.paddingRight,
+    };
+    const previousScrollBehavior = root.style.scrollBehavior;
+    const scrollbarWidth = window.innerWidth - root.clientWidth;
+
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = `-${scrollX}px`;
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+    dialogRef.current?.focus({ preventScroll: true });
+
+    return () => {
+      Object.assign(body.style, previousBodyStyles);
+      root.style.scrollBehavior = "auto";
+      window.scrollTo(scrollX, scrollY);
+      root.style.scrollBehavior = previousScrollBehavior;
+      previouslyFocused?.focus({ preventScroll: true });
+    };
+  }, []);
+
+  useEffect(() => {
+    const navigate = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft" && previousCard) onPrevious();
+      if (event.key === "ArrowRight" && nextCard) onNext();
+    };
+    window.addEventListener("keydown", navigate);
+    return () => window.removeEventListener("keydown", navigate);
+  }, [nextCard, onClose, onNext, onPrevious, previousCard]);
+
+  useEffect(() => {
+    dialogRef.current?.scrollTo({ top: 0 });
+  }, [card.id]);
+
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <article ref={dialogRef} className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title" tabIndex={-1}>
+      <button className="modal-close" onClick={onClose} aria-label="Close card details">×</button>
+      <nav className="card-modal-nav" aria-label="Browse filtered cards">
+        <button type="button" onClick={onPrevious} disabled={!previousCard} aria-label={previousCard ? `Previous card: ${previousCard.name}` : "No previous card"}>
+          <span aria-hidden="true">←</span><span className="card-modal-link-copy"><small>Previous</small><strong>{previousCard?.name ?? "First card"}</strong></span>
+        </button>
+        <span className="card-modal-position" aria-live="polite">{position} of {total}</span>
+        <button type="button" onClick={onNext} disabled={!nextCard} aria-label={nextCard ? `Next card: ${nextCard.name}` : "No next card"}>
+          <span className="card-modal-link-copy"><small>Next</small><strong>{nextCard?.name ?? "Last card"}</strong></span><span aria-hidden="true">→</span>
+        </button>
+      </nav>
+      <div className="modal-heading"><img className={isCompleteCardArt(card) ? "modal-card-art--complete" : undefined} src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{publicCardDetails(card).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet}</footer>
+    </article>
+  </div>;
 }
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
@@ -487,6 +562,9 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
       return a.name.localeCompare(b.name);
     });
   }, [typedCards, subtype, timing, focusCost, sort]);
+  const activeIndex = activeCard ? filtered.findIndex((card) => card.id === activeCard.id) : -1;
+  const previousCard = activeIndex > 0 ? filtered[activeIndex - 1] : null;
+  const nextCard = activeIndex >= 0 && activeIndex < filtered.length - 1 ? filtered[activeIndex + 1] : null;
   const resetSecondaryFilters = () => { setSubtype("All"); setTiming("All"); setFocusCost("All"); };
   const resetFilters = () => { setQuery(""); setType("All"); setDeck("All"); resetSecondaryFilters(); setVisible(24); };
   return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Exactly 500 in the main pool.`} intro="Search the complete Core catalog by ID, deck, type, rules text, or Focus Cost. The 500-card main pool excludes Starter, Character, and Boss-module cards." art={headerCardsUrl} />
@@ -494,7 +572,7 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
     <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); resetSecondaryFilters(); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
     <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || deck !== "All" || subtype !== "All" || timing !== "All" || focusCost !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
     {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} onOpen={() => setSelectedCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
-    {activeCard && <CardModal card={activeCard} onClose={() => { setSelectedCard(null); clearInitialCard(); }} />}
+    {activeCard && <CardModal card={activeCard} previousCard={previousCard} nextCard={nextCard} position={activeIndex + 1} total={filtered.length} onPrevious={() => previousCard && setSelectedCard(previousCard)} onNext={() => nextCard && setSelectedCard(nextCard)} onClose={() => { setSelectedCard(null); clearInitialCard(); }} />}
   </main>;
 }
 

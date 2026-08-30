@@ -39,3 +39,20 @@ test("mobile overlays lock background scroll and rules expose a compact chapter 
   assert.match(app, /id="rule-reader"/);
   assert.match(app, /loading="lazy"/);
 });
+
+test("card viewer preserves the library position and navigates the filtered results", async () => {
+  const [app, css] = await Promise.all([
+    readFile(appUrl, "utf8"),
+    readFile(cssUrl, "utf8"),
+  ]);
+  assert.match(app, /body\.style\.position = "fixed"/);
+  assert.match(app, /window\.scrollTo\(scrollX, scrollY\)/);
+  assert.match(app, /focus\(\{ preventScroll: true \}\)/);
+  assert.match(app, /event\.key === "ArrowLeft"/);
+  assert.match(app, /event\.key === "ArrowRight"/);
+  assert.match(app, /aria-label="Browse filtered cards"/);
+  assert.match(app, /previousCard=\{previousCard\}/);
+  assert.match(app, /nextCard=\{nextCard\}/);
+  assert.match(css, /\.card-modal-nav/);
+  assert.match(css, /overscroll-behavior: contain/);
+});
