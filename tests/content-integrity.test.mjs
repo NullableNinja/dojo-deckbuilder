@@ -64,3 +64,21 @@ test("rendered glossary deduplicates terms at the UI boundary", async () => {
   assert.ok(!source.includes("rulesData.glossary.filter("), "Glossary rendering/search must use the deduplicated collection");
   assert.ok(source.includes("{GLOSSARY_ENTRIES.length} terms"), "Glossary count must reflect the deduplicated collection");
 });
+
+test("playtest uses the live Core catalog and actual uploaded card art", async () => {
+  const [companion, playtest, cards] = await Promise.all([
+    readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/cards.json", import.meta.url), "utf8"),
+  ]);
+  assert.match(companion, /PlaytestView/);
+  assert.match(companion, /Play the Game/);
+  assert.match(playtest, /import cardsJson from "\.\/data\/cards\.json"/);
+  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,characters\}/);
+  assert.match(playtest, /const starterIds = \[/);
+  assert.match(playtest, /const marketPool = cards\.filter/);
+  assert.match(playtest, /function openAiStrike/);
+  assert.match(playtest, /defense-window/);
+  assert.match(playtest, /Shared Market · 7 real cards/);
+  assert.equal(JSON.parse(cards).total, 597, "Playtest source must retain the current definitive Core catalog");
+});
