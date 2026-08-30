@@ -53,6 +53,8 @@ test("card viewer preserves the library position and navigates the filtered resu
   assert.match(app, /event\.key === "ArrowLeft"/);
   assert.match(app, /event\.key === "ArrowRight"/);
   assert.match(app, /aria-label="Browse filtered cards"/);
+  assert.match(app, /import \{ createPortal \} from "react-dom"/);
+  assert.match(app, /return createPortal\(<div className="modal-backdrop"[\s\S]*document\.body\)/);
   assert.match(app, /previousCard=\{previousCard\}/);
   assert.match(app, /nextCard=\{nextCard\}/);
   assert.match(css, /\.card-modal-nav/);

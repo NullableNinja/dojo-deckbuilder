@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import brandEmblemUrl from "./assets/art/brand-emblem.webp";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import headerBackstoryUrl from "./assets/art/header-backstory-v2.webp";
@@ -335,7 +336,7 @@ function DetailModal({ eyebrow, title, children, onClose, accent = "red" }: { ey
     window.addEventListener("keydown", close);
     return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
   }, [onClose]);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className={`detail-modal paper-stack accent-${accent}`} role="dialog" aria-modal="true" aria-labelledby="detail-modal-title"><i className="modal-burst" aria-hidden="true" /><button autoFocus className="modal-close" onClick={onClose} aria-label="Close details">×</button><span className="eyebrow">{eyebrow}</span><h2 id="detail-modal-title">{title}</h2>{children}</article></div>;
+  return createPortal(<div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className={`detail-modal paper-stack accent-${accent}`} role="dialog" aria-modal="true" aria-labelledby="detail-modal-title"><i className="modal-burst" aria-hidden="true" /><button autoFocus className="modal-close" onClick={onClose} aria-label="Close details">×</button><span className="eyebrow">{eyebrow}</span><h2 id="detail-modal-title">{title}</h2>{children}</article></div>, document.body);
 }
 
 function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
@@ -504,7 +505,7 @@ function CardModal({
     dialogRef.current?.scrollTo({ top: 0 });
   }, [card.id]);
 
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+  return createPortal(<div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <article ref={dialogRef} className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title" tabIndex={-1}>
       <button className="modal-close" onClick={onClose} aria-label="Close card details">×</button>
       <nav className="card-modal-nav" aria-label="Browse filtered cards">
@@ -518,7 +519,7 @@ function CardModal({
       </nav>
       <div className="modal-heading"><img className={isCompleteCardArt(card) ? "modal-card-art--complete" : undefined} src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{publicCardDetails(card).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet}</footer>
     </article>
-  </div>;
+  </div>, document.body);
 }
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
