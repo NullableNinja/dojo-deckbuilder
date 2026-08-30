@@ -35,6 +35,7 @@ import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import rulesJson from "./data/rules.json";
+import PlaytestView from "./playtest";
 
 const characterCardModules = import.meta.glob<string>("./assets/cards/characters/*.webp", {
   eager: true,
@@ -87,7 +88,7 @@ const COMPLETE_CARD_URLS_BY_CATALOG_ID = Object.fromEntries(
   }),
 );
 
-type ViewId = "home" | "quickstart" | "story" | "rules" | "cards" | "rulings" | "glossary" | "house-rules";
+type ViewId = "home" | "playtest" | "quickstart" | "story" | "rules" | "cards" | "rulings" | "glossary" | "house-rules";
 type CardEntry = {
   id: string; name: string; cardType: string; subtype: string; category?: string | null;
   catalogId: string; catalogOrder: number;
@@ -119,6 +120,7 @@ const publicCardDetails = (card: CardEntry) => Object.entries(card.details).filt
 const cardSearchText = (card: CardEntry) => [card.catalogId, card.name, card.cardType, card.subtype, card.category, card.deck, card.lineage, card.zone, card.timing, card.rulesText, card.flavorText, ...card.tags, ...card.buildPaths, ...Object.keys(card.stats), ...Object.values(card.stats), ...publicCardDetails(card).flatMap(([key, value]) => [key, value])].filter((value) => value !== null && value !== undefined && value !== "").join(" ").toLocaleLowerCase();
 
 const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
+  { id: "playtest", label: "Play the Game", short: "Play" },
   { id: "quickstart", label: "Quick Start", short: "Start" },
   { id: "story", label: "Backstory", short: "Story" },
   { id: "rules", label: "Full Rules", short: "Rules" },
@@ -129,6 +131,7 @@ const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
 ];
 const MOBILE_MENU_ITEMS: { id: ViewId; label: string; detail: string }[] = [
   { id: "home", label: "Home", detail: "Return to the field test." },
+  { id: "playtest", label: "Play the Game", detail: "Fight the computer using the live card catalog." },
   { id: "quickstart", label: "Quick Start", detail: "Set up and play the first round." },
   { id: "story", label: "Backstory", detail: "Why a filing cabinet became sacred." },
   { id: "rules", label: "Full Rules", detail: "Every official procedure." },
@@ -347,7 +350,7 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
         <p className="kicker">Government-certified card combat. Mostly.</p>
         <h1>Shuffle.<br />Strike. Ascend.</h1>
         <p className="hero-lede">Build a registered deck, survive the field test, and help decide whether Paper-Fu deserves another year of public funding.</p>
-        <div className="hero-actions"><button className="button primary" onClick={() => goTo("quickstart")}>Start playing <span>→</span></button><button className="button ghost" onClick={() => goTo("rules")}>Read full rules</button></div>
+        <div className="hero-actions"><button className="button primary" onClick={() => goTo("playtest")}>Play the game <span>→</span></button><button className="button ghost" onClick={() => goTo("quickstart")}>Learn the rules</button></div>
         <div className="hero-note"><span>⏱</span><strong>First game?</strong> Get the table moving in about 10 minutes.</div>
       </div>
       <div className="hero-art-new"><span className="paper-shadow shadow-one" /><span className="paper-shadow shadow-two" /><i className="fastener tape-strip hero-tape-one" aria-hidden="true" /><i className="fastener tape-strip hero-tape-two" aria-hidden="true" /><img src={heroPaperFuUrl} alt="Paper-Fu fighters and a city inspector at the annual licensing tournament" fetchPriority="high" decoding="async" /><div className="impact-word" aria-hidden="true">HIYAH!</div></div>
@@ -356,11 +359,11 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
     <section className="shell route-section">
       <div className="section-title-row"><div><span className="eyebrow">Choose your path</span><h2>Everything the table needs</h2></div><p>Built to answer the question in front of you without making you reread a giant manual.</p></div>
       <div className="route-grid">{[
-        ["quickstart", "01", "Quick Start", "Set up, learn the turn, and throw the first punch."],
-        ["story", "02", "Backstory", "The Department built a martial art from thousands of submissions. It is legally working."],
-        ["rules", "03", "Full Rules", "Every gameplay chapter from the revised rulebook, made searchable."],
-        ["cards", "04", "Card Library", `Search and filter all ${cardData.total} numbered card entries.`],
-        ["rulings", "05", "Rules Desk", "Official clarifications, priority, and discrepancy handling."],
+        ["playtest", "01", "Play the Game", "Duel the computer with the live card catalog and real card faces."],
+        ["quickstart", "02", "Quick Start", "Set up, learn the turn, and throw the first punch."],
+        ["story", "03", "Backstory", "The Department built a martial art from thousands of submissions. It is legally working."],
+        ["rules", "04", "Full Rules", "Every gameplay chapter from the revised rulebook, made searchable."],
+        ["cards", "05", "Card Library", `Search and filter all ${cardData.total} numbered card entries.`],
       ].map(([view, number, title, text]) => <button className="route-card paper-stack interactive-paper" key={view} onClick={() => goTo(view as ViewId)}><span>{number}</span><h3>{title}</h3><p>{text}</p><b>Open section →</b></button>)}</div>
     </section>
     <section className="phase-section"><div className="shell"><div className="section-title-row inverse"><div><span className="eyebrow">One round. Five beats.</span><h2>Remember H.I.Y.A.H.</h2></div><button className="text-link light" onClick={() => goTo("quickstart")}>See the complete turn →</button></div><div className="phase-track">{PHASES.map((phase, index) => <article key={`${phase.name}-${index}`}><span className="phase-letter">{phase.letter}</span><div><b>0{index + 1}</b><h3>{phase.name}</h3><p>{phase.text}</p></div></article>)}</div></div></section>
@@ -640,8 +643,8 @@ export default function CompanionApp() {
   return <div className="site-frame">
     <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><ThemeToggle theme={theme} onToggle={toggleTheme} /><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen} aria-label={menuOpen ? "Close site menu" : "Open site menu"}><span /><span /><span /></button></div></header>
     {menuOpen && <><button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close site menu" /><aside className="mobile-menu-panel" id="mobile-menu" aria-label="Site menu"><div className="mobile-menu-heading"><div><span className="eyebrow">Department directory</span><h2>Find your fight.</h2></div><button className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Close site menu">×</button></div><label className="mobile-global-search"><span aria-hidden="true">⌕</span><input autoFocus value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /></label>{globalSearch.trim().length >= 2 && <div className="mobile-search-results">{globalResults.length ? globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>) : <p>No matching filing number. Try a shorter search.</p>}</div>}<nav className="mobile-menu-links" aria-label="All site pages">{MOBILE_MENU_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}><span>{item.label}</span><small>{item.detail}</small></button>)}</nav><ThemeToggle theme={theme} onToggle={toggleTheme} full /></aside></>}
-    <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView key={searchedRuleChapter || "rules"} initialChapterId={searchedRuleChapter} />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView key={searchedRuling || "rulings"} initialQuery={searchedRuling} />}{view === "glossary" && <GlossaryView key={searchedTerm || "glossary"} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView key={searchedHouseRule || "house-rules"} initialQuery={searchedHouseRule} />}</div>
+    <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "playtest" && <PlaytestView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView key={searchedRuleChapter || "rules"} initialChapterId={searchedRuleChapter} />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView key={searchedRuling || "rulings"} initialQuery={searchedRuling} />}{view === "glossary" && <GlossaryView key={searchedTerm || "glossary"} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView key={searchedHouseRule || "house-rules"} initialQuery={searchedHouseRule} />}</div>
     <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Filed with the Department. Probably correctly.</span></div></footer>
-    <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}><span aria-hidden="true">⌂</span>Home</button><button className={view === "quickstart" ? "active" : ""} onClick={() => goTo("quickstart")}><span aria-hidden="true">▶</span>Start</button><button className={view === "rules" ? "active" : ""} onClick={() => goTo("rules")}><span aria-hidden="true">§</span>Rules</button><button className={view === "cards" ? "active" : ""} onClick={() => goTo("cards")}><span aria-hidden="true">▤</span>Cards</button><button className={moreActive || menuOpen ? "active" : ""} onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen}><span aria-hidden="true">☰</span>Menu</button></nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}><span aria-hidden="true">⌂</span>Home</button><button className={view === "playtest" ? "active" : ""} onClick={() => goTo("playtest")}><span aria-hidden="true">⚔</span>Play</button><button className={view === "quickstart" ? "active" : ""} onClick={() => goTo("quickstart")}><span aria-hidden="true">▶</span>Start</button><button className={view === "rules" ? "active" : ""} onClick={() => goTo("rules")}><span aria-hidden="true">§</span>Rules</button><button className={view === "cards" ? "active" : ""} onClick={() => goTo("cards")}><span aria-hidden="true">▤</span>Cards</button><button className={moreActive || menuOpen ? "active" : ""} onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen}><span aria-hidden="true">☰</span>Menu</button></nav>
   </div>;
 }
