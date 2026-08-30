@@ -61,3 +61,11 @@ test("card viewer preserves the library position and navigates the filtered resu
   assert.match(css, /\.modal-backdrop \{ position: fixed; inset: 0;/);
   assert.match(css, /overscroll-behavior: contain/);
 });
+
+test("card and detail modals provide dark-theme surfaces for light-theme controls", async () => {
+  const css = await readFile(cssUrl, "utf8");
+  assert.match(css, /:root\[data-theme="dark"\] \.card-modal-nav > button \{[\s\S]*?background: #24342a;/);
+  assert.match(css, /:root\[data-theme="dark"\] \.card-modal-nav > button:hover:not\(:disabled\) \{[\s\S]*?background: #30483a;/);
+  assert.match(css, /:root\[data-theme="dark"\] \.card-modal-position \{[\s\S]*?color: #d5e2d9;[\s\S]*?background: #2c4034;/);
+  assert.match(css, /:root\[data-theme="dark"\] \.modal-win,[\s\S]*?\.modal-design-note \{ background: #24342a; \}/);
+});

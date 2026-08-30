@@ -1483,6 +1483,27 @@ body,
 :root[data-theme="dark"] .modal-rule,
 :root[data-theme="dark"] .card-costs span { background: #24342a; }
 
+/* Keep modal controls and paper callouts readable against the dark modal surface. */
+:root[data-theme="dark"] .card-modal-nav > button {
+  color: var(--ink);
+  background: #24342a;
+}
+:root[data-theme="dark"] .card-modal-nav > button:hover:not(:disabled) {
+  border-color: var(--red);
+  background: #30483a;
+}
+:root[data-theme="dark"] .card-modal-position {
+  color: #d5e2d9;
+  background: #2c4034;
+}
+:root[data-theme="dark"] .modal-close:hover { background: var(--paper-deep); }
+:root[data-theme="dark"] .modal-heading img:not(.modal-card-art--complete),
+:root[data-theme="dark"] .modal-win,
+:root[data-theme="dark"] .modal-design-note { background: #24342a; }
+:root[data-theme="dark"] .modal-badges span { background: rgba(255, 255, 255, .035); }
+:root[data-theme="dark"] .modal-list,
+:root[data-theme="dark"] .agreement-note { color: #c4d4c9; }
+
 :root[data-theme="dark"] .tag-row span { background: #294638; }
 
 :root[data-theme="dark"] .setup-list p,
