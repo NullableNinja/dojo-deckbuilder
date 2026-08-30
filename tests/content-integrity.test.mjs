@@ -16,23 +16,24 @@ test("deployment gates publication on the test suite", async () => {
   assert.match(workflow, /run: npm test/);
 });
 
-test("every Core Attack and Defense has a matching website artwork file", async () => {
+test("every Core Attack, Defense, and Kata has a matching website card file", async () => {
   const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
   const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
   const groups = [
     { prefix: "DDB-ATK-CORE-", folder: "attacks", count: 71 },
     { prefix: "DDB-DEF-CORE-", folder: "defenses", count: 50 },
+    { prefix: "DDB-KAT-CORE-", folder: "katas", count: 62 },
   ];
 
   for (const group of groups) {
-    const actionCards = cards.filter((card) => card.catalogId.startsWith(group.prefix));
+    const completeCards = cards.filter((card) => card.catalogId.startsWith(group.prefix));
     const files = (await readdir(new URL(`../app/assets/cards/${group.folder}/`, import.meta.url))).filter((name) => name.endsWith(".webp"));
-    const artworkCatalogIds = files.map((name) => name.match(/^(ddb-(?:atk|def)-core-\d{3})_/i)?.[1].toUpperCase()).sort();
-    assert.equal(actionCards.length, group.count, `Unexpected ${group.folder} catalog count`);
-    assert.equal(files.length, group.count, `Unexpected ${group.folder} artwork count`);
-    assert.deepEqual(artworkCatalogIds, actionCards.map((card) => card.catalogId).sort(), `Mismatched ${group.folder} catalog IDs`);
+    const cardCatalogIds = files.map((name) => name.match(/^(ddb-(?:atk|def|kat)-core-\d{3})_/i)?.[1].toUpperCase()).sort();
+    assert.equal(completeCards.length, group.count, `Unexpected ${group.folder} catalog count`);
+    assert.equal(files.length, group.count, `Unexpected ${group.folder} card count`);
+    assert.deepEqual(cardCatalogIds, completeCards.map((card) => card.catalogId).sort(), `Mismatched ${group.folder} catalog IDs`);
   }
-  assert.match(source, /ACTION_CARD_URLS_BY_CATALOG_ID\[card\.catalogId\]/, "Action artwork must resolve by immutable catalog ID");
+  assert.match(source, /COMPLETE_CARD_URLS_BY_CATALOG_ID\[card\.catalogId\]/, "Complete card images must resolve by immutable catalog ID");
 });
 
 test("deployment stamps a build fingerprint and cache-busts the app shell", async () => {

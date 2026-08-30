@@ -70,9 +70,18 @@ const defenseCardModules = import.meta.glob<string>("./assets/cards/defenses/*.w
 const DEFENSE_CARD_URLS = Object.fromEntries(
   Object.entries(defenseCardModules).map(([path, url]) => [`/cards/defenses/${path.split("/").at(-1)}`, url]),
 );
-const ACTION_CARD_URLS_BY_CATALOG_ID = Object.fromEntries(
-  Object.entries({ ...ATTACK_CARD_URLS, ...DEFENSE_CARD_URLS }).flatMap(([path, url]) => {
-    const match = path.match(/\/(ddb-(?:atk|def)-core-\d{3})_/i);
+
+const kataCardModules = import.meta.glob<string>("./assets/cards/katas/*.webp", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const KATA_CARD_URLS = Object.fromEntries(
+  Object.entries(kataCardModules).map(([path, url]) => [`/cards/katas/${path.split("/").at(-1)}`, url]),
+);
+const COMPLETE_CARD_URLS_BY_CATALOG_ID = Object.fromEntries(
+  Object.entries({ ...ATTACK_CARD_URLS, ...DEFENSE_CARD_URLS, ...KATA_CARD_URLS }).flatMap(([path, url]) => {
+    const match = path.match(/\/(ddb-(?:atk|def|kat)-core-\d{3})_/i);
     return match ? [[match[1].toUpperCase(), url]] : [];
   }),
 );
@@ -139,6 +148,7 @@ const CARD_IMAGE_URLS: Record<string, string> = {
   ...BOSS_CARD_URLS,
   ...ATTACK_CARD_URLS,
   ...DEFENSE_CARD_URLS,
+  ...KATA_CARD_URLS,
 };
 const PHASES = [
   { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
@@ -211,9 +221,9 @@ const numeric = (value: string | number | null | undefined) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
 };
-const cardImageUrl = (card: CardEntry) => card.image ? CARD_IMAGE_URLS[card.image] ?? card.image : ACTION_CARD_URLS_BY_CATALOG_ID[card.catalogId] ?? cardPlaceholderUrl;
-const hasCardArt = (card: CardEntry) => Boolean(card.image || ACTION_CARD_URLS_BY_CATALOG_ID[card.catalogId]);
-const isActionCardArt = (card: CardEntry) => Boolean(ACTION_CARD_URLS_BY_CATALOG_ID[card.catalogId]);
+const cardImageUrl = (card: CardEntry) => card.image ? CARD_IMAGE_URLS[card.image] ?? card.image : COMPLETE_CARD_URLS_BY_CATALOG_ID[card.catalogId] ?? cardPlaceholderUrl;
+const hasCardArt = (card: CardEntry) => Boolean(card.image || COMPLETE_CARD_URLS_BY_CATALOG_ID[card.catalogId]);
+const isCompleteCardArt = (card: CardEntry) => Boolean(COMPLETE_CARD_URLS_BY_CATALOG_ID[card.catalogId]);
 
 function RuleTable({ rows }: { rows: (string | number)[][] }) {
   if (!rows.length) return null;
@@ -428,7 +438,7 @@ function RulesView({ initialChapterId = "" }: { initialChapterId?: string }) {
 function CardTile({ card, onOpen }: { card: CardEntry; onOpen: () => void }) {
   const statPairs = Object.entries(card.stats).slice(0, 3);
   return <button className={`library-card paper-stack interactive-paper type-${card.cardType.toLocaleLowerCase().replaceAll(" ", "-")}`} onClick={onOpen}>
-    <div className="card-topline"><span>{card.cardType}</span><b>{card.deck}</b></div><div className={`card-art${isActionCardArt(card) ? " card-art--complete" : ""}`}><img src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} loading="lazy" decoding="async" /><span>{card.catalogId}</span></div>
+    <div className="card-topline"><span>{card.cardType}</span><b>{card.deck}</b></div><div className={`card-art${isCompleteCardArt(card) ? " card-art--complete" : ""}`}><img src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} loading="lazy" decoding="async" /><span>{card.catalogId}</span></div>
     <div className="card-body"><small>{card.cardType}</small><h3>{card.name}</h3><div className="card-costs">{card.fpCost !== null && card.fpCost !== undefined && <span><b>{valueLabel(card.fpCost)}</b> Focus Cost</span>}{card.focusValue !== null && card.focusValue !== undefined && <span><b>{valueLabel(card.focusValue)}</b> Focus</span>}{card.zone && <span>{card.zone}</span>}</div>{statPairs.length > 0 && <div className="mini-stats">{statPairs.map(([key, value]) => <span key={key}><b>{value}</b>{key}</span>)}</div>}<p>{card.rulesText || card.flavorText || "Open for complete card details."}</p><div className="tag-row">{card.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div></div><span className="open-card">View card →</span>
   </button>;
 }
@@ -441,7 +451,7 @@ function CardModal({ card, onClose }: { card: CardEntry; onClose: () => void }) 
     window.addEventListener("keydown", close);
     return () => { document.body.style.overflow = previous; window.removeEventListener("keydown", close); };
   }, [onClose]);
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button autoFocus className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img className={isActionCardArt(card) ? "modal-card-art--complete" : undefined} src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).filter(([key]) => key !== "Favored Build Paths" && key !== "Release Set").map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet}</footer></article></div>;
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><article className="card-modal paper-stack" role="dialog" aria-modal="true" aria-labelledby="card-modal-title"><button autoFocus className="modal-close" onClick={onClose} aria-label="Close card details">×</button><div className="modal-heading"><img className={isCompleteCardArt(card) ? "modal-card-art--complete" : undefined} src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{Object.entries(card.details).filter(([key]) => key !== "Favored Build Paths" && key !== "Release Set").map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet}</footer></article></div>;
 }
 
 function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry | null; clearInitialCard: () => void }) {
