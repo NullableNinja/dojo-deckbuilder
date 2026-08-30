@@ -471,20 +471,12 @@ function CardModal({
     const body = document.body;
     const root = document.documentElement;
     const previousBodyStyles = {
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      width: body.style.width,
       overflow: body.style.overflow,
       paddingRight: body.style.paddingRight,
     };
     const previousScrollBehavior = root.style.scrollBehavior;
     const scrollbarWidth = window.innerWidth - root.clientWidth;
 
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = `-${scrollX}px`;
-    body.style.width = "100%";
     body.style.overflow = "hidden";
     if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
     dialogRef.current?.focus({ preventScroll: true });
