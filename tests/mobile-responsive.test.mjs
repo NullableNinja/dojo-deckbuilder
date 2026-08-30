@@ -69,3 +69,16 @@ test("card and detail modals provide dark-theme surfaces for light-theme control
   assert.match(css, /:root\[data-theme="dark"\] \.card-modal-position \{[\s\S]*?color: #d5e2d9;[\s\S]*?background: #2c4034;/);
   assert.match(css, /:root\[data-theme="dark"\] \.modal-win,[\s\S]*?\.modal-design-note \{ background: #24342a; \}/);
 });
+
+test("the paper interface makes scrolling and progress visible", async () => {
+  const [app, css] = await Promise.all([
+    readFile(appUrl, "utf8"),
+    readFile(cssUrl, "utf8"),
+  ]);
+  assert.match(app, /className="reading-progress"/);
+  assert.match(app, /className="back-to-top"/);
+  assert.match(app, /aria-valuenow=\{Math\.round\(scrollProgress \* 100\)\}/);
+  assert.match(css, /\*::-webkit-scrollbar-thumb/);
+  assert.match(css, /scrollbar-color: var\(--red\) var\(--paper-deep\)/);
+  assert.match(css, /env\(safe-area-inset-bottom\)/);
+});

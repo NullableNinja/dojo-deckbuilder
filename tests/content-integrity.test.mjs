@@ -82,3 +82,20 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(playtest, /Shared Market · 7 real cards/);
   assert.equal(JSON.parse(cards).total, 597, "Playtest source must retain the current definitive Core catalog");
 });
+
+test("playtest behaves like a complete guided game surface", async () => {
+  const playtest = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  for (const expected of [
+    "DIFFICULTIES",
+    "prepareAiTurn",
+    "ddb-field-match",
+    "ddb-field-settings",
+    "game-phase-rail",
+    "turn-coach",
+    "Instant rematch",
+    "player-initiate",
+    "turnOrder",
+    "advanceRound",
+  ]) assert.ok(playtest.includes(expected), `Missing field-test enhancement: ${expected}`);
+  assert.ok(!playtest.includes("v2.2.2 catalog"), "Public field-test copy must remain version-free");
+});

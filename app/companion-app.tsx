@@ -129,6 +129,17 @@ const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
   { id: "glossary", label: "Glossary", short: "Terms" },
   { id: "house-rules", label: "House Rules", short: "Variants" },
 ];
+const VIEW_LABELS: Record<ViewId, string> = {
+  home: "Dojo Desk",
+  playtest: "Field Test",
+  quickstart: "Quick Start",
+  story: "Backstory",
+  rules: "Full Rules",
+  cards: "Card Library",
+  rulings: "Rulings",
+  glossary: "Glossary",
+  "house-rules": "House Rules",
+};
 const MOBILE_MENU_ITEMS: { id: ViewId; label: string; detail: string }[] = [
   { id: "home", label: "Home", detail: "Return to the field test." },
   { id: "playtest", label: "Play the Game", detail: "Fight the computer using the live card catalog." },
@@ -355,7 +366,7 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
       </div>
       <div className="hero-art-new"><span className="paper-shadow shadow-one" /><span className="paper-shadow shadow-two" /><i className="fastener tape-strip hero-tape-one" aria-hidden="true" /><i className="fastener tape-strip hero-tape-two" aria-hidden="true" /><img src={heroPaperFuUrl} alt="Paper-Fu fighters and a city inspector at the annual licensing tournament" fetchPriority="high" decoding="async" /><div className="impact-word" aria-hidden="true">HIYAH!</div></div>
     </section>
-    <section className="stats-strip"><div className="shell stats-inner"><div><strong>{ruleChapters.length}</strong><span>Focused chapters</span></div><div><strong>{cardData.total}</strong><span>Card entries</span></div><div><strong>{cardData.decks.length}</strong><span>Separate decks</span></div><div><strong>4</strong><span>Game modes</span></div></div></section>
+    <section className="stats-strip" aria-label="Companion highlights"><div className="shell stats-inner"><div><strong>LEARN</strong><span>Teach it at the table</span></div><div><strong>BUILD</strong><span>Search the live catalog</span></div><div><strong>FIGHT</strong><span>Run a Quick Duel</span></div><div><strong>SETTLE</strong><span>Resolve rules fast</span></div></div></section>
     <section className="shell route-section">
       <div className="section-title-row"><div><span className="eyebrow">Choose your path</span><h2>Everything the table needs</h2></div><p>Built to answer the question in front of you without making you reread a giant manual.</p></div>
       <div className="route-grid">{[
@@ -600,6 +611,8 @@ export default function CompanionApp() {
   const [view, setView] = useState<ViewId>("home"); const [menuOpen, setMenuOpen] = useState(false); const [theme, setTheme] = useState<Theme>(initialTheme);
   const [globalSearch, setGlobalSearch] = useState(""); const [searchedCard, setSearchedCard] = useState<CardEntry | null>(null); const [searchedTerm, setSearchedTerm] = useState("");
   const [searchedRuleChapter, setSearchedRuleChapter] = useState(""); const [searchedRuling, setSearchedRuling] = useState(""); const [searchedHouseRule, setSearchedHouseRule] = useState("");
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const sync = () => { const next = window.location.hash.replace("#", "") as ViewId; if (ALL_VIEWS.includes(next)) setView(next); };
     sync(); window.addEventListener("hashchange", sync); return () => window.removeEventListener("hashchange", sync);
@@ -616,6 +629,35 @@ export default function CompanionApp() {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("paper-fu-theme", theme);
   }, [theme]);
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const available = document.documentElement.scrollHeight - window.innerHeight;
+        setScrollProgress(available > 0 ? Math.min(1, Math.max(0, window.scrollY / available)) : 0);
+      });
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
+  }, [view]);
+  useEffect(() => {
+    const openSearch = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") {
+        event.preventDefault();
+        searchInputRef.current?.focus({ preventScroll: true });
+      } else if (!isTyping && event.key === "/") {
+        event.preventDefault();
+        searchInputRef.current?.focus({ preventScroll: true });
+      }
+    };
+    window.addEventListener("keydown", openSearch);
+    return () => window.removeEventListener("keydown", openSearch);
+  }, []);
   const goTo = (next: ViewId) => { setSearchedCard(null); setSearchedTerm(""); setSearchedRuleChapter(""); setSearchedRuling(""); setSearchedHouseRule(""); setView(next); setMenuOpen(false); setGlobalSearch(""); window.history.pushState(null, "", `#${next}`); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const globalResults: GlobalResult[] = useMemo(() => {
     const term = globalSearch.trim().toLocaleLowerCase(); if (term.length < 2) return [];
@@ -641,10 +683,11 @@ export default function CompanionApp() {
   const moreActive = view === "story" || view === "rulings" || view === "glossary" || view === "house-rules";
   const toggleTheme = () => setTheme((current) => current === "light" ? "dark" : "light");
   return <div className="site-frame">
-    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><ThemeToggle theme={theme} onToggle={toggleTheme} /><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen} aria-label={menuOpen ? "Close site menu" : "Open site menu"}><span /><span /><span /></button></div></header>
+    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input ref={searchInputRef} value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /><kbd>Ctrl K</kbd></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onMouseDown={(event) => event.preventDefault()} onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><ThemeToggle theme={theme} onToggle={toggleTheme} /><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen} aria-label={menuOpen ? "Close site menu" : "Open site menu"}><span /><span /><span /></button></div><div className="reading-progress" role="progressbar" aria-label={`${VIEW_LABELS[view]} reading progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(scrollProgress * 100)}><span style={{ width: `${scrollProgress * 100}%` }} /><b>{VIEW_LABELS[view]}</b></div></header>
     {menuOpen && <><button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close site menu" /><aside className="mobile-menu-panel" id="mobile-menu" aria-label="Site menu"><div className="mobile-menu-heading"><div><span className="eyebrow">Department directory</span><h2>Find your fight.</h2></div><button className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Close site menu">×</button></div><label className="mobile-global-search"><span aria-hidden="true">⌕</span><input autoFocus value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /></label>{globalSearch.trim().length >= 2 && <div className="mobile-search-results">{globalResults.length ? globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>) : <p>No matching filing number. Try a shorter search.</p>}</div>}<nav className="mobile-menu-links" aria-label="All site pages">{MOBILE_MENU_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}><span>{item.label}</span><small>{item.detail}</small></button>)}</nav><ThemeToggle theme={theme} onToggle={toggleTheme} full /></aside></>}
     <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "playtest" && <PlaytestView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView key={searchedRuleChapter || "rules"} initialChapterId={searchedRuleChapter} />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView key={searchedRuling || "rulings"} initialQuery={searchedRuling} />}{view === "glossary" && <GlossaryView key={searchedTerm || "glossary"} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView key={searchedHouseRule || "house-rules"} initialQuery={searchedHouseRule} />}</div>
     <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Filed with the Department. Probably correctly.</span></div></footer>
+    {scrollProgress > .2 && <button className="back-to-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Back to top"><span aria-hidden="true">↑</span><b>Top</b></button>}
     <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}><span aria-hidden="true">⌂</span>Home</button><button className={view === "playtest" ? "active" : ""} onClick={() => goTo("playtest")}><span aria-hidden="true">⚔</span>Play</button><button className={view === "quickstart" ? "active" : ""} onClick={() => goTo("quickstart")}><span aria-hidden="true">▶</span>Start</button><button className={view === "rules" ? "active" : ""} onClick={() => goTo("rules")}><span aria-hidden="true">§</span>Rules</button><button className={view === "cards" ? "active" : ""} onClick={() => goTo("cards")}><span aria-hidden="true">▤</span>Cards</button><button className={moreActive || menuOpen ? "active" : ""} onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen}><span aria-hidden="true">☰</span>Menu</button></nav>
   </div>;
 }
