@@ -140,8 +140,14 @@ const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail:
   master: { label: "Grandmaster", eyebrow: "Bad decision", detail: "More HP, sharper stats, and no sympathy from the clipboard.", aiHp: 35, statBoost: 1, attacks: 2 },
 };
 
-const cardArtModules = import.meta.glob<string>("./assets/cards/{attacks,defenses,katas,characters}/*.webp", { eager: true, query: "?url", import: "default" });
+const cardArtModules = import.meta.glob<string>("./assets/cards/{attacks,defenses,katas,consumables,characters}/*.webp", { eager: true, query: "?url", import: "default" });
 const CARD_ART = Object.fromEntries(Object.entries(cardArtModules).map(([path, url]) => [`/cards/${path.split("/cards/")[1]}`, url]));
+const COMPLETE_CARD_ART_BY_CATALOG_ID = Object.fromEntries(
+  Object.entries(cardArtModules).flatMap(([path, url]) => {
+    const match = path.match(/\/(ddb-(?:atk|def|kat|con)-core-\d{3})_/i);
+    return match ? [[match[1].toUpperCase(), url]] : [];
+  }),
+);
 
 function shuffle<T>(items: T[]) {
   const result = [...items];
@@ -348,6 +354,7 @@ function emptyBoard(fighterId: string): Board {
 
 function artistUrl(card: CardEntry) {
   if (card.image && CARD_ART[card.image]) return CARD_ART[card.image];
+  if (COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId]) return COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId];
   if (card.name === "Basic Jab") return starterJabArtUrl;
   if (card.name === "High Guard") return highGuardArtUrl;
   return undefined;

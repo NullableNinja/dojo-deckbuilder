@@ -16,19 +16,20 @@ test("deployment gates publication on the test suite", async () => {
   assert.match(workflow, /run: npm test/);
 });
 
-test("every Core Attack, Defense, and Kata has a matching website card file", async () => {
+test("every Core Attack, Defense, Kata, and Consumable has a matching website card file", async () => {
   const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
   const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
   const groups = [
     { prefix: "DDB-ATK-CORE-", folder: "attacks", count: 71 },
     { prefix: "DDB-DEF-CORE-", folder: "defenses", count: 50 },
     { prefix: "DDB-KAT-CORE-", folder: "katas", count: 62 },
+    { prefix: "DDB-CON-CORE-", folder: "consumables", count: 62 },
   ];
 
   for (const group of groups) {
     const completeCards = cards.filter((card) => card.catalogId.startsWith(group.prefix));
     const files = (await readdir(new URL(`../app/assets/cards/${group.folder}/`, import.meta.url))).filter((name) => name.endsWith(".webp"));
-    const cardCatalogIds = files.map((name) => name.match(/^(ddb-(?:atk|def|kat)-core-\d{3})_/i)?.[1].toUpperCase()).sort();
+    const cardCatalogIds = files.map((name) => name.match(/^(ddb-(?:atk|def|kat|con)-core-\d{3})_/i)?.[1].toUpperCase()).sort();
     assert.equal(completeCards.length, group.count, `Unexpected ${group.folder} catalog count`);
     assert.equal(files.length, group.count, `Unexpected ${group.folder} card count`);
     assert.deepEqual(cardCatalogIds, completeCards.map((card) => card.catalogId).sort(), `Mismatched ${group.folder} catalog IDs`);
@@ -74,7 +75,8 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(companion, /PlaytestView/);
   assert.match(companion, /Play the Game/);
   assert.match(playtest, /import cardsJson from "\.\/data\/cards\.json"/);
-  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,characters\}/);
+  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,characters\}/);
+  assert.match(playtest, /COMPLETE_CARD_ART_BY_CATALOG_ID\[card\.catalogId\]/);
   assert.match(playtest, /const starterIds = \[/);
   assert.match(playtest, /const marketPool = cards\.filter/);
   assert.match(playtest, /function openAiStrike/);
