@@ -185,7 +185,7 @@ function locationAttackModifier(location: CardEntry | undefined, card: CardEntry
   return { power: 0, damage, notes };
 }
 
-function locationDefenseModifier(location: CardEntry | undefined, card: CardEntry | null, board: Board, zone: string): CombatModifier {
+function locationDefenseModifier(location: CardEntry | undefined, card: CardEntry | null | undefined, board: Board, zone: string): CombatModifier {
   if (!location || !card) return { value: 0, notes: [] };
   const firstDefense = !board.defendedThisRound;
   let value = 0;
