@@ -79,7 +79,7 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(playtest, /const marketPool = cards\.filter/);
   assert.match(playtest, /function openAiStrike/);
   assert.match(playtest, /defense-window/);
-  assert.match(playtest, /Shared Market · 7 real cards/);
+  assert.match(playtest, /Shared Market · 7 live records/);
   assert.equal(JSON.parse(cards).total, 597, "Playtest source must retain the current definitive Core catalog");
 });
 
@@ -101,4 +101,27 @@ test("playtest behaves like a complete guided game surface", async () => {
   assert.match(playtest, /onClick=\{\(\) => begin\(\)\}/, "The launch control must not pass React's click event as a fighter ID");
   assert.match(playtest, /QUICK_DUEL_LOCATION_NAMES/, "Quick Duel must use locations whose rules are automated by the engine");
   assert.match(playtest, /function ImpactReadout/, "Combat math must be visible on the live mat");
+});
+
+test("field test three adds real digital-game decisions without replacing the Core rules", async () => {
+  const [playtest, styles] = await Promise.all([
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  for (const feature of [
+    "curateOpeningMarket",
+    "comboAttackModifier",
+    "reversal-window",
+    "resolveReversal",
+    "Separate Combo docket",
+    "Guarantee a playable opening Market",
+    "aiMarketScore",
+    "aiAttackScore",
+    "playtest-action-dock",
+    "NativeCardArt",
+  ]) assert.ok(playtest.includes(feature), `Missing upgraded field-test feature: ${feature}`);
+  assert.match(playtest, /nextPlayer\.focus = Math\.max\(0, nextPlayer\.focus - cardFocus\(card\)\)/, "Reversals must not generate their printed Focus");
+  assert.match(playtest, /learnedCombos\.length >= 2/, "The two learned-Combo limit must remain enforced");
+  assert.match(styles, /Field Test 3 — tactical desk/);
+  assert.match(styles, /prefers-reduced-motion/);
 });
