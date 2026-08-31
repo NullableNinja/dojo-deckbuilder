@@ -98,4 +98,7 @@ test("playtest behaves like a complete guided game surface", async () => {
     "advanceRound",
   ]) assert.ok(playtest.includes(expected), `Missing field-test enhancement: ${expected}`);
   assert.ok(!playtest.includes("v2.2.2 catalog"), "Public field-test copy must remain version-free");
+  assert.match(playtest, /onClick=\{\(\) => begin\(\)\}/, "The launch control must not pass React's click event as a fighter ID");
+  assert.match(playtest, /QUICK_DUEL_LOCATION_NAMES/, "Quick Duel must use locations whose rules are automated by the engine");
+  assert.match(playtest, /function ImpactReadout/, "Combat math must be visible on the live mat");
 });
