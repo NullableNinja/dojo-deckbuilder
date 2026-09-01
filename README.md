@@ -27,6 +27,18 @@ npm run build
 
 The deployable static website is written to `dist/`, including a real `dist/index.html`.
 
+## Play and simulate the rules engine
+
+The engine uses the canonical `app/data/game-definition.json`, `rules.json`, and `cards.json` files. No installation beyond Node.js is required.
+
+```bash
+npm run engine:local       # two-player pass-and-play
+npm run engine:ai          # human vs. balanced bot
+npm run simulate -- 10000  # headless batch; writes reports/simulation-v2.3.json
+```
+
+See `docs/ENGINE-ARCHITECTURE.md` for the rules-as-data contract, supported rule coverage, and extension boundary.
+
 ## GitHub Pages deployment
 
 `.github/workflows/deploy-pages.yml` automatically builds and publishes the site whenever `main` changes. In GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions** once. Future pushes to `main` deploy automatically.

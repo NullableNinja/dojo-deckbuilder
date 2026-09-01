@@ -10,6 +10,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "engine:local": "node engine/cli.mjs local",
+    "engine:ai": "node engine/cli.mjs ai",
+    "simulate": "node engine/simulate.mjs",
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {

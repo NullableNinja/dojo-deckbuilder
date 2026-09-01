@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "rulesVersion": "v2.3",
+  "source": "app/data/rules.json",
+  "mode": {
+    "id": "quick-duel",
+    "players": 2,
+    "startingHp": 25,
+    "fixedMaxHp": true,
+    "blackBeltVictory": false,
+    "maxRounds": 40
+  },
+  "turn": {
+    "phases": ["Honor", "Initiate", "Yell", "Ascend", "Hide"],
+    "handSize": 5,
+    "normalAttackLimit": 2,
+    "tempoAttackPower": 1,
+    "tempoUsesPerRound": 1,
+    "focusExpiresAt": "next-own-Hide"
+  },
+  "starterDeck": [
+    {"catalogId":"DDB-STA-CORE-001","copies":5},
+    {"catalogId":"DDB-STA-CORE-002","copies":1},
+    {"catalogId":"DDB-STA-CORE-003","copies":1},
+    {"catalogId":"DDB-STA-CORE-004","copies":1},
+    {"catalogId":"DDB-STA-CORE-005","copies":1},
+    {"catalogId":"DDB-STA-CORE-006","copies":1},
+    {"catalogId":"DDB-STA-CORE-007","copies":1},
+    {"catalogId":"DDB-STA-CORE-008","copies":1},
+    {"catalogId":"DDB-STA-CORE-009","copies":1},
+    {"catalogId":"DDB-STA-CORE-010","copies":1},
+    {"catalogId":"DDB-STA-CORE-011","copies":1}
+  ],
+  "openingMulligan": {"requiredTypes":["Attack","Kata"],"attempts":1},
+  "economy": {
+    "defensePractice": {"usesPerTurn":1,"grantsPrintedFocus":true,"triggersRulesText":false,"grantsXp":false},
+    "market": {"rowSize":7,"decks":["Technique Deck","Item Deck"],"controlledRefill":{"reveal":2,"choose":1},"refresh":"end-of-round"}
+  },
+  "combat": {
+    "attackFormula":["printedAttackPower","characterAtk","tempo","modifiers"],
+    "defenseFormula":["characterDef","guard","armor","modifiers"],
+    "damageFloor":0,
+    "defensesPerAttack":1,
+    "playerWinsBossSpeedTies":true
+  },
+  "progression": {
+    "xpPerHonor":1,
+    "attackXpOnHit":1,
+    "defenseXpOnBlock":1,
+    "quickDuelKeepsNonHpPerks":true
+  }
+}

@@ -1,0 +1,3085 @@
+{
+  "rulesVersion": "v2.3",
+  "games": 10000,
+  "generatedAt": "2026-09-01T20:00:22.039Z",
+  "strategies": {
+    "balanced": {
+      "games": 5000,
+      "wins": 2508,
+      "winRate": 0.5016
+    },
+    "aggression": {
+      "games": 5000,
+      "wins": 2497,
+      "winRate": 0.4994
+    },
+    "economy": {
+      "games": 5000,
+      "wins": 2504,
+      "winRate": 0.5008
+    },
+    "fortress": {
+      "games": 5000,
+      "wins": 2491,
+      "winRate": 0.4982
+    }
+  },
+  "matchups": {
+    "balanced vs balanced": {
+      "games": 625,
+      "wins": {
+        "balanced": 625
+      }
+    },
+    "aggression vs balanced": {
+      "games": 625,
+      "wins": {
+        "aggression": 621,
+        "balanced": 4
+      }
+    },
+    "economy vs balanced": {
+      "games": 625,
+      "wins": {
+        "economy": 624,
+        "balanced": 1
+      }
+    },
+    "fortress vs balanced": {
+      "games": 625,
+      "wins": {
+        "fortress": 618,
+        "balanced": 7
+      }
+    },
+    "balanced vs aggression": {
+      "games": 625,
+      "wins": {
+        "balanced": 624,
+        "aggression": 1
+      }
+    },
+    "aggression vs aggression": {
+      "games": 625,
+      "wins": {
+        "aggression": 625
+      }
+    },
+    "economy vs aggression": {
+      "games": 625,
+      "wins": {
+        "economy": 621,
+        "aggression": 4
+      }
+    },
+    "fortress vs aggression": {
+      "games": 625,
+      "wins": {
+        "fortress": 623,
+        "aggression": 2
+      }
+    },
+    "balanced vs economy": {
+      "games": 625,
+      "wins": {
+        "balanced": 623,
+        "economy": 2
+      }
+    },
+    "aggression vs economy": {
+      "games": 625,
+      "wins": {
+        "aggression": 622,
+        "economy": 3
+      }
+    },
+    "economy vs economy": {
+      "games": 625,
+      "wins": {
+        "economy": 625
+      }
+    },
+    "fortress vs economy": {
+      "games": 625,
+      "wins": {
+        "fortress": 617,
+        "economy": 8
+      }
+    },
+    "balanced vs fortress": {
+      "games": 625,
+      "wins": {
+        "balanced": 624,
+        "fortress": 1
+      }
+    },
+    "aggression vs fortress": {
+      "games": 625,
+      "wins": {
+        "aggression": 622,
+        "fortress": 3
+      }
+    },
+    "economy vs fortress": {
+      "games": 625,
+      "wins": {
+        "economy": 621,
+        "fortress": 4
+      }
+    },
+    "fortress vs fortress": {
+      "games": 625,
+      "wins": {
+        "fortress": 625
+      }
+    }
+  },
+  "rounds": {
+    "sum": 404295,
+    "average": 40.43,
+    "min": 21,
+    "max": 41,
+    "roundLimitGames": 8904
+  },
+  "turns": {
+    "sum": 789687,
+    "average": 78.97
+  },
+  "economy": {
+    "openingPurchasePlayers": 5622,
+    "openingPurchaseRate": 0.2811,
+    "turnOneParalysisPlayers": 14378,
+    "withoutDefensePracticeOpeningPurchasePlayers": 1789,
+    "withoutDefensePracticeOpeningPurchaseRate": 0.0895,
+    "defensePracticeLift": 0.1916,
+    "averagePurchases": 15.39,
+    "totalPurchases": 307733
+  },
+  "cards": {
+    "DDB-STA-CORE-002": {
+      "name": "Basic Body Kick",
+      "purchased": 0,
+      "played": 199267,
+      "winnerGames": 10000,
+      "playRate": 19.9267,
+      "purchaseRate": 0,
+      "winCorrelation": 0
+    },
+    "DDB-STA-CORE-010": {
+      "name": "Low Guard",
+      "purchased": 0,
+      "played": 168511,
+      "winnerGames": 10000,
+      "playRate": 16.8511,
+      "purchaseRate": 0,
+      "winCorrelation": 0
+    },
+    "DDB-STA-CORE-003": {
+      "name": "Basic Jab",
+      "purchased": 0,
+      "played": 199352,
+      "winnerGames": 10000,
+      "playRate": 19.9352,
+      "purchaseRate": 0,
+      "winCorrelation": 0
+    },
+    "DDB-STA-CORE-004": {
+      "name": "Basic Shin Kick",
+      "purchased": 0,
+      "played": 199293,
+      "winnerGames": 10000,
+      "playRate": 19.9293,
+      "purchaseRate": 0,
+      "winCorrelation": 0
+    },
+    "DDB-STA-CORE-009": {
+      "name": "High Guard",
+      "purchased": 0,
+      "played": 168660,
+      "winnerGames": 10000,
+      "playRate": 16.866,
+      "purchaseRate": 0,
+      "winCorrelation": 0
+    },
+    "DDB-STA-CORE-011": {
+      "name": "Wild Swing",
+      "purchased": 0,
+      "played": 176173,
+      "winnerGames": 10000,
+      "playRate": 17.6173,
+      "purchaseRate": 0,
+      "winCorrelation": 0
+    },
+    "DDB-STA-CORE-006": {
+      "name": "Center Guard",
+      "purchased": 0,
+      "played": 168276,
+      "winnerGames": 10000,
+      "playRate": 16.8276,
+      "purchaseRate": 0,
+      "winCorrelation": 0
+    },
+    "DDB-STA-CORE-007": {
+      "name": "Cover Up",
+      "purchased": 0,
+      "played": 191052,
+      "winnerGames": 10000,
+      "playRate": 19.1052,
+      "purchaseRate": 0,
+      "winCorrelation": 0
+    },
+    "DDB-DEF-CORE-044": {
+      "name": "Step Back",
+      "purchased": 6836,
+      "played": 21871,
+      "winnerGames": 4851,
+      "playRate": 2.1871,
+      "purchaseRate": 0.6836,
+      "winCorrelation": 0.7096
+    },
+    "DDB-DEF-CORE-032": {
+      "name": "Parry",
+      "purchased": 3951,
+      "played": 8286,
+      "winnerGames": 2377,
+      "playRate": 0.8286,
+      "purchaseRate": 0.3951,
+      "winCorrelation": 0.6016
+    },
+    "DDB-KAT-CORE-026": {
+      "name": "Heian Shodan",
+      "purchased": 5476,
+      "played": 20816,
+      "winnerGames": 3370,
+      "playRate": 2.0816,
+      "purchaseRate": 0.5476,
+      "winCorrelation": 0.6154
+    },
+    "DDB-DEQ-CORE-016": {
+      "name": "Forearm Guards",
+      "purchased": 2470,
+      "played": 7449,
+      "winnerGames": 1335,
+      "playRate": 0.7449,
+      "purchaseRate": 0.247,
+      "winCorrelation": 0.5405
+    },
+    "DDB-RIT-CORE-002": {
+      "name": "Disposable Elbow Pad",
+      "purchased": 1181,
+      "played": 0,
+      "winnerGames": 560,
+      "playRate": 0,
+      "purchaseRate": 0.1181,
+      "winCorrelation": 0.4742
+    },
+    "DDB-RIT-CORE-008": {
+      "name": "Pocket-Sand Receipt",
+      "purchased": 5515,
+      "played": 0,
+      "winnerGames": 3437,
+      "playRate": 0,
+      "purchaseRate": 0.5515,
+      "winCorrelation": 0.6232
+    },
+    "DDB-ATK-CORE-068": {
+      "name": "Turnstile Side Kick",
+      "purchased": 3369,
+      "played": 8668,
+      "winnerGames": 1936,
+      "playRate": 0.8668,
+      "purchaseRate": 0.3369,
+      "winCorrelation": 0.5747
+    },
+    "DDB-ATK-CORE-060": {
+      "name": "Teep (Push Kick)",
+      "purchased": 1020,
+      "played": 1734,
+      "winnerGames": 592,
+      "playRate": 0.1734,
+      "purchaseRate": 0.102,
+      "winCorrelation": 0.5804
+    },
+    "DDB-DEQ-CORE-027": {
+      "name": "Mom's Tupperware Lid",
+      "purchased": 2461,
+      "played": 7360,
+      "winnerGames": 1311,
+      "playRate": 0.736,
+      "purchaseRate": 0.2461,
+      "winCorrelation": 0.5327
+    },
+    "DDB-KAT-CORE-013": {
+      "name": "Coupon-Stack Stance",
+      "purchased": 2905,
+      "played": 7894,
+      "winnerGames": 1687,
+      "playRate": 0.7894,
+      "purchaseRate": 0.2905,
+      "winCorrelation": 0.5807
+    },
+    "DDB-DEQ-CORE-046": {
+      "name": "Yoga Mat Cape",
+      "purchased": 2457,
+      "played": 7297,
+      "winnerGames": 1345,
+      "playRate": 0.7297,
+      "purchaseRate": 0.2457,
+      "winCorrelation": 0.5474
+    },
+    "DDB-CON-CORE-048": {
+      "name": "Sensei's Advice",
+      "purchased": 2676,
+      "played": 7490,
+      "winnerGames": 1491,
+      "playRate": 0.749,
+      "purchaseRate": 0.2676,
+      "winCorrelation": 0.5572
+    },
+    "DDB-KAT-CORE-039": {
+      "name": "Morning-Shift Meditation",
+      "purchased": 6552,
+      "played": 24094,
+      "winnerGames": 4422,
+      "playRate": 2.4094,
+      "purchaseRate": 0.6552,
+      "winCorrelation": 0.6749
+    },
+    "DDB-DEF-CORE-028": {
+      "name": "Not the Face!",
+      "purchased": 3400,
+      "played": 8637,
+      "winnerGames": 1924,
+      "playRate": 0.8637,
+      "purchaseRate": 0.34,
+      "winCorrelation": 0.5659
+    },
+    "DDB-GEA-CORE-017": {
+      "name": "Portable Belt-Exam Bell",
+      "purchased": 2665,
+      "played": 7872,
+      "winnerGames": 1434,
+      "playRate": 0.7872,
+      "purchaseRate": 0.2665,
+      "winCorrelation": 0.5381
+    },
+    "DDB-GEA-CORE-016": {
+      "name": "Pocket Abacus of Pain",
+      "purchased": 5454,
+      "played": 20678,
+      "winnerGames": 3357,
+      "playRate": 2.0678,
+      "purchaseRate": 0.5454,
+      "winCorrelation": 0.6155
+    },
+    "DDB-DEQ-CORE-020": {
+      "name": "Inspection-Grade Headgear",
+      "purchased": 830,
+      "played": 1542,
+      "winnerGames": 432,
+      "playRate": 0.1542,
+      "purchaseRate": 0.083,
+      "winCorrelation": 0.5205
+    },
+    "DDB-RIT-CORE-007": {
+      "name": "Parking Validation Stub",
+      "purchased": 2724,
+      "played": 0,
+      "winnerGames": 1486,
+      "playRate": 0,
+      "purchaseRate": 0.2724,
+      "winCorrelation": 0.5455
+    },
+    "DDB-DEF-CORE-006": {
+      "name": "Bus-Shelter Slip",
+      "purchased": 3278,
+      "played": 8554,
+      "winnerGames": 1922,
+      "playRate": 0.8554,
+      "purchaseRate": 0.3278,
+      "winCorrelation": 0.5863
+    },
+    "DDB-ATK-CORE-047": {
+      "name": "Receipt-Roll Jab",
+      "purchased": 6381,
+      "played": 19682,
+      "winnerGames": 4282,
+      "playRate": 1.9682,
+      "purchaseRate": 0.6381,
+      "winCorrelation": 0.6711
+    },
+    "DDB-DEQ-CORE-031": {
+      "name": "Padded Gi",
+      "purchased": 2432,
+      "played": 6949,
+      "winnerGames": 1319,
+      "playRate": 0.6949,
+      "purchaseRate": 0.2432,
+      "winCorrelation": 0.5424
+    },
+    "DDB-RIT-CORE-001": {
+      "name": "Caution: Wet Floor",
+      "purchased": 1183,
+      "played": 0,
+      "winnerGames": 563,
+      "playRate": 0,
+      "purchaseRate": 0.1183,
+      "winCorrelation": 0.4759
+    },
+    "DDB-KAT-CORE-021": {
+      "name": "Footwork Drill",
+      "purchased": 2938,
+      "played": 8191,
+      "winnerGames": 1677,
+      "playRate": 0.8191,
+      "purchaseRate": 0.2938,
+      "winCorrelation": 0.5708
+    },
+    "DDB-WPN-CORE-011": {
+      "name": "Collapsible Queue Pole",
+      "purchased": 1098,
+      "played": 3132,
+      "winnerGames": 549,
+      "playRate": 0.3132,
+      "purchaseRate": 0.1098,
+      "winCorrelation": 0.5
+    },
+    "DDB-DEQ-CORE-012": {
+      "name": "Emergency Exit Sign",
+      "purchased": 1186,
+      "played": 3428,
+      "winnerGames": 561,
+      "playRate": 0.3428,
+      "purchaseRate": 0.1186,
+      "winCorrelation": 0.473
+    },
+    "DDB-CON-CORE-010": {
+      "name": "Department-Issue Trail Mix",
+      "purchased": 2667,
+      "played": 7676,
+      "winnerGames": 1455,
+      "playRate": 0.7676,
+      "purchaseRate": 0.2667,
+      "winCorrelation": 0.5456
+    },
+    "DDB-KAT-CORE-006": {
+      "name": "Breakroom Mobility Drill",
+      "purchased": 5475,
+      "played": 20735,
+      "winnerGames": 3415,
+      "playRate": 2.0735,
+      "purchaseRate": 0.5475,
+      "winCorrelation": 0.6237
+    },
+    "DDB-DEQ-CORE-017": {
+      "name": "Groin Guard",
+      "purchased": 2512,
+      "played": 7462,
+      "winnerGames": 1353,
+      "playRate": 0.7462,
+      "purchaseRate": 0.2512,
+      "winCorrelation": 0.5386
+    },
+    "DDB-ATK-CORE-051": {
+      "name": "Second Opinion Straight",
+      "purchased": 1086,
+      "played": 1832,
+      "winnerGames": 613,
+      "playRate": 0.1832,
+      "purchaseRate": 0.1086,
+      "winCorrelation": 0.5645
+    },
+    "DDB-CON-CORE-023": {
+      "name": "Fresh Fruit",
+      "purchased": 2665,
+      "played": 7787,
+      "winnerGames": 1491,
+      "playRate": 0.7787,
+      "purchaseRate": 0.2665,
+      "winCorrelation": 0.5595
+    },
+    "DDB-WPN-CORE-063": {
+      "name": "Traffic Cone",
+      "purchased": 1092,
+      "played": 3211,
+      "winnerGames": 523,
+      "playRate": 0.3211,
+      "purchaseRate": 0.1092,
+      "winCorrelation": 0.4789
+    },
+    "DDB-CON-CORE-020": {
+      "name": "Fine-Print Fortune Cookie",
+      "purchased": 1091,
+      "played": 3174,
+      "winnerGames": 524,
+      "playRate": 0.3174,
+      "purchaseRate": 0.1091,
+      "winCorrelation": 0.4803
+    },
+    "DDB-CON-CORE-035": {
+      "name": "Muscle Ointment",
+      "purchased": 1123,
+      "played": 3204,
+      "winnerGames": 524,
+      "playRate": 0.3204,
+      "purchaseRate": 0.1123,
+      "winCorrelation": 0.4666
+    },
+    "DDB-WPN-CORE-048": {
+      "name": "Pool Noodle of Shame",
+      "purchased": 1131,
+      "played": 3327,
+      "winnerGames": 577,
+      "playRate": 0.3327,
+      "purchaseRate": 0.1131,
+      "winCorrelation": 0.5102
+    },
+    "DDB-ATK-CORE-036": {
+      "name": "Loading-Dock Lunge",
+      "purchased": 1023,
+      "played": 1625,
+      "winnerGames": 578,
+      "playRate": 0.1625,
+      "purchaseRate": 0.1023,
+      "winCorrelation": 0.565
+    },
+    "DDB-DEF-CORE-027": {
+      "name": "Lunch-Tray Cover",
+      "purchased": 1025,
+      "played": 1429,
+      "winnerGames": 612,
+      "playRate": 0.1429,
+      "purchaseRate": 0.1025,
+      "winCorrelation": 0.5971
+    },
+    "DDB-CON-CORE-008": {
+      "name": "Complimentary Fruit Cup",
+      "purchased": 5574,
+      "played": 21202,
+      "winnerGames": 3414,
+      "playRate": 2.1202,
+      "purchaseRate": 0.5574,
+      "winCorrelation": 0.6125
+    },
+    "DDB-DEQ-CORE-005": {
+      "name": "Budget Bike Helmet",
+      "purchased": 6280,
+      "played": 24515,
+      "winnerGames": 4158,
+      "playRate": 2.4515,
+      "purchaseRate": 0.628,
+      "winCorrelation": 0.6621
+    },
+    "DDB-ATK-CORE-022": {
+      "name": "Flying Front Kick",
+      "purchased": 693,
+      "played": 1100,
+      "winnerGames": 353,
+      "playRate": 0.11,
+      "purchaseRate": 0.0693,
+      "winCorrelation": 0.5094
+    },
+    "DDB-CON-CORE-015": {
+      "name": "Emergency Bus Fare",
+      "purchased": 1182,
+      "played": 3505,
+      "winnerGames": 573,
+      "playRate": 0.3505,
+      "purchaseRate": 0.1182,
+      "winCorrelation": 0.4848
+    },
+    "DDB-DEQ-CORE-013": {
+      "name": "Emotional Support Pillow",
+      "purchased": 1141,
+      "played": 3303,
+      "winnerGames": 532,
+      "playRate": 0.3303,
+      "purchaseRate": 0.1141,
+      "winCorrelation": 0.4663
+    },
+    "DDB-CON-CORE-044": {
+      "name": "Pocket Thermos of Resolve",
+      "purchased": 5438,
+      "played": 20750,
+      "winnerGames": 3297,
+      "playRate": 2.075,
+      "purchaseRate": 0.5438,
+      "winCorrelation": 0.6063
+    },
+    "DDB-RIT-CORE-004": {
+      "name": "Emergency Coupon Override",
+      "purchased": 1110,
+      "played": 0,
+      "winnerGames": 518,
+      "playRate": 0,
+      "purchaseRate": 0.111,
+      "winCorrelation": 0.4667
+    },
+    "DDB-GEA-CORE-019": {
+      "name": "Refillable Punch Card",
+      "purchased": 1157,
+      "played": 3303,
+      "winnerGames": 558,
+      "playRate": 0.3303,
+      "purchaseRate": 0.1157,
+      "winCorrelation": 0.4823
+    },
+    "DDB-CON-CORE-012": {
+      "name": "Dojo Raffle Ticket",
+      "purchased": 5453,
+      "played": 20853,
+      "winnerGames": 3349,
+      "playRate": 2.0853,
+      "purchaseRate": 0.5453,
+      "winCorrelation": 0.6142
+    },
+    "DDB-DEF-CORE-013": {
+      "name": "Downward Block (Gedan Barai)",
+      "purchased": 985,
+      "played": 1400,
+      "winnerGames": 578,
+      "playRate": 0.14,
+      "purchaseRate": 0.0985,
+      "winCorrelation": 0.5868
+    },
+    "DDB-KAT-CORE-055": {
+      "name": "Shadowboxing",
+      "purchased": 5468,
+      "played": 20944,
+      "winnerGames": 3376,
+      "playRate": 2.0944,
+      "purchaseRate": 0.5468,
+      "winCorrelation": 0.6174
+    },
+    "DDB-KAT-CORE-045": {
+      "name": "Pocket-Change Breathing",
+      "purchased": 6574,
+      "played": 23296,
+      "winnerGames": 4559,
+      "playRate": 2.3296,
+      "purchaseRate": 0.6574,
+      "winCorrelation": 0.6935
+    },
+    "DDB-ATK-CORE-041": {
+      "name": "Palm Heel Strike",
+      "purchased": 1390,
+      "played": 2306,
+      "winnerGames": 782,
+      "playRate": 0.2306,
+      "purchaseRate": 0.139,
+      "winCorrelation": 0.5626
+    },
+    "DDB-KAT-CORE-044": {
+      "name": "Pinan Nidan",
+      "purchased": 2944,
+      "played": 7977,
+      "winnerGames": 1693,
+      "playRate": 0.7977,
+      "purchaseRate": 0.2944,
+      "winCorrelation": 0.5751
+    },
+    "DDB-DEF-CORE-007": {
+      "name": "Calculated Flinch",
+      "purchased": 3340,
+      "played": 8664,
+      "winnerGames": 1908,
+      "playRate": 0.8664,
+      "purchaseRate": 0.334,
+      "winCorrelation": 0.5713
+    },
+    "DDB-DEF-CORE-011": {
+      "name": "Do Not Enter Stance",
+      "purchased": 152,
+      "played": 173,
+      "winnerGames": 90,
+      "playRate": 0.0173,
+      "purchaseRate": 0.0152,
+      "winCorrelation": 0.5921
+    },
+    "DDB-DEQ-CORE-003": {
+      "name": "Bubble Wrap Gi",
+      "purchased": 2527,
+      "played": 7569,
+      "winnerGames": 1421,
+      "playRate": 0.7569,
+      "purchaseRate": 0.2527,
+      "winCorrelation": 0.5623
+    },
+    "DDB-KAT-CORE-007": {
+      "name": "Breath Control",
+      "purchased": 5567,
+      "played": 21580,
+      "winnerGames": 3537,
+      "playRate": 2.158,
+      "purchaseRate": 0.5567,
+      "winCorrelation": 0.6354
+    },
+    "DDB-DEF-CORE-042": {
+      "name": "Slip",
+      "purchased": 3886,
+      "played": 8174,
+      "winnerGames": 2310,
+      "playRate": 0.8174,
+      "purchaseRate": 0.3886,
+      "winCorrelation": 0.5944
+    },
+    "DDB-KAT-CORE-024": {
+      "name": "Formal Apology Form",
+      "purchased": 1128,
+      "played": 3269,
+      "winnerGames": 539,
+      "playRate": 0.3269,
+      "purchaseRate": 0.1128,
+      "winCorrelation": 0.4778
+    },
+    "DDB-DEQ-CORE-014": {
+      "name": "Fire-Code Padded Vest",
+      "purchased": 50,
+      "played": 79,
+      "winnerGames": 28,
+      "playRate": 0.0079,
+      "purchaseRate": 0.005,
+      "winCorrelation": 0.56
+    },
+    "DDB-KAT-CORE-052": {
+      "name": "Second-Cup Centering",
+      "purchased": 2937,
+      "played": 8009,
+      "winnerGames": 1673,
+      "playRate": 0.8009,
+      "purchaseRate": 0.2937,
+      "winCorrelation": 0.5696
+    },
+    "DDB-DEF-CORE-050": {
+      "name": "Witness Protection Stance",
+      "purchased": 136,
+      "played": 163,
+      "winnerGames": 90,
+      "playRate": 0.0163,
+      "purchaseRate": 0.0136,
+      "winCorrelation": 0.6618
+    },
+    "DDB-KAT-CORE-025": {
+      "name": "Gekisai Dai Ichi",
+      "purchased": 1146,
+      "played": 3213,
+      "winnerGames": 557,
+      "playRate": 0.3213,
+      "purchaseRate": 0.1146,
+      "winCorrelation": 0.486
+    },
+    "DDB-DEF-CORE-037": {
+      "name": "Seatbelt Block",
+      "purchased": 1027,
+      "played": 1482,
+      "winnerGames": 569,
+      "playRate": 0.1482,
+      "purchaseRate": 0.1027,
+      "winCorrelation": 0.554
+    },
+    "DDB-DEF-CORE-001": {
+      "name": "Accordion-Folder Guard",
+      "purchased": 6896,
+      "played": 19177,
+      "winnerGames": 4831,
+      "playRate": 1.9177,
+      "purchaseRate": 0.6896,
+      "winCorrelation": 0.7006
+    },
+    "DDB-ATK-CORE-008": {
+      "name": "Budget-Cut Backfist",
+      "purchased": 3395,
+      "played": 8576,
+      "winnerGames": 1994,
+      "playRate": 0.8576,
+      "purchaseRate": 0.3395,
+      "winCorrelation": 0.5873
+    },
+    "DDB-CON-CORE-027": {
+      "name": "Ice Pack",
+      "purchased": 1123,
+      "played": 3358,
+      "winnerGames": 546,
+      "playRate": 0.3358,
+      "purchaseRate": 0.1123,
+      "winCorrelation": 0.4862
+    },
+    "DDB-KAT-CORE-002": {
+      "name": "After-Action Huddle",
+      "purchased": 2639,
+      "played": 7544,
+      "winnerGames": 1451,
+      "playRate": 0.7544,
+      "purchaseRate": 0.2639,
+      "winCorrelation": 0.5498
+    },
+    "DDB-DEQ-CORE-009": {
+      "name": "Cookie Sheet Bracer",
+      "purchased": 2433,
+      "played": 7194,
+      "winnerGames": 1313,
+      "playRate": 0.7194,
+      "purchaseRate": 0.2433,
+      "winCorrelation": 0.5397
+    },
+    "DDB-DEF-CORE-021": {
+      "name": "Inside Block (Uchi Uke)",
+      "purchased": 1244,
+      "played": 1774,
+      "winnerGames": 718,
+      "playRate": 0.1774,
+      "purchaseRate": 0.1244,
+      "winCorrelation": 0.5772
+    },
+    "DDB-DEQ-CORE-029": {
+      "name": "Museum Rope Barrier",
+      "purchased": 1102,
+      "played": 3203,
+      "winnerGames": 498,
+      "playRate": 0.3203,
+      "purchaseRate": 0.1102,
+      "winCorrelation": 0.4519
+    },
+    "DDB-DEQ-CORE-044": {
+      "name": "Trash Can Lid",
+      "purchased": 589,
+      "played": 1057,
+      "winnerGames": 336,
+      "playRate": 0.1057,
+      "purchaseRate": 0.0589,
+      "winCorrelation": 0.5705
+    },
+    "DDB-DEQ-CORE-038": {
+      "name": "Shin Guards",
+      "purchased": 629,
+      "played": 1154,
+      "winnerGames": 337,
+      "playRate": 0.1154,
+      "purchaseRate": 0.0629,
+      "winCorrelation": 0.5358
+    },
+    "DDB-RIT-CORE-012": {
+      "name": "X-Ray Paper",
+      "purchased": 1148,
+      "played": 0,
+      "winnerGames": 515,
+      "playRate": 0,
+      "purchaseRate": 0.1148,
+      "winCorrelation": 0.4486
+    },
+    "DDB-ATK-CORE-034": {
+      "name": "Knifehand Strike",
+      "purchased": 1019,
+      "played": 1739,
+      "winnerGames": 578,
+      "playRate": 0.1739,
+      "purchaseRate": 0.1019,
+      "winCorrelation": 0.5672
+    },
+    "DDB-CON-CORE-009": {
+      "name": "Confetti Cannon",
+      "purchased": 1096,
+      "played": 3056,
+      "winnerGames": 500,
+      "playRate": 0.3056,
+      "purchaseRate": 0.1096,
+      "winCorrelation": 0.4562
+    },
+    "DDB-DEQ-CORE-037": {
+      "name": "Sensei's Disapproving Stare",
+      "purchased": 1158,
+      "played": 3424,
+      "winnerGames": 561,
+      "playRate": 0.3424,
+      "purchaseRate": 0.1158,
+      "winCorrelation": 0.4845
+    },
+    "DDB-DEF-CORE-009": {
+      "name": "Clipboard Cover",
+      "purchased": 3891,
+      "played": 8587,
+      "winnerGames": 2367,
+      "playRate": 0.8587,
+      "purchaseRate": 0.3891,
+      "winCorrelation": 0.6083
+    },
+    "DDB-DEF-CORE-024": {
+      "name": "Knee Shield",
+      "purchased": 233,
+      "played": 244,
+      "winnerGames": 137,
+      "playRate": 0.0244,
+      "purchaseRate": 0.0233,
+      "winCorrelation": 0.588
+    },
+    "DDB-DEQ-CORE-030": {
+      "name": "No Soliciting Sign",
+      "purchased": 1205,
+      "played": 3394,
+      "winnerGames": 586,
+      "playRate": 0.3394,
+      "purchaseRate": 0.1205,
+      "winCorrelation": 0.4863
+    },
+    "DDB-CON-CORE-022": {
+      "name": "Fortune Cookie",
+      "purchased": 1132,
+      "played": 3255,
+      "winnerGames": 538,
+      "playRate": 0.3255,
+      "purchaseRate": 0.1132,
+      "winCorrelation": 0.4753
+    },
+    "DDB-DEQ-CORE-002": {
+      "name": "Breakroom Apron Plating",
+      "purchased": 3307,
+      "played": 9776,
+      "winnerGames": 1945,
+      "playRate": 0.9776,
+      "purchaseRate": 0.3307,
+      "winCorrelation": 0.5881
+    },
+    "DDB-ATK-CORE-025": {
+      "name": "Front Jab",
+      "purchased": 1309,
+      "played": 2361,
+      "winnerGames": 750,
+      "playRate": 0.2361,
+      "purchaseRate": 0.1309,
+      "winCorrelation": 0.573
+    },
+    "DDB-DEF-CORE-015": {
+      "name": "Evade and Pivot",
+      "purchased": 628,
+      "played": 1008,
+      "winnerGames": 350,
+      "playRate": 0.1008,
+      "purchaseRate": 0.0628,
+      "winCorrelation": 0.5573
+    },
+    "DDB-DEF-CORE-035": {
+      "name": "Rising Block (Age Uke)",
+      "purchased": 1009,
+      "played": 1504,
+      "winnerGames": 563,
+      "playRate": 0.1504,
+      "purchaseRate": 0.1009,
+      "winCorrelation": 0.558
+    },
+    "DDB-CON-CORE-034": {
+      "name": "Manager-Approved Trail Mix",
+      "purchased": 2676,
+      "played": 7771,
+      "winnerGames": 1483,
+      "playRate": 0.7771,
+      "purchaseRate": 0.2676,
+      "winCorrelation": 0.5542
+    },
+    "DDB-KAT-CORE-043": {
+      "name": "Parking-Lot Physics",
+      "purchased": 368,
+      "played": 639,
+      "winnerGames": 183,
+      "playRate": 0.0639,
+      "purchaseRate": 0.0368,
+      "winCorrelation": 0.4973
+    },
+    "DDB-DEF-CORE-029": {
+      "name": "Office-Chair Rollaway",
+      "purchased": 1052,
+      "played": 1344,
+      "winnerGames": 603,
+      "playRate": 0.1344,
+      "purchaseRate": 0.1052,
+      "winCorrelation": 0.5732
+    },
+    "DDB-CON-CORE-045": {
+      "name": "Receipt-Printer Ribbon",
+      "purchased": 1186,
+      "played": 3436,
+      "winnerGames": 531,
+      "playRate": 0.3436,
+      "purchaseRate": 0.1186,
+      "winCorrelation": 0.4477
+    },
+    "DDB-ATK-CORE-006": {
+      "name": "Backfist",
+      "purchased": 1043,
+      "played": 1828,
+      "winnerGames": 607,
+      "playRate": 0.1828,
+      "purchaseRate": 0.1043,
+      "winCorrelation": 0.582
+    },
+    "DDB-CON-CORE-013": {
+      "name": "Electrolyte Popsicle",
+      "purchased": 1117,
+      "played": 3174,
+      "winnerGames": 554,
+      "playRate": 0.3174,
+      "purchaseRate": 0.1117,
+      "winCorrelation": 0.496
+    },
+    "DDB-GEA-CORE-022": {
+      "name": "Three-Hole Punch Holster",
+      "purchased": 1158,
+      "played": 3258,
+      "winnerGames": 566,
+      "playRate": 0.3258,
+      "purchaseRate": 0.1158,
+      "winCorrelation": 0.4888
+    },
+    "DDB-DEQ-CORE-026": {
+      "name": "Leather Bracers",
+      "purchased": 2530,
+      "played": 7497,
+      "winnerGames": 1380,
+      "playRate": 0.7497,
+      "purchaseRate": 0.253,
+      "winCorrelation": 0.5455
+    },
+    "DDB-ATK-CORE-019": {
+      "name": "Escalator Dropkick",
+      "purchased": 238,
+      "played": 316,
+      "winnerGames": 136,
+      "playRate": 0.0316,
+      "purchaseRate": 0.0238,
+      "winCorrelation": 0.5714
+    },
+    "DDB-DEF-CORE-022": {
+      "name": "Inspection-Grade Head Tilt",
+      "purchased": 1030,
+      "played": 1573,
+      "winnerGames": 555,
+      "playRate": 0.1573,
+      "purchaseRate": 0.103,
+      "winCorrelation": 0.5388
+    },
+    "DDB-ATK-CORE-007": {
+      "name": "Backleg Side, Turning Side",
+      "purchased": 157,
+      "played": 199,
+      "winnerGames": 92,
+      "playRate": 0.0199,
+      "purchaseRate": 0.0157,
+      "winCorrelation": 0.586
+    },
+    "DDB-ATK-CORE-045": {
+      "name": "Rear Hand Punch",
+      "purchased": 263,
+      "played": 328,
+      "winnerGames": 169,
+      "playRate": 0.0328,
+      "purchaseRate": 0.0263,
+      "winCorrelation": 0.6426
+    },
+    "DDB-DEQ-CORE-004": {
+      "name": "Buckler",
+      "purchased": 2422,
+      "played": 7438,
+      "winnerGames": 1331,
+      "playRate": 0.7438,
+      "purchaseRate": 0.2422,
+      "winCorrelation": 0.5495
+    },
+    "DDB-CON-CORE-049": {
+      "name": "Smoke Bomb",
+      "purchased": 1194,
+      "played": 3469,
+      "winnerGames": 592,
+      "playRate": 0.3469,
+      "purchaseRate": 0.1194,
+      "winCorrelation": 0.4958
+    },
+    "DDB-DEQ-CORE-023": {
+      "name": "Knee Pads",
+      "purchased": 2434,
+      "played": 7640,
+      "winnerGames": 1334,
+      "playRate": 0.764,
+      "purchaseRate": 0.2434,
+      "winCorrelation": 0.5481
+    },
+    "DDB-DEQ-CORE-015": {
+      "name": "Foot Guards",
+      "purchased": 2482,
+      "played": 7257,
+      "winnerGames": 1352,
+      "playRate": 0.7257,
+      "purchaseRate": 0.2482,
+      "winCorrelation": 0.5447
+    },
+    "DDB-KAT-CORE-048": {
+      "name": "Red-Stamp Finish",
+      "purchased": 375,
+      "played": 688,
+      "winnerGames": 212,
+      "playRate": 0.0688,
+      "purchaseRate": 0.0375,
+      "winCorrelation": 0.5653
+    },
+    "DDB-CON-CORE-030": {
+      "name": "Laminated Lunch Voucher",
+      "purchased": 1158,
+      "played": 3335,
+      "winnerGames": 561,
+      "playRate": 0.3335,
+      "purchaseRate": 0.1158,
+      "winCorrelation": 0.4845
+    },
+    "DDB-CON-CORE-040": {
+      "name": "Overtime Espresso",
+      "purchased": 394,
+      "played": 637,
+      "winnerGames": 206,
+      "playRate": 0.0637,
+      "purchaseRate": 0.0394,
+      "winCorrelation": 0.5228
+    },
+    "DDB-GEA-CORE-001": {
+      "name": "Battery-Powered Incense Fan",
+      "purchased": 1168,
+      "played": 3456,
+      "winnerGames": 544,
+      "playRate": 0.3456,
+      "purchaseRate": 0.1168,
+      "winCorrelation": 0.4658
+    },
+    "DDB-DEF-CORE-019": {
+      "name": "Form-Triplicate Parry",
+      "purchased": 3274,
+      "played": 8237,
+      "winnerGames": 1892,
+      "playRate": 0.8237,
+      "purchaseRate": 0.3274,
+      "winCorrelation": 0.5779
+    },
+    "DDB-KAT-CORE-005": {
+      "name": "Breakroom Box Breathing",
+      "purchased": 2994,
+      "played": 8167,
+      "winnerGames": 1710,
+      "playRate": 0.8167,
+      "purchaseRate": 0.2994,
+      "winCorrelation": 0.5711
+    },
+    "DDB-RIT-CORE-011": {
+      "name": "Witness Statement in Crayon",
+      "purchased": 384,
+      "played": 0,
+      "winnerGames": 202,
+      "playRate": 0,
+      "purchaseRate": 0.0384,
+      "winCorrelation": 0.526
+    },
+    "DDB-WPN-CORE-026": {
+      "name": "Giant Foam Finger",
+      "purchased": 1183,
+      "played": 3386,
+      "winnerGames": 592,
+      "playRate": 0.3386,
+      "purchaseRate": 0.1183,
+      "winCorrelation": 0.5004
+    },
+    "DDB-DEF-CORE-049": {
+      "name": "Two-Handrail Tuck",
+      "purchased": 1027,
+      "played": 1566,
+      "winnerGames": 561,
+      "playRate": 0.1566,
+      "purchaseRate": 0.1027,
+      "winCorrelation": 0.5463
+    },
+    "DDB-ATK-CORE-053": {
+      "name": "Snap Front Kick",
+      "purchased": 277,
+      "played": 343,
+      "winnerGames": 164,
+      "playRate": 0.0343,
+      "purchaseRate": 0.0277,
+      "winCorrelation": 0.5921
+    },
+    "DDB-DEQ-CORE-032": {
+      "name": "Participation Trophy Shield",
+      "purchased": 2429,
+      "played": 7185,
+      "winnerGames": 1308,
+      "playRate": 0.7185,
+      "purchaseRate": 0.2429,
+      "winCorrelation": 0.5385
+    },
+    "DDB-KAT-CORE-028": {
+      "name": "Jion",
+      "purchased": 577,
+      "played": 1052,
+      "winnerGames": 315,
+      "playRate": 0.1052,
+      "purchaseRate": 0.0577,
+      "winCorrelation": 0.5459
+    },
+    "DDB-DEF-CORE-039": {
+      "name": "Shell Guard",
+      "purchased": 233,
+      "played": 254,
+      "winnerGames": 147,
+      "playRate": 0.0254,
+      "purchaseRate": 0.0233,
+      "winCorrelation": 0.6309
+    },
+    "DDB-ATK-CORE-044": {
+      "name": "Question Mark Kick",
+      "purchased": 18,
+      "played": 16,
+      "winnerGames": 11,
+      "playRate": 0.0016,
+      "purchaseRate": 0.0018,
+      "winCorrelation": 0.6111
+    },
+    "DDB-KAT-CORE-034": {
+      "name": "Loading-Screen Kata",
+      "purchased": 630,
+      "played": 995,
+      "winnerGames": 372,
+      "playRate": 0.0995,
+      "purchaseRate": 0.063,
+      "winCorrelation": 0.5905
+    },
+    "DDB-CON-CORE-042": {
+      "name": "Plum Wine",
+      "purchased": 1164,
+      "played": 3267,
+      "winnerGames": 563,
+      "playRate": 0.3267,
+      "purchaseRate": 0.1164,
+      "winCorrelation": 0.4837
+    },
+    "DDB-ATK-CORE-062": {
+      "name": "Three-Gate Tour",
+      "purchased": 3759,
+      "played": 10392,
+      "winnerGames": 2180,
+      "playRate": 1.0392,
+      "purchaseRate": 0.3759,
+      "winCorrelation": 0.5799
+    },
+    "DDB-RIT-CORE-005": {
+      "name": "Instant Noodle Smokescreen",
+      "purchased": 1128,
+      "played": 0,
+      "winnerGames": 551,
+      "playRate": 0,
+      "purchaseRate": 0.1128,
+      "winCorrelation": 0.4885
+    },
+    "DDB-GEA-CORE-002": {
+      "name": "Belt-Exam Punch Card",
+      "purchased": 1133,
+      "played": 3245,
+      "winnerGames": 530,
+      "playRate": 0.3245,
+      "purchaseRate": 0.1133,
+      "winCorrelation": 0.4678
+    },
+    "DDB-DEQ-CORE-034": {
+      "name": "Pool Noodle Shield",
+      "purchased": 2507,
+      "played": 7443,
+      "winnerGames": 1388,
+      "playRate": 0.7443,
+      "purchaseRate": 0.2507,
+      "winCorrelation": 0.5536
+    },
+    "DDB-GEA-CORE-004": {
+      "name": "Caution-Tape Spool",
+      "purchased": 1154,
+      "played": 3345,
+      "winnerGames": 580,
+      "playRate": 0.3345,
+      "purchaseRate": 0.1154,
+      "winCorrelation": 0.5026
+    },
+    "DDB-KAT-CORE-036": {
+      "name": "Mall Dojo Demonstration Form",
+      "purchased": 599,
+      "played": 995,
+      "winnerGames": 328,
+      "playRate": 0.0995,
+      "purchaseRate": 0.0599,
+      "winCorrelation": 0.5476
+    },
+    "DDB-WPN-CORE-051": {
+      "name": "Rolled-Up Rulebook",
+      "purchased": 1147,
+      "played": 3268,
+      "winnerGames": 544,
+      "playRate": 0.3268,
+      "purchaseRate": 0.1147,
+      "winCorrelation": 0.4743
+    },
+    "DDB-CON-CORE-054": {
+      "name": "Sweat Towel",
+      "purchased": 1168,
+      "played": 3340,
+      "winnerGames": 557,
+      "playRate": 0.334,
+      "purchaseRate": 0.1168,
+      "winCorrelation": 0.4769
+    },
+    "DDB-KAT-CORE-033": {
+      "name": "Ledger-Line Footwork",
+      "purchased": 1116,
+      "played": 3208,
+      "winnerGames": 548,
+      "playRate": 0.3208,
+      "purchaseRate": 0.1116,
+      "winCorrelation": 0.491
+    },
+    "DDB-DEQ-CORE-007": {
+      "name": "Cardboard Cutout of Yourself",
+      "purchased": 1126,
+      "played": 3259,
+      "winnerGames": 567,
+      "playRate": 0.3259,
+      "purchaseRate": 0.1126,
+      "winCorrelation": 0.5036
+    },
+    "DDB-DEQ-CORE-036": {
+      "name": "Rush-Hour Shin Guards",
+      "purchased": 609,
+      "played": 1066,
+      "winnerGames": 344,
+      "playRate": 0.1066,
+      "purchaseRate": 0.0609,
+      "winCorrelation": 0.5649
+    },
+    "DDB-WPN-CORE-019": {
+      "name": "Escrima Sticks",
+      "purchased": 39,
+      "played": 78,
+      "winnerGames": 14,
+      "playRate": 0.0078,
+      "purchaseRate": 0.0039,
+      "winCorrelation": 0.359
+    },
+    "DDB-KAT-CORE-059": {
+      "name": "Three-Receipt Rhythm",
+      "purchased": 640,
+      "played": 1134,
+      "winnerGames": 356,
+      "playRate": 0.1134,
+      "purchaseRate": 0.064,
+      "winCorrelation": 0.5563
+    },
+    "DDB-GEA-CORE-005": {
+      "name": "Clip-On Tempo Meter",
+      "purchased": 1143,
+      "played": 3203,
+      "winnerGames": 564,
+      "playRate": 0.3203,
+      "purchaseRate": 0.1143,
+      "winCorrelation": 0.4934
+    },
+    "DDB-DEQ-CORE-006": {
+      "name": "Cardboard Chestplate",
+      "purchased": 617,
+      "played": 1160,
+      "winnerGames": 336,
+      "playRate": 0.116,
+      "purchaseRate": 0.0617,
+      "winCorrelation": 0.5446
+    },
+    "DDB-DEQ-CORE-019": {
+      "name": "Inflatable Sumo Suit",
+      "purchased": 145,
+      "played": 225,
+      "winnerGames": 80,
+      "playRate": 0.0225,
+      "purchaseRate": 0.0145,
+      "winCorrelation": 0.5517
+    },
+    "DDB-CON-CORE-058": {
+      "name": "Warranty-Approved Ice Pop",
+      "purchased": 32,
+      "played": 64,
+      "winnerGames": 15,
+      "playRate": 0.0064,
+      "purchaseRate": 0.0032,
+      "winCorrelation": 0.4688
+    },
+    "DDB-DEQ-CORE-011": {
+      "name": "Emergency Clipboard",
+      "purchased": 2517,
+      "played": 7507,
+      "winnerGames": 1374,
+      "playRate": 0.7507,
+      "purchaseRate": 0.2517,
+      "winCorrelation": 0.5459
+    },
+    "DDB-DEF-CORE-017": {
+      "name": "Folding Screen",
+      "purchased": 602,
+      "played": 931,
+      "winnerGames": 327,
+      "playRate": 0.0931,
+      "purchaseRate": 0.0602,
+      "winCorrelation": 0.5432
+    },
+    "DDB-CON-CORE-002": {
+      "name": "Banana Peel",
+      "purchased": 44,
+      "played": 76,
+      "winnerGames": 17,
+      "playRate": 0.0076,
+      "purchaseRate": 0.0044,
+      "winCorrelation": 0.3864
+    },
+    "DDB-KAT-CORE-012": {
+      "name": "Compliance Shopping List",
+      "purchased": 1194,
+      "played": 3324,
+      "winnerGames": 579,
+      "playRate": 0.3324,
+      "purchaseRate": 0.1194,
+      "winCorrelation": 0.4849
+    },
+    "DDB-RIT-CORE-009": {
+      "name": "Pop-Up Safety Seminar",
+      "purchased": 630,
+      "played": 868,
+      "winnerGames": 349,
+      "playRate": 0.0868,
+      "purchaseRate": 0.063,
+      "winCorrelation": 0.554
+    },
+    "DDB-ATK-CORE-063": {
+      "name": "Three-Stamp Roundhouse",
+      "purchased": 281,
+      "played": 353,
+      "winnerGames": 152,
+      "playRate": 0.0353,
+      "purchaseRate": 0.0281,
+      "winCorrelation": 0.5409
+    },
+    "DDB-CON-CORE-055": {
+      "name": "Sweatband",
+      "purchased": 1154,
+      "played": 3359,
+      "winnerGames": 569,
+      "playRate": 0.3359,
+      "purchaseRate": 0.1154,
+      "winCorrelation": 0.4931
+    },
+    "DDB-CON-CORE-059": {
+      "name": "Water Balloon",
+      "purchased": 1143,
+      "played": 3329,
+      "winnerGames": 543,
+      "playRate": 0.3329,
+      "purchaseRate": 0.1143,
+      "winCorrelation": 0.4751
+    },
+    "DDB-DEF-CORE-040": {
+      "name": "Shin Check",
+      "purchased": 135,
+      "played": 181,
+      "winnerGames": 73,
+      "playRate": 0.0181,
+      "purchaseRate": 0.0135,
+      "winCorrelation": 0.5407
+    },
+    "DDB-CON-CORE-056": {
+      "name": "Tiger Balm",
+      "purchased": 1156,
+      "played": 3328,
+      "winnerGames": 594,
+      "playRate": 0.3328,
+      "purchaseRate": 0.1156,
+      "winCorrelation": 0.5138
+    },
+    "DDB-DEQ-CORE-035": {
+      "name": "Reflective Safety Vest",
+      "purchased": 2494,
+      "played": 7477,
+      "winnerGames": 1374,
+      "playRate": 0.7477,
+      "purchaseRate": 0.2494,
+      "winCorrelation": 0.5509
+    },
+    "DDB-ATK-CORE-015": {
+      "name": "Discount Dim Mak",
+      "purchased": 257,
+      "played": 315,
+      "winnerGames": 153,
+      "playRate": 0.0315,
+      "purchaseRate": 0.0257,
+      "winCorrelation": 0.5953
+    },
+    "DDB-KAT-CORE-030": {
+      "name": "Kata of the Lost Car Keys",
+      "purchased": 1138,
+      "played": 3306,
+      "winnerGames": 528,
+      "playRate": 0.3306,
+      "purchaseRate": 0.1138,
+      "winCorrelation": 0.464
+    },
+    "DDB-DEQ-CORE-045": {
+      "name": "Two-Way Mirror Bracer",
+      "purchased": 323,
+      "played": 573,
+      "winnerGames": 169,
+      "playRate": 0.0573,
+      "purchaseRate": 0.0323,
+      "winCorrelation": 0.5232
+    },
+    "DDB-WPN-CORE-022": {
+      "name": "Fan (Tessen)",
+      "purchased": 1143,
+      "played": 3241,
+      "winnerGames": 569,
+      "playRate": 0.3241,
+      "purchaseRate": 0.1143,
+      "winCorrelation": 0.4978
+    },
+    "DDB-DEQ-CORE-028": {
+      "name": "Mouthguard",
+      "purchased": 1143,
+      "played": 3123,
+      "winnerGames": 568,
+      "playRate": 0.3123,
+      "purchaseRate": 0.1143,
+      "winCorrelation": 0.4969
+    },
+    "DDB-DEQ-CORE-033": {
+      "name": "Phone Book Chest Guard",
+      "purchased": 656,
+      "played": 1156,
+      "winnerGames": 342,
+      "playRate": 0.1156,
+      "purchaseRate": 0.0656,
+      "winCorrelation": 0.5213
+    },
+    "DDB-CON-CORE-016": {
+      "name": "Emergency Ice Pack",
+      "purchased": 1159,
+      "played": 3151,
+      "winnerGames": 558,
+      "playRate": 0.3151,
+      "purchaseRate": 0.1159,
+      "winCorrelation": 0.4814
+    },
+    "DDB-ATK-CORE-054": {
+      "name": "Spinning Backfist",
+      "purchased": 733,
+      "played": 1085,
+      "winnerGames": 392,
+      "playRate": 0.1085,
+      "purchaseRate": 0.0733,
+      "winCorrelation": 0.5348
+    },
+    "DDB-ATK-CORE-011": {
+      "name": "Courtesy-Counter Knee",
+      "purchased": 1059,
+      "played": 1846,
+      "winnerGames": 611,
+      "playRate": 0.1846,
+      "purchaseRate": 0.1059,
+      "winCorrelation": 0.577
+    },
+    "DDB-DEQ-CORE-008": {
+      "name": "Chest Protector",
+      "purchased": 583,
+      "played": 1097,
+      "winnerGames": 298,
+      "playRate": 0.1097,
+      "purchaseRate": 0.0583,
+      "winCorrelation": 0.5111
+    },
+    "DDB-DEF-CORE-004": {
+      "name": "Bob and Weave",
+      "purchased": 135,
+      "played": 174,
+      "winnerGames": 83,
+      "playRate": 0.0174,
+      "purchaseRate": 0.0135,
+      "winCorrelation": 0.6148
+    },
+    "DDB-DEF-CORE-030": {
+      "name": "Outside Block (Soto Uke)",
+      "purchased": 1037,
+      "played": 1520,
+      "winnerGames": 585,
+      "playRate": 0.152,
+      "purchaseRate": 0.1037,
+      "winCorrelation": 0.5641
+    },
+    "DDB-KAT-CORE-019": {
+      "name": "Five-Minute Training Montage",
+      "purchased": 169,
+      "played": 207,
+      "winnerGames": 102,
+      "playRate": 0.0207,
+      "purchaseRate": 0.0169,
+      "winCorrelation": 0.6036
+    },
+    "DDB-CON-CORE-028": {
+      "name": "Instant Noodles",
+      "purchased": 381,
+      "played": 684,
+      "winnerGames": 214,
+      "playRate": 0.0684,
+      "purchaseRate": 0.0381,
+      "winCorrelation": 0.5617
+    },
+    "DDB-ATK-CORE-050": {
+      "name": "Roundhouse Kick",
+      "purchased": 688,
+      "played": 998,
+      "winnerGames": 382,
+      "playRate": 0.0998,
+      "purchaseRate": 0.0688,
+      "winCorrelation": 0.5552
+    },
+    "DDB-DEQ-CORE-025": {
+      "name": "Layers of Hoodies",
+      "purchased": 605,
+      "played": 1163,
+      "winnerGames": 319,
+      "playRate": 0.1163,
+      "purchaseRate": 0.0605,
+      "winCorrelation": 0.5273
+    },
+    "DDB-DEQ-CORE-043": {
+      "name": "Traffic Cone Helmet",
+      "purchased": 633,
+      "played": 1152,
+      "winnerGames": 339,
+      "playRate": 0.1152,
+      "purchaseRate": 0.0633,
+      "winCorrelation": 0.5355
+    },
+    "DDB-GEA-CORE-024": {
+      "name": "Yellow Tape Measure",
+      "purchased": 386,
+      "played": 739,
+      "winnerGames": 205,
+      "playRate": 0.0739,
+      "purchaseRate": 0.0386,
+      "winCorrelation": 0.5311
+    },
+    "DDB-ATK-CORE-026": {
+      "name": "Front Ridgehand",
+      "purchased": 683,
+      "played": 1078,
+      "winnerGames": 374,
+      "playRate": 0.1078,
+      "purchaseRate": 0.0683,
+      "winCorrelation": 0.5476
+    },
+    "DDB-ATK-CORE-010": {
+      "name": "Certified Palm Stamp",
+      "purchased": 688,
+      "played": 1093,
+      "winnerGames": 383,
+      "playRate": 0.1093,
+      "purchaseRate": 0.0688,
+      "winCorrelation": 0.5567
+    },
+    "DDB-CON-CORE-017": {
+      "name": "Emergency Shoelace",
+      "purchased": 1182,
+      "played": 3431,
+      "winnerGames": 555,
+      "playRate": 0.3431,
+      "purchaseRate": 0.1182,
+      "winCorrelation": 0.4695
+    },
+    "DDB-GEA-CORE-006": {
+      "name": "Department-Issue Stopwatch",
+      "purchased": 379,
+      "played": 648,
+      "winnerGames": 210,
+      "playRate": 0.0648,
+      "purchaseRate": 0.0379,
+      "winCorrelation": 0.5541
+    },
+    "DDB-DEF-CORE-038": {
+      "name": "Sensei Said Hands Up",
+      "purchased": 151,
+      "played": 184,
+      "winnerGames": 93,
+      "playRate": 0.0184,
+      "purchaseRate": 0.0151,
+      "winCorrelation": 0.6159
+    },
+    "DDB-CON-CORE-026": {
+      "name": "Herbal Tea",
+      "purchased": 32,
+      "played": 48,
+      "winnerGames": 13,
+      "playRate": 0.0048,
+      "purchaseRate": 0.0032,
+      "winCorrelation": 0.4063
+    },
+    "DDB-ATK-CORE-001": {
+      "name": "Aftermarket Uppercut",
+      "purchased": 1037,
+      "played": 1728,
+      "winnerGames": 575,
+      "playRate": 0.1728,
+      "purchaseRate": 0.1037,
+      "winCorrelation": 0.5545
+    },
+    "DDB-ATK-CORE-048": {
+      "name": "Refundable Elbow",
+      "purchased": 183,
+      "played": 215,
+      "winnerGames": 112,
+      "playRate": 0.0215,
+      "purchaseRate": 0.0183,
+      "winCorrelation": 0.612
+    },
+    "DDB-DEF-CORE-005": {
+      "name": "Bong Sao",
+      "purchased": 245,
+      "played": 239,
+      "winnerGames": 142,
+      "playRate": 0.0239,
+      "purchaseRate": 0.0245,
+      "winCorrelation": 0.5796
+    },
+    "DDB-CON-CORE-057": {
+      "name": "Vitamins",
+      "purchased": 398,
+      "played": 706,
+      "winnerGames": 214,
+      "playRate": 0.0706,
+      "purchaseRate": 0.0398,
+      "winCorrelation": 0.5377
+    },
+    "DDB-ATK-CORE-021": {
+      "name": "Fire-Exit Flying Elbow",
+      "purchased": 340,
+      "played": 420,
+      "winnerGames": 204,
+      "playRate": 0.042,
+      "purchaseRate": 0.034,
+      "winCorrelation": 0.6
+    },
+    "DDB-CON-CORE-031": {
+      "name": "Laminated Pep Talk",
+      "purchased": 1144,
+      "played": 3267,
+      "winnerGames": 539,
+      "playRate": 0.3267,
+      "purchaseRate": 0.1144,
+      "winCorrelation": 0.4712
+    },
+    "DDB-ATK-CORE-014": {
+      "name": "Defensive Side Kick",
+      "purchased": 165,
+      "played": 253,
+      "winnerGames": 94,
+      "playRate": 0.0253,
+      "purchaseRate": 0.0165,
+      "winCorrelation": 0.5697
+    },
+    "DDB-ATK-CORE-035": {
+      "name": "Liver Shot",
+      "purchased": 35,
+      "played": 31,
+      "winnerGames": 21,
+      "playRate": 0.0031,
+      "purchaseRate": 0.0035,
+      "winCorrelation": 0.6
+    },
+    "DDB-ATK-CORE-024": {
+      "name": "Flying Spin Crescent Kick",
+      "purchased": 198,
+      "played": 289,
+      "winnerGames": 108,
+      "playRate": 0.0289,
+      "purchaseRate": 0.0198,
+      "winCorrelation": 0.5455
+    },
+    "DDB-DEQ-CORE-021": {
+      "name": "Kendo Do",
+      "purchased": 114,
+      "played": 174,
+      "winnerGames": 66,
+      "playRate": 0.0174,
+      "purchaseRate": 0.0114,
+      "winCorrelation": 0.5789
+    },
+    "DDB-CON-CORE-051": {
+      "name": "Sparring Dummy",
+      "purchased": 1167,
+      "played": 3288,
+      "winnerGames": 558,
+      "playRate": 0.3288,
+      "purchaseRate": 0.1167,
+      "winCorrelation": 0.4781
+    },
+    "DDB-DEF-CORE-036": {
+      "name": "Rolling-Chair Retreat",
+      "purchased": 608,
+      "played": 940,
+      "winnerGames": 331,
+      "playRate": 0.094,
+      "purchaseRate": 0.0608,
+      "winCorrelation": 0.5444
+    },
+    "DDB-DEF-CORE-020": {
+      "name": "Hip Escape (Shrimp)",
+      "purchased": 234,
+      "played": 262,
+      "winnerGames": 140,
+      "playRate": 0.0262,
+      "purchaseRate": 0.0234,
+      "winCorrelation": 0.5983
+    },
+    "DDB-DEF-CORE-031": {
+      "name": "Pak Sao",
+      "purchased": 627,
+      "played": 1007,
+      "winnerGames": 351,
+      "playRate": 0.1007,
+      "purchaseRate": 0.0627,
+      "winCorrelation": 0.5598
+    },
+    "DDB-DEF-CORE-026": {
+      "name": "Long Guard",
+      "purchased": 13,
+      "played": 13,
+      "winnerGames": 4,
+      "playRate": 0.0013,
+      "purchaseRate": 0.0013,
+      "winCorrelation": 0.3077
+    },
+    "DDB-GEA-CORE-014": {
+      "name": "Noise-Cancelling Headband",
+      "purchased": 41,
+      "played": 66,
+      "winnerGames": 19,
+      "playRate": 0.0066,
+      "purchaseRate": 0.0041,
+      "winCorrelation": 0.4634
+    },
+    "DDB-DEQ-CORE-041": {
+      "name": "Taekwondo Hogu",
+      "purchased": 118,
+      "played": 172,
+      "winnerGames": 69,
+      "playRate": 0.0172,
+      "purchaseRate": 0.0118,
+      "winCorrelation": 0.5847
+    },
+    "DDB-DEQ-CORE-024": {
+      "name": "Kote",
+      "purchased": 641,
+      "played": 1140,
+      "winnerGames": 348,
+      "playRate": 0.114,
+      "purchaseRate": 0.0641,
+      "winCorrelation": 0.5429
+    },
+    "DDB-DEF-CORE-002": {
+      "name": "After-Hours Counterform",
+      "purchased": 601,
+      "played": 961,
+      "winnerGames": 326,
+      "playRate": 0.0961,
+      "purchaseRate": 0.0601,
+      "winCorrelation": 0.5424
+    },
+    "DDB-ATK-CORE-012": {
+      "name": "Courtesy-Notice Knee",
+      "purchased": 190,
+      "played": 257,
+      "winnerGames": 104,
+      "playRate": 0.0257,
+      "purchaseRate": 0.019,
+      "winCorrelation": 0.5474
+    },
+    "DDB-DEF-CORE-033": {
+      "name": "Permit-Pending Posture",
+      "purchased": 202,
+      "played": 230,
+      "winnerGames": 121,
+      "playRate": 0.023,
+      "purchaseRate": 0.0202,
+      "winCorrelation": 0.599
+    },
+    "DDB-DEQ-CORE-040": {
+      "name": "Stunt Double",
+      "purchased": 1126,
+      "played": 3254,
+      "winnerGames": 522,
+      "playRate": 0.3254,
+      "purchaseRate": 0.1126,
+      "winCorrelation": 0.4636
+    },
+    "DDB-DEQ-CORE-039": {
+      "name": "Sparring Headgear",
+      "purchased": 604,
+      "played": 1145,
+      "winnerGames": 309,
+      "playRate": 0.1145,
+      "purchaseRate": 0.0604,
+      "winCorrelation": 0.5116
+    },
+    "DDB-DEF-CORE-016": {
+      "name": "Final-Notice Shell",
+      "purchased": 226,
+      "played": 236,
+      "winnerGames": 140,
+      "playRate": 0.0236,
+      "purchaseRate": 0.0226,
+      "winCorrelation": 0.6195
+    },
+    "DDB-KAT-CORE-017": {
+      "name": "Equipment-Manual Mudra",
+      "purchased": 658,
+      "played": 1158,
+      "winnerGames": 371,
+      "playRate": 0.1158,
+      "purchaseRate": 0.0658,
+      "winCorrelation": 0.5638
+    },
+    "DDB-ATK-CORE-028": {
+      "name": "Helmet Check",
+      "purchased": 156,
+      "played": 196,
+      "winnerGames": 74,
+      "playRate": 0.0196,
+      "purchaseRate": 0.0156,
+      "winCorrelation": 0.4744
+    },
+    "DDB-ATK-CORE-042": {
+      "name": "Pop-up Roundhouse Kick",
+      "purchased": 265,
+      "played": 348,
+      "winnerGames": 156,
+      "playRate": 0.0348,
+      "purchaseRate": 0.0265,
+      "winCorrelation": 0.5887
+    },
+    "DDB-GEA-CORE-008": {
+      "name": "Emergency Whistle Lanyard",
+      "purchased": 46,
+      "played": 109,
+      "winnerGames": 13,
+      "playRate": 0.0109,
+      "purchaseRate": 0.0046,
+      "winCorrelation": 0.2826
+    },
+    "DDB-CON-CORE-043": {
+      "name": "Pocket Sand",
+      "purchased": 40,
+      "played": 74,
+      "winnerGames": 13,
+      "playRate": 0.0074,
+      "purchaseRate": 0.004,
+      "winCorrelation": 0.325
+    },
+    "DDB-ATK-CORE-002": {
+      "name": "Aisle-Seven Sweep",
+      "purchased": 168,
+      "played": 242,
+      "winnerGames": 97,
+      "playRate": 0.0242,
+      "purchaseRate": 0.0168,
+      "winCorrelation": 0.5774
+    },
+    "DDB-DEQ-CORE-022": {
+      "name": "Kendo Men",
+      "purchased": 146,
+      "played": 181,
+      "winnerGames": 87,
+      "playRate": 0.0181,
+      "purchaseRate": 0.0146,
+      "winCorrelation": 0.5959
+    },
+    "DDB-ATK-CORE-003": {
+      "name": "Ankle Invoice",
+      "purchased": 165,
+      "played": 185,
+      "winnerGames": 96,
+      "playRate": 0.0185,
+      "purchaseRate": 0.0165,
+      "winCorrelation": 0.5818
+    },
+    "DDB-ATK-CORE-029": {
+      "name": "Hook Kick",
+      "purchased": 63,
+      "played": 71,
+      "winnerGames": 34,
+      "playRate": 0.0071,
+      "purchaseRate": 0.0063,
+      "winCorrelation": 0.5397
+    },
+    "DDB-DEQ-CORE-042": {
+      "name": "Three-Ring Binder Cuirass",
+      "purchased": 116,
+      "played": 152,
+      "winnerGames": 70,
+      "playRate": 0.0152,
+      "purchaseRate": 0.0116,
+      "winCorrelation": 0.6034
+    },
+    "DDB-ATK-CORE-067": {
+      "name": "Turning Side Kick",
+      "purchased": 262,
+      "played": 339,
+      "winnerGames": 143,
+      "playRate": 0.0339,
+      "purchaseRate": 0.0262,
+      "winCorrelation": 0.5458
+    },
+    "DDB-ATK-CORE-033": {
+      "name": "Knee Strike",
+      "purchased": 39,
+      "played": 34,
+      "winnerGames": 19,
+      "playRate": 0.0034,
+      "purchaseRate": 0.0039,
+      "winCorrelation": 0.4872
+    },
+    "DDB-ATK-CORE-016": {
+      "name": "Double Punch",
+      "purchased": 166,
+      "played": 207,
+      "winnerGames": 94,
+      "playRate": 0.0207,
+      "purchaseRate": 0.0166,
+      "winCorrelation": 0.5663
+    },
+    "DDB-KAT-CORE-041": {
+      "name": "Off-Peak Enlightenment",
+      "purchased": 649,
+      "played": 1196,
+      "winnerGames": 360,
+      "playRate": 0.1196,
+      "purchaseRate": 0.0649,
+      "winCorrelation": 0.5547
+    },
+    "DDB-WPN-CORE-059": {
+      "name": "Tactical Baguette",
+      "purchased": 52,
+      "played": 88,
+      "winnerGames": 25,
+      "playRate": 0.0088,
+      "purchaseRate": 0.0052,
+      "winCorrelation": 0.4808
+    },
+    "DDB-GEA-CORE-003": {
+      "name": "Blue Belt Equipment Trolley",
+      "purchased": 30,
+      "played": 29,
+      "winnerGames": 13,
+      "playRate": 0.0029,
+      "purchaseRate": 0.003,
+      "winCorrelation": 0.4333
+    },
+    "DDB-KAT-CORE-010": {
+      "name": "Clean Slate Drill",
+      "purchased": 374,
+      "played": 719,
+      "winnerGames": 201,
+      "playRate": 0.0719,
+      "purchaseRate": 0.0374,
+      "winCorrelation": 0.5374
+    },
+    "DDB-DEF-CORE-023": {
+      "name": "Jam the Kick",
+      "purchased": 120,
+      "played": 118,
+      "winnerGames": 73,
+      "playRate": 0.0118,
+      "purchaseRate": 0.012,
+      "winCorrelation": 0.6083
+    },
+    "DDB-ATK-CORE-032": {
+      "name": "Inside Crescent Kick",
+      "purchased": 270,
+      "played": 363,
+      "winnerGames": 145,
+      "playRate": 0.0363,
+      "purchaseRate": 0.027,
+      "winCorrelation": 0.537
+    },
+    "DDB-ATK-CORE-038": {
+      "name": "Outside Crescent Kick",
+      "purchased": 165,
+      "played": 212,
+      "winnerGames": 87,
+      "playRate": 0.0212,
+      "purchaseRate": 0.0165,
+      "winCorrelation": 0.5273
+    },
+    "DDB-CON-CORE-039": {
+      "name": "Overbooked Protein Shake",
+      "purchased": 41,
+      "played": 89,
+      "winnerGames": 12,
+      "playRate": 0.0089,
+      "purchaseRate": 0.0041,
+      "winCorrelation": 0.2927
+    },
+    "DDB-CON-CORE-047": {
+      "name": "Seaweed Wrap",
+      "purchased": 43,
+      "played": 61,
+      "winnerGames": 22,
+      "playRate": 0.0061,
+      "purchaseRate": 0.0043,
+      "winCorrelation": 0.5116
+    },
+    "DDB-DEF-CORE-048": {
+      "name": "The Ancient Art of No, You",
+      "purchased": 134,
+      "played": 114,
+      "winnerGames": 71,
+      "playRate": 0.0114,
+      "purchaseRate": 0.0134,
+      "winCorrelation": 0.5299
+    },
+    "DDB-ATK-CORE-009": {
+      "name": "Centerline Breaker",
+      "purchased": 13,
+      "played": 9,
+      "winnerGames": 10,
+      "playRate": 0.0009,
+      "purchaseRate": 0.0013,
+      "winCorrelation": 0.7692
+    },
+    "DDB-DEQ-CORE-018": {
+      "name": "Helmet Made of Smaller Helmets",
+      "purchased": 240,
+      "played": 326,
+      "winnerGames": 139,
+      "playRate": 0.0326,
+      "purchaseRate": 0.024,
+      "winCorrelation": 0.5792
+    },
+    "DDB-WPN-CORE-050": {
+      "name": "Receipt-Spindle Sai",
+      "purchased": 40,
+      "played": 64,
+      "winnerGames": 20,
+      "playRate": 0.0064,
+      "purchaseRate": 0.004,
+      "winCorrelation": 0.5
+    },
+    "DDB-WPN-CORE-033": {
+      "name": "Kali Sticks (Arnis)",
+      "purchased": 34,
+      "played": 66,
+      "winnerGames": 11,
+      "playRate": 0.0066,
+      "purchaseRate": 0.0034,
+      "winCorrelation": 0.3235
+    },
+    "DDB-ATK-CORE-061": {
+      "name": "The Blitz",
+      "purchased": 157,
+      "played": 177,
+      "winnerGames": 89,
+      "playRate": 0.0177,
+      "purchaseRate": 0.0157,
+      "winCorrelation": 0.5669
+    },
+    "DDB-CON-CORE-004": {
+      "name": "Boxing Gloves",
+      "purchased": 40,
+      "played": 51,
+      "winnerGames": 16,
+      "playRate": 0.0051,
+      "purchaseRate": 0.004,
+      "winCorrelation": 0.4
+    },
+    "DDB-DEF-CORE-025": {
+      "name": "Knife-Hand Block (Shuto Uke)",
+      "purchased": 131,
+      "played": 149,
+      "winnerGames": 79,
+      "playRate": 0.0149,
+      "purchaseRate": 0.0131,
+      "winCorrelation": 0.6031
+    },
+    "DDB-ATK-CORE-058": {
+      "name": "Swan Kick",
+      "purchased": 25,
+      "played": 21,
+      "winnerGames": 14,
+      "playRate": 0.0021,
+      "purchaseRate": 0.0025,
+      "winCorrelation": 0.56
+    },
+    "DDB-WPN-CORE-004": {
+      "name": "Bokken (Wooden Sword)",
+      "purchased": 45,
+      "played": 88,
+      "winnerGames": 16,
+      "playRate": 0.0088,
+      "purchaseRate": 0.0045,
+      "winCorrelation": 0.3556
+    },
+    "DDB-KAT-CORE-016": {
+      "name": "Empty Hand Form",
+      "purchased": 32,
+      "played": 54,
+      "winnerGames": 10,
+      "playRate": 0.0054,
+      "purchaseRate": 0.0032,
+      "winCorrelation": 0.3125
+    },
+    "DDB-ATK-CORE-055": {
+      "name": "Spinning Elbow",
+      "purchased": 43,
+      "played": 34,
+      "winnerGames": 24,
+      "playRate": 0.0034,
+      "purchaseRate": 0.0043,
+      "winCorrelation": 0.5581
+    },
+    "DDB-CON-CORE-062": {
+      "name": "Pocket Yoyo",
+      "purchased": 24,
+      "played": 37,
+      "winnerGames": 7,
+      "playRate": 0.0037,
+      "purchaseRate": 0.0024,
+      "winCorrelation": 0.2917
+    },
+    "DDB-KAT-CORE-001": {
+      "name": "Advanced Snack Accounting",
+      "purchased": 109,
+      "played": 142,
+      "winnerGames": 75,
+      "playRate": 0.0142,
+      "purchaseRate": 0.0109,
+      "winCorrelation": 0.6881
+    },
+    "DDB-KAT-CORE-057": {
+      "name": "Tekki Shodan",
+      "purchased": 37,
+      "played": 73,
+      "winnerGames": 14,
+      "playRate": 0.0073,
+      "purchaseRate": 0.0037,
+      "winCorrelation": 0.3784
+    },
+    "DDB-CON-CORE-029": {
+      "name": "Kombucha",
+      "purchased": 34,
+      "played": 36,
+      "winnerGames": 19,
+      "playRate": 0.0036,
+      "purchaseRate": 0.0034,
+      "winCorrelation": 0.5588
+    },
+    "DDB-ATK-CORE-049": {
+      "name": "Reverse Punch",
+      "purchased": 31,
+      "played": 30,
+      "winnerGames": 17,
+      "playRate": 0.003,
+      "purchaseRate": 0.0031,
+      "winCorrelation": 0.5484
+    },
+    "DDB-ATK-CORE-037": {
+      "name": "Mall Ninja Flying Side Kick",
+      "purchased": 4,
+      "played": 6,
+      "winnerGames": 4,
+      "playRate": 0.0006,
+      "purchaseRate": 0.0004,
+      "winCorrelation": 1
+    },
+    "DDB-KAT-CORE-032": {
+      "name": "Kusanku",
+      "purchased": 3,
+      "played": 3,
+      "winnerGames": 3,
+      "playRate": 0.0003,
+      "purchaseRate": 0.0003,
+      "winCorrelation": 1
+    },
+    "DDB-DEF-CORE-046": {
+      "name": "Tan Sao",
+      "purchased": 131,
+      "played": 143,
+      "winnerGames": 79,
+      "playRate": 0.0143,
+      "purchaseRate": 0.0131,
+      "winCorrelation": 0.6031
+    },
+    "DDB-CON-CORE-036": {
+      "name": "Muscle Relaxant",
+      "purchased": 46,
+      "played": 93,
+      "winnerGames": 21,
+      "playRate": 0.0093,
+      "purchaseRate": 0.0046,
+      "winCorrelation": 0.4565
+    },
+    "DDB-ATK-CORE-017": {
+      "name": "Dragon Tail Sweep",
+      "purchased": 165,
+      "played": 222,
+      "winnerGames": 101,
+      "playRate": 0.0222,
+      "purchaseRate": 0.0165,
+      "winCorrelation": 0.6121
+    },
+    "DDB-KAT-CORE-011": {
+      "name": "Closing-Time Concentration",
+      "purchased": 117,
+      "played": 159,
+      "winnerGames": 71,
+      "playRate": 0.0159,
+      "purchaseRate": 0.0117,
+      "winCorrelation": 0.6068
+    },
+    "DDB-ATK-CORE-004": {
+      "name": "Axe Kick",
+      "purchased": 44,
+      "played": 45,
+      "winnerGames": 26,
+      "playRate": 0.0045,
+      "purchaseRate": 0.0044,
+      "winCorrelation": 0.5909
+    },
+    "DDB-DEF-CORE-018": {
+      "name": "Forearm Frame",
+      "purchased": 140,
+      "played": 147,
+      "winnerGames": 88,
+      "playRate": 0.0147,
+      "purchaseRate": 0.014,
+      "winCorrelation": 0.6286
+    },
+    "DDB-DEF-CORE-034": {
+      "name": "Receipt-Check Guard",
+      "purchased": 50,
+      "played": 71,
+      "winnerGames": 26,
+      "playRate": 0.0071,
+      "purchaseRate": 0.005,
+      "winCorrelation": 0.52
+    },
+    "DDB-DEF-CORE-045": {
+      "name": "Swan Wing Guard",
+      "purchased": 131,
+      "played": 158,
+      "winnerGames": 70,
+      "playRate": 0.0158,
+      "purchaseRate": 0.0131,
+      "winCorrelation": 0.5344
+    },
+    "DDB-ATK-CORE-056": {
+      "name": "Spinning Hook Kick",
+      "purchased": 14,
+      "played": 17,
+      "winnerGames": 11,
+      "playRate": 0.0017,
+      "purchaseRate": 0.0014,
+      "winCorrelation": 0.7857
+    },
+    "DDB-GEA-CORE-023": {
+      "name": "Tiny Lockbox of Momentum",
+      "purchased": 39,
+      "played": 73,
+      "winnerGames": 18,
+      "playRate": 0.0073,
+      "purchaseRate": 0.0039,
+      "winCorrelation": 0.4615
+    },
+    "DDB-CON-CORE-007": {
+      "name": "Carbonated Confidence",
+      "purchased": 34,
+      "played": 72,
+      "winnerGames": 12,
+      "playRate": 0.0072,
+      "purchaseRate": 0.0034,
+      "winCorrelation": 0.3529
+    },
+    "DDB-ATK-CORE-020": {
+      "name": "Fire-Drill Feint",
+      "purchased": 63,
+      "played": 78,
+      "winnerGames": 39,
+      "playRate": 0.0078,
+      "purchaseRate": 0.0063,
+      "winCorrelation": 0.619
+    },
+    "DDB-KAT-CORE-040": {
+      "name": "Naihanchi",
+      "purchased": 49,
+      "played": 99,
+      "winnerGames": 24,
+      "playRate": 0.0099,
+      "purchaseRate": 0.0049,
+      "winCorrelation": 0.4898
+    },
+    "DDB-KAT-CORE-053": {
+      "name": "Seipai",
+      "purchased": 26,
+      "played": 26,
+      "winnerGames": 15,
+      "playRate": 0.0026,
+      "purchaseRate": 0.0026,
+      "winCorrelation": 0.5769
+    },
+    "DDB-KAT-CORE-060": {
+      "name": "Three-Ring Focus",
+      "purchased": 37,
+      "played": 57,
+      "winnerGames": 19,
+      "playRate": 0.0057,
+      "purchaseRate": 0.0037,
+      "winCorrelation": 0.5135
+    },
+    "DDB-GEA-CORE-010": {
+      "name": "Laminated Floor Plan",
+      "purchased": 37,
+      "played": 55,
+      "winnerGames": 17,
+      "playRate": 0.0055,
+      "purchaseRate": 0.0037,
+      "winCorrelation": 0.4595
+    },
+    "DDB-ATK-CORE-018": {
+      "name": "Emotional Support Headbutt",
+      "purchased": 5,
+      "played": 4,
+      "winnerGames": 2,
+      "playRate": 0.0004,
+      "purchaseRate": 0.0005,
+      "winCorrelation": 0.4
+    },
+    "DDB-ATK-CORE-066": {
+      "name": "Triple Round Kick",
+      "purchased": 82,
+      "played": 96,
+      "winnerGames": 50,
+      "playRate": 0.0096,
+      "purchaseRate": 0.0082,
+      "winCorrelation": 0.6098
+    },
+    "DDB-ATK-CORE-064": {
+      "name": "Tornado Crescent Kick",
+      "purchased": 49,
+      "played": 51,
+      "winnerGames": 31,
+      "playRate": 0.0051,
+      "purchaseRate": 0.0049,
+      "winCorrelation": 0.6327
+    },
+    "DDB-DEF-CORE-041": {
+      "name": "Shoulder Roll",
+      "purchased": 12,
+      "played": 13,
+      "winnerGames": 8,
+      "playRate": 0.0013,
+      "purchaseRate": 0.0012,
+      "winCorrelation": 0.6667
+    },
+    "DDB-ATK-CORE-040": {
+      "name": "Overtime Open-Palm",
+      "purchased": 46,
+      "played": 36,
+      "winnerGames": 31,
+      "playRate": 0.0036,
+      "purchaseRate": 0.0046,
+      "winCorrelation": 0.6739
+    },
+    "DDB-DEF-CORE-047": {
+      "name": "Technical Stand-Up",
+      "purchased": 12,
+      "played": 9,
+      "winnerGames": 7,
+      "playRate": 0.0009,
+      "purchaseRate": 0.0012,
+      "winCorrelation": 0.5833
+    },
+    "DDB-ATK-CORE-027": {
+      "name": "Hammerfist",
+      "purchased": 171,
+      "played": 262,
+      "winnerGames": 101,
+      "playRate": 0.0262,
+      "purchaseRate": 0.0171,
+      "winCorrelation": 0.5906
+    },
+    "DDB-CON-CORE-046": {
+      "name": "Rubber Chicken",
+      "purchased": 39,
+      "played": 88,
+      "winnerGames": 20,
+      "playRate": 0.0088,
+      "purchaseRate": 0.0039,
+      "winCorrelation": 0.5128
+    },
+    "DDB-CON-CORE-041": {
+      "name": "Painkiller",
+      "purchased": 38,
+      "played": 68,
+      "winnerGames": 11,
+      "playRate": 0.0068,
+      "purchaseRate": 0.0038,
+      "winCorrelation": 0.2895
+    },
+    "DDB-CON-CORE-014": {
+      "name": "Emergency Burrito",
+      "purchased": 37,
+      "played": 67,
+      "winnerGames": 9,
+      "playRate": 0.0067,
+      "purchaseRate": 0.0037,
+      "winCorrelation": 0.2432
+    },
+    "DDB-KAT-CORE-014": {
+      "name": "Emergency Breathing Memorandum",
+      "purchased": 31,
+      "played": 67,
+      "winnerGames": 16,
+      "playRate": 0.0067,
+      "purchaseRate": 0.0031,
+      "winCorrelation": 0.5161
+    },
+    "DDB-DEF-CORE-003": {
+      "name": "Blue Belt Inventory Audit",
+      "purchased": 135,
+      "played": 152,
+      "winnerGames": 78,
+      "playRate": 0.0152,
+      "purchaseRate": 0.0135,
+      "winCorrelation": 0.5778
+    },
+    "DDB-KAT-CORE-061": {
+      "name": "Weapon Familiarization",
+      "purchased": 43,
+      "played": 74,
+      "winnerGames": 13,
+      "playRate": 0.0074,
+      "purchaseRate": 0.0043,
+      "winCorrelation": 0.3023
+    },
+    "DDB-CON-CORE-038": {
+      "name": "Night-Shift Noodles",
+      "purchased": 31,
+      "played": 36,
+      "winnerGames": 13,
+      "playRate": 0.0036,
+      "purchaseRate": 0.0031,
+      "winCorrelation": 0.4194
+    },
+    "DDB-CON-CORE-052": {
+      "name": "Spinach",
+      "purchased": 38,
+      "played": 57,
+      "winnerGames": 16,
+      "playRate": 0.0057,
+      "purchaseRate": 0.0038,
+      "winCorrelation": 0.4211
+    },
+    "DDB-KAT-CORE-022": {
+      "name": "Form 27B: Administrative Fury",
+      "purchased": 19,
+      "played": 19,
+      "winnerGames": 6,
+      "playRate": 0.0019,
+      "purchaseRate": 0.0019,
+      "winCorrelation": 0.3158
+    },
+    "DDB-DEQ-CORE-010": {
+      "name": "Dojo Door",
+      "purchased": 46,
+      "played": 41,
+      "winnerGames": 29,
+      "playRate": 0.0041,
+      "purchaseRate": 0.0046,
+      "winCorrelation": 0.6304
+    },
+    "DDB-ATK-CORE-023": {
+      "name": "Flying Knee",
+      "purchased": 11,
+      "played": 10,
+      "winnerGames": 9,
+      "playRate": 0.001,
+      "purchaseRate": 0.0011,
+      "winCorrelation": 0.8182
+    },
+    "DDB-KAT-CORE-004": {
+      "name": "Black-Belt Budget Hearing",
+      "purchased": 40,
+      "played": 41,
+      "winnerGames": 23,
+      "playRate": 0.0041,
+      "purchaseRate": 0.004,
+      "winCorrelation": 0.575
+    },
+    "DDB-RIT-CORE-010": {
+      "name": "Temporary Tattoo Pass",
+      "purchased": 38,
+      "played": 0,
+      "winnerGames": 23,
+      "playRate": 0,
+      "purchaseRate": 0.0038,
+      "winCorrelation": 0.6053
+    },
+    "DDB-CON-CORE-021": {
+      "name": "Foam Finger",
+      "purchased": 38,
+      "played": 80,
+      "winnerGames": 14,
+      "playRate": 0.008,
+      "purchaseRate": 0.0038,
+      "winCorrelation": 0.3684
+    },
+    "DDB-ATK-CORE-059": {
+      "name": "Switching Axe Kick",
+      "purchased": 15,
+      "played": 5,
+      "winnerGames": 11,
+      "playRate": 0.0005,
+      "purchaseRate": 0.0015,
+      "winCorrelation": 0.7333
+    },
+    "DDB-GEA-CORE-012": {
+      "name": "Market Aisle Map",
+      "purchased": 45,
+      "played": 80,
+      "winnerGames": 24,
+      "playRate": 0.008,
+      "purchaseRate": 0.0045,
+      "winCorrelation": 0.5333
+    },
+    "DDB-DEQ-CORE-001": {
+      "name": "Body Shield",
+      "purchased": 45,
+      "played": 34,
+      "winnerGames": 28,
+      "playRate": 0.0034,
+      "purchaseRate": 0.0045,
+      "winCorrelation": 0.6222
+    },
+    "DDB-DEF-CORE-014": {
+      "name": "Emergency Turtling",
+      "purchased": 6,
+      "played": 4,
+      "winnerGames": 4,
+      "playRate": 0.0004,
+      "purchaseRate": 0.0006,
+      "winCorrelation": 0.6667
+    },
+    "DDB-CON-CORE-060": {
+      "name": "Water Bottle",
+      "purchased": 43,
+      "played": 89,
+      "winnerGames": 17,
+      "playRate": 0.0089,
+      "purchaseRate": 0.0043,
+      "winCorrelation": 0.3953
+    },
+    "DDB-KAT-CORE-018": {
+      "name": "Exhibit A: Your Own Footwork",
+      "purchased": 35,
+      "played": 72,
+      "winnerGames": 10,
+      "playRate": 0.0072,
+      "purchaseRate": 0.0035,
+      "winCorrelation": 0.2857
+    },
+    "DDB-ATK-CORE-030": {
+      "name": "Hook Punch",
+      "purchased": 15,
+      "played": 17,
+      "winnerGames": 12,
+      "playRate": 0.0017,
+      "purchaseRate": 0.0015,
+      "winCorrelation": 0.8
+    },
+    "DDB-GEA-CORE-018": {
+      "name": "Portable Suggestion Box",
+      "purchased": 23,
+      "played": 34,
+      "winnerGames": 11,
+      "playRate": 0.0034,
+      "purchaseRate": 0.0023,
+      "winCorrelation": 0.4783
+    },
+    "DDB-KAT-CORE-047": {
+      "name": "Recovery Stance",
+      "purchased": 29,
+      "played": 74,
+      "winnerGames": 10,
+      "playRate": 0.0074,
+      "purchaseRate": 0.0029,
+      "winCorrelation": 0.3448
+    },
+    "DDB-WPN-CORE-025": {
+      "name": "Frozen Burrito",
+      "purchased": 34,
+      "played": 47,
+      "winnerGames": 12,
+      "playRate": 0.0047,
+      "purchaseRate": 0.0034,
+      "winCorrelation": 0.3529
+    },
+    "DDB-DEF-CORE-043": {
+      "name": "Sprawl",
+      "purchased": 5,
+      "played": 2,
+      "winnerGames": 3,
+      "playRate": 0.0002,
+      "purchaseRate": 0.0005,
+      "winCorrelation": 0.6
+    },
+    "DDB-CON-CORE-005": {
+      "name": "Bubble Wrap",
+      "purchased": 40,
+      "played": 67,
+      "winnerGames": 15,
+      "playRate": 0.0067,
+      "purchaseRate": 0.004,
+      "winCorrelation": 0.375
+    },
+    "DDB-RIT-CORE-003": {
+      "name": "Dojo Folding Mat",
+      "purchased": 4,
+      "played": 1,
+      "winnerGames": 3,
+      "playRate": 0.0001,
+      "purchaseRate": 0.0004,
+      "winCorrelation": 0.75
+    },
+    "DDB-KAT-CORE-020": {
+      "name": "Folding-Rulebook Stance",
+      "purchased": 34,
+      "played": 53,
+      "winnerGames": 17,
+      "playRate": 0.0053,
+      "purchaseRate": 0.0034,
+      "winCorrelation": 0.5
+    },
+    "DDB-CON-CORE-050": {
+      "name": "Spare Wrap",
+      "purchased": 30,
+      "played": 73,
+      "winnerGames": 18,
+      "playRate": 0.0073,
+      "purchaseRate": 0.003,
+      "winCorrelation": 0.6
+    },
+    "DDB-WPN-CORE-003": {
+      "name": "Bo-Shuriken (Throwing Spikes)",
+      "purchased": 32,
+      "played": 74,
+      "winnerGames": 12,
+      "playRate": 0.0074,
+      "purchaseRate": 0.0032,
+      "winCorrelation": 0.375
+    },
+    "DDB-CON-CORE-018": {
+      "name": "Energy Gel of Questionable Origin",
+      "purchased": 36,
+      "played": 47,
+      "winnerGames": 20,
+      "playRate": 0.0047,
+      "purchaseRate": 0.0036,
+      "winCorrelation": 0.5556
+    },
+    "DDB-GEA-CORE-007": {
+      "name": "Dojo Suggestion Slot",
+      "purchased": 34,
+      "played": 53,
+      "winnerGames": 14,
+      "playRate": 0.0053,
+      "purchaseRate": 0.0034,
+      "winCorrelation": 0.4118
+    },
+    "DDB-CON-CORE-037": {
+      "name": "Mystery Dojo Jerky",
+      "purchased": 38,
+      "played": 56,
+      "winnerGames": 22,
+      "playRate": 0.0056,
+      "purchaseRate": 0.0038,
+      "winCorrelation": 0.5789
+    },
+    "DDB-WPN-CORE-039": {
+      "name": "Kubotan",
+      "purchased": 29,
+      "played": 45,
+      "winnerGames": 8,
+      "playRate": 0.0045,
+      "purchaseRate": 0.0029,
+      "winCorrelation": 0.2759
+    },
+    "DDB-WPN-CORE-065": {
+      "name": "Yo-Yo",
+      "purchased": 39,
+      "played": 61,
+      "winnerGames": 18,
+      "playRate": 0.0061,
+      "purchaseRate": 0.0039,
+      "winCorrelation": 0.4615
+    },
+    "DDB-ATK-CORE-031": {
+      "name": "Horizontal Elbow",
+      "purchased": 5,
+      "played": 2,
+      "winnerGames": 4,
+      "playRate": 0.0002,
+      "purchaseRate": 0.0005,
+      "winCorrelation": 0.8
+    },
+    "DDB-DEF-CORE-008": {
+      "name": "Catch and Sweep",
+      "purchased": 30,
+      "played": 26,
+      "winnerGames": 19,
+      "playRate": 0.0026,
+      "purchaseRate": 0.003,
+      "winCorrelation": 0.6333
+    },
+    "DDB-CON-CORE-033": {
+      "name": "Lucky Dumpling",
+      "purchased": 30,
+      "played": 48,
+      "winnerGames": 11,
+      "playRate": 0.0048,
+      "purchaseRate": 0.003,
+      "winCorrelation": 0.3667
+    },
+    "DDB-KAT-CORE-009": {
+      "name": "Chinto",
+      "purchased": 22,
+      "played": 29,
+      "winnerGames": 9,
+      "playRate": 0.0029,
+      "purchaseRate": 0.0022,
+      "winCorrelation": 0.4091
+    },
+    "DDB-WPN-CORE-043": {
+      "name": "Municipal Training Tonfa",
+      "purchased": 32,
+      "played": 56,
+      "winnerGames": 19,
+      "playRate": 0.0056,
+      "purchaseRate": 0.0032,
+      "winCorrelation": 0.5938
+    },
+    "DDB-WPN-CORE-040": {
+      "name": "Kunai (Throwing Knives)",
+      "purchased": 23,
+      "played": 25,
+      "winnerGames": 12,
+      "playRate": 0.0025,
+      "purchaseRate": 0.0023,
+      "winCorrelation": 0.5217
+    },
+    "DDB-DEF-CORE-012": {
+      "name": "Double Forearm Guard",
+      "purchased": 29,
+      "played": 27,
+      "winnerGames": 17,
+      "playRate": 0.0027,
+      "purchaseRate": 0.0029,
+      "winCorrelation": 0.5862
+    },
+    "DDB-KAT-CORE-035": {
+      "name": "Lost-and-Found Meditation",
+      "purchased": 38,
+      "played": 68,
+      "winnerGames": 19,
+      "playRate": 0.0068,
+      "purchaseRate": 0.0038,
+      "winCorrelation": 0.5
+    },
+    "DDB-ATK-CORE-046": {
+      "name": "Rear Thrust Kick",
+      "purchased": 20,
+      "played": 22,
+      "winnerGames": 15,
+      "playRate": 0.0022,
+      "purchaseRate": 0.002,
+      "winCorrelation": 0.75
+    },
+    "DDB-ATK-CORE-070": {
+      "name": "Upward Elbow",
+      "purchased": 15,
+      "played": 15,
+      "winnerGames": 11,
+      "playRate": 0.0015,
+      "purchaseRate": 0.0015,
+      "winCorrelation": 0.7333
+    },
+    "DDB-WPN-CORE-062": {
+      "name": "Tonfa (Police Baton)",
+      "purchased": 35,
+      "played": 55,
+      "winnerGames": 15,
+      "playRate": 0.0055,
+      "purchaseRate": 0.0035,
+      "winCorrelation": 0.4286
+    },
+    "DDB-ATK-CORE-071": {
+      "name": "Wheel Kick",
+      "purchased": 5,
+      "played": 1,
+      "winnerGames": 4,
+      "playRate": 0.0001,
+      "purchaseRate": 0.0005,
+      "winCorrelation": 0.8
+    },
+    "DDB-KAT-CORE-054": {
+      "name": "Seisan",
+      "purchased": 25,
+      "played": 39,
+      "winnerGames": 13,
+      "playRate": 0.0039,
+      "purchaseRate": 0.0025,
+      "winCorrelation": 0.52
+    },
+    "DDB-DEF-CORE-010": {
+      "name": "Cross Block (X-Block)",
+      "purchased": 4,
+      "played": 2,
+      "winnerGames": 2,
+      "playRate": 0.0002,
+      "purchaseRate": 0.0004,
+      "winCorrelation": 0.5
+    },
+    "DDB-ATK-CORE-013": {
+      "name": "Defensive Front Kick",
+      "purchased": 14,
+      "played": 15,
+      "winnerGames": 7,
+      "playRate": 0.0015,
+      "purchaseRate": 0.0014,
+      "winCorrelation": 0.5
+    },
+    "DDB-ATK-CORE-069": {
+      "name": "Uppercut",
+      "purchased": 17,
+      "played": 18,
+      "winnerGames": 9,
+      "playRate": 0.0018,
+      "purchaseRate": 0.0017,
+      "winCorrelation": 0.5294
+    },
+    "DDB-ATK-CORE-043": {
+      "name": "Punch-Clock Uppercut",
+      "purchased": 16,
+      "played": 17,
+      "winnerGames": 11,
+      "playRate": 0.0017,
+      "purchaseRate": 0.0016,
+      "winCorrelation": 0.6875
+    },
+    "DDB-ATK-CORE-039": {
+      "name": "Overhand Right",
+      "purchased": 3,
+      "played": 2,
+      "winnerGames": 1,
+      "playRate": 0.0002,
+      "purchaseRate": 0.0003,
+      "winCorrelation": 0.3333
+    },
+    "DDB-WPN-CORE-055": {
+      "name": "Sectional Staff",
+      "purchased": 2,
+      "played": 1,
+      "winnerGames": 1,
+      "playRate": 0.0001,
+      "purchaseRate": 0.0002,
+      "winCorrelation": 0.5
+    },
+    "DDB-ATK-CORE-052": {
+      "name": "Side Kick",
+      "purchased": 5,
+      "played": 6,
+      "winnerGames": 2,
+      "playRate": 0.0006,
+      "purchaseRate": 0.0005,
+      "winCorrelation": 0.4
+    },
+    "DDB-ATK-CORE-057": {
+      "name": "Superman Punch",
+      "purchased": 6,
+      "played": 5,
+      "winnerGames": 2,
+      "playRate": 0.0005,
+      "purchaseRate": 0.0006,
+      "winCorrelation": 0.3333
+    },
+    "DDB-GEA-CORE-011": {
+      "name": "Late-Fee Wrist Counter",
+      "purchased": 1,
+      "played": 1,
+      "winnerGames": 1,
+      "playRate": 0.0001,
+      "purchaseRate": 0.0001,
+      "winCorrelation": 1
+    },
+    "DDB-ATK-CORE-065": {
+      "name": "Tornado Round Kick",
+      "purchased": 1,
+      "played": 0,
+      "winnerGames": 0,
+      "playRate": 0,
+      "purchaseRate": 0.0001,
+      "winCorrelation": 0
+    },
+    "DDB-WPN-CORE-056": {
+      "name": "Short Sword",
+      "purchased": 1,
+      "played": 2,
+      "winnerGames": 0,
+      "playRate": 0.0002,
+      "purchaseRate": 0.0001,
+      "winCorrelation": 0
+    },
+    "DDB-WPN-CORE-060": {
+      "name": "Tanto (Dagger)",
+      "purchased": 1,
+      "played": 1,
+      "winnerGames": 0,
+      "playRate": 0.0001,
+      "purchaseRate": 0.0001,
+      "winCorrelation": 0
+    },
+    "DDB-ATK-CORE-005": {
+      "name": "Back Kick",
+      "purchased": 1,
+      "played": 0,
+      "winnerGames": 1,
+      "playRate": 0,
+      "purchaseRate": 0.0001,
+      "winCorrelation": 1
+    },
+    "DDB-KAT-CORE-015": {
+      "name": "Empi",
+      "purchased": 1,
+      "played": 4,
+      "winnerGames": 1,
+      "playRate": 0.0004,
+      "purchaseRate": 0.0001,
+      "winCorrelation": 1
+    },
+    "DDB-WPN-CORE-007": {
+      "name": "Museum-Gift Nunchaku",
+      "purchased": 1,
+      "played": 1,
+      "winnerGames": 0,
+      "playRate": 0.0001,
+      "purchaseRate": 0.0001,
+      "winCorrelation": 0
+    }
+  }
+}

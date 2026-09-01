@@ -1,0 +1,8 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { loadGameData } from "../engine/rules-loader.mjs";
+import { Game } from "../engine/core.mjs";
+
+test("engine loads the canonical v2.3 rules and 597 cards",async()=>{const d=await loadGameData();assert.equal(d.definition.rulesVersion,"v2.3");assert.equal(d.cards.length,597);assert.equal(d.definition.economy.defensePractice.usesPerTurn,1);assert.equal(d.definition.economy.market.controlledRefill.reveal,2);});
+test("seeded games are deterministic and terminate legally",async()=>{const d=await loadGameData();const a=new Game(d,{seed:42,strategies:["economy","aggression"]}).run();const b=new Game(d,{seed:42,strategies:["economy","aggression"]}).run();assert.deepEqual(a,b);assert.ok(a.winner===0||a.winner===1);assert.ok(a.rounds<=d.definition.mode.maxRounds+1);});
+test("Defense Practice grants only printed Focus",async()=>{const d=await loadGameData();const g=new Game(d,{seed:3});const p=g.players[0];const defense=p.hand.find(c=>Number(c.stats?.Guard)>0)??d.byId.get("DDB-STA-CORE-009");if(!p.hand.includes(defense))p.hand.push(defense);const hp=p.hp;assert.equal(g.practice(p,defense),true);assert.equal(p.focus,Number(defense.focusValue));assert.equal(p.hp,hp);});
