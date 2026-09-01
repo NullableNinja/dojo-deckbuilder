@@ -1,5 +1,5 @@
 {
-  "version": "Official Rules",
+  "version": "v2.3 — Official Rules",
   "source": "Dojo Deckbuilder Paper-Fu field-test rules",
   "chapters": [
     {
@@ -105,7 +105,7 @@
             },
             {
               "kind": "bullet",
-              "text": "Boss Materials — three Boss Stage cards, eight Boss Profile cards, and a dedicated 32-card Boss Arsenal Deck containing Boss Attacks, Boss Defenses, and Boss Techniques for Dojo Drama."
+              "text": "Boss Materials — three Boss Stage cards, ten Boss Profile cards, and a dedicated 32-card Boss Arsenal Deck containing Boss Attacks, Boss Defenses, and Boss Techniques for Dojo Drama. The Department counted twice and has filed the first count as a training incident."
             },
             {
               "kind": "bullet",
@@ -137,7 +137,7 @@
                 ],
                 [
                   "Defense",
-                  "A reaction that adds Defense or changes an incoming strike.",
+                  "A reaction that adds Guard or changes an incoming strike. During your Yell, one Defense may instead be used for Defense Practice.",
                   "Played as a Reaction when targeted."
                 ],
                 [
@@ -204,8 +204,8 @@
                   "Focus generated when the card is legally played or Equipped from your hand during your own turn."
                 ],
                 [
-                  "Damage / Guard",
-                  "Attack Damage or Defense value contributed by the card."
+                  "Attack Power / Guard",
+                  "Attack Power added to an Attack or Guard added by a Defense card."
                 ],
                 [
                   "Zone",
@@ -292,7 +292,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "A fast 1v1 variant with one Character per player. Last Fighter Standing wins; Black Belt Victory is not used. Belt progression and stat rewards still apply."
+              "text": "A fast 1v1 variant with one Character per player. Last Fighter Standing wins; Black Belt Victory is not used. Belt Exams, abilities, ATK, DEF, Focus, and hand-size rewards still apply, but promotion never raises Max HP or heals a fighter. Quick Duel keeps the paperwork and removes the medical expansion plan."
             }
           ]
         },
@@ -448,11 +448,11 @@
             },
             {
               "kind": "paragraph",
-              "text": "5. During Yell, legally play cards one at a time. A normal turn allows two Attacks. One Attack with Flow does not count against that limit. Resolve every Attack and Reaction completely before continuing."
+              "text": "5. During Yell, play cards one at a time. A normal turn allows two Attacks. One Attack with Flow and one required Combo finisher may exceed that limit. Once during Yell, you may use one Defense from hand for Defense Practice instead of playing it normally."
             },
             {
               "kind": "paragraph",
-              "text": "6. Cards legally played or Equipped from hand during your own turn generate their printed Focus. During Ascend, spend Focus on Market cards or one Combo attempt."
+              "text": "6. Cards legally played or Equipped from hand during your own turn generate printed Focus before their effects resolve. Defense Practice generates only the practiced card's printed Focus. During Ascend, spend Focus on Market cards or one Combo attempt."
             },
             {
               "kind": "paragraph",
@@ -464,7 +464,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "9. After everyone acts, resolve end-of-round effects, refresh all seven Market slots, pass the referee marker, and begin the next round."
+              "text": "9. After a Market purchase, reveal two Market cards; the buyer chooses one to refill the empty slot and discards the other. After everyone acts, resolve end-of-round effects, refresh all seven Market slots, pass the referee marker, and begin the next round."
             },
             {
               "kind": "paragraph",
@@ -492,7 +492,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards increase maximum HP."
+              "text": "Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards increase maximum HP except in Quick Duel, where Max HP remains 25 unless a card or scenario explicitly changes it."
             }
           ]
         },
@@ -510,7 +510,11 @@
             },
             {
               "kind": "bullet",
-              "text": "Cards played outside your own turn do not generate their printed Focus Value unless their rules text explicitly grants Focus."
+              "text": "Cards played outside your own turn do not generate their printed Focus Value unless their rules text explicitly grants Focus. Explicit Focus gained outside your turn remains until your next Hide unless that effect gives it another duration."
+            },
+            {
+              "kind": "bullet",
+              "text": "Defense Practice is the one core exception: once during your Yell, reveal one Defense from hand and place it in your play area to gain its printed Focus. It is not played, provides no Guard, resolves no rules text, grants no XP, and cannot satisfy a card, Combo, or Belt Exam requirement. Discard it during Hide. The Department calls this studying because 'discarding your guard to buy a helmet' tested poorly."
             },
             {
               "kind": "bullet",
@@ -580,7 +584,7 @@
                 ],
                 [
                   "Your Attack",
-                  "+1 Damage to that Attack."
+                  "+1 Attack Power to that Attack."
                 ],
                 [
                   "Your Defense",
@@ -751,6 +755,10 @@
             },
             {
               "kind": "paragraph",
+              "text": "Once during your Yell, you may use one Defense from your hand for Defense Practice. Reveal it, place it in your play area, and gain its printed Focus. It is not played and does nothing else. Apparently the safest block is the one performed against an imaginary purchasing decision."
+            },
+            {
+              "kind": "paragraph",
               "text": "Flow and Combo Extension may each permit one additional Attack beyond the normal two-Attack limit. See Sections 7, 8, and 10."
             }
           ]
@@ -761,7 +769,7 @@
           "content": [
             {
               "kind": "bullet",
-              "text": "Spend Focus on any number of face-up Market cards. Put each purchase in your discard pile, then immediately refill its slot."
+              "text": "Spend Focus on any number of face-up Market cards. Put each purchase in your discard pile. To refill its slot, reveal the top two Market cards, choose one for the empty slot, and discard the other. If only one card is available after reshuffling, use it."
             },
             {
               "kind": "bullet",
@@ -858,6 +866,32 @@
             {
               "kind": "paragraph",
               "text": "Cards have no general play cost. A printed Focus Cost is paid only when buying the card from the Market or learning it from the Combo Deck."
+            }
+          ]
+        },
+        {
+          "id": "defense-practice",
+          "title": "Defense Practice",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Once during your Yell, you may Practice one Defense from your hand. Reveal it and place it face up in your play area. Gain its printed Focus Value."
+            },
+            {
+              "kind": "bullet",
+              "text": "A practiced Defense is not played. It provides no Guard, resolves no rules text, and opens no Reaction Window."
+            },
+            {
+              "kind": "bullet",
+              "text": "It grants no Defense XP and cannot satisfy a card condition, learned Combo, Green Belt Exam, Brown Belt Exam, or other requirement that counts a played card or Defense."
+            },
+            {
+              "kind": "bullet",
+              "text": "Leave it in your play area and discard it during Hide. You cannot later use it to defend before then."
+            },
+            {
+              "kind": "paragraph",
+              "text": "Defense Practice is not a general discard-for-Focus action. It is a certified drill with exactly one participant and no attacker willing to admit they were there."
             }
           ]
         },
@@ -1024,7 +1058,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "2. Identify combat values. Identify the Attack card's Damage, Character ATK, eligible Weapon bonuses, defender DEF, matching Armor, and other currently applicable modifiers. Do not calculate or lock final totals yet."
+              "text": "2. Identify combat values. Identify the Attack card's Attack Power, Character ATK, eligible Weapon bonuses, defender DEF, matching Armor, and other currently applicable modifiers. Do not calculate or lock final totals yet."
             },
             {
               "kind": "paragraph",
@@ -1060,7 +1094,7 @@
               "kind": "table",
               "rows": [
                 [
-                  "FINAL COMBAT FORMULA\nAttack Power = Attack card Damage + Character ATK + eligible Weapons + modifiers. Defense = Character DEF + matching Armor + one Defense card + modifiers. Damage = max(0, Attack Power − Defense)."
+                  "FINAL COMBAT FORMULA\nAttack Power = printed Attack Power + Character ATK + eligible Weapons + modifiers. Defense = Character DEF + matching Armor + one Defense card's Guard + modifiers. Damage = max(0, Attack Power − Defense)."
                 ]
               ]
             }
@@ -1072,7 +1106,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "When your active fighter is faster than the opposing active fighter involved in a combat, you may spend your once-per-round Tempo for +1 Damage on your Attack or +1 Guard on your Defense card. Check current Speed when the card is legally played. See Section 5 for edge cases."
+              "text": "When your active fighter is faster than the opposing active fighter involved in a combat, you may spend your once-per-round Tempo for +1 Attack Power on your Attack or +1 Guard on your Defense card. Check current Speed when the card is legally played. See Section 5 for edge cases."
             }
           ]
         },
@@ -1397,11 +1431,15 @@
             },
             {
               "kind": "bullet",
-              "text": "The available mix is entirely random. No card type is guaranteed a slot."
+              "text": "The available mix is random. No card type is guaranteed a slot; apparently curriculum planning was assigned to a raffle drum."
             },
             {
               "kind": "bullet",
-              "text": "During Ascend, buy cards one at a time by paying printed Focus Costs. Put each purchase in your discard pile and immediately refill its slot."
+              "text": "During Ascend, buy cards one at a time by paying printed Focus Costs. Put each purchase in your discard pile."
+            },
+            {
+              "kind": "bullet",
+              "text": "Controlled Refill: after each purchase, reveal the top two Market cards. The buyer chooses one to fill the empty slot and discards the other. Resolve the refill before making another purchase. If only one card is available after applying the shared-deck reshuffle rule, use it."
             },
             {
               "kind": "bullet",
@@ -1409,7 +1447,7 @@
             },
             {
               "kind": "bullet",
-              "text": "At end of round, discard every unpurchased Market card and reveal seven fresh cards."
+              "text": "At end of round, discard every unpurchased Market card and reveal seven fresh cards. Controlled Refill applies only to purchases, not to setup or a full-row refresh."
             }
           ]
         },
@@ -1632,7 +1670,7 @@
             },
             {
               "kind": "bullet",
-              "text": "When a promotion grants +10 Max HP, every Character on that player's roster increases Max HP by 10. Then only the active Character heals 5 HP, up to its new maximum. In a one-Character mode, that fighter is the active Character. KO'd Characters remain KO'd and never heal from promotion."
+              "text": "When a promotion grants +10 Max HP, every Character on that player's roster increases Max HP by 10. Then only the active Character heals 5 HP, up to its new maximum. KO'd Characters remain KO'd and never heal from promotion. Quick Duel ignores every promotion's Max HP increase and healing; all other printed Belt rewards still apply."
             }
           ]
         },
@@ -2104,15 +2142,15 @@
             },
             {
               "kind": "paragraph",
-              "text": "1. Reveal Boss Arsenal cards until an Attack is revealed. Resolve any Boss Defense or Boss Technique revealed along the way immediately. Place a Boss Defense face up in Boss Defense; if one is already there, discard the old Guard first. Boss Techniques resolve, then you continue revealing."
+              "text": "1. Reveal Boss Arsenal cards until an Attack is revealed. Resolve each Boss Technique immediately, then continue revealing. Place each revealed Boss Defense face up in the Boss Guard area. If another Boss Defense is already there, discard the old one before placing the new Guard."
             },
             {
               "kind": "paragraph",
-              "text": "2. The Boss targets your active Character and attacks the printed zone. If Boss Defense is active for that zone, apply its Guard value to this Attack, then discard it. If the zone does not match, discard Boss Defense without applying it."
+              "text": "2. The Boss targets the instructed active Character and attacks the printed zone. Boss Guard never adds to a Boss Attack; it protects the Boss from a later player Attack."
             },
             {
               "kind": "paragraph",
-              "text": "3. Boss Attack Power = Boss Attack Damage + printed Boss ATK + the current Boss Stage Attack Bonus."
+              "text": "3. Boss Attack Power = printed Boss Attack Power + printed Boss ATK + the current Boss Stage Attack Bonus."
             },
             {
               "kind": "paragraph",
@@ -2135,6 +2173,10 @@
             {
               "kind": "bullet",
               "text": "Attack a Boss like an active opposing fighter. It always applies printed DEF but has no Armor or Defense hand unless a scenario explicitly gives it one."
+            },
+            {
+              "kind": "bullet",
+              "text": "Boss Guard: when a player declares an Attack whose zone matches the face-up Boss Defense, add that card's Guard to the Boss's Defense for that Attack, then discard the Boss Defense after the Attack resolves. An unmatched player Attack leaves Boss Guard in place. A newly revealed Boss Defense replaces the old one."
             },
             {
               "kind": "bullet",
@@ -2470,6 +2512,16 @@
       "sections": []
     }
   ],
+  "officialRulings": [
+    {"id":"DDB-RUL-001","filed":"Filed Aug 27, 2026","tag":"Boss Blitz","title":"Boss KO during your Yell Phase","ruling":"Finish only that player's Ascend and Hide Phases, then transition stages. Remaining players skip their turns for that round."},
+    {"id":"DDB-RUL-002","filed":"Filed Aug 27, 2026","tag":"Boss Blitz","title":"Boss KO outside your own Yell Phase","ruling":"If the KO occurs during a player turn, that player may complete Ascend and Hide. Otherwise, transition immediately."},
+    {"id":"DDB-RUL-003","filed":"Filed Aug 27, 2026","tag":"Tempo","title":"Speed comparisons use current Speed","ruling":"Tempo and other Speed comparisons use current Speed after active modifiers. Printed Speed is the base value."},
+    {"id":"DDB-RUL-004","filed":"Filed Aug 27, 2026","tag":"Timing","title":"Initiative is locked for the round","ruling":"Honor determines initiative. Later Speed changes and tagging do not reorder turns until the next Honor Phase."},
+    {"id":"DDB-RUL-005","filed":"Filed Aug 27, 2026","tag":"Boss Blitz","title":"Player wins a Speed tie with a Boss","ruling":"When a player and Boss have the same current Speed, the player acts before the Boss."},
+    {"id":"DDB-RUL-006","filed":"Filed Aug 27, 2026","tag":"Combos","title":"Multiple learned Combos may share a finisher","ruling":"Multiple eligible learned Combos may use the same final card or action. Resolve each payoff separately and obey every printed timing limit."},
+    {"id":"DDB-RUL-007","filed":"Filed Aug 27, 2026","tag":"Co-op","title":"Co-op stage victory healing","ruling":"After a Boss stage victory in two-player co-op, each player heals their active fighter 8 HP."},
+    {"id":"DDB-RUL-008","filed":"Filed Aug 27, 2026","tag":"Team Variant","title":"Shared Rank team variant","ruling":"Teammates share XP, Belt, promotion tasks, and rewards. Each player keeps normal individual initiative."}
+  ],
   "glossary": [
     {
       "term": "Aftermath Combo",
@@ -2480,12 +2532,28 @@
       "meaning": "Timing that permits play between actions or in a Reaction Window when you have priority; never during another effect's resolution."
     },
     {
+      "term": "Armor",
+      "meaning": "Permanent Equipment that adds DEF only against its printed zone or zones. Armor is ignored by Piercing but not by effects that ignore only a Defense card."
+    },
+    {
+      "term": "Attack",
+      "meaning": "A legal strike played from hand with a target and declared zone. It contributes printed Attack Power and normally earns 1 XP after resolving."
+    },
+    {
       "term": "Attack Limit",
       "meaning": "A player may normally play two Attacks per turn. Flow and Combo Extension are the only core exceptions."
     },
     {
+      "term": "Attack Power",
+      "meaning": "The attack-side combat total before Defense is subtracted: printed Attack Power, Character ATK, eligible Weapon bonuses, and modifiers."
+    },
+    {
       "term": "Belt Exam",
       "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
+    },
+    {
+      "term": "Blocked",
+      "meaning": "An Attack that deals 0 damage after final Attack Power and Defense are compared."
     },
     {
       "term": "Boss Profile",
@@ -2508,8 +2576,24 @@
       "meaning": "One-use Equipment returned to the box or supply after resolving."
     },
     {
+      "term": "Controlled Refill",
+      "meaning": "After a Market purchase, reveal two Market cards. The buyer chooses one to fill the empty slot and discards the other. It does not apply to setup or full-row refreshes."
+    },
+    {
       "term": "Current Speed",
       "meaning": "Printed Speed plus active modifiers. Used for initiative, Tempo, Boss comparisons, and card effects unless text says printed Speed."
+    },
+    {
+      "term": "Damage",
+      "meaning": "HP lost after final Attack Power is reduced by final Defense, minimum 0. Damage prevention applies to this result unless an effect says otherwise."
+    },
+    {
+      "term": "Defense",
+      "meaning": "A Reaction card played against an incoming Attack. It must protect the declared zone and adds its printed Guard to the defender's combat total."
+    },
+    {
+      "term": "Defense Practice",
+      "meaning": "Once during your Yell, reveal one Defense from hand, place it in your play area, and gain its printed Focus. It is not played, resolves no text, grants no XP, satisfies no requirements, and is discarded during Hide."
     },
     {
       "term": "Destroy",
@@ -2520,8 +2604,28 @@
       "meaning": "HP loss that is not an Attack; it normally uses no ATK, Weapons, Tempo, Combo steps, Attack XP, or Defense window."
     },
     {
+      "term": "Discard",
+      "meaning": "Move a card to its appropriate face-up discard pile. Discarding is not Destroying and grants nothing unless an effect says so."
+    },
+    {
+      "term": "Draw",
+      "meaning": "Move the top card of your draw deck into your hand. If the deck empties during a draw, shuffle the discard pile only then and continue."
+    },
+    {
       "term": "Enraged",
       "meaning": "Solo Final Boss state at 30 HP or less; it makes two Boss Attacks during its Boss Turn."
+    },
+    {
+      "term": "Equip",
+      "meaning": "Place permanent Equipment from hand beside the active Character during Initiate, obeying every slot and Hand limit. A legal on-turn Equip generates printed Focus."
+    },
+    {
+      "term": "Equipment",
+      "meaning": "The umbrella card family containing permanent Weapons, Armor, and Gear plus one-use Consumables and Items. A card's subtype and timing determine how it is used."
+    },
+    {
+      "term": "Exhaust",
+      "meaning": "Turn a ready permanent Equipment card sideways to pay an exhaust cost. Passive text remains active unless the card says otherwise."
     },
     {
       "term": "Finishing Technique",
@@ -2533,19 +2637,43 @@
     },
     {
       "term": "Focus",
-      "meaning": "Temporary purchasing power. Cards played or Equipped from hand during your own turn generate printed Focus; spend it during Ascend and lose the remainder during Hide."
+      "meaning": "Temporary purchasing power. Cards played or Equipped from hand during your own turn—and one Defense used for Defense Practice—generate Focus; spend it during Ascend and lose the remainder during Hide."
     },
     {
       "term": "Focus Cost",
       "meaning": "The amount of Focus required to buy a Market card or learn a revealed Combo. It is not a play cost or victory value."
     },
     {
+      "term": "Focus Value",
+      "meaning": "The Focus a card generates when legally played or Equipped from hand during your own turn, or when a Defense is used for Defense Practice."
+    },
+    {
       "term": "Golden Rule",
       "meaning": "When a card directly contradicts the rulebook, the card wins. If ambiguity remains after timing and priority, the active player makes a temporary ruling."
     },
     {
+      "term": "Guard",
+      "meaning": "The value a Defense card adds to final Defense against one Attack. Guard is not Character DEF or Armor DEF."
+    },
+    {
+      "term": "Hand Size",
+      "meaning": "The number of cards normally drawn during Hide: five, or six at Blue Belt. Retained or set-aside cards can make the resulting hand larger."
+    },
+    {
+      "term": "Hit",
+      "meaning": "An Attack that deals at least 1 damage after final Attack Power and Defense are compared."
+    },
+    {
       "term": "Interfere",
       "meaning": "A Reaction played by a bystander during another player's conflict."
+    },
+    {
+      "term": "Junk",
+      "meaning": "Starter-deck baggage with no useful printed effect. Bad Habit is Junk, generates 0 Focus, and may still be counted, discarded, or Destroyed by specific effects."
+    },
+    {
+      "term": "Kata",
+      "meaning": "An on-turn Technique used for training, setup, card flow, Focus, Speed, or Flow. It is not an Attack or Defense unless an effect explicitly treats it as one."
     },
     {
       "term": "KO",
@@ -2553,11 +2681,19 @@
     },
     {
       "term": "Market",
-      "meaning": "The seven-card shared face-up purchase area filled randomly from one mixed deck. Combos are separate."
+      "meaning": "The seven-card shared purchase area filled from one mixed deck. Purchases use Controlled Refill; setup and end-round refreshes remain random. Combos are separate."
+    },
+    {
+      "term": "Max HP",
+      "meaning": "The highest current HP a Character may have. Promotions normally raise it, but Quick Duel ignores promotion Max-HP increases and promotion healing."
     },
     {
       "term": "Modifier Combo",
       "meaning": "A learned Combo that changes its final required step before that step resolves."
+    },
+    {
+      "term": "On Reveal",
+      "meaning": "Text resolved immediately when a card enters play by being revealed, before its Ongoing text is used."
     },
     {
       "term": "Ongoing",
@@ -2566,6 +2702,10 @@
     {
       "term": "Piercing X",
       "meaning": "Ignore X Armor DEF for an Attack; do not ignore Character DEF or a Defense card."
+    },
+    {
+      "term": "Printed",
+      "meaning": "The value or wording physically recorded on a card before modifiers. A copied or modified value is not printed unless an effect says it is."
     },
     {
       "term": "Reaction",
@@ -2592,8 +2732,20 @@
       "meaning": "After its triggering effect finishes, replace the current Location and resolve On Reveal."
     },
     {
+      "term": "Slot",
+      "meaning": "The Equipment position a permanent occupies, such as Head, Chest, Arms, Legs, Feet, Accessory, or one or two Hands. A Character cannot occupy the same limited slot twice unless an effect allows it."
+    },
+    {
+      "term": "Status Effect",
+      "meaning": "A named temporary condition created by a card or scenario, such as Disarmed or Untargetable. Its creating text supplies its duration and exact effect."
+    },
+    {
+      "term": "Tag",
+      "meaning": "During Initiate in a roster mode, replace the active Character with a conscious benched Character. Tagging does not change the locked initiative order or refresh Tempo."
+    },
+    {
       "term": "Tempo Advantage",
-      "meaning": "Once per round, a faster active fighter may give their Attack +1 Damage or their Defense card +1 Guard against a slower opposing active fighter."
+      "meaning": "Once per round, a faster active fighter may give their Attack +1 Attack Power or their Defense card +1 Guard against a slower opposing active fighter."
     },
     {
       "term": "Unblockable",
@@ -2602,6 +2754,10 @@
     {
       "term": "XP",
       "meaning": "Permanent Experience used for Belt promotion and Black Belt Victory. XP is not spent."
+    },
+    {
+      "term": "Zone",
+      "meaning": "High, Mid, or Low. An Any Attack chooses one zone when declared; a Defense or Armor must match that declared zone unless text says otherwise."
     }
   ],
   "houseRules": [
@@ -2651,8 +2807,8 @@
       "name": "Market Mercy",
       "category": "Market",
       "summary": "Unbought cards linger until the table truly stalls.",
-      "rule": "Do not discard unpurchased Market cards at end of round. Refill purchased spaces normally. If a complete round ends with no Market purchase, discard and refill all seven slots.",
-      "notes": "The forced refresh prevents an unwanted Market from freezing the game."
+      "rule": "Do not discard unpurchased Market cards at end of round. Continue using Controlled Refill after purchases. If a complete round ends with no Market purchase, discard and refill all seven slots.",
+      "notes": "The forced refresh prevents an unwanted Market from freezing the game while preserving the buyer's normal refill choice."
     },
     {
       "name": "Fast Belts",

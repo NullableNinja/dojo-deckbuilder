@@ -51,11 +51,12 @@ test("deployment stamps a build fingerprint and cache-busts the app shell", asyn
 });
 
 test("rulings have stable IDs and filing dates", async () => {
-  const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
+  const rules = JSON.parse(await readFile(new URL("../app/data/rules.json", import.meta.url), "utf8"));
+  assert.equal(rules.officialRulings.length, 8);
   for (let number = 1; number <= 8; number += 1) {
-    assert.ok(source.includes(`DDB-RUL-${String(number).padStart(3, "0")}`));
+    assert.ok(rules.officialRulings.some((ruling) => ruling.id === `DDB-RUL-${String(number).padStart(3, "0")}`));
   }
-  assert.ok(source.includes("Filed Aug 27, 2026"));
+  assert.ok(rules.officialRulings.every((ruling) => /^Filed [A-Z][a-z]{2} \d{1,2}, 20\d{2}$/.test(ruling.filed)));
 });
 
 test("rendered glossary deduplicates terms at the UI boundary", async () => {

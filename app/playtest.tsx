@@ -125,14 +125,14 @@ const QUICK_DUEL_LOCATION_NAMES = new Set([
 const quickDuelLocationPool = locationPool.filter((card) => QUICK_DUEL_LOCATION_NAMES.has(card.name));
 const belts = [
   { name: "White", xp: 0, task: "Exist. Try not to sprain anything while shuffling.", reward: "Starting belt" },
-  { name: "Yellow", xp: 5, task: "Play a legal High, Mid, and Low Attack while White.", reward: "+10 Max HP; heal 5" },
-  { name: "Orange", xp: 10, task: "Play 2 legal Attacks in one turn and Hit with 1.", reward: "+1 ATK; +10 Max HP; heal 5" },
-  { name: "Green", xp: 15, task: "Play an Attack on your turn and a Defense outside your turn in one round.", reward: "Unlock Green Ability; +10 Max HP; heal 5" },
-  { name: "Purple", xp: 21, task: "Buy two different card types while Green.", reward: "Second card gives +1 Focus; +10 Max HP; heal 5" },
-  { name: "Blue", xp: 28, task: "Have 2 permanent Equipment cards equipped.", reward: "+1 hand size; +10 Max HP; heal 5" },
-  { name: "Red", xp: 36, task: "Trigger a learned Combo.", reward: "3+ damage Hit gives +1 Focus; +10 Max HP; heal 5" },
-  { name: "Brown", xp: 45, task: "Play 4 cards in one turn including Attack, Kata, and Equipment/Consumable.", reward: "+1 DEF; +10 Max HP; heal 5" },
-  { name: "Black", xp: 55, task: "KO an opponent while Brown Belt.", reward: "+10 Max HP (does not end Quick Duel)" },
+  { name: "Yellow", xp: 5, task: "Play a legal High, Mid, and Low Attack while White.", reward: "Certified; Quick Duel HP stays fixed" },
+  { name: "Orange", xp: 10, task: "Play 2 legal Attacks in one turn and Hit with 1.", reward: "+1 ATK; Quick Duel HP stays fixed" },
+  { name: "Green", xp: 15, task: "Play an Attack on your turn and a Defense outside your turn in one round.", reward: "Unlock Green Ability; Quick Duel HP stays fixed" },
+  { name: "Purple", xp: 21, task: "Buy two different card types while Green.", reward: "Second card gives +1 Focus; Quick Duel HP stays fixed" },
+  { name: "Blue", xp: 28, task: "Have 2 permanent Equipment cards equipped.", reward: "+1 hand size; Quick Duel HP stays fixed" },
+  { name: "Red", xp: 36, task: "Trigger a learned Combo.", reward: "3+ damage Hit gives +1 Focus; Quick Duel HP stays fixed" },
+  { name: "Brown", xp: 45, task: "Play 4 cards in one turn including Attack, Kata, and Equipment/Consumable.", reward: "+1 DEF; Quick Duel HP stays fixed" },
+  { name: "Black", xp: 55, task: "KO an opponent while Brown Belt.", reward: "Certified; does not end Quick Duel" },
 ];
 const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail: string; aiHp: number; statBoost: number; attacks: number }> = {
   student: { label: "Student", eyebrow: "Learn the mat", detail: "A shorter duel with a less ruthless opponent.", aiHp: 20, statBoost: 0, attacks: 1 },
@@ -165,7 +165,7 @@ function numberValue(value: string | number | null | undefined) {
 
 function cardFor(id: string) { return byId.get(id); }
 function cardType(card: CardEntry) { return String(card.details.Type ?? card.subtype ?? "").toLowerCase(); }
-function cardPower(card: CardEntry) { return numberValue(card.stats.Damage ?? card.stats["Power / Guard"] ?? card.stats.Power ?? card.stats.Guard); }
+function cardPower(card: CardEntry) { return numberValue(card.stats["Attack Power"] ?? card.stats.Guard ?? card.stats["Power / Guard"] ?? card.stats.Power); }
 function isAttack(card: CardEntry) { return cardType(card) === "attack" || card.subtype === "Attack" || card.catalogId.includes("-ATK-"); }
 function isDefense(card: CardEntry) { return cardType(card) === "defense" || card.subtype === "Defense" || card.catalogId.includes("-DEF-"); }
 function isKata(card: CardEntry) { return cardType(card) === "kata" || card.subtype === "Kata" || card.catalogId.includes("-KAT-"); }
@@ -517,7 +517,7 @@ function SetupView({ selectedId, setSelectedId, settings, setSettings, begin }: 
     setSelectedId(next.id);
   };
   return <main className="playtest-shell shell">
-    <section className="playtest-hero paper-stack"><span className="eyebrow">Department-certified digital field test</span><h1>Shuffle. Strike. Ascend.</h1><p>This is the actual Quick Duel loop: the fixed 15-card curriculum, all approved Market records, live fighter data, automated Locations, Reversals, Belt Exams, and a separate Combo docket.</p><div className="playtest-stamps"><span>598 approved records</span><span>Quick Duel vs. tactical AI</span><span>Progress saved on this device</span></div></section>
+    <section className="playtest-hero paper-stack"><span className="eyebrow">Department-certified digital field test</span><h1>Shuffle. Strike. Ascend.</h1><p>This is the actual Quick Duel loop: the fixed 15-card curriculum, all approved Market records, live fighter data, automated Locations, Reversals, Belt Exams, and a separate Combo docket.</p><div className="playtest-stamps"><span>{cards.length} approved records</span><span>Quick Duel vs. tactical AI</span><span>Progress saved on this device</span></div></section>
     <section className="playtest-setup-grid">
       <div className="playtest-roster paper-stack"><div className="roster-toolbar"><div><span className="eyebrow">1 · Choose a fighter</span><h2>Who signs the waiver?</h2></div><div><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a fighter" aria-label="Search fighters" /></label><button onClick={randomize}>Random draw</button></div></div><article className="selected-fighter-dossier"><img src={artistUrl(selected) ?? cardPlaceholderUrl} alt={selected.name} /><div><span>Selected delegation</span><h3>{selected.name}</h3><p>{selected.rulesText ?? "Ability pending an inspector with a functioning pen."}</p><div><b>{numberValue(selected.stats.ATK)}<small>ATK</small></b><b>{numberValue(selected.stats.DEF)}<small>DEF</small></b><b>{numberValue(selected.stats.Speed)}<small>SPD</small></b></div></div></article><div className="playtest-character-grid">{filteredCharacters.map((character) => <button key={character.id} className={selectedId === character.id ? "is-selected" : ""} onClick={() => setSelectedId(character.id)} aria-pressed={selectedId === character.id}><img src={artistUrl(character) ?? cardPlaceholderUrl} alt="" loading="lazy" /><span>{character.name}</span><small>{numberValue(character.stats.ATK)} ATK · {numberValue(character.stats.DEF)} DEF · {numberValue(character.stats.Speed)} SPD</small></button>)}</div></div>
       <aside className="playtest-rules-panel paper-stack"><span className="eyebrow">2 · Choose the trouble</span><h2>How hard should the clipboard hit?</h2><div className="difficulty-grid">{(Object.keys(DIFFICULTIES) as Difficulty[]).map((difficulty) => { const option = DIFFICULTIES[difficulty]; return <button key={difficulty} className={settings.difficulty === difficulty ? "is-selected" : ""} onClick={() => setSettings({ ...settings, difficulty })} aria-pressed={settings.difficulty === difficulty}><span>{option.eyebrow}</span><b>{option.label}</b><small>{option.detail}</small></button>; })}</div><div className="field-switches"><label><input type="checkbox" checked={settings.guided} onChange={(event) => setSettings({ ...settings, guided: event.target.checked })} />Show decision coach</label><label><input type="checkbox" checked={settings.autoAi} onChange={(event) => setSettings({ ...settings, autoAi: event.target.checked })} />Let the computer take its turn automatically</label><label><input type="checkbox" checked={settings.balancedMarket} onChange={(event) => setSettings({ ...settings, balancedMarket: event.target.checked })} />Guarantee a playable opening Market</label><label><input type="checkbox" checked={settings.tempo} onChange={(event) => setSettings({ ...settings, tempo: event.target.checked })} />Use Tempo Advantage</label><label><input type="checkbox" checked={settings.locations} onChange={(event) => setSettings({ ...settings, locations: event.target.checked })} />Scene Change every Honor</label><label><input type="checkbox" checked={settings.openMarket} onChange={(event) => setSettings({ ...settings, openMarket: event.target.checked })} />Include cards awaiting finished art</label></div><p>The playable-Market option only curates the first seven cards; every replacement remains random. Quick Duel still uses Last Fighter Standing.</p><button className="button primary field-test-launch" onClick={() => begin()}>Begin as {selected.name} <span>→</span></button></aside>
@@ -666,8 +666,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-ascend" || current.player.belt >= belts.length - 1) return current;
     const next = belts[current.player.belt + 1];
     if (current.player.xp < next.xp || !current.player.completedTasks.includes(current.player.belt + 1)) return current;
-    const maxHp = current.player.maxHp + 10;
-    const nextPlayer = { ...current.player, belt: current.player.belt + 1, maxHp, hp: Math.min(maxHp, current.player.hp + 5) };
+    const nextPlayer = { ...current.player, belt: current.player.belt + 1 };
     return write(current, `Certification approved: ${next.name} Belt. ${next.reward}.`, { player: nextPlayer });
   });
 
@@ -883,8 +882,7 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
   let promotionLog: string | null = null;
   const nextBelt = belts[aiAfterPurchase.belt + 1];
   if (nextBelt && aiAfterPurchase.xp >= nextBelt.xp && aiAfterPurchase.completedTasks.includes(aiAfterPurchase.belt + 1)) {
-    const maxHp = aiAfterPurchase.maxHp + 10;
-    aiAfterPurchase = { ...aiAfterPurchase, belt: aiAfterPurchase.belt + 1, maxHp, hp: Math.min(maxHp, aiAfterPurchase.hp + 5) };
+    aiAfterPurchase = { ...aiAfterPurchase, belt: aiAfterPurchase.belt + 1 };
     promotionLog = `Computer certifies ${nextBelt.name} Belt. The stamp lands with tactical intent.`;
   }
   const nextAi = playAreaCleanup(aiAfterPurchase);

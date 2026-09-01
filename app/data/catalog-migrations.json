@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "authoritativeCatalog": "v2.3",
+  "note": "Legacy Character IDs from the attached v2.2 workbook were reused or shifted before the live v2.2.2 catalog. Resolve legacy saves by source version and this ledger; never map an old ID directly without checking its legacy name.",
+  "migrations": [
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-002",
+      "legacyName": "Baron Von Backflip",
+      "currentCatalogId": "DDB-CHR-CORE-002",
+      "currentName": "Baron von Backflip",
+      "disposition": "capitalization"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-003",
+      "legacyName": "Blurry Monk",
+      "currentCatalogId": "DDB-CHR-CORE-003",
+      "currentName": "Blurred Monk",
+      "disposition": "renamed"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-010",
+      "legacyName": "Dojo Dummy Bob",
+      "currentCatalogId": "DDB-CHR-CORE-031",
+      "currentName": "Sentry Bobby",
+      "disposition": "renamed-and-moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-011",
+      "legacyName": "DoppleBopper",
+      "currentCatalogId": "DDB-CHR-CORE-010",
+      "currentName": "Doodle Bopper",
+      "disposition": "renamed-and-moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-012",
+      "legacyName": "El Pollo Rojo",
+      "currentCatalogId": "DDB-CHR-CORE-011",
+      "currentName": "El Pollo Rojo",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-013",
+      "legacyName": "Flaming Monk Dude Broski",
+      "currentCatalogId": "DDB-CHR-CORE-012",
+      "currentName": "Flaming Monk Dude Broski",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-014",
+      "legacyName": "Gearshift Gita",
+      "currentCatalogId": null,
+      "currentName": null,
+      "disposition": "retired"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-015",
+      "legacyName": "Glitterpunch",
+      "currentCatalogId": "DDB-CHR-CORE-013",
+      "currentName": "Glitterpunch",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-016",
+      "legacyName": "Grandma Uppercut",
+      "currentCatalogId": "DDB-CHR-CORE-014",
+      "currentName": "Gramma Uppercut",
+      "disposition": "renamed-and-moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-017",
+      "legacyName": "Honorable Trash Panda",
+      "currentCatalogId": "DDB-CHR-CORE-015",
+      "currentName": "Honorable Trash Panda",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-018",
+      "legacyName": "Ink Fist",
+      "currentCatalogId": "DDB-CHR-CORE-016",
+      "currentName": "Ink Fist",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-019",
+      "legacyName": "Janitor Joe",
+      "currentCatalogId": "DDB-CHR-CORE-017",
+      "currentName": "Janitor Joe",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-020",
+      "legacyName": "Karatesaurus",
+      "currentCatalogId": "DDB-CHR-CORE-018",
+      "currentName": "Karatesaurus",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-021",
+      "legacyName": "Knuckleton the Brawler",
+      "currentCatalogId": "DDB-CHR-CORE-019",
+      "currentName": "Knuckleton the Brawler",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-022",
+      "legacyName": "Late Bell Lee",
+      "currentCatalogId": "DDB-CHR-CORE-020",
+      "currentName": "Late Bell Lee",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-023",
+      "legacyName": "Librarian Lin",
+      "currentCatalogId": "DDB-CHR-CORE-021",
+      "currentName": "Librarian Lin",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-024",
+      "legacyName": "Margo Two-Forms",
+      "currentCatalogId": "DDB-CHR-CORE-022",
+      "currentName": "Margo Two-Forms",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-025",
+      "legacyName": "Master Bento Blitz",
+      "currentCatalogId": "DDB-CHR-CORE-023",
+      "currentName": "Master Bento Blitz",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-026",
+      "legacyName": "Master Mimefu",
+      "currentCatalogId": "DDB-CHR-CORE-024",
+      "currentName": "Master Mimen",
+      "disposition": "renamed-and-moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-027",
+      "legacyName": "Miss Direction",
+      "currentCatalogId": "DDB-CHR-CORE-025",
+      "currentName": "Miss Direction",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-028",
+      "legacyName": "Monk Broski Dude",
+      "currentCatalogId": "DDB-CHR-CORE-012",
+      "currentName": "Flaming Monk Dude Broski",
+      "disposition": "duplicate-retired"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-029",
+      "legacyName": "Paper Crane",
+      "currentCatalogId": "DDB-CHR-CORE-027",
+      "currentName": "Paper Crane",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-030",
+      "legacyName": "Punchline Pete",
+      "currentCatalogId": "DDB-CHR-CORE-028",
+      "currentName": "Punchline Pete",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-031",
+      "legacyName": "Ronin Reroll",
+      "currentCatalogId": "DDB-CHR-CORE-029",
+      "currentName": "Ronin Reroll",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-032",
+      "legacyName": "Sensei Ducktape",
+      "currentCatalogId": "DDB-CHR-CORE-030",
+      "currentName": "Sensei Ducktape",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-033",
+      "legacyName": "Sir Kixalot",
+      "currentCatalogId": "DDB-CHR-CORE-032",
+      "currentName": "Sir Kixalot",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-034",
+      "legacyName": "Sleepy Chad",
+      "currentCatalogId": null,
+      "currentName": null,
+      "disposition": "retired"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-035",
+      "legacyName": "Some Guy Named Steve",
+      "currentCatalogId": "DDB-CHR-CORE-033",
+      "currentName": "Some guy named Steve",
+      "disposition": "capitalization-and-move"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-036",
+      "legacyName": "The Balance Hammer",
+      "currentCatalogId": "DDB-CHR-CORE-035",
+      "currentName": "The Nerfhammer",
+      "disposition": "renamed-and-moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-037",
+      "legacyName": "The Belt Collector",
+      "currentCatalogId": "DDB-CHR-CORE-034",
+      "currentName": "The Belt Collector",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-038",
+      "legacyName": "The Rebooter",
+      "currentCatalogId": "DDB-CHR-CORE-036",
+      "currentName": "The Rebooter",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-039",
+      "legacyName": "Three Squirrels in One Gi",
+      "currentCatalogId": "DDB-CHR-CORE-037",
+      "currentName": "Three Squirrels in One Gi",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-040",
+      "legacyName": "Tia Three-Gates",
+      "currentCatalogId": "DDB-CHR-CORE-038",
+      "currentName": "Tia Three Gates",
+      "disposition": "capitalization-and-move"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-041",
+      "legacyName": "Venue Val",
+      "currentCatalogId": "DDB-CHR-CORE-039",
+      "currentName": "Venue Val",
+      "disposition": "moved"
+    },
+    {
+      "sourceVersion": "attached-workbook-v2.2",
+      "legacyCatalogId": "DDB-CHR-CORE-042",
+      "legacyName": "Whirlwind Wynn",
+      "currentCatalogId": "DDB-CHR-CORE-041",
+      "currentName": "Whirlwind Wynn",
+      "disposition": "moved-from-workbook-only-id"
+    }
+  ]
+}

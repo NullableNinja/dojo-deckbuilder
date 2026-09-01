@@ -1,0 +1,3239 @@
+{
+  "version": "v2.3",
+  "description": "Complete field-level before/after ledger for the Phase 3 card catalog pass.",
+  "count": 404,
+  "changes": [
+    {
+      "id": "DDB-CON-CORE-001",
+      "name": "Air Horn",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The Department recognizes one volume: procedurally deafening.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-001",
+      "name": "Bad Habit",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Five copies were required. Improvement remains optional.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-002",
+      "name": "Banana Peel",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Approved floor hazard. Peel filed separately.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-003",
+      "name": "Bandages",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Apply pressure, then apply three forms in triplicate.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-002",
+      "name": "Basic Body Kick",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The middle-management kick of middle-targeted kicking.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-003",
+      "name": "Basic Jab",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Short, direct, and still awaiting committee embellishment.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-004",
+      "name": "Basic Shin Kick",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Aim low. Expectations have already been adjusted.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-001",
+      "name": "Body Shield",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The shield covers everything except the carrying permit.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-004",
+      "name": "Boxing Gloves",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The clearance sticker adds no Guard but tremendous confidence.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-005",
+      "name": "Breathing Drill",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Inhale courage. Exhale a modest damage modifier.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-005",
+      "name": "Bubble Wrap",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Every bubble is a tiny safety inspector doing its best.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-003",
+      "name": "Bubble Wrap Gi",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The uniform crackles with certified personal space.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-004",
+      "name": "Buckler",
+      "field": "flavorText",
+      "before": "—",
+      "after": "A small shield for a fighter with very specific concerns.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-006",
+      "name": "Caffeinated Mochi",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Two cards now. A responsible bedtime never.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-006",
+      "name": "Cardboard Chestplate",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Rated for two impacts or one determined raccoon.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-007",
+      "name": "Cardboard Cutout of Yourself",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The likeness is uncanny from across a poorly lit dojo.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-006",
+      "name": "Center Guard",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Protect the center. The edges have signed waivers.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-008",
+      "name": "Chest Protector",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Actual protective equipment wandered into the wrong game.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-009",
+      "name": "Confetti Cannon",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The official response to a carefully timed objection.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-009",
+      "name": "Cookie Sheet Bracer",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Oven-safe, Weapon-resistant, and banned from three potlucks.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-007",
+      "name": "Cover Up",
+      "field": "flavorText",
+      "before": "—",
+      "after": "When technique fails, become approximately turtle-shaped.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-011",
+      "name": "Dojo Coupon",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Not valid with dignity, cash, or participating dojos.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-010",
+      "name": "Dojo Door",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The exit was removed for combat efficiency.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-RIT-CORE-003",
+      "name": "Dojo Folding Mat",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Fold once for storage. Fold twice for plausible self-defense.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-013",
+      "name": "Electrolyte Popsicle",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Hydration achieved. Restraint postponed.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-014",
+      "name": "Emergency Burrito",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Emergency in. Initiative out.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-011",
+      "name": "Emergency Clipboard",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The clipboard has reviewed your Attack and found it incomplete.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-012",
+      "name": "Emergency Exit Sign",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The glowing arrow points toward a legally defensible retreat.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-016",
+      "name": "Emergency Ice Pack",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Cold enough to heal. Official enough to sting.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-017",
+      "name": "Emergency Shoelace",
+      "field": "flavorText",
+      "before": "—",
+      "after": "A double knot defeats one highly specific tragedy.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-013",
+      "name": "Emotional Support Pillow",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Licensed for comfort, impact reduction, and difficult rounds.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-018",
+      "name": "Energy Gel of Questionable Origin",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The label lists courage between glucose and possible regret.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-019",
+      "name": "Expired Protein Shake",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Best before yesterday. Strongest immediately before consequences.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-BST-CORE-001",
+      "name": "Final Boss",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The final form has a second final form. Budget approved.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-021",
+      "name": "Foam Finger",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Choose a zone and point with unreasonable authority.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-015",
+      "name": "Foot Guards",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The toes are protected. Their career prospects are not.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-008",
+      "name": "Footwork Drill",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Move first. Explain the foot-shaped paperwork later.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-016",
+      "name": "Forearm Guards",
+      "field": "flavorText",
+      "before": "—",
+      "after": "For blocking forearms and absolutely no follow-up questions.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-022",
+      "name": "Fortune Cookie",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The message reads: reorder responsibly, fight irresponsibly.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-023",
+      "name": "Fresh Fruit",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The Department briefly remembers nutrition exists.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-024",
+      "name": "Fresh Martial Arts Gi",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Fresh uniform. Previous mistakes sold separately.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-025",
+      "name": "Green Tea",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Steep three minutes. Reconsider one card.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-017",
+      "name": "Groin Guard",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Required by safety policy and the continued existence of low kicks.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-018",
+      "name": "Helmet Made of Smaller Helmets",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Each smaller helmet supervises a different thought.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-026",
+      "name": "Herbal Tea",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Calm in a cup. Administrative filtering in the leaves.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-009",
+      "name": "High Guard",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Hands up. Standards marginally higher.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-027",
+      "name": "Ice Pack",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The bench requested six cubes and a less embarrassing story.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-019",
+      "name": "Inflatable Sumo Suit",
+      "field": "flavorText",
+      "before": "—",
+      "after": "A majestic monument to defense and reduced mobility.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-028",
+      "name": "Instant Noodles",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Ready in three minutes, strategically regretted in two.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-021",
+      "name": "Kendo Do",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Traditional protection with a modern Speed complaint.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-022",
+      "name": "Kendo Men",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Excellent head protection. Terrible peripheral paperwork.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-023",
+      "name": "Knee Pads",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Your knees survive. Your entrance does not.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-029",
+      "name": "Kombucha",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Fermentation accomplished what discipline could not.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-024",
+      "name": "Kote",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The wrists have entered a formal nonaggression agreement.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-025",
+      "name": "Layers of Hoodies",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Four hoods, eight sleeves, one unresolved laundry dispute.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-026",
+      "name": "Leather Bracers",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The bracers are genuine. The warranty uses the word 'mostly.'",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-010",
+      "name": "Low Guard",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Protect the foundation. Complain about shin bruises afterward.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-033",
+      "name": "Lucky Dumpling",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Luck is just quality control with crumbs inside.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-BST-CORE-002",
+      "name": "Mini-Boss",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Important enough for a title. Not important enough for the final music.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-027",
+      "name": "Mom's Tupperware Lid",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Return it clean or face a Boss the rules cannot contain.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-028",
+      "name": "Mouthguard",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Protects teeth, dignity, and several expensive consonants.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-035",
+      "name": "Muscle Ointment",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Rub vigorously until the drawback stops reading the card.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-036",
+      "name": "Muscle Relaxant",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Everything relaxes, including the next offensive plan.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-029",
+      "name": "Museum Rope Barrier",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Please remain behind the velvet line while being attacked.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-037",
+      "name": "Mystery Dojo Jerky",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Ingredients: protein, smoke, and a legally distinct growl.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-030",
+      "name": "No Soliciting Sign",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Solicitors, attackers, and destiny must knock elsewhere.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-031",
+      "name": "Padded Gi",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Comfortable, washable, spiritually judgmental.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-041",
+      "name": "Painkiller",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The bruise remains; its scheduling authority has been reduced.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-032",
+      "name": "Participation Trophy Shield",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Awarded for appearing near danger with both hands visible.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-033",
+      "name": "Phone Book Chest Guard",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Somewhere, 1998 has become protective equipment.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-042",
+      "name": "Plum Wine",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Confidence rises. Defensive judgment leaves by the side door.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-043",
+      "name": "Pocket Sand",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Ancient desert technique. Modern janitorial violation.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-034",
+      "name": "Pool Noodle Shield",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The shield bends. The insult remains rigid.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-035",
+      "name": "Reflective Safety Vest",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Aggressively visible and therefore tactically inconvenient.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-BST-CORE-003",
+      "name": "Rival",
+      "field": "flavorText",
+      "before": "—",
+      "after": "A personal grudge with entry-level management authority.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-046",
+      "name": "Rubber Chicken",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Nobody can file an objection while the chicken is testifying.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-047",
+      "name": "Seaweed Wrap",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Restorative, defensive, and unreasonably expensive at the spa dojo.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-048",
+      "name": "Sensei's Advice",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The advice was free. Removing the habit costs one card.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-037",
+      "name": "Sensei's Disapproving Stare",
+      "field": "flavorText",
+      "before": "—",
+      "after": "No batteries. Infinite disappointment.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-038",
+      "name": "Shin Guards",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The shin has retained legal representation.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-049",
+      "name": "Smoke Bomb",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Disappear in a cloud of smoke and incomplete incident reports.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-050",
+      "name": "Spare Wrap",
+      "field": "flavorText",
+      "before": "—",
+      "after": "One more wrap between you and a deeply educational bruise.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-051",
+      "name": "Sparring Dummy",
+      "field": "flavorText",
+      "before": "—",
+      "after": "It never complains, which violates the instructor handbook.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-039",
+      "name": "Sparring Headgear",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Spar responsibly. Nod carefully.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-052",
+      "name": "Spinach",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The can promised muscles. The Attack accepted the affidavit.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-053",
+      "name": "Sports Drink",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Official flavor: blue. Official result: faster yelling.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-040",
+      "name": "Stunt Double",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Fully insured and professionally surprised.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-054",
+      "name": "Sweat Towel",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The towel has absorbed sweat, doubt, and one point of Focus.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-055",
+      "name": "Sweatband",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The sweat is now organized around a central mission.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-041",
+      "name": "Taekwondo Hogu",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Tournament-grade protection with paperwork-grade ventilation.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-056",
+      "name": "Tiger Balm",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Smells like victory and a strongly worded herbal memo.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-043",
+      "name": "Traffic Cone Helmet",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Certified visible from three zones and one municipal intersection.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-044",
+      "name": "Trash Can Lid",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Yesterday's garbage. Today's audited defense budget.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-057",
+      "name": "Vitamins",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Five HP and one card closer to expensive confidence.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-059",
+      "name": "Water Balloon",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The splash is temporary. The slow-motion betrayal is forever.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-060",
+      "name": "Water Bottle",
+      "field": "flavorText",
+      "before": "—",
+      "after": "Plain water passed inspection on its third appeal.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-061",
+      "name": "Weighted Vest",
+      "field": "flavorText",
+      "before": "—",
+      "after": "One XP awarded for carrying your own terrible idea.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-STA-CORE-011",
+      "name": "Wild Swing",
+      "field": "flavorText",
+      "before": "—",
+      "after": "A complete tactical plan with the zone left blank.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-RIT-CORE-012",
+      "name": "X-Ray Paper",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The attacker saw bones, panicked, and struck the paperwork.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-DEQ-CORE-046",
+      "name": "Yoga Mat Cape",
+      "field": "flavorText",
+      "before": "—",
+      "after": "The cape billowed. The Speed penalty lost jurisdiction.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-CON-CORE-062",
+      "name": "Yoyo",
+      "field": "flavorText",
+      "before": "—",
+      "after": "It went down, came back, and brought a complaint about Guard.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-001",
+      "name": "Baseball Bat",
+      "field": "flavorText",
+      "before": "\"Swing for the fences… or, you know, just knock their teeth out.\"",
+      "after": "Reclassified from sports equipment after the third parking-lot demonstration.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-002",
+      "name": "Bo Staff (Long Staff)",
+      "field": "flavorText",
+      "before": "\"If you can master this, you’ll look like a martial arts movie star. If not… well, it’s a long walk home.\"",
+      "after": "Long reach, upright posture, and one endangered ceiling tile.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-003",
+      "name": "Bo-Shuriken (Throwing Spikes)",
+      "field": "flavorText",
+      "before": "\"Not a main weapon, but certainly a helpful sidekick for that surprise backstab.\"",
+      "after": "Small enough to misplace. Sharp enough to trigger an inventory audit.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-004",
+      "name": "Bokken (Wooden Sword)",
+      "field": "flavorText",
+      "before": "\"It’s not real, but it sure feels like it when you hit something.\"",
+      "after": "Wooden, honest, and still capable of ending the seminar early.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-005",
+      "name": "Brass Knuckles",
+      "field": "flavorText",
+      "before": "\"Who needs a fancy blade when you’ve got pure punch power?\"",
+      "after": "Four rings, one permit, zero subtle follow-up questions.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-006",
+      "name": "Broken Bottle",
+      "field": "flavorText",
+      "before": "\"Shattered dreams, shattered glass, and maybe a few fingers…\"",
+      "after": "The recycling bin has declined responsibility.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-007",
+      "name": "Bruce Lee's Nunchaku",
+      "field": "flavorText",
+      "before": "\"Master Lee would approve... if you could handle the speed without breaking a bone.\"",
+      "after": "Purchased beside the keychains. Demonstrated far from the glassware.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-008",
+      "name": "Butterfly Knife (Balisong)",
+      "field": "flavorText",
+      "before": "\"One flip, and you're the coolest fighter in the room. The other flip... well, now you're just bleeding.\"",
+      "after": "Every flip is an argument against unsupervised confidence.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-009",
+      "name": "Chain Whip",
+      "field": "flavorText",
+      "before": "\"A line of metal segments powered entirely by bad ideas.\"",
+      "after": "A line of metal segments powered entirely by bad ideas.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-010",
+      "name": "Club",
+      "field": "flavorText",
+      "before": "\"It’s like hitting someone with a small tree. Who needs subtlety when you’ve got this much brute force?\"",
+      "after": "A small tree with a shorter appeals process.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-012",
+      "name": "Dao (Chinese Saber)",
+      "field": "flavorText",
+      "before": "\"One edge, many opinions.\"",
+      "after": "One edge, many opinions, all entered into evidence.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-013",
+      "name": "Deer Horn Knives",
+      "field": "flavorText",
+      "before": "\"Circular blades for people who looked at normal knives and said 'too straightforward.'\"",
+      "after": "Normal knives were rejected for insufficient administrative curvature.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-014",
+      "name": "Dojo Mop",
+      "field": "flavorText",
+      "before": "\"Sweep the leg. Then sweep the floor.\"",
+      "after": "Sweep the leg. Then sweep the floor. Inspection is Thursday.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-015",
+      "name": "Dragon Sword",
+      "field": "flavorText",
+      "before": "\"A sword forged in fire… now just don’t burn yourself on it.\"",
+      "after": "The dragon is decorative. The fire code is not.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-016",
+      "name": "Eko Bo (Short Staff)",
+      "field": "flavorText",
+      "before": "\"You may not have the reach, but you’ll have speed, and that’s enough to annoy anyone.\"",
+      "after": "Less reach, more speed, same endangered ceiling tile.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-017",
+      "name": "Eku (Okinawan Oar)",
+      "field": "flavorText",
+      "before": "\"It was an oar until somebody got creative.\"",
+      "after": "It was an oar until somebody discovered a paperwork loophole.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-018",
+      "name": "Emotional Support Brick",
+      "field": "flavorText",
+      "before": "\"Heavy, dependable, and always there when you need to process something.\"",
+      "after": "Heavy, dependable, and present for every difficult combat phase.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-019",
+      "name": "Escrima Sticks",
+      "field": "flavorText",
+      "before": "\"Two sticks. Infinite bruises. Minimal explanation.\"",
+      "after": "Two sticks. Infinite bruises. One very calm instructor.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-022",
+      "name": "Fan (Tessen)",
+      "field": "flavorText",
+      "before": "\"Who needs a sword when you’ve got the art of distraction? Nothing says ‘I’m in charge’ like a folding fan.\"",
+      "after": "A folding fan for cooling tempers and redirecting them toward High zone.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-023",
+      "name": "Folding Chair of Destiny",
+      "field": "flavorText",
+      "before": "\"Somewhere, a wrestling announcer just screamed.\"",
+      "after": "The chair was not invited. Destiny brought its own ticket.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-025",
+      "name": "Frozen Burrito",
+      "field": "flavorText",
+      "before": "\"Weaponized dinner. Eventually just dinner.\"",
+      "after": "Weaponized dinner. Eventually just dinner.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-026",
+      "name": "Giant Foam Finger",
+      "field": "flavorText",
+      "before": "\"We're number one! At extremely soft violence.\"",
+      "after": "We're number one at extremely soft violence.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-027",
+      "name": "Gladius",
+      "field": "flavorText",
+      "before": "\"Fast, focused, and ready to pierce through anyone who gets in your way.\"",
+      "after": "Compact, direct, and registered under 'historical demonstration concerns.'",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-028",
+      "name": "Grandma's Wooden Spoon",
+      "field": "flavorText",
+      "before": "\"No martial art prepared you for that look.\"",
+      "after": "No martial art prepared you for that look.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-029",
+      "name": "Hand Axe",
+      "field": "flavorText",
+      "before": "\"For when cutting down trees is too boring. This axe is made for more… personal work.\"",
+      "after": "The forestry permit has been redacted for tournament use.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-030",
+      "name": "Hook Swords",
+      "field": "flavorText",
+      "before": "\"Swords with hooks, because ordinary swords lacked paperwork.\"",
+      "after": "Ordinary swords lacked enough ways to catch on the safety rope.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-031",
+      "name": "Jian (Straight Sword)",
+      "field": "flavorText",
+      "before": "\"Elegant enough for poetry. Sharp enough to end the poem early.\"",
+      "after": "Elegant enough for poetry. Sharp enough to require a shorter stanza.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-032",
+      "name": "Jo Staff (Short Staff)",
+      "field": "flavorText",
+      "before": "\"Small and nimble—great for dodging, bad for blocking.\"",
+      "after": "Short staff. Long explanation. Medium ceiling damage.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-033",
+      "name": "Kali Sticks (Arnis)",
+      "field": "flavorText",
+      "before": "\"Faster than your brain can register, and definitely not good for your face.\"",
+      "after": "The sticks arrived in pairs because one complaint was insufficient.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-034",
+      "name": "Kama (Sickle)",
+      "field": "flavorText",
+      "before": "\"The harvest has come, and it’s in the form of sharp blades cutting through anyone standing in your way.\"",
+      "after": "Agricultural heritage meets a venue manager's worst afternoon.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-035",
+      "name": "Kampalan (Southeast Asian Weapon)",
+      "field": "flavorText",
+      "before": "\"Big, heavy, and guaranteed to break something.\"",
+      "after": "The form listed its weight as 'several consequences.'",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-036",
+      "name": "Karambit (Hooked Dagger)",
+      "field": "flavorText",
+      "before": "\"This one’s all about that hook-and-pull. Not just for disemboweling… but for setting the mood.\"",
+      "after": "The hook is practical. The confidence attached to it is not.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-037",
+      "name": "Katana (Japanese Sword)",
+      "field": "flavorText",
+      "before": "\"Elegance, power, and a whole lot of cutting things in one shiny package.\"",
+      "after": "Polished, balanced, and accompanied by a twelve-page display waiver.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-038",
+      "name": "Kris (Curved Dagger)",
+      "field": "flavorText",
+      "before": "\"Curved for your cutting pleasure—watch out, it’s got a wicked twist.\"",
+      "after": "The blade bends. The incident report does not.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-039",
+      "name": "Kubotan",
+      "field": "flavorText",
+      "before": "\"Tiny stick, enormous confidence.\"",
+      "after": "Tiny stick, enormous confidence, accessory-sized insurance premium.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-040",
+      "name": "Kunai (Throwing Knives)",
+      "field": "flavorText",
+      "before": "\"Toss them, stick them, or just look ridiculously cool while you’re doing it. Either way, you win.\"",
+      "after": "Throw responsibly. Retrieve before the inspector counts them.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-041",
+      "name": "Meteor Hammer",
+      "field": "flavorText",
+      "before": "\"Some weapons have a learning curve. This one has an orbital path.\"",
+      "after": "Some weapons have a learning curve. This one has an orbital filing path.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-042",
+      "name": "Miyagi-Do Karate Stick",
+      "field": "flavorText",
+      "before": "\"It’s more than just a stick. It’s a lesson in patience, followed by a swift kick to the face.\"",
+      "after": "Patience is the first lesson. Moving your fingers is the second.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-044",
+      "name": "Naginata (Polearm)",
+      "field": "flavorText",
+      "before": "\"Think of it as the Swiss Army knife of polearms—long reach, short patience.\"",
+      "after": "Long reach, short patience, excellent visibility on the risk register.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-045",
+      "name": "Nunchaku",
+      "field": "flavorText",
+      "before": "\"It’s not just a weapon, it’s a test of patience... and probably your own coordination.\"",
+      "after": "A coordination exam disguised as two sticks and a chain.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-047",
+      "name": "Pocket Stick",
+      "field": "flavorText",
+      "before": "\"For when you need something small, sharp, and super sneaky.\"",
+      "after": "Pocket-sized authority for full-sized questionable decisions.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-048",
+      "name": "Pool Noodle of Shame",
+      "field": "flavorText",
+      "before": "\"The bruise heals. The disrespect is permanent.\"",
+      "after": "The bruise heals. The disrespect remains on permanent record.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-049",
+      "name": "Qiang (Spear)",
+      "field": "flavorText",
+      "before": "\"Keep your enemies close? Whoever said that did not own a spear.\"",
+      "after": "Keep your enemies at the distance specified by municipal ordinance.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-051",
+      "name": "Rolled-Up Rulebook",
+      "field": "flavorText",
+      "before": "\"Technically, page 17 says I can hit you with page 17.\"",
+      "after": "Page seventeen authorizes exactly this much procedural force.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-052",
+      "name": "Rope Dart",
+      "field": "flavorText",
+      "before": "\"This weapon’s dangerous, flexible, and will likely tangle you in the process.\"",
+      "after": "Flexible, dangerous, and already tangled around the demonstration permit.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-053",
+      "name": "Sai (Trident)",
+      "field": "flavorText",
+      "before": "\"Three prongs of pain—because two just weren’t enough.\"",
+      "after": "Three prongs because the approval form had three signature lines.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-054",
+      "name": "Scythe",
+      "field": "flavorText",
+      "before": "\"A weapon made for harvesting souls… or maybe just a really bad day at the office.\"",
+      "after": "The groundskeeping department would like its dramatic silhouette back.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-055",
+      "name": "Sectional Staff",
+      "field": "flavorText",
+      "before": "\"It’s like a staff, but cooler. Just make sure you’re not using it on someone who doesn’t deserve it.\"",
+      "after": "A staff with extra joints and no interest in workplace ergonomics.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-056",
+      "name": "Short Sword",
+      "field": "flavorText",
+      "before": "\"Quick, precise, and definitely not for long-range fights.\"",
+      "after": "Quick, precise, and filed under 'please stand closer.'",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-057",
+      "name": "Shuriken (Throwing Stars)",
+      "field": "flavorText",
+      "before": "\"They're small, they're sharp, and they'll definitely stab your ego when you miss.\"",
+      "after": "Small, sharp, and extremely embarrassing to retrieve after a miss.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-058",
+      "name": "Staff of Master Shifu",
+      "field": "flavorText",
+      "before": "\"Master the staff. Master your destiny. Or just whack someone with it.\"",
+      "after": "Its lineage is ancient, prestigious, and unavailable for verification.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-059",
+      "name": "Tactical Baguette",
+      "field": "flavorText",
+      "before": "\"Fresh baked. Combat stale.\"",
+      "after": "Fresh baked. Combat stale. Crumbs legally inadmissible.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-060",
+      "name": "Tanto (Dagger)",
+      "field": "flavorText",
+      "before": "\"It’s small, it’s deadly, and it’s **perfect for quick, final touches.\"",
+      "after": "A small blade for quick corrections and very careful punctuation.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-061",
+      "name": "Tekko (Brass Knuckles)",
+      "field": "flavorText",
+      "before": "\"Because who needs a weapon when you’ve got fists of fury?\"",
+      "after": "The fists requested a budget increase and received metal instead.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-062",
+      "name": "Tonfa (Police Baton)",
+      "field": "flavorText",
+      "before": "\"Not just for keeping the peace, but for giving your enemies a rude awakening.\"",
+      "after": "Keeps the peace by moving it three feet to the left.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-063",
+      "name": "Traffic Cone",
+      "field": "flavorText",
+      "before": "\"Safety equipment has chosen violence.\"",
+      "after": "Safety equipment has chosen violence and retained counsel.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-064",
+      "name": "Whip",
+      "field": "flavorText",
+      "before": "\"The crack heard ‘round the world... usually followed by a gasp and a fainted opponent.\"",
+      "after": "The crack is audible from the appeals office.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-065",
+      "name": "Yo-Yo",
+      "field": "flavorText",
+      "before": "\"You think it’s just a toy? WRONG. It’s a game-changer when used with the right flair.\"",
+      "after": "The toy returned with one Attack Bonus and no proof of purchase.",
+      "reason": "Paper-Fu tone and missing-flavor pass"
+    },
+    {
+      "id": "DDB-WPN-CORE-007",
+      "name": "Bruce Lee's Nunchaku",
+      "field": "name",
+      "before": "Bruce Lee's Nunchaku",
+      "after": "Museum-Gift Nunchaku",
+      "reason": "Remove real-person reference and make the card original"
+    },
+    {
+      "id": "DDB-WPN-CORE-042",
+      "name": "Miyagi-Do Karate Stick",
+      "field": "name",
+      "before": "Miyagi-Do Karate Stick",
+      "after": "Parking-Lot Patience Stick",
+      "reason": "Remove outside-franchise reference and make the card original"
+    },
+    {
+      "id": "DDB-WPN-CORE-058",
+      "name": "Staff of Master Shifu",
+      "field": "name",
+      "before": "Staff of Master Shifu",
+      "after": "Staff of Questionable Lineage",
+      "reason": "Remove outside-franchise reference and make the card original"
+    },
+    {
+      "id": "DDB-CON-CORE-062",
+      "name": "Yoyo",
+      "field": "name",
+      "before": "Yoyo",
+      "after": "Pocket Yoyo",
+      "reason": "Distinguish it from the Yo-Yo Weapon"
+    },
+    {
+      "id": "DDB-KAT-CORE-001",
+      "name": "Advanced Snack Accounting",
+      "field": "rulesText",
+      "before": "The next Consumable you use this turn generates 2 Focus after it resolves.",
+      "after": "After the next Consumable you use this turn resolves, gain 2 Focus.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-CON-CORE-004",
+      "name": "Boxing Gloves",
+      "field": "rulesText",
+      "before": "Your next unarmed Attack gains +2 damage. The gloves were on clearance.",
+      "after": "Your next unarmed Attack this turn gets +2 Attack Power.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-007",
+      "name": "Cardboard Cutout of Yourself",
+      "field": "rulesText",
+      "before": "Accessory. Once per game, destroy this when targeted; the Attack hits the cutout instead and deals 0 damage to you.",
+      "after": "Accessory. Once per game, when you are targeted by an Attack, destroy this. That Attack deals 0 damage to you.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-010",
+      "name": "Dojo Door",
+      "field": "rulesText",
+      "before": "Occupies both hands. +4 DEF against all zones and -2 Speed. You cannot Attack with a Weapon while carrying architecture.",
+      "after": "Occupies both Hands. +4 DEF against all zones and −2 Speed. You cannot Attack with a Weapon while this is Equipped.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-013",
+      "name": "Emotional Support Pillow",
+      "field": "rulesText",
+      "before": "Accessory. Once per round, reduce damage from one Attack by 2. You may hug it between turns.",
+      "after": "Accessory. Once per round, reduce damage from one Attack by 2.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-017",
+      "name": "Groin Guard",
+      "field": "rulesText",
+      "before": "Accessory. +1 DEF against Low Attacks. Nobody asks follow-up questions.",
+      "after": "Accessory. +1 DEF against Low Attacks.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-019",
+      "name": "Inflatable Sumo Suit",
+      "field": "rulesText",
+      "before": "Chest slot. +3 DEF against all zones, -3 Speed, and your Low Attacks get -1 Attack Power. You are magnificent.",
+      "after": "Chest slot. +3 DEF against all zones and −3 Speed. Your Low Attacks get −1 Attack Power.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-023",
+      "name": "Knee Pads",
+      "field": "rulesText",
+      "before": "Legs slot. +1 DEF against Low Attacks. Your dignity remains unprotected.",
+      "after": "Legs slot. +1 DEF against Low Attacks.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-031",
+      "name": "Padded Gi",
+      "field": "rulesText",
+      "before": "Chest slot. +1 DEF against all zones. Comfortable, washable, spiritually judgmental.",
+      "after": "Chest slot. +1 DEF against all zones.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-033",
+      "name": "Phone Book Chest Guard",
+      "field": "rulesText",
+      "before": "Chest slot. +2 DEF against Mid Attacks and -1 Speed. Somewhere, 1998 feels useful again.",
+      "after": "Chest slot. +2 DEF against Mid Attacks and −1 Speed.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-035",
+      "name": "Reflective Safety Vest",
+      "field": "rulesText",
+      "before": "Chest slot. +1 DEF against all zones. The first Attack targeting you each round gets -1 Attack Power because you are aggressively visible.",
+      "after": "Chest slot. +1 DEF against all zones. The first Attack targeting you each round gets −1 Attack Power.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-037",
+      "name": "Sensei's Disapproving Stare",
+      "field": "rulesText",
+      "before": "Accessory. Once per round, the first Attack targeting you gets -1 Attack Power. No batteries required.",
+      "after": "Accessory. Once per round, the first Attack targeting you gets −1 Attack Power.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-040",
+      "name": "Stunt Double",
+      "field": "rulesText",
+      "before": "Accessory. Once per game, when you would take damage, destroy this card to prevent all of that damage. The stunt double has excellent insurance.",
+      "after": "Accessory. Once per game, when you would take damage, destroy this to prevent all of that damage.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-CON-CORE-054",
+      "name": "Sweat Towel",
+      "field": "rulesText",
+      "before": "The next Kata you play this turn generates +1 Focus. Please do not ask why the towel is mystical.",
+      "after": "The next Kata you play this turn generates +1 Focus.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-CON-CORE-055",
+      "name": "Sweatband",
+      "field": "rulesText",
+      "before": "Gain +2 Speed until end of round. It was already too sweaty.",
+      "after": "Gain +2 Speed until end of round.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-043",
+      "name": "Traffic Cone Helmet",
+      "field": "rulesText",
+      "before": "Head slot. +2 DEF against High Attacks and -1 Speed. Visibility is for cowards.",
+      "after": "Head slot. +2 DEF against High Attacks and −1 Speed.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-RIT-CORE-012",
+      "name": "X-Ray Paper",
+      "field": "rulesText",
+      "before": "Reaction. When targeted by an Attack, destroy this card. The opponent instinctively attacks the X-Ray Paper instead; the Attack deals 0 damage to you. Provides 0 actual DEF because paper remains paper.",
+      "after": "Reaction. When you are targeted by an Attack, destroy this. That Attack deals 0 damage to you. This provides 0 Guard.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-DEQ-CORE-046",
+      "name": "Yoga Mat Cape",
+      "field": "rulesText",
+      "before": "Accessory. +1 DEF against High and Low Attacks. Once per game, ignore a Speed penalty because the cape billowed heroically.",
+      "after": "Accessory. +1 DEF against High and Low Attacks. Once per game, ignore one Speed penalty affecting you.",
+      "reason": "Separate mechanics from flavor and standardize timing"
+    },
+    {
+      "id": "DDB-ATK-CORE-003",
+      "name": "Ankle Invoice",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-001",
+      "name": "Ankle-Biter Express",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-004",
+      "name": "Axe Kick",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-004",
+      "name": "Axe Kick",
+      "field": "rulesText",
+      "before": "If the defender plays a Defense card, this Attack deals +1 damage after Defense is built.",
+      "after": "If the defender plays a Defense card, this Attack gets +1 Attack Power after Defense is built.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-005",
+      "name": "Back Kick",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-006",
+      "name": "Backfist",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-006",
+      "name": "Backfist",
+      "field": "rulesText",
+      "before": "If you played a Defense since your last turn, this Attack deals +1 damage.",
+      "after": "If you played a Defense since your last turn, this Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-007",
+      "name": "Backleg Side, Turning Side",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-002",
+      "name": "Basic Body Kick",
+      "field": "stats.Power / Guard",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed starter Attack stat to Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-003",
+      "name": "Basic Jab",
+      "field": "stats.Power / Guard",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed starter Attack stat to Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-004",
+      "name": "Basic Shin Kick",
+      "field": "stats.Power / Guard",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed starter Attack stat to Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-005",
+      "name": "Beach Training Montage",
+      "field": "rulesText",
+      "before": "Low Attacks deal -1 Damage. The first time a Kata grants Flow each turn, the affected Attack also gets +1 Damage.",
+      "after": "Low Attacks get -1 Attack Power. The first time a Kata grants Flow each turn, the affected Attack also gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BTQ-CORE-001",
+      "name": "Bell of the Final Round",
+      "field": "rulesText",
+      "before": "If the Boss is at or below its Enrage Threshold, its next Boss Attack gets +2 Damage. Otherwise, it gets +1 Damage. Then reveal another Boss Arsenal card.",
+      "after": "If the Boss is at or below its Enrage Threshold, its next Boss Attack gets +2 Attack Power. Otherwise, it gets +1 Attack Power. Then reveal another Boss Arsenal card.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-002",
+      "name": "Bell Tower Bomb",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-002",
+      "name": "Bell Tower Bomb",
+      "field": "rulesText",
+      "before": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Damage.",
+      "after": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-003",
+      "name": "Bird Law",
+      "field": "rulesText",
+      "before": "If the Jump Attack Hit, the finishing Kick gets +2 Damage and you gain +2 Speed until end of round.",
+      "after": "If the Jump Attack Hit, the finishing Kick gets +2 Attack Power and you gain +2 Speed until end of round.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-003",
+      "name": "Black-Gi Belt Crusher",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-004",
+      "name": "Blitzed Expectations",
+      "field": "rulesText",
+      "before": "The final Attack gets +1 Damage and gains Flow.",
+      "after": "The final Attack gets +1 Attack Power and gains Flow.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-007",
+      "name": "Body Shop Special",
+      "field": "rulesText",
+      "before": "If the first Attack Hits, the second Attack gets +1 Damage. If the second also Hits, gain 1 Focus.",
+      "after": "If the first Attack Hits, the second Attack gets +1 Attack Power. If the second also Hits, gain 1 Focus.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-008",
+      "name": "Breathe In, Violence Out",
+      "field": "rulesText",
+      "before": "The Attack gets +2 Damage. If it Hits, your next Attack this turn gains Flow.",
+      "after": "The Attack gets +2 Attack Power. If it Hits, your next Attack this turn gains Flow.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-005",
+      "name": "Breathing Drill",
+      "field": "rulesText",
+      "before": "Your next Attack this turn gets +1 Damage.",
+      "after": "Your next Attack this turn gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-011",
+      "name": "Catch These Hands",
+      "field": "rulesText",
+      "before": "That Punch gets +2 Damage.",
+      "after": "That Punch gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-006",
+      "name": "Center Guard",
+      "field": "stats.Power / Guard",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed starter Defense stat to Guard"
+    },
+    {
+      "id": "DDB-ATK-CORE-009",
+      "name": "Centerline Breaker",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-004",
+      "name": "Centerline Cataclysm",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-007",
+      "name": "City Bus in Motion",
+      "field": "rulesText",
+      "before": "Mid Attacks deal +1 damage. Dodge and Movement Defenses get -1 DEF.",
+      "after": "Mid Attacks get +1 Attack Power. Dodge and Movement Defenses get -1 DEF.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-005",
+      "name": "Coffin-Lid Chop",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-005",
+      "name": "Coffin-Lid Chop",
+      "field": "rulesText",
+      "before": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Damage.",
+      "after": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-009",
+      "name": "Concrete Stairwell",
+      "field": "rulesText",
+      "before": "High Attacks deal +1 Damage. Jump-tag Attacks deal -1 Damage.",
+      "after": "High Attacks get +1 Attack Power. Jump-tag Attacks deal -1 Damage.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-007",
+      "name": "Cover Up",
+      "field": "stats.Power / Guard",
+      "before": "1",
+      "after": "1",
+      "reason": "Rename printed starter Defense stat to Guard"
+    },
+    {
+      "id": "DDB-BAT-CORE-006",
+      "name": "Crater-Maker Sweep",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-013",
+      "name": "Defensive Front Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-013",
+      "name": "Defensive Front Kick",
+      "field": "rulesText",
+      "before": "Reaction — after a Mid or Low Attack targeting you resolves, you may play this card against that attacker. If played this way, it gets +1 Damage.",
+      "after": "Reaction — after a Mid or Low Attack targeting you resolves, you may play this card against that attacker. If played this way, it gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-014",
+      "name": "Defensive Side Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-014",
+      "name": "Defensive Side Kick",
+      "field": "rulesText",
+      "before": "If you Blocked an Attack this round, this Attack deals +2 damage.",
+      "after": "If you Blocked an Attack this round, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-007",
+      "name": "Demon Crown Hammer",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-015",
+      "name": "Discount Dim Mak",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-016",
+      "name": "Double Punch",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-017",
+      "name": "Dragon Tail Sweep",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-008",
+      "name": "Dragon's Tax Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-009",
+      "name": "Earthquake Heel Drop",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-010",
+      "name": "Eight-Count Body Blitz",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-010",
+      "name": "Eight-Count Body Blitz",
+      "field": "rulesText",
+      "before": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Damage.",
+      "after": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-015",
+      "name": "Elevator of Poor Decisions",
+      "field": "rulesText",
+      "before": "Mid Attacks deal +1 damage. Two-handed Weapons provide 1 less Attack Bonus.",
+      "after": "Mid Attacks get +1 Attack Power. Two-handed Weapons provide 1 less Attack Bonus.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-018",
+      "name": "Emotional Support Headbutt",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-018",
+      "name": "Emotional Support Headbutt",
+      "field": "rulesText",
+      "before": "If you have fewer cards in hand than the target, this Attack deals +2 damage.",
+      "after": "If you have fewer cards in hand than the target, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-KAT-CORE-016",
+      "name": "Empty Hand Form",
+      "field": "rulesText",
+      "before": "If you have no Weapon equipped, your first Attack this turn gains +2 damage.",
+      "after": "If you have no Weapon equipped, your first Attack this turn gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-015",
+      "name": "Empty Hands, Full Problems",
+      "field": "rulesText",
+      "before": "The Hand Attack gets +3 Damage.",
+      "after": "The Hand Attack gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-016",
+      "name": "Flexible Schedule",
+      "field": "rulesText",
+      "before": "The second Attack gets +2 Damage. If it Hits, the target gets -1 Speed next round.",
+      "after": "The second Attack gets +2 Attack Power. If it Hits, the target gets -1 Speed next round.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-011",
+      "name": "Floor-Is-Lava Feint",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-011",
+      "name": "Floor-Is-Lava Feint",
+      "field": "rulesText",
+      "before": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Damage.",
+      "after": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-022",
+      "name": "Flying Front Kick",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-023",
+      "name": "Flying Knee",
+      "field": "stats.Damage",
+      "before": "5",
+      "after": "5",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-024",
+      "name": "Flying Spin Crescent Kick",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-WPN-CORE-023",
+      "name": "Folding Chair of Destiny",
+      "field": "rulesText",
+      "before": "If you equipped this Weapon this turn, your next Attack deals +1 damage.",
+      "after": "If you equipped this Weapon this turn, your next Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-025",
+      "name": "Front Jab",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-026",
+      "name": "Front Ridgehand",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-027",
+      "name": "Hammerfist",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-027",
+      "name": "Hammerfist",
+      "field": "rulesText",
+      "before": "If the target has matching Armor, this Attack deals +1 damage and gains Piercing 1.",
+      "after": "If the target has matching Armor, this Attack gets +1 Attack Power and gains Piercing 1.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-018",
+      "name": "Hands, Feet, Repeat",
+      "field": "rulesText",
+      "before": "If the first two Attacks Hit, the final Hand Attack gets +3 Damage.",
+      "after": "If the first two Attacks Hit, the final Hand Attack gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-028",
+      "name": "Helmet Check",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-009",
+      "name": "High Guard",
+      "field": "stats.Power / Guard",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed starter Defense stat to Guard"
+    },
+    {
+      "id": "DDB-CMB-CORE-020",
+      "name": "High-Low Budget Cut",
+      "field": "rulesText",
+      "before": "If the High Attack is Blocked, the Low Attack gets +2 Damage.",
+      "after": "If the High Attack is Blocked, the Low Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-029",
+      "name": "Hook Kick",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-029",
+      "name": "Hook Kick",
+      "field": "rulesText",
+      "before": "If you played another Low Attack earlier this turn, this Attack deals +2 damage.",
+      "after": "If you played another Low Attack earlier this turn, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-030",
+      "name": "Hook Punch",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-030",
+      "name": "Hook Punch",
+      "field": "rulesText",
+      "before": "If your previous Attack this turn was Blocked, this Attack deals +2 damage.",
+      "after": "If your previous Attack this turn was Blocked, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-031",
+      "name": "Horizontal Elbow",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-031",
+      "name": "Horizontal Elbow",
+      "field": "rulesText",
+      "before": "If your previous card this turn was an Item or Consumable, this Attack deals +2 damage.",
+      "after": "If your previous card this turn was an Item or Consumable, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-012",
+      "name": "Hundred-Handed Drumbeat",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-012",
+      "name": "Hundred-Handed Drumbeat",
+      "field": "rulesText",
+      "before": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Damage.",
+      "after": "Resolve as a normal Attack. If this Attack is Blocked, the Boss's next Boss Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-021",
+      "name": "I Meant To Do That",
+      "field": "rulesText",
+      "before": "The second Attack gets +3 Damage.",
+      "after": "The second Attack gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-023",
+      "name": "Inner Peace Was a Mistake",
+      "field": "rulesText",
+      "before": "The Attack gets +3 Damage.",
+      "after": "The Attack gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-KAT-CORE-027",
+      "name": "Inner Peace, Outer Violence",
+      "field": "rulesText",
+      "before": "If you did not deal damage on your previous turn, your first Attack this turn gets +3 Damage.",
+      "after": "If you did not deal damage on your previous turn, your first Attack this turn gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-032",
+      "name": "Inside Crescent Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-013",
+      "name": "Iron Horse Body Blow",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-WPN-CORE-036",
+      "name": "Karambit (Hooked Dagger)",
+      "field": "rulesText",
+      "before": "Against a fighter with any temporary negative stat modifier, your Attacks with this deal +1 damage.",
+      "after": "Against a fighter with any temporary negative stat modifier, your Attacks with this get +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-023",
+      "name": "Kids' Birthday Party",
+      "field": "rulesText",
+      "before": "High Attacks deal -1 damage. The first Combo triggered each turn gains +1 bonus damage.",
+      "after": "High Attacks get -1 Attack Power. The first Combo triggered each turn gains +1 bonus damage.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-033",
+      "name": "Knee Strike",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-033",
+      "name": "Knee Strike",
+      "field": "rulesText",
+      "before": "If the target has two or more permanent Equipment cards equipped, this Attack deals +1 damage and gains Piercing 1.",
+      "after": "If the target has two or more permanent Equipment cards equipped, this Attack gets +1 Attack Power and gains Piercing 1.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-014",
+      "name": "Kneequake Stampede",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-034",
+      "name": "Knifehand Strike",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-KAT-CORE-032",
+      "name": "Kusanku",
+      "field": "rulesText",
+      "before": "Your next High Attack gets +2 Damage. If it is Blocked, draw 1 card.",
+      "after": "Your next High Attack gets +2 Attack Power. If it is Blocked, draw 1 card.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-015",
+      "name": "Leg-Sweeping Guillotine",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-035",
+      "name": "Liver Shot",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-010",
+      "name": "Low Guard",
+      "field": "stats.Power / Guard",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed starter Defense stat to Guard"
+    },
+    {
+      "id": "DDB-ATK-CORE-037",
+      "name": "Mall Ninja Flying Side Kick",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-037",
+      "name": "Mall Ninja Flying Side Kick",
+      "field": "rulesText",
+      "before": "If you have an Improvised Weapon equipped, this Attack deals +2 damage.",
+      "after": "If you have an Improvised Weapon equipped, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-027",
+      "name": "Maximum Overdojo",
+      "field": "rulesText",
+      "before": "The finishing Technique of the second Combo gets +3 Damage.",
+      "after": "The finishing Technique of the second Combo gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-016",
+      "name": "Meteor Fist",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-028",
+      "name": "No, YOU Come Here",
+      "field": "rulesText",
+      "before": "Your first Attack against that fighter next turn gets +3 Damage.",
+      "after": "Your first Attack against that fighter next turn gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-029",
+      "name": "Not Today, Gravity",
+      "field": "rulesText",
+      "before": "The Kick gets +2 Damage. If it is a Jump Kick, draw 1 after it resolves.",
+      "after": "The Kick gets +2 Attack Power. If it is a Jump Kick, draw 1 after it resolves.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-034",
+      "name": "Office Cubicle Maze",
+      "field": "rulesText",
+      "before": "High Attacks deal -1 damage. Defensive Equipment provides +1 DEF against Mid Attacks.",
+      "after": "High Attacks get -1 Attack Power. Defensive Equipment provides +1 DEF against Mid Attacks.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-030",
+      "name": "One-Two-Oh-No",
+      "field": "rulesText",
+      "before": "If the first Punch Hits, the second Punch gets +2 Damage.",
+      "after": "If the first Punch Hits, the second Punch gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-038",
+      "name": "Outside Crescent Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-039",
+      "name": "Overhand Right",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-039",
+      "name": "Overhand Right",
+      "field": "rulesText",
+      "before": "If the defender plays no Defense card, this Attack deals +2 damage.",
+      "after": "If the defender plays no Defense card, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-041",
+      "name": "Palm Heel Strike",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-033",
+      "name": "Personal Space Violation",
+      "field": "rulesText",
+      "before": "If the first Attack Hits, the Hand Attack gets +2 Damage and gains Flow.",
+      "after": "If the first Attack Hits, the Hand Attack gets +2 Attack Power and gains Flow.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-KAT-CORE-044",
+      "name": "Pinan Nidan",
+      "field": "rulesText",
+      "before": "Gain 1 Focus. Your next Attack this turn gets +1 Damage.",
+      "after": "Gain 1 Focus. Your next Attack this turn gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-034",
+      "name": "Pocket Snack Tactics",
+      "field": "rulesText",
+      "before": "The Low Attack gets +1 Damage and gains Flow.",
+      "after": "The Low Attack gets +1 Attack Power and gains Flow.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-035",
+      "name": "Pointy End Forward",
+      "field": "rulesText",
+      "before": "If the High Attack Hit, the Mid Attack gets +2 Damage.",
+      "after": "If the High Attack Hit, the Mid Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-042",
+      "name": "Pop-up Roundhouse Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-044",
+      "name": "Question Mark Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-017",
+      "name": "Railroad Roundhouse",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-040",
+      "name": "Rain-Slick Alley",
+      "field": "rulesText",
+      "before": "Low Attacks deal +1 Damage. Spin-tag Attacks deal -1 Damage.",
+      "after": "Low Attacks get +1 Attack Power. Spin-tag Attacks deal -1 Damage.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-045",
+      "name": "Rear Hand Punch",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-045",
+      "name": "Rear Hand Punch",
+      "field": "rulesText",
+      "before": "If you played a Punch earlier this turn, this Attack deals +1 damage.",
+      "after": "If you played a Punch earlier this turn, this Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-046",
+      "name": "Rear Thrust Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-046",
+      "name": "Rear Thrust Kick",
+      "field": "rulesText",
+      "before": "If you were Hit since your last turn, this Attack deals +2 damage.",
+      "after": "If you were Hit since your last turn, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-039",
+      "name": "Return Receipt",
+      "field": "rulesText",
+      "before": "The second Attack gets +2 Damage.",
+      "after": "The second Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-049",
+      "name": "Reverse Punch",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-049",
+      "name": "Reverse Punch",
+      "field": "rulesText",
+      "before": "If you played a Kata this turn, this Attack deals +2 damage.",
+      "after": "If you played a Kata this turn, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-018",
+      "name": "Ribcage Rattler",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BTQ-CORE-004",
+      "name": "Roar of the Old Master",
+      "field": "rulesText",
+      "before": "The Boss's next Boss Attack gets +1 Damage. Then reveal another Boss Arsenal card.",
+      "after": "The Boss's next Boss Attack gets +1 Attack Power. Then reveal another Boss Arsenal card.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-040",
+      "name": "Rope-a-Dope-a-Dojo",
+      "field": "rulesText",
+      "before": "The Punch gets +4 Damage.",
+      "after": "The Punch gets +4 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-050",
+      "name": "Roundhouse Kick",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-050",
+      "name": "Roundhouse Kick",
+      "field": "rulesText",
+      "before": "If you declare a different zone than your previous Attack this turn, this Attack deals +1 damage.",
+      "after": "If you declare a different zone than your previous Attack this turn, this Attack gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-043",
+      "name": "School Gymnasium",
+      "field": "rulesText",
+      "before": "The first Defense Technique each fighter plays each round gets +1 Guard. Unarmed Attacks deal +1 damage.",
+      "after": "The first Defense Technique each fighter plays each round gets +1 Guard. Unarmed Attacks get +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-WPN-CORE-055",
+      "name": "Sectional Staff",
+      "field": "rulesText",
+      "before": "After you Block with a Dodge Defense, your next Attack deals +1 damage and you may draw 1 card, then discard 1 card.",
+      "after": "After you Block with a Dodge Defense, your next Attack gets +1 Attack Power and you may draw 1 card, then discard 1 card.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-042",
+      "name": "Shin Happens",
+      "field": "rulesText",
+      "before": "Your Low Attack gets +2 Damage. If it Hits, that fighter gets -1 Speed next round.",
+      "after": "Your Low Attack gets +2 Attack Power. If it Hits, that fighter gets -1 Speed next round.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-052",
+      "name": "Side Kick",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-019",
+      "name": "Skybreaker Elbow",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-053",
+      "name": "Snap Front Kick",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-CON-CORE-052",
+      "name": "Spinach",
+      "field": "rulesText",
+      "before": "Your next Attack this turn gains +2 damage.",
+      "after": "Your next Attack this turn gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-054",
+      "name": "Spinning Backfist",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-055",
+      "name": "Spinning Elbow",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-056",
+      "name": "Spinning Hook Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-043",
+      "name": "Stick Around",
+      "field": "rulesText",
+      "before": "If the Mid Attack Hit, the Low Attack gets +2 Damage. If the Low Attack Hits, the target gets -1 Speed next round.",
+      "after": "If the Mid Attack Hit, the Low Attack gets +2 Attack Power. If the Low Attack Hits, the target gets -1 Speed next round.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-057",
+      "name": "Superman Punch",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-058",
+      "name": "Swan Kick",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-044",
+      "name": "Swan Song",
+      "field": "rulesText",
+      "before": "If the opening Kick Hit, the finishing High Kick gets +3 Damage.",
+      "after": "If the opening Kick Hit, the finishing High Kick gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-045",
+      "name": "Sweep Dreams",
+      "field": "rulesText",
+      "before": "If the opener Hits, the High Attack gets +3 Damage.",
+      "after": "If the opener Hits, the High Attack gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-059",
+      "name": "Switching Axe Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-059",
+      "name": "Switching Axe Kick",
+      "field": "rulesText",
+      "before": "You may discard 1 card as an additional cost. If you do, this Attack deals +2 damage.",
+      "after": "You may discard 1 card as an additional cost. If you do, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-060",
+      "name": "Teep (Push Kick)",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-KAT-CORE-058",
+      "name": "Tensho",
+      "field": "rulesText",
+      "before": "Draw 2 cards, then discard 2 cards. Your next Attack this turn gets +1 Damage.",
+      "after": "Draw 2 cards, then discard 2 cards. Your next Attack this turn gets +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-061",
+      "name": "The Blitz",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-047",
+      "name": "Three Breaths, One Regret",
+      "field": "rulesText",
+      "before": "When you announce the final Attack, draw 1 card; that Attack gets +2 Damage.",
+      "after": "When you announce the final Attack, draw 1 card; that Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-050",
+      "name": "Three-Piece, No Biscuit",
+      "field": "rulesText",
+      "before": "If the first two Attacks Hit, the Kick gets +3 Damage.",
+      "after": "If the first two Attacks Hit, the Kick gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-BAT-CORE-020",
+      "name": "Thunderclap Shoulder",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-064",
+      "name": "Tornado Crescent Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-065",
+      "name": "Tornado Round Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-065",
+      "name": "Tornado Round Kick",
+      "field": "rulesText",
+      "before": "If you played a Kata this turn, this Attack deals +2 damage.",
+      "after": "If you played a Kata this turn, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-047",
+      "name": "Tournament Mat",
+      "field": "rulesText",
+      "before": "Weapon Attack Bonus is reduced by 1 (minimum 0). Unarmed Attacks deal +1 damage.",
+      "after": "Weapon Attack Bonus is reduced by 1 (minimum 0). Unarmed Attacks get +1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-066",
+      "name": "Triple Round Kick",
+      "field": "stats.Damage",
+      "before": "2",
+      "after": "2",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-066",
+      "name": "Triple Round Kick",
+      "field": "rulesText",
+      "before": "If you already attacked two different zones this turn, this Attack deals +2 damage.",
+      "after": "If you already attacked two different zones this turn, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-067",
+      "name": "Turning Side Kick",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-051",
+      "name": "Two Sticks, No Plan",
+      "field": "rulesText",
+      "before": "The second Attack gets +2 Damage. If both Attacks Hit, draw 1 card.",
+      "after": "The second Attack gets +2 Attack Power. If both Attacks Hit, draw 1 card.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-069",
+      "name": "Uppercut",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-069",
+      "name": "Uppercut",
+      "field": "rulesText",
+      "before": "If the target has already used Tempo this round, this Attack deals +2 Damage.",
+      "after": "If the target has already used Tempo this round, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-070",
+      "name": "Upward Elbow",
+      "field": "stats.Damage",
+      "before": "3",
+      "after": "3",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-070",
+      "name": "Upward Elbow",
+      "field": "rulesText",
+      "before": "If the target's Speed is higher than yours, this Attack deals +2 damage.",
+      "after": "If the target's Speed is higher than yours, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-052",
+      "name": "Warehouse After Hours",
+      "field": "rulesText",
+      "before": "Two-handed Weapons gain +1 Attack Bonus. High Attacks deal -1 damage.",
+      "after": "Two-handed Weapons gain +1 Attack Bonus. High Attacks get -1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-052",
+      "name": "Weaponized Serenity",
+      "field": "rulesText",
+      "before": "That Attack gets +2 Damage.",
+      "after": "That Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-071",
+      "name": "Wheel Kick",
+      "field": "stats.Damage",
+      "before": "4",
+      "after": "4",
+      "reason": "Rename printed combat stat to Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-071",
+      "name": "Wheel Kick",
+      "field": "rulesText",
+      "before": "If you played a Spin Attack earlier this turn, this Attack deals +2 Damage.",
+      "after": "If you played a Spin Attack earlier this turn, this Attack gets +2 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-STA-CORE-011",
+      "name": "Wild Swing",
+      "field": "stats.Power / Guard",
+      "before": "1",
+      "after": "1",
+      "reason": "Rename printed starter Attack stat to Attack Power"
+    },
+    {
+      "id": "DDB-CMB-CORE-053",
+      "name": "Wing It",
+      "field": "rulesText",
+      "before": "Your first Hand Attack next turn gets +3 Damage.",
+      "after": "Your first Hand Attack next turn gets +3 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-LOC-CORE-053",
+      "name": "Yoga Studio",
+      "field": "rulesText",
+      "before": "The first Kata each fighter plays per turn generates +1 additional Focus. All Attacks deal -1 Damage.",
+      "after": "The first Kata each fighter plays per turn generates +1 additional Focus. All Attacks get -1 Attack Power.",
+      "reason": "Standardize offensive modifiers as Attack Power"
+    },
+    {
+      "id": "DDB-ATK-CORE-005",
+      "name": "Back Kick",
+      "field": "rulesText",
+      "before": "If this is your first Attack this turn, it deals +2 Damage. After it resolves, your next Attack this turn gains Flow.",
+      "after": "If this is your first Attack this turn, it gets +2 Attack Power. After it resolves, your next Attack this turn gains Flow.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-ATK-CORE-007",
+      "name": "Backleg Side, Turning Side",
+      "field": "rulesText",
+      "before": "On Hit, the target's next Attack this round deals -1 damage.",
+      "after": "On Hit, the target's next Attack this round gets −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-CON-CORE-002",
+      "name": "Banana Peel",
+      "field": "rulesText",
+      "before": "Choose an opponent. Their next Attack this round deals -2 damage.",
+      "after": "Choose an opponent. Their next Attack this round gets −2 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-001",
+      "name": "Baseball Bat",
+      "field": "rulesText",
+      "before": "Your first Attack each turn deals +1 damage.",
+      "after": "Your first Attack each turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-002",
+      "name": "Bo Staff (Long Staff)",
+      "field": "rulesText",
+      "before": "After you play a Defense card, your next Attack this turn deals +1 damage.",
+      "after": "After you play a Defense card, your next Attack this turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-003",
+      "name": "Bo-Shuriken (Throwing Spikes)",
+      "field": "rulesText",
+      "before": "Your first Attack against a fighter with higher Speed deals +1 damage.",
+      "after": "Your first Attack against a fighter with higher Speed gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-005",
+      "name": "Brass Knuckles",
+      "field": "rulesText",
+      "before": "If a Punch you make Hits, your next Punch this turn deals +1 damage. Once per turn.",
+      "after": "After a Punch you make Hits, your next Punch this turn gets +1 Attack Power. Once per turn.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-008",
+      "name": "Butterfly Knife (Balisong)",
+      "field": "rulesText",
+      "before": "Your first Attack each turn deals +1 damage if this Weapon was equipped this turn.",
+      "after": "Your first Attack each turn gets +1 Attack Power if this Weapon was Equipped this turn.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-DEF-CORE-008",
+      "name": "Catch and Sweep",
+      "field": "rulesText",
+      "before": "If this Blocks, the attacker gets -2 Speed next round and your next Low Attack against them deals +1 damage.",
+      "after": "If this Blocks, the attacker gets −2 Speed next round and your next Low Attack against them gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-008",
+      "name": "Community Ice Rink",
+      "field": "rulesText",
+      "before": "The first Attack each fighter plays on their turn deals -1 damage. Dodge-tag Defenses get +1 Guard.",
+      "after": "The first Attack each fighter plays during their turn gets −1 Attack Power. Dodge-tag Defenses get +1 Guard.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-009",
+      "name": "Concrete Stairwell",
+      "field": "rulesText",
+      "before": "High Attacks get +1 Attack Power. Jump-tag Attacks deal -1 Damage.",
+      "after": "High Attacks get +1 Attack Power. Jump-tag Attacks get −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-011",
+      "name": "Corporate Conference Room",
+      "field": "rulesText",
+      "before": "The first Item bought each turn costs 1 less Focus, minimum 1. Each fighter's first Attack per turn deals -1 Damage.",
+      "after": "The first Item bought each turn costs 1 less Focus, minimum 1. Each fighter's first Attack per turn gets −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-012",
+      "name": "Dao (Chinese Saber)",
+      "field": "rulesText",
+      "before": "If your first Attack this turn Hits, your second Attack deals +1 damage.",
+      "after": "If your first Attack this turn Hits, your second Attack gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-013",
+      "name": "Deer Horn Knives",
+      "field": "rulesText",
+      "before": "After you Block an Attack, your next Attack this round deals +1 damage.",
+      "after": "After you Block an Attack, your next Attack this round gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-DEF-CORE-013",
+      "name": "Downward Block (Gedan Barai)",
+      "field": "rulesText",
+      "before": "If this Blocks, your next Attack against that attacker this round deals +1 Damage.",
+      "after": "If this Blocks, your next Attack against that attacker this round gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-016",
+      "name": "Eko Bo (Short Staff)",
+      "field": "rulesText",
+      "before": "After you Block an Attack, your next Attack against that attacker this round deals +1 Damage. Once per round.",
+      "after": "After you Block an Attack, your next Attack against that attacker this round gets +1 Attack Power. Once per round.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-017",
+      "name": "Eku (Okinawan Oar)",
+      "field": "rulesText",
+      "before": "Your first Low Attack each turn deals +1 damage.",
+      "after": "Your first Low Attack each turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-KAT-CORE-015",
+      "name": "Empi",
+      "field": "rulesText",
+      "before": "Your first Attack this turn gains +2 Speed and +1 damage.",
+      "after": "Your first Attack this turn gets +2 Speed and +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-016",
+      "name": "Family Pizza Arcade",
+      "field": "rulesText",
+      "before": "The finishing Technique of the first Combo each fighter triggers per turn deals +1 damage. Consumables heal +1 HP.",
+      "after": "The finishing Technique of the first Combo each fighter triggers per turn gets +1 Attack Power. Consumables heal 1 additional HP.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-ATK-CORE-022",
+      "name": "Flying Front Kick",
+      "field": "rulesText",
+      "before": "If this is the second Attack you played this turn, it deals +1 Damage and you gain 1 Focus after it resolves.",
+      "after": "If this is the second Attack you played this turn, it gets +1 Attack Power. After it resolves, gain 1 Focus.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-CON-CORE-021",
+      "name": "Foam Finger",
+      "field": "rulesText",
+      "before": "Choose High, Mid, or Low. The next Attack in that zone targeting you this round deals -2 damage.",
+      "after": "Choose High, Mid, or Low. The next Attack in that zone targeting you this round gets −2 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-DEF-CORE-018",
+      "name": "Forearm Frame",
+      "field": "rulesText",
+      "before": "If this Blocks, the attacker's next Attack this round deals -1 Damage.",
+      "after": "If this Blocks, the attacker's next Attack this round gets −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-020",
+      "name": "Gas Station at 2 A.M.",
+      "field": "rulesText",
+      "before": "The first Consumable each fighter uses per turn heals +1 HP and makes their next Attack that turn deal +1 Damage.",
+      "after": "The first Consumable each fighter uses per turn heals 1 additional HP and gives their next Attack that turn +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-027",
+      "name": "Gladius",
+      "field": "rulesText",
+      "before": "After you play a Defense card, your next Attack this turn deals +1 damage.",
+      "after": "After you play a Defense card, your next Attack this turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-028",
+      "name": "Grandma's Wooden Spoon",
+      "field": "rulesText",
+      "before": "If an opponent has more XP than you, your first Attack against them each turn deals +1 damage.",
+      "after": "If an opponent has more XP than you, your first Attack against them each turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-CMB-CORE-022",
+      "name": "Improvised Curriculum",
+      "field": "rulesText",
+      "before": "After the Attack is declared, you may discard that Weapon to give the Attack +4 Damage.",
+      "after": "After the Attack is declared, you may discard that Weapon. If you do, that Attack gets +4 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-DEF-CORE-023",
+      "name": "Jam the Kick",
+      "field": "rulesText",
+      "before": "If this Blocks a Kick, the attacker's next Kick this turn deals -2 Damage.",
+      "after": "If this Blocks a Kick, the attacker's next Kick this turn gets −2 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-031",
+      "name": "Jian (Straight Sword)",
+      "field": "rulesText",
+      "before": "After you play a Defense card, your next Attack this turn deals +1 damage.",
+      "after": "After you play a Defense card, your next Attack this turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-032",
+      "name": "Jo Staff (Short Staff)",
+      "field": "rulesText",
+      "before": "Your first Attack after you play a Kata each turn deals +1 Damage.",
+      "after": "Your first Attack after you play a Kata each turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-034",
+      "name": "Kama (Sickle)",
+      "field": "rulesText",
+      "before": "Your second Attack each turn deals +1 damage.",
+      "after": "Your second Attack each turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-035",
+      "name": "Kampalan (Southeast Asian Weapon)",
+      "field": "rulesText",
+      "before": "If you were Hit since your last turn, your first Attack this turn deals +1 damage.",
+      "after": "If you were Hit since your last turn, your first Attack this turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-037",
+      "name": "Katana (Japanese Sword)",
+      "field": "rulesText",
+      "before": "If your first Attack this turn Hits, your second Attack this turn deals +1 damage.",
+      "after": "If your first Attack this turn Hits, your second Attack this turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-023",
+      "name": "Kids' Birthday Party",
+      "field": "rulesText",
+      "before": "High Attacks get -1 Attack Power. The first Combo triggered each turn gains +1 bonus damage.",
+      "after": "High Attacks get −1 Attack Power. The finishing Attack of the first Combo triggered each turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-DEF-CORE-025",
+      "name": "Knife-Hand Block (Shuto Uke)",
+      "field": "rulesText",
+      "before": "If this Blocks, choose one: your next Attack against that attacker this round deals +1 Damage; or your next purchase costs 1 less Focus, minimum 1.",
+      "after": "If this Blocks, choose one: your next Attack against that attacker this round gets +1 Attack Power; or your next purchase costs 1 less Focus, minimum 1.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-CHR-CORE-019",
+      "name": "Knuckleton the Brawler",
+      "field": "rulesText",
+      "before": "You cannot equip Weapons. Your first Unarmed Attack each turn deals +1 damage.",
+      "after": "You cannot Equip Weapons. Your first unarmed Attack each turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-ATK-CORE-035",
+      "name": "Liver Shot",
+      "field": "rulesText",
+      "before": "On Hit, the target's next Attack this round deals -2 Damage.",
+      "after": "On Hit, the target's next Attack this round gets −2 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-026",
+      "name": "Locker Room",
+      "field": "rulesText",
+      "before": "The first Consumable each fighter uses on their turn makes their next Attack that turn deal +1 Damage.",
+      "after": "The first Consumable each fighter uses during their turn gives their next Attack that turn +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-028",
+      "name": "Meditation Garden",
+      "field": "rulesText",
+      "before": "The first Kata each fighter plays per turn generates +1 additional Focus. Their first Attack that turn deals -1 Damage.",
+      "after": "The first Kata each fighter plays per turn generates +1 additional Focus. Their first Attack that turn gets −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-042",
+      "name": "Parking-Lot Patience Stick",
+      "field": "rulesText",
+      "before": "If you played no Attack on your previous turn, gain +1 DEF until you Attack; that Attack then deals +1 damage.",
+      "after": "If you played no Attack during your previous turn, gain +1 DEF until you Attack. That Attack gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-029",
+      "name": "Moonlit Bamboo Grove",
+      "field": "rulesText",
+      "before": "Staff and Polearm Weapons gain +1 Attack Bonus. Jump-tag Attacks deal -1 damage.",
+      "after": "Staff and Polearm Weapons gain +1 Attack Bonus. Jump-tag Attacks get −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-DEQ-CORE-029",
+      "name": "Museum Rope Barrier",
+      "field": "rulesText",
+      "before": "Accessory. The first Attack targeting you each round deals -2 Damage. Destroy this after it has affected three Attacks.",
+      "after": "Accessory. The first Attack targeting you each round gets −2 Attack Power. Destroy this after it has affected three Attacks.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-CON-CORE-037",
+      "name": "Mystery Dojo Jerky",
+      "field": "rulesText",
+      "before": "Your next Attack this turn deals +2 damage. If that Attack is Blocked, take 1 direct damage after it resolves.",
+      "after": "Your next Attack this turn gets +2 Attack Power. If it is Blocked, take 1 direct damage after it resolves.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-KAT-CORE-040",
+      "name": "Naihanchi",
+      "field": "rulesText",
+      "before": "Your Low and Mid Attacks gain +1 damage this turn.",
+      "after": "Your Low and Mid Attacks get +1 Attack Power this turn.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-DEF-CORE-030",
+      "name": "Outside Block (Soto Uke)",
+      "field": "rulesText",
+      "before": "If this Blocks, your next Attack against that attacker deals +1 damage.",
+      "after": "If this Blocks, your next Attack against that attacker gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-DEF-CORE-031",
+      "name": "Pak Sao",
+      "field": "rulesText",
+      "before": "If this Blocks a Hand Attack, your next Hand Attack against that attacker this round deals +2 Damage.",
+      "after": "If this Blocks a Hand Attack, your next Hand Attack against that attacker this round gets +2 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-036",
+      "name": "Parking Garage Spiral",
+      "field": "rulesText",
+      "before": "Spin-tag Attacks deal +1 Damage. The first Low Attack each fighter plays per turn deals +1 Damage.",
+      "after": "Spin-tag Attacks get +1 Attack Power. The first Low Attack each fighter plays per turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-047",
+      "name": "Pocket Stick",
+      "field": "rulesText",
+      "before": "Your first Hand Attack each turn deals +1 damage.",
+      "after": "Your first Hand Attack each turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-039",
+      "name": "Public Library",
+      "field": "rulesText",
+      "before": "The first Kata each fighter plays per turn generates +1 additional Focus. Their first Attack that turn deals -1 Damage.",
+      "after": "The first Kata each fighter plays per turn generates +1 additional Focus. Their first Attack that turn gets −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-040",
+      "name": "Rain-Slick Alley",
+      "field": "rulesText",
+      "before": "Low Attacks get +1 Attack Power. Spin-tag Attacks deal -1 Damage.",
+      "after": "Low Attacks get +1 Attack Power. Spin-tag Attacks get −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-041",
+      "name": "River Dock",
+      "field": "rulesText",
+      "before": "Push-tag Attacks deal +2 damage. Low-zone Defense Techniques get +1 Guard.",
+      "after": "Push-tag Attacks get +2 Attack Power. Low-zone Defense Techniques get +1 Guard.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-LOC-CORE-042",
+      "name": "Rooftop at Sunset",
+      "field": "rulesText",
+      "before": "The first High Attack each fighter plays on their turn deals +1 damage. If a Jump or Spin Attack is Blocked, its attacker gets -2 Speed next round.",
+      "after": "The first High Attack each fighter plays during their turn gets +1 Attack Power. If a Jump or Spin Attack is Blocked, its attacker gets −2 Speed next round.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-053",
+      "name": "Sai (Trident)",
+      "field": "rulesText",
+      "before": "After you Block an Attack, your next Attack against that attacker deals +1 damage.",
+      "after": "After you Block an Attack, your next Attack against that attacker gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-056",
+      "name": "Short Sword",
+      "field": "rulesText",
+      "before": "If your Attack is Blocked, your next Attack in a different zone this turn deals +1 damage.",
+      "after": "If your Attack is Blocked, your next Attack in a different zone this turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-ATK-CORE-052",
+      "name": "Side Kick",
+      "field": "rulesText",
+      "before": "If this is your only Attack this turn, it deals +2 damage.",
+      "after": "If this is your only Attack this turn, it gets +2 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-ATK-CORE-056",
+      "name": "Spinning Hook Kick",
+      "field": "rulesText",
+      "before": "If this follows a Mid or High Attack, it deals +2 Damage.",
+      "after": "If this follows a Mid or High Attack, it gets +2 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-ATK-CORE-057",
+      "name": "Superman Punch",
+      "field": "rulesText",
+      "before": "If you played a Kata before this Attack, it deals +2 damage. If it Hits, draw 1 card, then discard 1 card.",
+      "after": "If you played a Kata before this Attack, it gets +2 Attack Power. If it Hits, draw 1 card, then discard 1 card.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-059",
+      "name": "Tactical Baguette",
+      "field": "rulesText",
+      "before": "If you Blocked an Attack this round, your next Attack with this deals +1 damage.",
+      "after": "If you Blocked an Attack this round, your next Attack with this gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-060",
+      "name": "Tanto (Dagger)",
+      "field": "rulesText",
+      "before": "Your first Attack against a fighter with higher Speed deals +1 damage.",
+      "after": "Your first Attack against a fighter with higher Speed gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-ATK-CORE-060",
+      "name": "Teep (Push Kick)",
+      "field": "rulesText",
+      "before": "On Hit, the target's next Attack this round deals -1 damage.",
+      "after": "On Hit, the target's next Attack this round gets −1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-062",
+      "name": "Tonfa (Police Baton)",
+      "field": "rulesText",
+      "before": "You gain +1 DEF against Mid Attacks. After you Block, your next Attack this round deals +1 damage.",
+      "after": "You gain +1 DEF against Mid Attacks. After you Block, your next Attack this round gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-CHR-CORE-040",
+      "name": "Wavey Davey",
+      "field": "rulesText",
+      "before": "If you were Hit by an Attack since your last turn, your first Attack this turn deals +1 damage.",
+      "after": "If you were Hit by an Attack since your last turn, your first Attack this turn gets +1 Attack Power.",
+      "reason": "Finish Attack Power terminology normalization"
+    },
+    {
+      "id": "DDB-WPN-CORE-015",
+      "name": "Dragon Sword",
+      "field": "rulesText",
+      "before": "Your first Hit each turn deals +2 damage.",
+      "after": "The first time an Attack you make Hits each turn, deal 2 additional damage.",
+      "reason": "Distinguish post-Hit additional damage from Attack Power modifiers"
+    },
+    {
+      "id": "DDB-CHR-CORE-011",
+      "name": "El Pollo Rojo",
+      "field": "rulesText",
+      "before": "If an opponent has more XP than you, your first Hit against them each turn deals +1 damage.",
+      "after": "If an opponent has more XP than you, the first time an Attack you make Hits them each turn, deal 1 additional damage.",
+      "reason": "Distinguish post-Hit additional damage from Attack Power modifiers"
+    }
+  ]
+}
