@@ -144,5 +144,9 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.equal(JSON.parse(manifest).activeMatchPolicy, "pin-until-match-ends");
   assert.match(styles, /playtest-shell--live/);
   assert.match(styles, /\.market-row \{[^}]*overflow-x: auto/);
+  assert.match(styles, /\.playtest-shell--live \.play-card-row \{[^}]*grid-auto-flow: column/);
+  assert.match(styles, /\.playtest-shell--live \.market-row \{[^}]*repeat\(7, minmax\(0, 1fr\)\)[^}]*overflow: visible/);
+  assert.match(styles, /\.playtest-shell--live \.playtest-side-stack \{[^}]*grid-template-rows/);
+  assert.match(styles, /\.playtest-shell--live \.playtest-action-dock \{[^}]*position: static/);
   assert.match(styles, /\.fighter-stats \{[^}]*repeat\(6/);
 });

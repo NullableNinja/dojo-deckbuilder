@@ -2200,8 +2200,8 @@ body,
 :root[data-theme="dark"] .simulation-controls input, :root[data-theme="dark"] .simulation-kpis b, :root[data-theme="dark"] .simulation-curve, :root[data-theme="dark"] .simulation-tables table { color: #e9e1ed; background: rgba(18,27,22,.52); }
 
 @media (min-width: 1200px) and (min-height: 850px) {
-  .playtest-shell--live { height: calc(100dvh - 74px); display: grid; grid-template-rows: auto auto auto minmax(165px, .78fr) minmax(300px, 1.22fr); gap: 9px; overflow: hidden; padding-top: 10px; padding-bottom: 10px; }
-  .playtest-shell--live.playtest-shell--guided { grid-template-rows: auto auto auto auto minmax(165px, .78fr) minmax(300px, 1.22fr); }
+  .playtest-shell--live { width: min(1440px, calc(100% - 24px)); height: calc(100dvh - 74px); display: grid; grid-template-rows: auto auto auto minmax(150px, .72fr) minmax(260px, 1.28fr) auto; gap: 8px; overflow: hidden; padding-top: 8px; padding-bottom: 8px; }
+  .playtest-shell--live.playtest-shell--guided { grid-template-rows: auto auto auto auto minmax(150px, .72fr) minmax(260px, 1.28fr) auto; }
   .playtest-shell--live.playtest-shell--finished { overflow-y: auto; }
   .playtest-shell--live .playtest-topbar, .playtest-shell--live .playtest-location, .playtest-shell--live .playtest-table { margin-bottom: 0; }
   .playtest-shell--live .playtest-topbar h1 { font-size: clamp(31px, 3.4vw, 45px); }
@@ -2212,12 +2212,57 @@ body,
   .playtest-shell--live .fighter-panel { min-height: 0; }
   .playtest-shell--live .fighter-panel-art { min-height: 88px; }
   .playtest-shell--live .playtest-combat-desk { padding: 10px; }
-  .playtest-shell--live .playtest-workspace { align-items: stretch; overflow: hidden; }
-  .playtest-shell--live .hand-panel, .playtest-shell--live .playtest-side-stack { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-  .playtest-shell--live .market-panel { max-height: 100%; overflow: hidden; }
-  .playtest-shell--live .market-row { max-height: 252px; }
-  .playtest-shell--live .play-card-main { height: 196px; }
-  .playtest-shell--live .playtest-action-dock { position: fixed; right: 24px; bottom: 18px; width: min(600px, calc(100vw - 48px)); margin: 0; }
+  .playtest-shell--live .playtest-workspace { grid-template-columns: minmax(0, 1.15fr) minmax(510px, .85fr); align-items: stretch; gap: 10px; overflow: hidden; }
+  .playtest-shell--live .hand-panel, .playtest-shell--live .playtest-side-stack { min-height: 0; overflow: hidden; }
+  .playtest-shell--live .hand-panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: 12px; }
+  .playtest-shell--live .hand-panel > header { margin-bottom: 4px; }
+  .playtest-shell--live .hand-panel h2 { font-size: 24px; }
+  .playtest-shell--live .play-card-row { min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: start; gap: 7px; overflow: visible; padding: 3px 2px 5px; scroll-snap-type: none; }
+  .playtest-shell--live .play-card-row .play-card { width: 100%; max-width: 136px; justify-self: center; }
+  .playtest-shell--live .play-card-row .play-card-main { height: clamp(148px, 19dvh, 190px); }
+  .playtest-shell--live .play-card-row .play-card-meta { padding: 4px 5px; }
+  .playtest-shell--live .playtest-side-stack { grid-template-rows: minmax(96px, 1.08fr) minmax(76px, .82fr) auto; gap: 7px; }
+  .playtest-shell--live .market-panel { min-height: 0; max-height: none; overflow: hidden; padding: 7px 9px; border-top-width: 4px; }
+  .playtest-shell--live .market-panel > header { align-items: center; margin-bottom: 4px; }
+  .playtest-shell--live .market-panel h2 { display: none; }
+  .playtest-shell--live .market-panel .eyebrow { margin: 0; font-size: 8px; }
+  .playtest-shell--live .market-forecast { min-width: 0; display: flex; gap: 4px; border: 0; padding: 0; background: transparent; }
+  .playtest-shell--live .market-forecast b { font-size: 15px; }
+  .playtest-shell--live .market-forecast span { font-size: 6px; }
+  .playtest-shell--live .market-forecast small { display: none; }
+  .playtest-shell--live .market-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; max-height: none; overflow: visible; padding: 0; scrollbar-gutter: auto; }
+  .playtest-shell--live .market-row .play-card { width: 100%; min-width: 0; border-width: 1px; box-shadow: 0 3px 6px rgba(63,45,24,.13); }
+  .playtest-shell--live .market-row .play-card-main { height: clamp(42px, 5dvh, 60px); }
+  .playtest-shell--live .market-row .play-card-meta { min-height: 29px; padding: 3px; }
+  .playtest-shell--live .market-row .play-card-meta b { overflow: hidden; font-size: 7px; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
+  .playtest-shell--live .market-row .play-card-meta small, .playtest-shell--live .market-row .play-card-meta em { display: none; }
+  .playtest-shell--live .market-row .play-card-inspect { top: 3px; right: 3px; width: 21px; height: 21px; font-size: 12px; }
+  .playtest-shell--live .combo-panel { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); gap: 4px 7px; padding: 7px 9px; border-top-width: 4px; }
+  .playtest-shell--live .combo-panel > header { grid-column: 1 / -1; align-items: center; margin: 0; }
+  .playtest-shell--live .combo-panel > header .eyebrow { margin: 0; font-size: 8px; }
+  .playtest-shell--live .combo-panel h2 { display: none; }
+  .playtest-shell--live .combo-limit { padding: 3px 5px; font-size: 6px; }
+  .playtest-shell--live .combo-offer { min-height: 0; grid-template-columns: 48px minmax(0, 1fr); border-radius: 7px 2px 8px 3px; box-shadow: none; }
+  .playtest-shell--live .combo-offer > .native-card-art { min-height: 42px; grid-template-rows: auto 1fr auto; padding: 4px; }
+  .playtest-shell--live .combo-offer > .native-card-art > b, .playtest-shell--live .combo-offer > .native-card-art > small, .playtest-shell--live .combo-offer > .native-card-art > em { display: none; }
+  .playtest-shell--live .combo-offer > div { align-content: center; gap: 2px; padding: 5px 7px; }
+  .playtest-shell--live .combo-offer h3 { font-size: 15px; }
+  .playtest-shell--live .combo-offer p { font-size: 7px; line-height: 1.25; -webkit-line-clamp: 2; }
+  .playtest-shell--live .combo-offer > div > span, .playtest-shell--live .combo-offer > div > div button { font-size: 6px; }
+  .playtest-shell--live .combo-offer > div > div b { font-size: 8px; }
+  .playtest-shell--live .combo-actions { align-content: center; display: flex; flex-wrap: nowrap; gap: 4px; margin: 0; }
+  .playtest-shell--live .combo-actions .button { min-height: 25px; padding-inline: 7px; font-size: 7px; }
+  .playtest-shell--live .combo-spent { align-self: center; margin: 0; font-size: 7px; }
+  .playtest-shell--live .learned-combos { display: none; }
+  .playtest-shell--live .belt-panel { min-height: 0; overflow: hidden; padding: 4px 9px; border-left-width: 4px; }
+  .playtest-shell--live .belt-panel .eyebrow { margin-bottom: 2px; font-size: 8px; }
+  .playtest-shell--live .belt-panel h2 { font-size: 19px; }
+  .playtest-shell--live .belt-panel p { overflow: hidden; margin: 2px 0 5px; font-size: 8px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+  .playtest-shell--live .belt-track { justify-content: start; gap: 7px; }
+  .playtest-shell--live .belt-track span { width: 20px; height: 20px; font-size: 7px; }
+  .playtest-shell--live .event-log { display: none; }
+  .playtest-shell--live .playtest-action-dock { position: static; z-index: 1; width: min(520px, 100%); min-height: 44px; justify-self: end; margin: 0; padding-block: 6px; }
+  .playtest-shell--live .playtest-action-dock > button { min-height: 32px; }
 }
 
 @media (max-width: 760px) {
