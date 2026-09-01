@@ -3,6 +3,10 @@ import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
+import gameDefinitionJson from "./data/game-definition.json";
+import rulesJson from "./data/rules.json";
+import SimulationLab from "./simulation-lab";
+import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 
 type CardEntry = {
   id: string;
@@ -73,6 +77,7 @@ type PendingStrike = {
 
 type Match = {
   schema: 3;
+  rulesVersion: string;
   player: Board;
   ai: Board;
   market: string[];
@@ -97,14 +102,21 @@ type Difficulty = "student" | "certified" | "master";
 type HouseSettings = { tempo: boolean; locations: boolean; openMarket: boolean; guided: boolean; autoAi: boolean; balancedMarket: boolean; difficulty: Difficulty };
 
 const cards = (cardsJson as unknown as { cards: CardEntry[] }).cards;
+const catalogRulesVersion = String((cardsJson as unknown as { version: string }).version).split(" ")[0];
 const byId = new Map(cards.map((card) => [card.id, card]));
+const byCatalogId = new Map(cards.map((card) => [card.catalogId, card]));
+const gameDefinition = gameDefinitionJson as unknown as {
+  rulesVersion: string;
+  mode: { startingHp: number };
+  turn: { handSize: number; normalAttackLimit: number };
+  starterDeck: { catalogId: string; copies: number }[];
+  economy: { market: { rowSize: number } };
+};
 const characters = cards.filter((card) => card.cardType === "Character");
-const starterIds = [
-  "starter-pool-2-basic-jab", "starter-pool-3-basic-body-kick", "starter-pool-4-basic-shin-kick", "starter-pool-5-wild-swing",
-  "starter-pool-6-high-guard", "starter-pool-7-center-guard", "starter-pool-8-low-guard", "starter-pool-9-cover-up",
-  "starter-pool-10-breathing-drill", "starter-pool-11-footwork-drill",
-  "starter-pool-12-bad-habit", "starter-pool-12-bad-habit", "starter-pool-12-bad-habit", "starter-pool-12-bad-habit", "starter-pool-12-bad-habit",
-];
+const starterIds = gameDefinition.starterDeck.flatMap(({ catalogId, copies }) => {
+  const id = byCatalogId.get(catalogId)?.id;
+  return id ? Array.from({ length: copies }, () => id) : [];
+});
 const marketPool = cards.filter((card) => card.cardType === "Technique" || card.cardType === "Item");
 const comboPool = cards.filter((card) => card.cardType === "Combo");
 const locationPool = cards.filter((card) => card.cardType === "Location");
@@ -123,17 +135,11 @@ const QUICK_DUEL_LOCATION_NAMES = new Set([
   "Yoga Studio",
 ]);
 const quickDuelLocationPool = locationPool.filter((card) => QUICK_DUEL_LOCATION_NAMES.has(card.name));
-const belts = [
-  { name: "White", xp: 0, task: "Exist. Try not to sprain anything while shuffling.", reward: "Starting belt" },
-  { name: "Yellow", xp: 5, task: "Play a legal High, Mid, and Low Attack while White.", reward: "Certified; Quick Duel HP stays fixed" },
-  { name: "Orange", xp: 10, task: "Play 2 legal Attacks in one turn and Hit with 1.", reward: "+1 ATK; Quick Duel HP stays fixed" },
-  { name: "Green", xp: 15, task: "Play an Attack on your turn and a Defense outside your turn in one round.", reward: "Unlock Green Ability; Quick Duel HP stays fixed" },
-  { name: "Purple", xp: 21, task: "Buy two different card types while Green.", reward: "Second card gives +1 Focus; Quick Duel HP stays fixed" },
-  { name: "Blue", xp: 28, task: "Have 2 permanent Equipment cards equipped.", reward: "+1 hand size; Quick Duel HP stays fixed" },
-  { name: "Red", xp: 36, task: "Trigger a learned Combo.", reward: "3+ damage Hit gives +1 Focus; Quick Duel HP stays fixed" },
-  { name: "Brown", xp: 45, task: "Play 4 cards in one turn including Attack, Kata, and Equipment/Consumable.", reward: "+1 DEF; Quick Duel HP stays fixed" },
-  { name: "Black", xp: 55, task: "KO an opponent while Brown Belt.", reward: "Certified; does not end Quick Duel" },
-];
+const beltTable = (rulesJson as unknown as { chapters: { sections?: { id: string; content: { kind: string; rows?: (string | number)[][] }[] }[] }[] }).chapters
+  .flatMap((chapter) => chapter.sections ?? [])
+  .find((section) => section.id === "belt-table")?.content
+  .find((entry) => entry.kind === "table")?.rows ?? [];
+const belts = beltTable.slice(1).map(([name, xp, task, reward]) => ({ name: String(name), xp: Number(xp), task: String(task), reward: String(reward) }));
 const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail: string; aiHp: number; statBoost: number; attacks: number }> = {
   student: { label: "Student", eyebrow: "Learn the mat", detail: "A shorter duel with a less ruthless opponent.", aiHp: 20, statBoost: 0, attacks: 1 },
   certified: { label: "Certified", eyebrow: "Core test", detail: "The intended Quick Duel pressure and two attacks.", aiHp: 25, statBoost: 0, attacks: 2 },
@@ -178,7 +184,7 @@ function cardCost(card: CardEntry | undefined) { return numberValue(card?.fpCost
 function cardFocus(card: CardEntry | undefined) { return numberValue(card?.focusValue); }
 
 function curateOpeningMarket(ids: string[], balanced: boolean) {
-  if (!balanced) return { market: ids.slice(0, 7), marketDeck: ids.slice(7) };
+  if (!balanced) return { market: ids.slice(0, gameDefinition.economy.market.rowSize), marketDeck: ids.slice(gameDefinition.economy.market.rowSize) };
   const affordable = ids.filter((id) => cardCost(cardFor(id)) <= 3);
   const accessibleTypes = [
     affordable.find((id) => isAttack(cardFor(id)!)),
@@ -187,7 +193,7 @@ function curateOpeningMarket(ids: string[], balanced: boolean) {
   ].filter((id): id is string => Boolean(id));
   const market = [...new Set(accessibleTypes)];
   for (const id of ids) {
-    if (market.length >= 7) break;
+    if (market.length >= gameDefinition.economy.market.rowSize) break;
     if (!market.includes(id)) market.push(id);
   }
   return { market, marketDeck: ids.filter((id) => !market.includes(id)) };
@@ -342,14 +348,14 @@ function fighterStat(board: Board, stat: "ATK" | "DEF" | "Speed") {
 
 function emptyBoard(fighterId: string): Board {
   return drawCards({
-    fighterId, hp: 25, maxHp: 25, xp: 0, focus: 0, belt: 0,
+    fighterId, hp: gameDefinition.mode.startingHp, maxHp: gameDefinition.mode.startingHp, xp: 0, focus: 0, belt: 0,
     deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [],
     tempSpeed: 0, nextAttackBonus: 0, attacksThisTurn: 0, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false,
     defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
     damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false,
     reversalUsedRound: false, learnedCombos: [], triggeredCombos: [], comboAttemptedTurn: false,
     damageDealt: 0, damageTaken: 0, cardsBought: 0,
-  }, 5);
+  }, gameDefinition.turn.handSize);
 }
 
 function artistUrl(card: CardEntry) {
@@ -480,7 +486,7 @@ function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label:
   return <section className={`fighter-panel paper-stack ${enemy ? "is-enemy" : ""}`}>
     <div className="fighter-panel-art">{art ? <img src={art} alt={fighter.name} /> : <img src={cardPlaceholderUrl} alt="" />}</div>
     <div className="fighter-panel-copy"><span>{label} · {belts[board.belt].name} Belt</span><button onClick={() => onInspect(fighter)}>{fighter.name}</button><p>{fighter.rulesText}</p><div className="fighter-hp-track" aria-label={`${fighter.name} has ${board.hp} of ${board.maxHp} hit points`}><span style={{ width: `${Math.max(0, Math.min(100, board.hp / board.maxHp * 100))}%` }} /></div></div>
-    <div className="fighter-stats"><b><small>HP</small>{board.hp}/{board.maxHp}</b><b><small>ATK</small>{fighterStat(board, "ATK")}</b><b><small>DEF</small>{fighterStat(board, "DEF")}</b><b><small>SPD</small>{fighterStat(board, "Speed")}</b></div>
+    <div className="fighter-stats"><b><small>HP</small>{board.hp}/{board.maxHp}</b><b><small>XP</small>{board.xp}</b><b><small>FP</small>{board.focus}</b><b><small>ATK</small>{fighterStat(board, "ATK")}</b><b><small>DEF</small>{fighterStat(board, "DEF")}</b><b><small>SPD</small>{fighterStat(board, "Speed")}</b></div>
   </section>;
 }
 
@@ -517,11 +523,12 @@ function SetupView({ selectedId, setSelectedId, settings, setSettings, begin }: 
     setSelectedId(next.id);
   };
   return <main className="playtest-shell shell">
-    <section className="playtest-hero paper-stack"><span className="eyebrow">Department-certified digital field test</span><h1>Shuffle. Strike. Ascend.</h1><p>This is the actual Quick Duel loop: the fixed 15-card curriculum, all approved Market records, live fighter data, automated Locations, Reversals, Belt Exams, and a separate Combo docket.</p><div className="playtest-stamps"><span>{cards.length} approved records</span><span>Quick Duel vs. tactical AI</span><span>Progress saved on this device</span></div></section>
+    <section className="playtest-hero paper-stack"><span className="eyebrow">Department-certified digital field test</span><h1>Shuffle. Strike. Ascend.</h1><p>This is the actual Quick Duel loop: the fixed {starterIds.length}-card curriculum, all approved Market records, live fighter data, automated Locations, Reversals, Belt Exams, and a separate Combo docket.</p><div className="playtest-stamps"><span>{cards.length} approved records</span><span>Quick Duel vs. tactical AI</span><span>Progress saved on this device</span></div></section>
     <section className="playtest-setup-grid">
       <div className="playtest-roster paper-stack"><div className="roster-toolbar"><div><span className="eyebrow">1 · Choose a fighter</span><h2>Who signs the waiver?</h2></div><div><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a fighter" aria-label="Search fighters" /></label><button onClick={randomize}>Random draw</button></div></div><article className="selected-fighter-dossier"><img src={artistUrl(selected) ?? cardPlaceholderUrl} alt={selected.name} /><div><span>Selected delegation</span><h3>{selected.name}</h3><p>{selected.rulesText ?? "Ability pending an inspector with a functioning pen."}</p><div><b>{numberValue(selected.stats.ATK)}<small>ATK</small></b><b>{numberValue(selected.stats.DEF)}<small>DEF</small></b><b>{numberValue(selected.stats.Speed)}<small>SPD</small></b></div></div></article><div className="playtest-character-grid">{filteredCharacters.map((character) => <button key={character.id} className={selectedId === character.id ? "is-selected" : ""} onClick={() => setSelectedId(character.id)} aria-pressed={selectedId === character.id}><img src={artistUrl(character) ?? cardPlaceholderUrl} alt="" loading="lazy" /><span>{character.name}</span><small>{numberValue(character.stats.ATK)} ATK · {numberValue(character.stats.DEF)} DEF · {numberValue(character.stats.Speed)} SPD</small></button>)}</div></div>
       <aside className="playtest-rules-panel paper-stack"><span className="eyebrow">2 · Choose the trouble</span><h2>How hard should the clipboard hit?</h2><div className="difficulty-grid">{(Object.keys(DIFFICULTIES) as Difficulty[]).map((difficulty) => { const option = DIFFICULTIES[difficulty]; return <button key={difficulty} className={settings.difficulty === difficulty ? "is-selected" : ""} onClick={() => setSettings({ ...settings, difficulty })} aria-pressed={settings.difficulty === difficulty}><span>{option.eyebrow}</span><b>{option.label}</b><small>{option.detail}</small></button>; })}</div><div className="field-switches"><label><input type="checkbox" checked={settings.guided} onChange={(event) => setSettings({ ...settings, guided: event.target.checked })} />Show decision coach</label><label><input type="checkbox" checked={settings.autoAi} onChange={(event) => setSettings({ ...settings, autoAi: event.target.checked })} />Let the computer take its turn automatically</label><label><input type="checkbox" checked={settings.balancedMarket} onChange={(event) => setSettings({ ...settings, balancedMarket: event.target.checked })} />Guarantee a playable opening Market</label><label><input type="checkbox" checked={settings.tempo} onChange={(event) => setSettings({ ...settings, tempo: event.target.checked })} />Use Tempo Advantage</label><label><input type="checkbox" checked={settings.locations} onChange={(event) => setSettings({ ...settings, locations: event.target.checked })} />Scene Change every Honor</label><label><input type="checkbox" checked={settings.openMarket} onChange={(event) => setSettings({ ...settings, openMarket: event.target.checked })} />Include cards awaiting finished art</label></div><p>The playable-Market option only curates the first seven cards; every replacement remains random. Quick Duel still uses Last Fighter Standing.</p><button className="button primary field-test-launch" onClick={() => begin()}>Begin as {selected.name} <span>→</span></button></aside>
     </section>
+    <SimulationLab />
   </main>;
 }
 
@@ -540,6 +547,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     } catch { return null; }
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
+  const [inspectorZoomed, setInspectorZoomed] = useState(false);
+  const [rulesSync, setRulesSync] = useState<RulesSyncState>({ status: "checking", currentVersion: catalogRulesVersion, latestVersion: catalogRulesVersion, checkedAt: 0 });
   const inspected = inspectedId ? cardFor(inspectedId) : null;
 
   useEffect(() => { window.localStorage.setItem("ddb-field-settings", JSON.stringify(settings)); }, [settings]);
@@ -551,6 +560,24 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       window.localStorage.removeItem("ddb-field-match");
     }
   }, [match]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const check = () => fetchRulesManifest(controller.signal)
+      .then((manifest) => setRulesSync(rulesSyncState(catalogRulesVersion, manifest.rulesVersion)))
+      .catch(() => setRulesSync((current) => ({ ...current, status: "offline", checkedAt: Date.now() })));
+    void check();
+    const timer = window.setInterval(check, 60000);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, []);
+  useEffect(() => {
+    setInspectorZoomed(false);
+    if (!inspectedId) return;
+    const previousOverflow = document.body.style.overflow;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setInspectedId(null); };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", close);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", close); };
+  }, [inspectedId]);
 
   const begin = (fighterId = selectedId) => {
     const choices = characters.filter((card) => card.id !== fighterId);
@@ -564,7 +591,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const currentLocation = settings.locations ? locations[0] : locationPool.find((card) => card.name === "Tournament Mat")?.id ?? locations[0];
     const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
     const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
-    setMatch({ schema: 3, player, ai, market: openingMarket.market, marketDeck: openingMarket.marketDeck, comboDeck: comboDeck.slice(1), comboOfferId: comboDeck[0] ?? null, locations: locations.slice(1), locationId: currentLocation, round: 1, phase: playerFirst ? "player-initiate" : "ai-ready", turnOrder, turnIndex: 0, selectedAttackId: null, selectedZone: "High", pendingStrike: null, reversalRemainingAiAttacks: [], winner: null, log: [`${challenge.label} field test opened. The waiver is legally adjacent to complete.`, `Honor 1: ${cardFor(currentLocation)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo.`, `${playerFirst ? "You" : "Computer"} win initiative on current Speed.`] });
+    setMatch({ schema: 3, rulesVersion: catalogRulesVersion, player, ai, market: openingMarket.market, marketDeck: openingMarket.marketDeck, comboDeck: comboDeck.slice(1), comboOfferId: comboDeck[0] ?? null, locations: locations.slice(1), locationId: currentLocation, round: 1, phase: playerFirst ? "player-initiate" : "ai-ready", turnOrder, turnIndex: 0, selectedAttackId: null, selectedZone: "High", pendingStrike: null, reversalRemainingAiAttacks: [], winner: null, log: [`${challenge.label} field test opened under rules ${catalogRulesVersion}. The waiver is legally adjacent to complete.`, `Honor 1: ${cardFor(currentLocation)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo.`, `${playerFirst ? "You" : "Computer"} win initiative on current Speed.`] });
   };
 
   const write = (current: Match, line: string, changes: Partial<Match> = {}) => ({ ...current, ...changes, log: [line, ...current.log].slice(0, 32) });
@@ -598,7 +625,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const declareAttack = () => setMatch((current) => {
     if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner) return current;
     const card = cardFor(current.selectedAttackId);
-    if (!card || current.player.attacksThisTurn >= 2) return current;
+    if (!card || current.player.attacksThisTurn >= gameDefinition.turn.normalAttackLimit) return current;
     const anyZone = card.zone?.includes("Any") || (cardFor(current.player.fighterId)?.name === "Whirlwind Wynn" && current.player.attacksThisTurn === 0 && hasTag(card, "Spin"));
     const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
     const tempoBonus = settings.tempo && current.player.tempo && fighterStat(current.player, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
@@ -786,7 +813,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     : match.phase === "player-initiate"
       ? (player.hand.some((id) => isPermanent(cardFor(id)!)) ? "Equip any permanent Equipment you want before Yell. Each legal Equip generates its printed Focus." : "No permanent Equipment is waiting in hand. Finish Initiate and proceed directly to the yelling.")
     : match.phase === "player-yell"
-      ? (pendingAttack ? `You selected ${pendingAttack.name}. Confirm its zone, then declare the Attack.` : player.hand.some((id) => isAttack(cardFor(id)!)) && player.attacksThisTurn < 2 ? "Play support cards for Focus or select an Attack. You may make up to two normal Attacks." : "Your useful cards are spent. Move to Ascend and turn that Focus into a better deck.")
+      ? (pendingAttack ? `You selected ${pendingAttack.name}. Confirm its zone, then declare the Attack.` : player.hand.some((id) => isAttack(cardFor(id)!)) && player.attacksThisTurn < gameDefinition.turn.normalAttackLimit ? `Play support cards for Focus or select an Attack. You may make up to ${gameDefinition.turn.normalAttackLimit} normal Attacks.` : "Your useful cards are spent. Move to Ascend and turn that Focus into a better deck.")
       : match.phase === "player-ascend"
         ? (canPromote ? `Your ${nextBelt?.name} Belt exam is complete. Promote before you Hide.` : player.focus > 0 ? "Spend Focus in the Market. Affordable cards are awake; the rest are judging you." : "No Focus remains. Hide to clean up, redraw, and hand the clipboard to the computer.")
       : match.phase === "defense-window"
@@ -795,8 +822,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
             ? "You Blocked with a Defense card. Choose one Attack from your hand for a free counterattack, or decline the Reversal. It earns XP but no printed Focus."
           : "The computer has initiative. Run its turn when you are ready to discover what it thinks strategy means.";
 
-  return <main className="playtest-shell shell">
-    <header className="playtest-topbar"><div><span className="eyebrow">Quick Duel · {DIFFICULTIES[settings.difficulty].label} test</span><h1>Paper-Fu Battle Stage <small>Round {match.round}</small></h1></div><div className="playtest-actions"><button onClick={() => setMatch(null)}>New Duel</button><button onClick={() => goTo("rules")}>Rules Desk</button><button onClick={() => goTo("cards")}>Card Library</button></div></header>
+  return <main className={`playtest-shell playtest-shell--live ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}>
+    <header className="playtest-topbar"><div><span className="eyebrow">Quick Duel · {DIFFICULTIES[settings.difficulty].label} test</span><h1>Paper-Fu Battle Stage <small>Round {match.round}</small></h1></div><div className="playtest-actions"><span className={`rules-sync rules-sync--${rulesSync.status}`}>{rulesSync.status === "update-available" ? `Rules ${rulesSync.latestVersion} ready after this duel` : rulesSync.status === "offline" ? `Rules ${match.rulesVersion || catalogRulesVersion} · offline` : `Rules ${match.rulesVersion || catalogRulesVersion} · synced`}</span>{rulesSync.status === "update-available" && <button onClick={() => window.location.reload()}>Reload rules</button>}<button onClick={() => setMatch(null)}>New Duel</button><button onClick={() => goTo("rules")}>Rules Desk</button><button onClick={() => goTo("cards")}>Card Library</button></div></header>
     <section className="game-phase-rail" aria-label="Current H.I.Y.A.H. phase"><div className="phase-rail-line" aria-hidden="true"><span style={{ width: `${activePhaseIndex / 4 * 100}%` }} /></div>{["Honor", "Initiate", "Yell", "Ascend", "Hide"].map((phase, index) => <div className={index === activePhaseIndex ? "is-active" : index < activePhaseIndex ? "is-complete" : ""} key={phase}><b>{"HIYAH"[index]}</b><span>{phase}</span></div>)}</section>
     {settings.guided && <aside className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Sensei Ducktape says</span><p>{turnCoach}</p><button onClick={() => setSettings({ ...settings, guided: false })}>Dismiss coach</button></aside>}
     {match.winner && <section className="match-result paper-stack"><span>{match.winner === "player" ? "Victory certified" : "The paperwork won"}</span><h2>{match.winner === "player" ? `${playerFighter.name} remains standing.` : `${aiFighter.name} wins this field test.`}</h2><p>The result has been stamped, loudly disputed, and filed beneath a suspicious vending-machine receipt.</p><div className="match-report"><b>{match.round}<small>ROUNDS</small></b><b>{player.damageDealt}<small>DAMAGE DEALT</small></b><b>{player.cardsBought}<small>CARDS BOUGHT</small></b><b>{player.learnedCombos.length}<small>COMBOS LEARNED</small></b></div><div className="match-result-actions"><button className="button primary" onClick={() => begin(player.fighterId)}>Instant rematch →</button><button className="button ghost" onClick={() => setMatch(null)}>Choose another fighter</button></div></section>}
@@ -809,12 +836,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     </section>
     <section className="playtest-workspace">
       <section className="hand-panel paper-stack">
-        <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks {player.attacksThisTurn}/2</span></div></header>
+        <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks {player.attacksThisTurn}/{gameDefinition.turn.normalAttackLimit}</span></div></header>
         <div className="play-card-row">{player.hand.map((id, index) => {
           const card = cardFor(id); if (!card) return null;
           const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card);
           const canInitiate = match.phase === "player-initiate" && permanent && !(playerFighter.name === "Knuckleton the Brawler" && isWeapon(card));
-          const canUse = match.phase === "player-yell" && (attack ? player.attacksThisTurn < 2 : !defense && !permanent);
+          const canUse = match.phase === "player-yell" && (attack ? player.attacksThisTurn < gameDefinition.turn.normalAttackLimit : !defense && !permanent);
           const canDefend = match.phase === "defense-window" && defenseOptions.includes(id);
           const canReverse = match.phase === "reversal-window" && attack;
           return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={match.phase === "defense-window" ? !canDefend : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={match.phase === "defense-window" ? () => resolveDefense(id) : match.phase === "reversal-window" ? () => chooseAttack(card) : match.phase === "player-initiate" ? () => equipPermanent(id) : attack ? () => chooseAttack(card) : () => playSupport(id)} onInspect={() => setInspectedId(id)} />;
@@ -826,14 +853,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         {match.phase === "player-yell" && <div className="playtest-yell-actions">{pendingAttack && <><fieldset className="zone-picker"><legend>Declare zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} disabled={!pendingAttack.zone?.includes("Any") && !(playerFighter.name === "Whirlwind Wynn" && player.attacksThisTurn === 0 && hasTag(pendingAttack, "Spin"))} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset><button className="button primary" onClick={declareAttack}>Declare {pendingAttack.name} →</button></>}<button className="button ghost" onClick={enterAscend}>Finish Yell → Ascend</button></div>}
       </section>
       <aside className="playtest-side-stack">
-        <section className="market-panel paper-stack"><header><div><span className="eyebrow">Shared Market · 7 live records</span><h2>Build the curriculum</h2></div><div className="market-forecast"><b>{affordableNow}</b><span>affordable now</span><small>{affordableForecast} after playable Focus</small></div></header><div className="market-row">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= numberValue(card.fpCost); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>{match.phase === "player-ascend" && <div className="ascend-actions"><button className="button primary" disabled={!canPromote} onClick={promote}>{canPromote ? `Promote to ${nextBelt?.name}` : nextBelt ? `${nextBelt.name}: ${nextBelt.xp} XP + task` : "Black Belt certified"}</button><button className="button ghost" onClick={completeTurn}>Hide · End turn →</button></div>}</section>
+        <section className="market-panel paper-stack"><header><div><span className="eyebrow">Shared Market · {gameDefinition.economy.market.rowSize} live records</span><h2>Build the curriculum</h2></div><div className="market-forecast"><b>{affordableNow}</b><span>affordable now</span><small>{affordableForecast} after playable Focus</small></div></header><div className="market-row">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= numberValue(card.fpCost); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>{match.phase === "player-ascend" && <div className="ascend-actions"><button className="button primary" disabled={!canPromote} onClick={promote}>{canPromote ? `Promote to ${nextBelt?.name}` : nextBelt ? `${nextBelt.name}: ${nextBelt.xp} XP + task` : "Black Belt certified"}</button><button className="button ghost" onClick={completeTurn}>Hide · End turn →</button></div>}</section>
         <section className="combo-panel paper-stack"><header><div><span className="eyebrow">Separate Combo docket</span><h2>{player.learnedCombos.length ? `${player.learnedCombos.length}/2 learned` : "Reveal. Learn. Regret."}</h2></div><span className="combo-limit">1 attempt / turn</span></header>{comboOffer ? <div className="combo-offer"><NativeCardArt card={comboOffer} /><div><span>{comboOffer.catalogId}</span><h3>{comboOffer.name}</h3><p>{comboOffer.rulesText}</p><div><b>{cardCost(comboOffer)} Focus</b><button onClick={() => setInspectedId(comboOffer.id)}>Inspect</button></div></div></div> : <p>The Combo docket has escaped the filing cabinet.</p>}{match.phase === "player-ascend" && comboOffer && !player.comboAttemptedTurn && <div className="combo-actions"><button className="button primary" disabled={player.focus < cardCost(comboOffer) || player.learnedCombos.length >= 2} onClick={() => cycleCombo(true)}>Learn {comboOffer.name}</button><button className="button ghost" onClick={() => cycleCombo(false)}>Pass · bottom deck</button></div>} {player.comboAttemptedTurn && <p className="combo-spent">Combo attempt filed for this turn.</p>} {player.learnedCombos.length > 0 && <div className="learned-combos">{player.learnedCombos.map((id) => <button key={id} onClick={() => setInspectedId(id)}><span>∞</span><b>{cardFor(id)?.name}</b><small>{player.triggeredCombos.includes(id) ? "Triggered this round" : "Ready"}</small></button>)}</div>}</section>
         <section className="belt-panel paper-stack"><span className="eyebrow">Certification ledger</span><h2>{belts[player.belt].name} Belt · {player.xp} XP</h2><p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBelt.xp} XP.</b> {nextBelt.task}</> : "Every available Belt has been certified."}</p><div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name}>{belt.name.slice(0, 1)}</span>)}</div></section>
         <section className="event-log paper-stack"><span className="eyebrow">Fight log</span><ol>{match.log.slice(0, 8).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></section>
       </aside>
     </section>
-    {!match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action"><div><span>{match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span><b>{match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn}/2 attacks used` : match.phase === "player-ascend" ? `${player.focus} Focus available` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b></div>{match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}{match.phase === "player-yell" && (pendingAttack ? <button onClick={declareAttack}>Declare Attack →</button> : <button onClick={enterAscend}>Proceed to Ascend →</button>)}{match.phase === "player-ascend" && <button onClick={completeTurn}>Hide · End turn →</button>}{match.phase === "defense-window" && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}{match.phase === "reversal-window" && (pendingAttack ? <button onClick={resolveReversal}>Launch Reversal →</button> : <button onClick={declineReversal}>Decline Reversal</button>)}{match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}</nav>}
-    {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}><article className="playtest-inspector paper-stack" role="dialog" aria-modal="true" aria-labelledby="playtest-inspector-title"><button className="modal-close" onClick={() => setInspectedId(null)} aria-label="Close Card Inspector">×</button><div className="inspector-heading"><div className="inspector-card-visual">{artistUrl(inspected) ? <img src={artistUrl(inspected)} alt={inspected.name} /> : <NativeCardArt card={inspected} />}</div><div><span className="eyebrow">{inspected.catalogId} · {inspected.cardType} · {inspected.subtype}</span><h2 id="playtest-inspector-title">{inspected.name}</h2><p>{inspected.flavorText}</p></div></div><dl><div><dt>Focus Cost</dt><dd>{inspected.fpCost ?? "—"}</dd></div><div><dt>Focus Value</dt><dd>{inspected.focusValue ?? "—"}</dd></div><div><dt>Zone</dt><dd>{inspected.zone ?? "—"}</dd></div><div><dt>Timing</dt><dd>{inspected.timing ?? "—"}</dd></div></dl><section><span>Printed rules text</span><p>{inspected.rulesText ?? "No printed rules text."}</p></section><footer>{cardEffectNote(inspected)} The Card Library remains the source of truth for the complete catalog record.</footer></article></div>}
+    {!match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action"><div><span>{match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span><b>{match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn}/${gameDefinition.turn.normalAttackLimit} attacks used` : match.phase === "player-ascend" ? `${player.focus} Focus available` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b></div>{match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}{match.phase === "player-yell" && (pendingAttack ? <button onClick={declareAttack}>Declare Attack →</button> : <button onClick={enterAscend}>Proceed to Ascend →</button>)}{match.phase === "player-ascend" && <button onClick={completeTurn}>Hide · End turn →</button>}{match.phase === "defense-window" && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}{match.phase === "reversal-window" && (pendingAttack ? <button onClick={resolveReversal}>Launch Reversal →</button> : <button onClick={declineReversal}>Decline Reversal</button>)}{match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}</nav>}
+    {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}><article className={`playtest-inspector paper-stack ${inspectorZoomed ? "is-zoomed" : ""}`} role="dialog" aria-modal="true" aria-labelledby="playtest-inspector-title"><button className="modal-close" onClick={() => setInspectedId(null)} aria-label="Close Card Inspector">×</button><div className="inspector-heading"><button type="button" className="inspector-card-visual" onClick={() => setInspectorZoomed((current) => !current)} aria-label={`${inspectorZoomed ? "Reduce" : "Magnify"} ${inspected.name}`}>{artistUrl(inspected) ? <img src={artistUrl(inspected)} alt={inspected.name} /> : <NativeCardArt card={inspected} />}<span>{inspectorZoomed ? "Reduce card" : "Click to magnify"}</span></button><div><span className="eyebrow">{inspected.catalogId} · {inspected.cardType} · {inspected.subtype}</span><h2 id="playtest-inspector-title">{inspected.name}</h2><p>{inspected.flavorText}</p></div></div><dl><div><dt>Focus Cost</dt><dd>{inspected.fpCost ?? "—"}</dd></div><div><dt>Focus Value</dt><dd>{inspected.focusValue ?? "—"}</dd></div><div><dt>Zone</dt><dd>{inspected.zone ?? "—"}</dd></div><div><dt>Timing</dt><dd>{inspected.timing ?? "—"}</dd></div></dl><section><span>Printed rules text</span><p>{inspected.rulesText ?? "No printed rules text."}</p></section><footer>{cardEffectNote(inspected)} The Card Library remains the source of truth for the complete catalog record. Press Escape to close.</footer></article></div>}
   </main>;
 }
 

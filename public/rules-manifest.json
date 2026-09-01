@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "rulesVersion": "v2.3",
+  "definition": "app/data/game-definition.json",
+  "rules": "app/data/rules.json",
+  "cards": "app/data/cards.json",
+  "refreshIntervalMs": 60000,
+  "activeMatchPolicy": "pin-until-match-ends"
+}

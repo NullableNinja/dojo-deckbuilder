@@ -78,11 +78,11 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(playtest, /import cardsJson from "\.\/data\/cards\.json"/);
   assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,characters\}/);
   assert.match(playtest, /COMPLETE_CARD_ART_BY_CATALOG_ID\[card\.catalogId\]/);
-  assert.match(playtest, /const starterIds = \[/);
+  assert.match(playtest, /gameDefinition\.starterDeck\.flatMap/);
   assert.match(playtest, /const marketPool = cards\.filter/);
   assert.match(playtest, /function openAiStrike/);
   assert.match(playtest, /defense-window/);
-  assert.match(playtest, /Shared Market · 7 live records/);
+  assert.match(playtest, /Shared Market · \{gameDefinition\.economy\.market\.rowSize\} live records/);
   assert.equal(JSON.parse(cards).total, 597, "Playtest source must retain the current definitive Core catalog");
 });
 
@@ -127,4 +127,22 @@ test("field test three adds real digital-game decisions without replacing the Co
   assert.match(playtest, /learnedCombos\.length >= 2/, "The two learned-Combo limit must remain enforced");
   assert.match(styles, /Field Test 3 — tactical desk/);
   assert.match(styles, /prefers-reduced-motion/);
+});
+
+test("v2 engine upgrade keeps rules, play, and simulation on one versioned contract", async () => {
+  const [playtest, worker, manifest, styles] = await Promise.all([
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/simulation-worker.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../public/rules-manifest.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(playtest, /import gameDefinitionJson from "\.\/data\/game-definition\.json"/);
+  assert.match(playtest, /fetchRulesManifest/);
+  assert.match(playtest, /pin-until-match-ends|rulesVersion: catalogRulesVersion/);
+  assert.match(worker, /Math\.min\(1000/);
+  assert.match(worker, /turn-snapshot/);
+  assert.equal(JSON.parse(manifest).activeMatchPolicy, "pin-until-match-ends");
+  assert.match(styles, /playtest-shell--live/);
+  assert.match(styles, /\.market-row \{[^}]*overflow-x: auto/);
+  assert.match(styles, /\.fighter-stats \{[^}]*repeat\(6/);
 });

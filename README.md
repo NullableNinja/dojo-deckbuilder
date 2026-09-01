@@ -39,6 +39,8 @@ npm run simulate -- 10000  # headless batch; writes reports/simulation-v2.3.json
 
 See `docs/ENGINE-ARCHITECTURE.md` for the rules-as-data contract, supported rule coverage, and extension boundary.
 
+The Play the Game setup screen includes a background simulator for 1–1,000 games. It keeps the interface responsive while producing win rates, average length, top card picks, and XP/Focus curves from the current rules snapshot.
+
 ## GitHub Pages deployment
 
 `.github/workflows/deploy-pages.yml` automatically builds and publishes the site whenever `main` changes. In GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions** once. Future pushes to `main` deploy automatically.

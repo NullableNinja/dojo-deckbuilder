@@ -12,8 +12,11 @@ test("builds a GitHub Pages index with repository-relative assets", async () => 
 test("bundles the complete interactive companion", async () => {
   const assetDirectory = new URL("../dist/assets/", import.meta.url);
   const scripts = (await readdir(assetDirectory)).filter((name) => name.endsWith(".js"));
-  assert.equal(scripts.length, 1);
-  const bundle = await readFile(new URL(scripts[0], assetDirectory), "utf8");
+  const mainScript = scripts.find((name) => name.startsWith("index-"));
+  const workerScript = scripts.find((name) => name.startsWith("simulation-worker-"));
+  assert.ok(mainScript, "Expected the main application bundle");
+  assert.ok(workerScript, "Expected a separately cacheable background simulation worker");
+  const bundle = await readFile(new URL(mainScript, assetDirectory), "utf8");
   for (const expected of ["Quick Start", "Card Library", "Rulings & Errata", "Glossary", "House Rules", "Rita attacks Devin. Count the paper."]) {
     assert.ok(bundle.includes(expected), `Missing site content: ${expected}`);
   }
@@ -21,6 +24,6 @@ test("bundles the complete interactive companion", async () => {
   assert.equal(embeddedWebpImages, 0, "Artwork should be cacheable files, not embedded in the JavaScript bundle.");
   const webpAssets = (await readdir(assetDirectory)).filter((name) => name.endsWith(".webp"));
   assert.ok(webpAssets.length >= 17, `Expected emitted WebP artwork; found ${webpAssets.length} files.`);
-  const bundleSize = (await stat(new URL(scripts[0], assetDirectory))).size;
+  const bundleSize = (await stat(new URL(mainScript, assetDirectory))).size;
   assert.ok(bundleSize < 1_500_000, `JavaScript bundle is too large for a mobile-first companion: ${bundleSize} bytes.`);
 });
