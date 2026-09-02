@@ -841,14 +841,15 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           : "The computer has initiative. Run its turn when you are ready to discover what it thinks strategy means.";
 
   return <main className={`playtest-shell playtest-shell--live ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}>
-    <header className="playtest-topbar"><div><span className="eyebrow">Quick Duel · {DIFFICULTIES[settings.difficulty].label} test</span><h1>Paper-Fu Battle Stage <small>Round {match.round}</small></h1></div><div className="playtest-actions"><span className={`rules-sync rules-sync--${rulesSync.status}`}>{rulesSync.status === "update-available" ? `Rules ${rulesSync.latestVersion} ready after this duel` : rulesSync.status === "offline" ? `Rules ${match.rulesVersion || catalogRulesVersion} · offline` : `Rules ${match.rulesVersion || catalogRulesVersion} · synced`}</span>{rulesSync.status === "update-available" && <button onClick={() => window.location.reload()}>Reload rules</button>}<button onClick={() => setMatch(null)}>New Duel</button><button onClick={() => goTo("rules")}>Rules Desk</button><button onClick={() => goTo("cards")}>Card Library</button></div></header>
+    <header className="playtest-topbar"><div><span className="eyebrow">Quick Duel · {DIFFICULTIES[settings.difficulty].label}</span><h1>Battle Stage <small>Round {match.round}</small></h1></div><div className="playtest-actions"><span className={`rules-sync rules-sync--${rulesSync.status}`}>{rulesSync.status === "update-available" ? `Rules ${rulesSync.latestVersion} ready` : rulesSync.status === "offline" ? `Rules ${match.rulesVersion || catalogRulesVersion} · offline` : `Rules ${match.rulesVersion || catalogRulesVersion} · synced`}</span>{rulesSync.status === "update-available" && <button onClick={() => window.location.reload()}>Reload</button>}<button onClick={() => setMatch(null)}>New Duel</button><button onClick={() => goTo("rules")}>Rules</button><button onClick={() => goTo("cards")}>Cards</button></div></header>
     <section className="game-phase-rail" aria-label="Current H.I.Y.A.H. phase"><div className="phase-rail-line" aria-hidden="true"><span style={{ width: `${activePhaseIndex / 4 * 100}%` }} /></div>{["Honor", "Initiate", "Yell", "Ascend", "Hide"].map((phase, index) => <div className={index === activePhaseIndex ? "is-active" : index < activePhaseIndex ? "is-complete" : ""} key={phase}><b>{"HIYAH"[index]}</b><span>{phase}</span></div>)}</section>
     {settings.guided && <aside className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Sensei Ducktape says</span><p>{turnCoach}</p><button onClick={() => setSettings({ ...settings, guided: false })}>Dismiss coach</button></aside>}
     {match.winner && <section className="match-result paper-stack"><span>{match.winner === "player" ? "Victory certified" : "The paperwork won"}</span><h2>{match.winner === "player" ? `${playerFighter.name} remains standing.` : `${aiFighter.name} wins this field test.`}</h2><p>The result has been stamped, loudly disputed, and filed beneath a suspicious vending-machine receipt.</p><div className="match-report"><b>{match.round}<small>ROUNDS</small></b><b>{player.damageDealt}<small>DAMAGE DEALT</small></b><b>{player.cardsBought}<small>CARDS BOUGHT</small></b><b>{player.learnedCombos.length}<small>COMBOS LEARNED</small></b></div><div className="match-result-actions"><button className="button primary" onClick={() => begin(player.fighterId)}>Instant rematch →</button><button className="button ghost" onClick={() => setMatch(null)}>Choose another fighter</button></div></section>}
-    <section className="playtest-location paper-stack"><span>Automated Location · Honor {match.round}</span><div><h2>{currentLocation?.name ?? "Tournament Mat"}</h2><p>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</p></div><button onClick={() => currentLocation && setInspectedId(currentLocation.id)}>Inspect location</button></section>
+    <section className="playtest-arena">
+    <section className="playtest-location paper-stack"><span>Current stage · Honor {match.round}</span><div><h2>{currentLocation?.name ?? "Tournament Mat"}</h2><p>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</p></div><button onClick={() => currentLocation && setInspectedId(currentLocation.id)}>Inspect</button></section>
     <section className="playtest-table">
       <BattleCallout line={match.log[0]} />
-      <FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} />
+      <FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} />
       <section className={`playtest-combat-desk paper-stack state-${match.phase}`}>
         <span className="eyebrow">Live mat</span>
         <div className="combat-meters">
@@ -866,7 +867,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary" onClick={runAiTurn}>Run computer turn →</button>}
         {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}
       </section>
-      <FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} />
+      <FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} />
+    </section>
     </section>
     <section className="playtest-workspace playtest-workspace--hand">
       <section className="hand-panel paper-stack">
