@@ -2616,3 +2616,69 @@ body,
 :root[data-theme="dark"] .fight-log-dialog li { border-color: #52675a; background: #293e32; }
 
 @keyframes acquisition-ready { from { border-color: #8c7c59; } to { border-color: var(--red); } }
+
+/* Field Test 6 — shared play mat and unmistakable Ascend navigation */
+.live-mat-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.live-mat-heading > small { color: #718077; font-size: 6px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
+.live-mat-play { min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.mat-lane { min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border: 1px dashed #aa9b7e; border-radius: 8px 3px 9px 4px; background: rgba(255,255,255,.3); }
+.mat-lane > header { display: flex; align-items: center; justify-content: space-between; gap: 5px; padding: 4px 6px; color: #fff; background: var(--green); }
+.mat-lane:last-child > header { flex-direction: row-reverse; background: var(--red); }
+.mat-lane > header span { font-size: 7px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+.mat-lane > header b { font-size: 6px; letter-spacing: .06em; }
+.mat-lane-cards { min-height: 55px; display: flex; align-items: stretch; gap: 4px; overflow: hidden; padding: 5px; }
+.mat-lane-cards > p { place-self: center; margin: auto; color: #7b817c; font-size: 7px; font-weight: 800; text-transform: uppercase; }
+.mat-lane-cards > button { min-width: 0; flex: 1 1 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; border: 1px solid #a99978; border-radius: 5px 2px 6px 3px; padding: 0; color: #304238; background: #fff8e9; box-shadow: 1px 2px 0 rgba(49,37,20,.16); text-align: left; cursor: pointer; transition: transform .15s, border-color .15s, box-shadow .15s; }
+.mat-lane-cards > button:hover, .mat-lane-cards > button:focus-visible { z-index: 2; border-color: var(--gold); box-shadow: 2px 3px 0 var(--gold); transform: translateY(-2px); }
+.mat-lane-cards > button.is-active { border: 2px solid var(--red); box-shadow: 0 0 0 2px rgba(201,67,47,.17), 2px 3px 0 var(--gold); }
+.mat-card-visual { min-height: 36px; overflow: hidden; background: #e7d5b5; }
+.mat-card-visual > img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: top; }
+.mat-card-visual > .native-card-art { min-height: 38px; height: 100%; grid-template-rows: auto 1fr; padding: 3px; }
+.mat-card-visual > .native-card-art > b, .mat-card-visual > .native-card-art > small, .mat-card-visual > .native-card-art > em { display: none; }
+.mat-card-visual > .native-card-art > strong { align-self: center; font-size: 8px; }
+.mat-card-copy { min-width: 0; display: grid; gap: 1px; padding: 3px 4px; }
+.mat-card-copy b, .mat-card-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mat-card-copy b { font-size: 7px; }
+.mat-card-copy small { color: #718077; font-size: 5px; font-weight: 800; text-transform: uppercase; }
+
+.ascend-desk-tabs { align-items: end; gap: 7px; padding: 10px 14px 0; background: #d8c7a7; }
+.ascend-desk-tabs button { position: relative; min-height: 64px; grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-rows: 1fr 1fr; align-items: center; column-gap: 9px; border: 2px solid #a9956d; border-bottom: 0; border-radius: 11px 11px 0 0; padding: 8px 12px 9px; color: #4c5c52; background: #e7d8bb; box-shadow: 0 -2px 0 rgba(255,255,255,.38) inset, 3px -3px 0 rgba(83,63,30,.1); transform: translateY(3px); transition: transform .15s, background .15s, color .15s; }
+.ascend-desk-tabs button:last-child { border-right: 2px solid #a9956d; }
+.ascend-desk-tabs button:hover, .ascend-desk-tabs button:focus-visible { color: #213e30; background: #f5e9d0; transform: translateY(0); }
+.ascend-desk-tabs button.is-active { z-index: 2; border-color: var(--gold); border-bottom: 0; color: #173d2a; background: #fff6e4; box-shadow: 0 4px 0 #fff6e4, 4px -4px 0 var(--gold); transform: translateY(0); }
+.ascend-desk-tabs button.is-active::after { content: "OPEN"; position: absolute; top: -8px; right: 8px; border-radius: 999px; padding: 2px 6px; color: #fff; background: var(--red); font-size: 5px; font-weight: 950; letter-spacing: .1em; }
+.ascend-desk-tabs i { grid-row: 1 / 3; width: 31px; height: 31px; display: grid; place-items: center; border-radius: 7px 3px 8px 4px; color: #fff; background: var(--green); box-shadow: 2px 2px 0 var(--gold); font: normal 900 18px var(--display); }
+.ascend-desk-tabs button:nth-child(2) i { background: #68457a; }
+.ascend-desk-tabs button:nth-child(3) i { color: #3f3314; background: var(--gold); }
+.ascend-desk-tabs span { align-self: end; font-size: 10px; }
+.ascend-desk-tabs b { grid-column: 3; grid-row: 1 / 3; font-size: 20px; }
+.ascend-desk-tabs small { align-self: start; font-size: 6px; }
+
+:root[data-theme="dark"] .live-mat-heading > small { color: #b8c8bd; }
+:root[data-theme="dark"] .mat-lane { border-color: #53685a; background: rgba(8,19,13,.28); }
+:root[data-theme="dark"] .mat-lane-cards > p { color: #aebdb3; }
+:root[data-theme="dark"] .mat-lane-cards > button { color: #e8f1eb; border-color: #637566; background: #263a2f; }
+:root[data-theme="dark"] .mat-card-copy small { color: #b9c9be; }
+:root[data-theme="dark"] .ascend-desk-tabs { background: #132219; }
+:root[data-theme="dark"] .ascend-desk-tabs button { color: #b8c8bd; border-color: #4c6253; background: #1d3025; box-shadow: 0 -2px 0 rgba(255,255,255,.04) inset, 3px -3px 0 rgba(0,0,0,.18); }
+:root[data-theme="dark"] .ascend-desk-tabs button:hover, :root[data-theme="dark"] .ascend-desk-tabs button:focus-visible { color: #fff; background: #2a4234; }
+:root[data-theme="dark"] .ascend-desk-tabs button.is-active { color: #f4f7f5; border-color: var(--gold); background: #25382d; box-shadow: 0 4px 0 #25382d, 4px -4px 0 #8d722f; }
+
+@media (min-width: 1000px) {
+  .playtest-shell--live .playtest-combat-desk { align-content: stretch; grid-template-rows: auto minmax(86px, 1fr) auto auto auto auto; }
+  .playtest-shell--live .combat-meters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .playtest-shell--live .impact-readout { max-height: 72px; }
+}
+
+@media (max-width: 760px) {
+  .live-mat-heading > small { display: none; }
+  .live-mat-play { grid-template-columns: 1fr; }
+  .mat-lane-cards { min-height: 68px; overflow-x: auto; }
+  .mat-lane-cards > button { min-width: 84px; }
+  .ascend-desk-tabs { gap: 4px; padding-inline: 6px; }
+  .ascend-desk-tabs button { min-height: 57px; grid-template-columns: 24px minmax(0, 1fr); padding: 7px 6px; }
+  .ascend-desk-tabs i { width: 23px; height: 23px; font-size: 13px; }
+  .ascend-desk-tabs b { grid-column: 2; grid-row: 2; justify-self: start; font-size: 12px; }
+  .ascend-desk-tabs small { display: none; }
+  .ascend-desk-tabs span { font-size: 7px; }
+}
