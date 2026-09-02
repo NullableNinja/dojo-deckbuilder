@@ -2501,7 +2501,7 @@ body,
   .playtest-shell--live .playtest-location > button { padding: 6px 8px; font-size: 8px; }
 
   .playtest-shell--live .playtest-table { min-height: 0; grid-template-columns: minmax(280px, .78fr) minmax(440px, 1.44fr) minmax(280px, .78fr); gap: 10px; margin: 0; overflow: visible; }
-  .playtest-shell--live .fighter-panel { min-height: 0; grid-template-columns: minmax(128px, 46%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; align-items: stretch; gap: 9px; padding: 10px; }
+  .playtest-shell--live .fighter-panel { min-height: 0; height: min(292px, 100%); grid-template-columns: minmax(128px, 46%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; align-self: center; align-items: stretch; gap: 9px; padding: 10px; }
   .playtest-shell--live .fighter-panel-art { min-height: 0; height: 100%; overflow: visible; background: transparent; }
   .playtest-shell--live .fighter-panel-art img { width: 100%; height: auto; max-height: 100%; object-fit: contain; filter: drop-shadow(0 9px 7px rgba(31,26,18,.24)); }
   .playtest-shell--live .fighter-panel.is-enemy { grid-template-columns: minmax(0, 1fr) minmax(128px, 46%); }
@@ -2511,7 +2511,7 @@ body,
   .playtest-shell--live .fighter-panel.is-enemy .fighter-panel-copy { text-align: right; }
   .playtest-shell--live .fighter-panel.is-enemy .fighter-panel-copy > button { text-align: right; }
   .playtest-shell--live .fighter-panel-copy > button { font-size: clamp(20px, 1.8vw, 28px); }
-  .playtest-shell--live .fighter-panel-copy p { font-size: 10px; -webkit-line-clamp: 3; }
+  .playtest-shell--live .fighter-panel-copy p { font-size: 10px; -webkit-line-clamp: 2; }
   .playtest-shell--live .fighter-hp-track { height: 12px; margin-top: 8px; }
   .playtest-shell--live .fighter-stats { grid-template-columns: repeat(3, 1fr); align-self: end; gap: 4px; }
   .playtest-shell--live .fighter-stats b { min-width: 0; display: grid; grid-template-columns: 22px minmax(0, 1fr); grid-template-rows: auto auto; align-items: center; column-gap: 4px; padding: 5px; text-align: left; }
