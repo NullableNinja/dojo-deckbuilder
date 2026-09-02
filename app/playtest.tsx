@@ -515,6 +515,19 @@ function ImpactReadout({ line }: { line: string }) {
   </blockquote>;
 }
 
+function MatLane({ label, cards: cardIds, activeId, onInspect }: { label: string; cards: string[]; activeId?: string | null; onInspect: (card: CardEntry) => void }) {
+  const visible = cardIds.slice(-4);
+  return <section className="mat-lane" aria-label={`${label} cards currently on the Live Mat`}>
+    <header><span>{label}</span><b>{visible.length ? `${visible.length} CARD${visible.length === 1 ? "" : "S"}` : "CLEAR"}</b></header>
+    <div className="mat-lane-cards">
+      {visible.length ? visible.map((id, index) => { const card = cardFor(id); if (!card) return null; const art = artistUrl(card); return <button type="button" className={id === activeId ? "is-active" : ""} onClick={() => onInspect(card)} title={`Inspect ${card.name}`} key={`${id}-${index}`}>
+        <span className="mat-card-visual">{art ? <img src={art} alt="" /> : <NativeCardArt card={card} />}</span>
+        <span className="mat-card-copy"><b>{card.name}</b><small>{card.subtype || card.cardType}{card.zone ? ` · ${card.zone}` : ""}</small></span>
+      </button>; }) : <p>No cards committed this turn.</p>}
+    </div>
+  </section>;
+}
+
 function BattleCallout({ line }: { line: string }) {
   const damage = line.match(/hits(?: [^.]*?)? for (\d+)/i)?.[1];
   const block = /\bblocks?\b|is blocked/i.test(line);
@@ -870,7 +883,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       <BattleCallout line={match.log[0]} />
       <FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} />
       <section className={`playtest-combat-desk paper-stack state-${match.phase}`}>
-        <span className="eyebrow">Live mat</span>
+        <div className="live-mat-heading"><span className="eyebrow">Live mat · cards in play</span><small>Click any filed card to inspect it</small></div>
+        <div className="live-mat-play">
+          <MatLane label="Your side" cards={player.playArea} activeId={match.selectedAttackId} onInspect={(card) => setInspectedId(card.id)} />
+          <MatLane label="Opponent side" cards={ai.playArea} activeId={match.pendingStrike?.cardId} onInspect={(card) => setInspectedId(card.id)} />
+        </div>
         <div className="combat-meters">
           <b><small>FOCUS / POTENTIAL</small>{player.focus}<em>/{playableFocus}</em></b>
           <button type="button" onClick={() => setDeskView("belt")}><small>BELT / XP</small><strong>{belts[player.belt].name}</strong><em>{player.xp} XP</em></button>
@@ -918,9 +935,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           <button className="modal-close" onClick={() => setDeskView(null)} aria-label="Close Ascend Desk">×</button>
         </header>
         <nav className="ascend-desk-tabs" aria-label="Ascend desk sections">
-          <button type="button" className={deskView === "market" ? "is-active" : ""} onClick={() => setDeskView("market")}><span>Market</span><b>{affordableNow}/{match.market.length}</b><small>affordable</small></button>
-          <button type="button" className={deskView === "combo" ? "is-active" : ""} onClick={() => setDeskView("combo")}><span>Combo</span><b>{player.learnedCombos.length}/2</b><small>learned</small></button>
-          <button type="button" className={deskView === "belt" ? "is-active" : ""} onClick={() => setDeskView("belt")}><span>Belt</span><b>{belts[player.belt].name}</b><small>{player.xp} XP</small></button>
+          <button type="button" className={deskView === "market" ? "is-active" : ""} aria-current={deskView === "market" ? "page" : undefined} onClick={() => setDeskView("market")}><i aria-hidden="true">▤</i><span>Shared Market</span><b>{affordableNow}/{match.market.length}</b><small>affordable · open section</small></button>
+          <button type="button" className={deskView === "combo" ? "is-active" : ""} aria-current={deskView === "combo" ? "page" : undefined} onClick={() => setDeskView("combo")}><i aria-hidden="true">∞</i><span>Combo Docket</span><b>{player.learnedCombos.length}/2</b><small>learned · open section</small></button>
+          <button type="button" className={deskView === "belt" ? "is-active" : ""} aria-current={deskView === "belt" ? "page" : undefined} onClick={() => setDeskView("belt")}><i aria-hidden="true">★</i><span>Belt Ledger</span><b>{belts[player.belt].name}</b><small>{player.xp} XP · open section</small></button>
         </nav>
         <div className="ascend-desk-body">
           {deskView === "market" && <section className="ascend-market" aria-label="Seven-card Shared Market">
