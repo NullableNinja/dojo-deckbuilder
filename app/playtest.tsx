@@ -481,13 +481,25 @@ function PlayCard({ card, selected, disabled, onClick, onInspect }: { card: Card
   </article>;
 }
 
+function StatGlyph({ stat }: { stat: "HP" | "XP" | "FP" | "ATK" | "DEF" | "SPD" }) {
+  const paths = {
+    HP: <path d="M12 20s-7-4.4-9.2-8.3C.8 8.2 2.6 4.5 6.4 4.5c2.1 0 3.4 1.2 4.1 2.4.7-1.2 2-2.4 4.1-2.4 3.8 0 5.6 3.7 3.6 7.2C16 15.6 12 20 12 20Z" />,
+    XP: <path d="m12 2.8 2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8L12 2.8Z" />,
+    FP: <path d="M18.5 12a6.5 6.5 0 1 1-6.5-6.5c3 0 5 1.8 5 4.1 0 2-1.7 3.5-3.8 3.5-1.7 0-2.9-1-2.9-2.3 0-1.1.9-1.9 2.1-1.9" />,
+    ATK: <path d="M6.3 11.2V7.1c0-1.6 2.2-1.7 2.2-.1V5.8c0-1.6 2.2-1.7 2.2-.1V5c0-1.6 2.2-1.6 2.2 0v.8c0-1.5 2.2-1.5 2.2.1v5l1-1.1c1.1-1.2 3 .2 2 1.6l-3.7 5.2V20H8.2v-3.2l-3-3.7c-1-1.3.2-3 1.1-1.9Z" />,
+    DEF: <path d="M12 2.7 19 5v5.5c0 4.4-2.7 7.7-7 10.8-4.3-3.1-7-6.4-7-10.8V5l7-2.3Z" />,
+    SPD: <path d="M13.5 2.5 5.8 13h5l-1 8.5L18.2 10h-5.1l.4-7.5Z" />,
+  };
+  return <svg className={`fighter-stat-glyph stat-${stat.toLocaleLowerCase()}`} viewBox="0 0 24 24" aria-hidden="true">{paths[stat]}</svg>;
+}
+
 function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void }) {
   const fighter = cardFor(board.fighterId)!;
   const art = artistUrl(fighter);
   return <section className={`fighter-panel paper-stack ${enemy ? "is-enemy" : ""}`}>
     <div className="fighter-panel-art">{art ? <img src={art} alt={fighter.name} /> : <img src={cardPlaceholderUrl} alt="" />}</div>
     <div className="fighter-panel-copy"><span>{label} · {belts[board.belt].name} Belt</span><button onClick={() => onInspect(fighter)}>{fighter.name}</button><p>{fighter.rulesText}</p><div className="fighter-hp-track" aria-label={`${fighter.name} has ${board.hp} of ${board.maxHp} hit points`}><span style={{ width: `${Math.max(0, Math.min(100, board.hp / board.maxHp * 100))}%` }} /></div></div>
-    <div className="fighter-stats"><b><small>HP</small>{board.hp}/{board.maxHp}</b><b><small>XP</small>{board.xp}</b><b><small>FP</small>{board.focus}</b><b><small>ATK</small>{fighterStat(board, "ATK")}</b><b><small>DEF</small>{fighterStat(board, "DEF")}</b><b><small>SPD</small>{fighterStat(board, "Speed")}</b></div>
+    <div className="fighter-stats"><b><StatGlyph stat="HP" /><small>HP</small><span>{board.hp}/{board.maxHp}</span></b><b><StatGlyph stat="XP" /><small>XP</small><span>{board.xp}</span></b><b><StatGlyph stat="FP" /><small>FP</small><span>{board.focus}</span></b><b><StatGlyph stat="ATK" /><small>ATK</small><span>{fighterStat(board, "ATK")}</span></b><b><StatGlyph stat="DEF" /><small>DEF</small><span>{fighterStat(board, "DEF")}</span></b><b><StatGlyph stat="SPD" /><small>SPD</small><span>{fighterStat(board, "Speed")}</span></b></div>
   </section>;
 }
 
