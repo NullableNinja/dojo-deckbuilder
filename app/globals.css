@@ -2469,10 +2469,10 @@ body,
     gap: 8px 12px; overflow: hidden; margin: 0; padding: 8px 14px 86px 8px;
   }
   .playtest-shell--live .playtest-topbar { grid-column: 2; grid-row: 1; min-width: 0; align-items: center; margin: 0; }
-  .playtest-shell--live .battle-versus-hud { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 84px minmax(0, 1fr); gap: 12px; padding-right: 210px; }
+  .playtest-shell--live .battle-versus-hud { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 84px minmax(0, 1fr); gap: 12px; padding-right: 230px; }
   .versus-fighter { min-width: 0; display: grid; align-content: center; gap: 3px; }
   .versus-fighter > div:first-child { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 9px; }
-  .versus-fighter b { overflow: hidden; font-family: var(--display); font-size: 18px; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+  .versus-fighter b { min-width: 0; overflow: hidden; font-family: var(--display); font-size: 18px; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
   .versus-fighter span { color: #6c756e; font-size: 7px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
   .versus-enemy > div:first-child { flex-direction: row-reverse; }
   .versus-enemy { text-align: right; }
@@ -2502,8 +2502,9 @@ body,
   .playtest-shell--live .game-phase-rail b { width: 34px; height: 34px; font-size: 14px; }
   .playtest-shell--live .game-phase-rail span { font-size: 6px; }
 
-  .playtest-shell--live .turn-coach { position: absolute; z-index: 42; top: 7px; left: 330px; right: 350px; min-height: 42px; grid-template-columns: 118px minmax(0, 1fr) auto; gap: 10px; margin: 0; padding: 6px 10px; }
-  .playtest-shell--live .turn-coach p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .playtest-shell--live .turn-coach { position: fixed; z-index: 42; top: auto; right: 14px; bottom: 94px; left: auto; width: 190px; min-height: 120px; grid-template-columns: 1fr; align-content: center; gap: 6px; margin: 0; padding: 10px; }
+  .playtest-shell--live .turn-coach p { display: -webkit-box; overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: normal; -webkit-box-orient: vertical; -webkit-line-clamp: 5; }
+  .playtest-shell--live .turn-coach::after { right: 8px; }
   .playtest-shell--live .match-result { grid-column: 2; grid-row: 2 / 4; z-index: 40; overflow: auto; margin: 0; }
   .playtest-shell--live .playtest-arena { grid-column: 2; grid-row: 2; min-height: 0; display: grid; grid-template-rows: 58px minmax(0, 1fr); gap: 7px; }
   .playtest-shell--live .playtest-location { min-height: 0; grid-template-columns: 128px minmax(0, 1fr) auto; gap: 12px; margin: 0; border-left-width: 6px; padding: 7px 12px; }
@@ -2571,8 +2572,7 @@ body,
 }
 
 @media (min-width: 1000px) and (max-width: 1190px) {
-  .playtest-shell--live .turn-coach { left: 285px; right: 285px; grid-template-columns: minmax(0, 1fr) auto; }
-  .playtest-shell--live .turn-coach > span { display: none; }
+  .playtest-shell--live .battle-versus-hud { padding-right: 190px; }
 }
 
 :root[data-theme="dark"] .playtest-topbar h1,
