@@ -2469,9 +2469,21 @@ body,
     gap: 8px 12px; overflow: hidden; margin: 0; padding: 8px 14px 86px 8px;
   }
   .playtest-shell--live .playtest-topbar { grid-column: 2; grid-row: 1; min-width: 0; align-items: center; margin: 0; }
-  .playtest-shell--live .playtest-topbar h1 { margin-top: 1px; font-size: clamp(25px, 2.2vw, 34px); line-height: .9; }
-  .playtest-shell--live .playtest-topbar .eyebrow { font-size: 8px; }
-  .playtest-shell--live .playtest-actions { flex-wrap: nowrap; align-items: center; gap: 5px; }
+  .playtest-shell--live .battle-versus-hud { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 84px minmax(0, 1fr); gap: 12px; padding-right: 210px; }
+  .versus-fighter { min-width: 0; display: grid; align-content: center; gap: 3px; }
+  .versus-fighter > div:first-child { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 9px; }
+  .versus-fighter b { overflow: hidden; font-family: var(--display); font-size: 18px; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+  .versus-fighter span { color: #6c756e; font-size: 7px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+  .versus-enemy > div:first-child { flex-direction: row-reverse; }
+  .versus-enemy { text-align: right; }
+  .versus-health { height: 13px; overflow: hidden; border: 3px solid #222; border-radius: 3px 9px 4px 8px; background: var(--red); box-shadow: 2px 3px 0 rgba(0,0,0,.16); }
+  .versus-health > span { display: block; height: 100%; background: linear-gradient(90deg, #4bad66, #83cf78); transition: width .4s cubic-bezier(.2,.8,.2,1); }
+  .versus-enemy .versus-health > span { margin-left: auto; background: linear-gradient(270deg, #4bad66, #83cf78); }
+  .versus-center { position: relative; display: grid; grid-template-columns: 1fr; place-items: center; color: #4a554d; text-align: center; }
+  .versus-center > span { position: absolute; top: 1px; z-index: 1; color: #f6cf61; font-size: 5px; font-weight: 900; letter-spacing: .12em; }
+  .versus-center > b { width: 43px; height: 43px; display: grid; place-items: center; border: 3px solid #171b18; border-radius: 50% 45% 48% 43%; color: #fff; background: var(--red); box-shadow: 3px 4px 0 var(--gold); font-family: var(--display); font-size: 25px; line-height: 1; transform: rotate(-2deg); }
+  .versus-center > small { position: absolute; bottom: 0; border-radius: 5px 2px 6px 3px; padding: 1px 5px; color: #fff; background: var(--green); font-size: 6px; font-weight: 900; letter-spacing: .06em; }
+  .playtest-shell--live .playtest-actions { position: absolute; top: 50%; right: 0; flex-wrap: nowrap; align-items: center; gap: 4px; transform: translateY(-50%); }
   .playtest-shell--live .playtest-actions > button { padding: 6px 8px; font-size: 8px; }
   .playtest-shell--live .rules-sync { white-space: nowrap; font-size: 7px; }
 
@@ -2501,7 +2513,7 @@ body,
   .playtest-shell--live .playtest-location > button { padding: 6px 8px; font-size: 8px; }
 
   .playtest-shell--live .playtest-table { min-height: 0; grid-template-columns: minmax(280px, .78fr) minmax(440px, 1.44fr) minmax(280px, .78fr); gap: 10px; margin: 0; overflow: visible; }
-  .playtest-shell--live .fighter-panel { min-height: 0; height: min(292px, 100%); grid-template-columns: minmax(128px, 46%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; align-self: center; align-items: stretch; gap: 9px; padding: 10px; }
+  .playtest-shell--live .fighter-panel { position: relative; min-height: 0; height: min(292px, 100%); grid-template-columns: minmax(128px, 46%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; align-self: center; align-items: stretch; gap: 9px; padding: 10px; }
   .playtest-shell--live .fighter-panel-art { min-height: 0; height: 100%; overflow: visible; background: transparent; }
   .playtest-shell--live .fighter-panel-art img { width: 100%; height: auto; max-height: 100%; object-fit: contain; filter: drop-shadow(0 9px 7px rgba(31,26,18,.24)); }
   .playtest-shell--live .fighter-panel.is-enemy { grid-template-columns: minmax(0, 1fr) minmax(128px, 46%); }
@@ -2523,11 +2535,23 @@ body,
   .playtest-shell--live .fighter-stat-glyph.stat-atk { fill: var(--red); stroke: var(--red); }
   .playtest-shell--live .fighter-stat-glyph.stat-xp { fill: var(--gold); stroke: #9d7411; }
   .playtest-shell--live .fighter-stat-glyph.stat-spd { fill: #d08e25; stroke: #a36b14; }
+  .playtest-shell--live .fighter-equipment-rack { position: absolute; top: calc(100% + 4px); left: 0; z-index: 4; height: 42px; display: flex; align-items: center; gap: 4px; border-left: 4px solid var(--gold); padding: 3px 5px; background: rgba(255,247,228,.96); box-shadow: 0 5px 10px rgba(45,35,22,.13); }
+  .playtest-shell--live .fighter-panel.is-enemy .fighter-equipment-rack { right: 0; left: auto; flex-direction: row-reverse; border-right: 4px solid var(--gold); border-left: 0; }
+  .playtest-shell--live .fighter-equipment-rack > span { padding-inline: 4px; color: #796a4b; font-size: 6px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+  .playtest-shell--live .fighter-equipment-rack button { width: 31px; height: 36px; display: grid; place-items: center; overflow: hidden; border: 1px solid #9f8f70; padding: 0; background: #ead8b8; cursor: pointer; }
+  .playtest-shell--live .fighter-equipment-rack img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .playtest-shell--live .fighter-equipment-rack button small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .playtest-shell--live .playtest-combat-desk { min-height: 0; align-content: center; gap: 7px; padding: 10px 12px; }
   .playtest-shell--live .playtest-combat-desk > .eyebrow { font-size: 10px; }
   .playtest-shell--live .combat-meters b { padding-block: 5px; }
   .playtest-shell--live .playtest-combat-desk > p { font-size: 10px; }
   .playtest-shell--live .impact-readout { max-height: 92px; overflow: hidden; padding: 6px; }
+  .playtest-shell--live .combat-desk-links button { position: relative; border: 2px solid #8c7c59; padding: 7px 9px 7px 34px; background: linear-gradient(160deg, #fff8e8, #ead8af); box-shadow: 3px 4px 0 var(--gold); cursor: pointer; transition: transform .16s, box-shadow .16s; }
+  .playtest-shell--live .combat-desk-links button::before { content: "▤"; position: absolute; left: 9px; top: 50%; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 4px 8px 4px 7px; color: #fff; background: var(--green); font-size: 12px; transform: translateY(-50%); }
+  .playtest-shell--live .combat-desk-links button:last-child::before { content: "∞"; background: var(--red); }
+  .playtest-shell--live .combat-desk-links button:hover,
+  .playtest-shell--live .combat-desk-links button:focus-visible { transform: translateY(-2px); box-shadow: 4px 6px 0 var(--gold); }
+  .playtest-shell--live .state-player-ascend .combat-desk-links button { animation: acquisition-ready 1.5s ease-in-out infinite alternate; }
 
   .playtest-shell--live .playtest-workspace--hand { grid-column: 2; grid-row: 3; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 8px; overflow: hidden; }
   .playtest-shell--live .hand-panel { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; padding: 9px 12px; }
@@ -2567,3 +2591,10 @@ body,
 :root[data-theme="dark"] .combat-zone-board .is-hot { color: #ff9e8c; border-color: #df6c58; background: #50342e; }
 :root[data-theme="dark"] .hand-panel { background: #1d2e25; }
 :root[data-theme="dark"] .playtest-action-dock { background: rgba(17,35,27,.97); }
+:root[data-theme="dark"] .versus-fighter b { color: #edf5ef; }
+:root[data-theme="dark"] .versus-fighter span { color: #b9c9be; }
+:root[data-theme="dark"] .versus-center { color: #e6eee8; }
+:root[data-theme="dark"] .playtest-shell--live .fighter-equipment-rack { color: #e9f1eb; border-color: #9b7d2f; background: rgba(31,48,39,.97); }
+:root[data-theme="dark"] .playtest-shell--live .combat-desk-links button { color: #e7efe9; border-color: #756947; background: linear-gradient(160deg, #31483a, #26362d); }
+
+@keyframes acquisition-ready { from { border-color: #8c7c59; } to { border-color: var(--red); } }
