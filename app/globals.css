@@ -2300,6 +2300,7 @@ body,
 .playtest-action-dock { position: static; width: min(660px, calc(100% - 22px)); margin: 14px auto 0; }
 
 .ascend-desk-backdrop { position: fixed; z-index: 110; inset: 0; display: grid; align-items: end; padding: 12px; background: rgba(9,16,12,.68); backdrop-filter: blur(6px); }
+.view-stage:has(.ascend-desk-backdrop), .view-stage:has(.playtest-inspector-backdrop) { animation: none; transform: none; }
 .ascend-desk { position: relative; width: min(1420px, 100%); max-height: min(80dvh, 760px); min-height: min(620px, calc(100dvh - 24px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; justify-self: center; overflow: hidden; border-top: 8px solid var(--gold); padding: 0; color: #233d31; background: #fff6e4; box-shadow: 0 30px 90px rgba(0,0,0,.48); }
 .ascend-desk-header { display: grid; grid-template-columns: minmax(0, 1fr) auto 38px; align-items: center; gap: 18px; padding: 17px 22px 13px; border-bottom: 1px dashed #c7b691; }
 .ascend-desk-header h2 { margin: 4px 0 0; font-family: var(--display); font-size: clamp(29px, 4vw, 43px); line-height: .92; }
