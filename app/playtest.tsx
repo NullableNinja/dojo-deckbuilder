@@ -100,6 +100,7 @@ type Match = {
 
 type Difficulty = "student" | "certified" | "master";
 type HouseSettings = { tempo: boolean; locations: boolean; openMarket: boolean; guided: boolean; autoAi: boolean; balancedMarket: boolean; difficulty: Difficulty };
+type DeskView = "market" | "combo" | "belt";
 
 const cards = (cardsJson as unknown as { cards: CardEntry[] }).cards;
 const catalogRulesVersion = String((cardsJson as unknown as { version: string }).version).split(" ")[0];
@@ -548,6 +549,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
   const [inspectorZoomed, setInspectorZoomed] = useState(false);
+  const [deskView, setDeskView] = useState<DeskView | null>(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
+      return saved?.phase === "player-ascend" ? "market" : null;
+    } catch { return null; }
+  });
   const [rulesSync, setRulesSync] = useState<RulesSyncState>({ status: "checking", currentVersion: catalogRulesVersion, latestVersion: catalogRulesVersion, checkedAt: 0 });
   const inspected = inspectedId ? cardFor(inspectedId) : null;
 
@@ -571,13 +578,17 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   }, []);
   useEffect(() => {
     setInspectorZoomed(false);
-    if (!inspectedId) return;
+    if (!inspectedId && !deskView) return;
     const previousOverflow = document.body.style.overflow;
-    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setInspectedId(null); };
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (inspectedId) setInspectedId(null);
+      else setDeskView(null);
+    };
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", close);
     return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", close); };
-  }, [inspectedId]);
+  }, [inspectedId, deskView]);
 
   const begin = (fighterId = selectedId) => {
     const choices = characters.filter((card) => card.id !== fighterId);
@@ -591,6 +602,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const currentLocation = settings.locations ? locations[0] : locationPool.find((card) => card.name === "Tournament Mat")?.id ?? locations[0];
     const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
     const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
+    setDeskView(null);
     setMatch({ schema: 3, rulesVersion: catalogRulesVersion, player, ai, market: openingMarket.market, marketDeck: openingMarket.marketDeck, comboDeck: comboDeck.slice(1), comboOfferId: comboDeck[0] ?? null, locations: locations.slice(1), locationId: currentLocation, round: 1, phase: playerFirst ? "player-initiate" : "ai-ready", turnOrder, turnIndex: 0, selectedAttackId: null, selectedZone: "High", pendingStrike: null, reversalRemainingAiAttacks: [], winner: null, log: [`${challenge.label} field test opened under rules ${catalogRulesVersion}. The waiver is legally adjacent to complete.`, `Honor 1: ${cardFor(currentLocation)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo.`, `${playerFirst ? "You" : "Computer"} win initiative on current Speed.`] });
   };
 
@@ -663,7 +675,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     return write(current, `${card.name} played. ${cardEffectNote(card)}${locationModifier.notes.length ? ` ${locationModifier.notes.join("; ")}.` : ""}`, { player: nextPlayer });
   });
 
-  const enterAscend = () => setMatch((current) => current?.phase === "player-yell" ? write(current, "Ascend: spend this turn's Focus before it leaves your mat.", { phase: "player-ascend", selectedAttackId: null }) : current);
+  const enterAscend = () => {
+    setDeskView("market");
+    setMatch((current) => current?.phase === "player-yell" ? write(current, "Ascend: the acquisition desk opens. Spend this turn's Focus before it leaves your mat.", { phase: "player-ascend", selectedAttackId: null }) : current);
+  };
 
   const buyMarket = (id: string) => setMatch((current) => {
     if (!current || current.phase !== "player-ascend" || current.winner) return current;
@@ -697,13 +712,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     return write(current, `Certification approved: ${next.name} Belt. ${next.reward}.`, { player: nextPlayer });
   });
 
-  const completeTurn = () => setMatch((current) => {
-    if (!current || current.phase !== "player-ascend") return current;
-    const nextPlayer = playAreaCleanup(current.player);
-    const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer });
-    if (current.turnIndex === 0) return write(hidden, "The computer is second in this round's initiative order.", { phase: "ai-ready", turnIndex: 1 });
-    return advanceRound(hidden, settings.locations, "Both fighters have completed the round.");
-  });
+  const completeTurn = () => {
+    setDeskView(null);
+    setMatch((current) => {
+      if (!current || current.phase !== "player-ascend") return current;
+      const nextPlayer = playAreaCleanup(current.player);
+      const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer });
+      if (current.turnIndex === 0) return write(hidden, "The computer is second in this round's initiative order.", { phase: "ai-ready", turnIndex: 1 });
+      return advanceRound(hidden, settings.locations, "Both fighters have completed the round.");
+    });
+  };
 
   const runAiTurn = () => setMatch((current) => {
     if (!current || current.phase !== "ai-ready" || current.winner) return current;
@@ -831,10 +849,26 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     <section className="playtest-table">
       <BattleCallout line={match.log[0]} />
       <FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} />
-      <section className={`playtest-combat-desk paper-stack state-${match.phase}`}><span className="eyebrow">Live mat</span><div className="combat-meters"><b><small>FOCUS / POTENTIAL</small>{player.focus}<em>/{playableFocus}</em></b><b><small>MARKET IN REACH</small>{affordableNow}<em>/{affordableForecast}</em></b><b className={player.tempo ? "tempo-ready" : ""}><small>TEMPO</small>{player.tempo ? "READY" : "USED"}</b></div><div className="combat-zone-board" aria-label="Combat zones">{["High", "Mid", "Low"].map((zone) => <span className={(match.pendingStrike?.zone === zone || (pendingAttack && match.selectedZone === zone)) ? "is-hot" : ""} key={zone}><b>{zone.slice(0, 1)}</b>{zone}</span>)}</div><p>{match.phase === "player-initiate" ? "Initiate: equip permanent Equipment, then move to Yell." : match.phase === "player-yell" ? "Yell: play cards, make up to two normal Attacks." : match.phase === "player-ascend" ? "Ascend: buy from the seven-card Market, inspect a Combo, or certify a Belt." : match.phase === "defense-window" ? "Reaction Window: play one matching Defense or pass." : match.phase === "reversal-window" ? "Reversal Window: counterattack with one Attack from hand or decline." : settings.autoAi ? "Computer is reviewing several bad ideas…" : "Computer turn: let it make its choices."}</p><ImpactReadout line={match.log[0]} />{match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary" onClick={runAiTurn}>Run computer turn →</button>} {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}</section>
+      <section className={`playtest-combat-desk paper-stack state-${match.phase}`}>
+        <span className="eyebrow">Live mat</span>
+        <div className="combat-meters">
+          <b><small>FOCUS / POTENTIAL</small>{player.focus}<em>/{playableFocus}</em></b>
+          <button type="button" onClick={() => setDeskView("belt")}><small>BELT / XP</small><strong>{belts[player.belt].name}</strong><em>{player.xp} XP</em></button>
+          <b className={player.tempo ? "tempo-ready" : ""}><small>TEMPO</small>{player.tempo ? "READY" : "USED"}</b>
+        </div>
+        <div className="combat-desk-links" aria-label="Open acquisition records">
+          <button type="button" onClick={() => setDeskView("market")}><span>Shared Market</span><b>{affordableNow}/{match.market.length}</b><small>affordable now</small></button>
+          <button type="button" onClick={() => setDeskView("combo")}><span>Combo docket</span><b>{player.learnedCombos.length}/2</b><small>learned</small></button>
+        </div>
+        <div className="combat-zone-board" aria-label="Combat zones">{["High", "Mid", "Low"].map((zone) => <span className={(match.pendingStrike?.zone === zone || (pendingAttack && match.selectedZone === zone)) ? "is-hot" : ""} key={zone}><b>{zone.slice(0, 1)}</b>{zone}</span>)}</div>
+        <p>{match.phase === "player-initiate" ? "Initiate: equip permanent Equipment, then move to Yell." : match.phase === "player-yell" ? "Yell: play cards, make up to two normal Attacks." : match.phase === "player-ascend" ? "Ascend: the acquisition desk is open for Market, Combo, and Belt actions." : match.phase === "defense-window" ? "Reaction Window: play one matching Defense or pass." : match.phase === "reversal-window" ? "Reversal Window: counterattack with one Attack from hand or decline." : settings.autoAi ? "Computer is reviewing several bad ideas…" : "Computer turn: let it make its choices."}</p>
+        <ImpactReadout line={match.log[0]} />
+        {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary" onClick={runAiTurn}>Run computer turn →</button>}
+        {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}
+      </section>
       <FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} />
     </section>
-    <section className="playtest-workspace">
+    <section className="playtest-workspace playtest-workspace--hand">
       <section className="hand-panel paper-stack">
         <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks {player.attacksThisTurn}/{gameDefinition.turn.normalAttackLimit}</span></div></header>
         <div className="play-card-row">{player.hand.map((id, index) => {
@@ -852,14 +886,45 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         {match.phase === "reversal-window" && <div className="reversal-actions"><div><span>One counterattack · no printed Focus</span>{pendingAttack?.zone?.includes("Any") && <fieldset className="zone-picker"><legend>Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset>}</div><button className="button primary" disabled={!pendingAttack} onClick={resolveReversal}>{pendingAttack ? `Reverse with ${pendingAttack.name} →` : "Choose an Attack"}</button><button className="button ghost" onClick={declineReversal}>Decline Reversal</button></div>}
         {match.phase === "player-yell" && <div className="playtest-yell-actions">{pendingAttack && <><fieldset className="zone-picker"><legend>Declare zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} disabled={!pendingAttack.zone?.includes("Any") && !(playerFighter.name === "Whirlwind Wynn" && player.attacksThisTurn === 0 && hasTag(pendingAttack, "Spin"))} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset><button className="button primary" onClick={declareAttack}>Declare {pendingAttack.name} →</button></>}<button className="button ghost" onClick={enterAscend}>Finish Yell → Ascend</button></div>}
       </section>
-      <aside className="playtest-side-stack">
-        <section className="market-panel paper-stack"><header><div><span className="eyebrow">Shared Market · {gameDefinition.economy.market.rowSize} live records</span><h2>Build the curriculum</h2></div><div className="market-forecast"><b>{affordableNow}</b><span>affordable now</span><small>{affordableForecast} after playable Focus</small></div></header><div className="market-row">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= numberValue(card.fpCost); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>{match.phase === "player-ascend" && <div className="ascend-actions"><button className="button primary" disabled={!canPromote} onClick={promote}>{canPromote ? `Promote to ${nextBelt?.name}` : nextBelt ? `${nextBelt.name}: ${nextBelt.xp} XP + task` : "Black Belt certified"}</button><button className="button ghost" onClick={completeTurn}>Hide · End turn →</button></div>}</section>
-        <section className="combo-panel paper-stack"><header><div><span className="eyebrow">Separate Combo docket</span><h2>{player.learnedCombos.length ? `${player.learnedCombos.length}/2 learned` : "Reveal. Learn. Regret."}</h2></div><span className="combo-limit">1 attempt / turn</span></header>{comboOffer ? <div className="combo-offer"><NativeCardArt card={comboOffer} /><div><span>{comboOffer.catalogId}</span><h3>{comboOffer.name}</h3><p>{comboOffer.rulesText}</p><div><b>{cardCost(comboOffer)} Focus</b><button onClick={() => setInspectedId(comboOffer.id)}>Inspect</button></div></div></div> : <p>The Combo docket has escaped the filing cabinet.</p>}{match.phase === "player-ascend" && comboOffer && !player.comboAttemptedTurn && <div className="combo-actions"><button className="button primary" disabled={player.focus < cardCost(comboOffer) || player.learnedCombos.length >= 2} onClick={() => cycleCombo(true)}>Learn {comboOffer.name}</button><button className="button ghost" onClick={() => cycleCombo(false)}>Pass · bottom deck</button></div>} {player.comboAttemptedTurn && <p className="combo-spent">Combo attempt filed for this turn.</p>} {player.learnedCombos.length > 0 && <div className="learned-combos">{player.learnedCombos.map((id) => <button key={id} onClick={() => setInspectedId(id)}><span>∞</span><b>{cardFor(id)?.name}</b><small>{player.triggeredCombos.includes(id) ? "Triggered this round" : "Ready"}</small></button>)}</div>}</section>
-        <section className="belt-panel paper-stack"><span className="eyebrow">Certification ledger</span><h2>{belts[player.belt].name} Belt · {player.xp} XP</h2><p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBelt.xp} XP.</b> {nextBelt.task}</> : "Every available Belt has been certified."}</p><div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name}>{belt.name.slice(0, 1)}</span>)}</div></section>
-        <section className="event-log paper-stack"><span className="eyebrow">Fight log</span><ol>{match.log.slice(0, 8).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></section>
-      </aside>
+      <details className="event-log event-log--compact paper-stack"><summary>Fight log · {match.log.length} filings</summary><ol>{match.log.slice(0, 8).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>
     </section>
     {!match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action"><div><span>{match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span><b>{match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn}/${gameDefinition.turn.normalAttackLimit} attacks used` : match.phase === "player-ascend" ? `${player.focus} Focus available` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b></div>{match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}{match.phase === "player-yell" && (pendingAttack ? <button onClick={declareAttack}>Declare Attack →</button> : <button onClick={enterAscend}>Proceed to Ascend →</button>)}{match.phase === "player-ascend" && <button onClick={completeTurn}>Hide · End turn →</button>}{match.phase === "defense-window" && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}{match.phase === "reversal-window" && (pendingAttack ? <button onClick={resolveReversal}>Launch Reversal →</button> : <button onClick={declineReversal}>Decline Reversal</button>)}{match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}</nav>}
+    {deskView && <div className="ascend-desk-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDeskView(null)}>
+      <section className="ascend-desk paper-stack" role="dialog" aria-modal="true" aria-labelledby="ascend-desk-title">
+        <header className="ascend-desk-header">
+          <div><span className="eyebrow">{match.phase === "player-ascend" ? "Ascend desk · purchasing authorized" : "Reference desk · inspection only"}</span><h2 id="ascend-desk-title">{deskView === "market" ? "Shared Market" : deskView === "combo" ? "Combo Docket" : "Certification Ledger"}</h2></div>
+          <div className="ascend-desk-balance"><span>Available Focus</span><b>{player.focus}</b><small>{affordableNow} of {match.market.length} Market cards in reach</small></div>
+          <button className="modal-close" onClick={() => setDeskView(null)} aria-label="Close Ascend Desk">×</button>
+        </header>
+        <nav className="ascend-desk-tabs" aria-label="Ascend desk sections">
+          <button type="button" className={deskView === "market" ? "is-active" : ""} onClick={() => setDeskView("market")}><span>Market</span><b>{affordableNow}/{match.market.length}</b><small>affordable</small></button>
+          <button type="button" className={deskView === "combo" ? "is-active" : ""} onClick={() => setDeskView("combo")}><span>Combo</span><b>{player.learnedCombos.length}/2</b><small>learned</small></button>
+          <button type="button" className={deskView === "belt" ? "is-active" : ""} onClick={() => setDeskView("belt")}><span>Belt</span><b>{belts[player.belt].name}</b><small>{player.xp} XP</small></button>
+        </nav>
+        <div className="ascend-desk-body">
+          {deskView === "market" && <section className="ascend-market" aria-label="Seven-card Shared Market">
+            <header><div><span className="eyebrow">Seven live records · full cards</span><h3>Choose with the text visible</h3></div><p>{match.phase === "player-ascend" ? "Affordable cards are highlighted. Select one to buy it; the row refills immediately." : "The full row is available for reference. Buying unlocks during Ascend."}</p></header>
+            <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= cardCost(card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
+          </section>}
+          {deskView === "combo" && <section className="ascend-combo combo-panel">
+            <header><div><span className="eyebrow">One face-up offer · one attempt per turn</span><h3>{player.learnedCombos.length ? `${player.learnedCombos.length}/2 learned` : "Reveal. Learn. Regret."}</h3></div><span className="combo-limit">{player.comboAttemptedTurn ? "Attempt filed" : "Ready"}</span></header>
+            {comboOffer ? <div className="combo-offer"><NativeCardArt card={comboOffer} /><div><span>{comboOffer.catalogId}</span><h3>{comboOffer.name}</h3><p>{comboOffer.rulesText}</p><div><b>{cardCost(comboOffer)} Focus</b><button onClick={() => setInspectedId(comboOffer.id)}>Inspect full card</button></div></div></div> : <p>The Combo docket has escaped the filing cabinet.</p>}
+            {match.phase === "player-ascend" && comboOffer && !player.comboAttemptedTurn && <div className="combo-actions"><button className="button primary" disabled={player.focus < cardCost(comboOffer) || player.learnedCombos.length >= 2} onClick={() => cycleCombo(true)}>Learn {comboOffer.name}</button><button className="button ghost" onClick={() => cycleCombo(false)}>Pass · bottom deck</button></div>}
+            {match.phase !== "player-ascend" && <p className="combo-spent">Combo actions unlock during Ascend.</p>}
+            {player.comboAttemptedTurn && <p className="combo-spent">Combo attempt filed for this turn.</p>}
+            {player.learnedCombos.length > 0 && <div className="learned-combos">{player.learnedCombos.map((id) => <button key={id} onClick={() => setInspectedId(id)}><span>∞</span><b>{cardFor(id)?.name}</b><small>{player.triggeredCombos.includes(id) ? "Triggered this round" : "Ready"}</small></button>)}</div>}
+          </section>}
+          {deskView === "belt" && <section className="ascend-belt belt-panel">
+            <span className="eyebrow">Certification ledger</span><h3>{belts[player.belt].name} Belt · {player.xp} XP</h3>
+            <p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBelt.xp} XP.</b> {nextBelt.task}</> : "Every available Belt has been certified."}</p>
+            <div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name} title={`${belt.name} Belt · ${belt.xp} XP`}>{belt.name.slice(0, 1)}</span>)}</div>
+            <div className="belt-ledger-list">{belts.map((belt, index) => <article className={index === player.belt ? "is-current" : index < player.belt ? "is-earned" : ""} key={belt.name}><span>{index < player.belt ? "✓" : index === player.belt ? "●" : index + 1}</span><div><b>{belt.name} Belt</b><small>{belt.xp} XP · {belt.task || "Starting certification"}</small></div></article>)}</div>
+            {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : `${nextBelt.name}: ${nextBelt.xp} XP + completed task`}</button>}
+          </section>}
+        </div>
+        <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <button className="button primary" onClick={completeTurn}>Hide · End turn →</button>}</footer>
+      </section>
+    </div>}
     {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}><article className={`playtest-inspector paper-stack ${inspectorZoomed ? "is-zoomed" : ""}`} role="dialog" aria-modal="true" aria-labelledby="playtest-inspector-title"><button className="modal-close" onClick={() => setInspectedId(null)} aria-label="Close Card Inspector">×</button><div className="inspector-heading"><button type="button" className="inspector-card-visual" onClick={() => setInspectorZoomed((current) => !current)} aria-label={`${inspectorZoomed ? "Reduce" : "Magnify"} ${inspected.name}`}>{artistUrl(inspected) ? <img src={artistUrl(inspected)} alt={inspected.name} /> : <NativeCardArt card={inspected} />}<span>{inspectorZoomed ? "Reduce card" : "Click to magnify"}</span></button><div><span className="eyebrow">{inspected.catalogId} · {inspected.cardType} · {inspected.subtype}</span><h2 id="playtest-inspector-title">{inspected.name}</h2><p>{inspected.flavorText}</p></div></div><dl><div><dt>Focus Cost</dt><dd>{inspected.fpCost ?? "—"}</dd></div><div><dt>Focus Value</dt><dd>{inspected.focusValue ?? "—"}</dd></div><div><dt>Zone</dt><dd>{inspected.zone ?? "—"}</dd></div><div><dt>Timing</dt><dd>{inspected.timing ?? "—"}</dd></div></dl><section><span>Printed rules text</span><p>{inspected.rulesText ?? "No printed rules text."}</p></section><footer>{cardEffectNote(inspected)} The Card Library remains the source of truth for the complete catalog record. Press Escape to close.</footer></article></div>}
   </main>;
 }

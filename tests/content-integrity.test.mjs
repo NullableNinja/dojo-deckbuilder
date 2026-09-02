@@ -82,7 +82,7 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(playtest, /const marketPool = cards\.filter/);
   assert.match(playtest, /function openAiStrike/);
   assert.match(playtest, /defense-window/);
-  assert.match(playtest, /Shared Market · \{gameDefinition\.economy\.market\.rowSize\} live records/);
+  assert.match(playtest, /Seven live records · full cards/);
   assert.equal(JSON.parse(cards).total, 597, "Playtest source must retain the current definitive Core catalog");
 });
 
@@ -116,7 +116,7 @@ test("field test three adds real digital-game decisions without replacing the Co
     "comboAttackModifier",
     "reversal-window",
     "resolveReversal",
-    "Separate Combo docket",
+    "Combo Docket",
     "Guarantee a playable opening Market",
     "aiMarketScore",
     "aiAttackScore",
@@ -144,9 +144,15 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.equal(JSON.parse(manifest).activeMatchPolicy, "pin-until-match-ends");
   assert.match(styles, /playtest-shell--live/);
   assert.match(styles, /\.market-row \{[^}]*overflow-x: auto/);
-  assert.match(styles, /\.playtest-shell--live \.play-card-row \{[^}]*grid-auto-flow: column/);
-  assert.match(styles, /\.playtest-shell--live \.market-row \{[^}]*repeat\(7, minmax\(0, 1fr\)\)[^}]*overflow: visible/);
-  assert.match(styles, /\.playtest-shell--live \.playtest-side-stack \{[^}]*grid-template-rows/);
+  assert.match(playtest, /type DeskView = "market" \| "combo" \| "belt"/);
+  assert.match(playtest, /className="ascend-desk-backdrop"/);
+  assert.match(playtest, /className="ascend-desk-tabs"/);
+  assert.match(playtest, /className="combat-desk-links"/);
+  assert.doesNotMatch(playtest, /className="playtest-side-stack"/);
+  assert.match(styles, /\.ascend-desk-backdrop \{[^}]*position: fixed/);
+  assert.match(styles, /\.ascend-market-grid \{[^}]*repeat\(7, minmax\(118px, 1fr\)\)/);
+  assert.match(styles, /:root\[data-theme="dark"\] \.ascend-desk \{/);
+  assert.match(styles, /\.playtest-shell--live \.play-card-row \{[^}]*display: flex[^}]*overflow-x: auto/);
   assert.match(styles, /\.playtest-shell--live \.playtest-action-dock \{[^}]*position: static/);
   assert.match(styles, /\.fighter-stats \{[^}]*repeat\(6/);
 });
