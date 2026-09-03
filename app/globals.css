@@ -2704,3 +2704,12 @@ body,
   .ascend-desk-tabs small { display: none; }
   .ascend-desk-tabs span { font-size: 7px; }
 }
+
+/* Impact equations need the full certification seal at desktop board scale. */
+@media (min-width: 761px) {
+  .playtest-shell--live .impact-readout {
+    min-height: 70px;
+    max-height: 70px;
+    overflow: visible;
+  }
+}
