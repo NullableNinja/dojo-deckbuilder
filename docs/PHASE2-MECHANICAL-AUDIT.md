@@ -18,7 +18,7 @@ Approved fix: keep a mixed seven-card row, but after a purchase reveal two cards
 
 Normal Belt Max-HP/heal rewards undermine a knockout-only short mode and can reverse more damage than early decks can reliably deal.
 
-Approved fix: Quick Duel remains fixed at 25 Max HP with no promotion heal; every non-HP Belt perk remains active.
+Superseded by v2.3-r3: Quick Duel now uses every printed Belt reward, including +10 Max HP and promotion healing.
 
 ## Other resolved contradictions
 

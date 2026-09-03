@@ -31,6 +31,30 @@ test("the active rules and playtest have no Attack cap", async () => {
   assert.match(playtest, /Flow draws 1 card/);
   assert.match(playtest, /function attackHasFlow/);
   assert.match(playtest, /practiceDefense/);
+  const cardsText = await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8");
+  assert.doesNotMatch(cardsText, /"attackLimit"\s*:/, "Card metadata must not retain the removed Attack cap");
+});
+
+test("active rules and play surfaces use the persistent Market and full Quick Duel vitality", async () => {
+  const [rules, definition, companion, playtest, engine, manifest] = await Promise.all([
+    readFile(new URL("../app/data/rules.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/game-definition.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../engine/core.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../public/rules-manifest.json", import.meta.url), "utf8"),
+  ]);
+  for (const source of [rules, definition, companion, playtest, engine]) {
+    assert.doesNotMatch(source, /Controlled Refill|controlledRefill/, "Controlled Refill must be completely removed from active surfaces");
+  }
+  assert.match(rules, /Unpurchased Market cards remain in the row between rounds/);
+  assert.match(playtest, /marketPurchasedThisRound/);
+  assert.match(playtest, /const choosePendingDiscard/);
+  assert.match(playtest, /function applyBeltPromotion/);
+  assert.match(playtest, /Bought \$\{card\.name\} for \$\{price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);
+  assert.equal(JSON.parse(definition).economy.market.refill, "top-card-after-purchase");
+  assert.equal(JSON.parse(definition).progression.quickDuelUsesFullBeltRewards, true);
+  assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r3");
 });
 
 test("deployment gates publication on the test suite", async () => {
@@ -179,8 +203,11 @@ test("field test three adds real digital-game decisions without replacing the Co
     "aiMarketScore",
     "aiAttackScore",
     "revealMarketCards",
-    "chooseMarketRefill",
+    "refillPurchasedMarketSlot",
     "refreshMarketRow",
+    "marketPurchasedThisRound",
+    "choosePendingDiscard",
+    "applyBeltPromotion",
     "playtest-action-dock",
     "NativeCardArt",
   ]) assert.ok(playtest.includes(feature), `Missing upgraded field-test feature: ${feature}`);
@@ -203,7 +230,7 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.match(worker, /Math\.min\(1000/);
   assert.match(worker, /turn-snapshot/);
   assert.equal(JSON.parse(manifest).activeMatchPolicy, "pin-until-match-ends");
-  assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r2");
+  assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r3");
   assert.match(styles, /playtest-shell--live/);
   assert.match(styles, /\.market-row \{[^}]*overflow-x: auto/);
   assert.match(playtest, /type DeskView = "market" \| "combo" \| "belt"/);

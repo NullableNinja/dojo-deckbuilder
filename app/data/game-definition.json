@@ -1,13 +1,12 @@
 {
   "schemaVersion": 1,
   "rulesVersion": "v2.3",
-  "rulesRevision": "v2.3-r2",
+  "rulesRevision": "v2.3-r3",
   "source": "app/data/rules.json",
   "mode": {
     "id": "quick-duel",
     "players": 2,
     "startingHp": 25,
-    "fixedMaxHp": true,
     "blackBeltVictory": false,
     "maxRounds": 40
   },
@@ -34,7 +33,7 @@
   "openingMulligan": {"requiredTypes":["Attack","Kata"],"attempts":1},
   "economy": {
     "defensePractice": {"usesPerTurn":1,"grantsPrintedFocus":true,"triggersRulesText":false,"grantsXp":false},
-    "market": {"rowSize":7,"decks":["Technique Deck","Item Deck"],"controlledRefill":{"reveal":2,"choose":1},"refresh":"end-of-round"}
+    "market": {"rowSize":7,"decks":["Technique Deck","Item Deck"],"refill":"top-card-after-purchase","stagnationRefresh":"after-full-round-without-purchase"}
   },
   "combat": {
     "attackFormula":["printedAttackPower","characterAtk","tempo","modifiers"],
@@ -47,6 +46,6 @@
     "xpPerHonor":1,
     "attackXpOnHit":1,
     "defenseXpOnBlock":1,
-    "quickDuelKeepsNonHpPerks":true
+    "quickDuelUsesFullBeltRewards":true
   }
 }
