@@ -1,0 +1,35 @@
+name: Finalize Consumable Card Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/finalize-consumable-publish.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install card rendering tools
+        run: |
+          if ! command -v convert >/dev/null || ! command -v zip >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y imagemagick zip fonts-dejavu-core
+          fi
+      - name: Render flavor bands and archive the complete set
+        run: node scripts/finalize-consumable-publish.mjs
+      - name: Commit final card assets
+        run: |
+          rm scripts/finalize-consumable-publish.mjs .github/workflows/finalize-consumable-publish.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/assets/cards/consumables public/downloads/Dojo_Deckbuilder_v2.3_Consumable_Cards.zip scripts .github/workflows
+          git diff --cached --quiet || git commit -m "Finalize Consumable card faces and backup"
+          git push origin HEAD:main
