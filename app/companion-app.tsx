@@ -27,10 +27,10 @@ import chapterTagTeamUrl from "./assets/rules/chapter-13-tag-team-v2.webp";
 import chapterBossUrl from "./assets/rules/chapter-14-boss-v2.webp";
 import chapterPriorityUrl from "./assets/rules/chapter-15-priority-v2.webp";
 import chapterEndgameUrl from "./assets/rules/chapter-16-endgame-v2.webp";
-import elPolloRojoUrl from "./assets/characters/el-pollo-rojo.webp";
-import sentryBobbyUrl from "./assets/cards/characters/sentry-bobby.webp";
-import senseiDucktapeUrl from "./assets/characters/sensei-ducktape.webp";
-import waveyDaveyUrl from "./assets/characters/wavey-davey.webp";
+import honorableTrashPandaUrl from "./assets/characters/core-roster/honorable-trash-panda.webp";
+import karatesaurusUrl from "./assets/characters/core-roster/karatesaurus.webp";
+import janitorJoeUrl from "./assets/characters/core-roster/janitor-joe.webp";
+import missDirectionUrl from "./assets/characters/core-roster/miss-direction.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
@@ -178,10 +178,10 @@ const MOBILE_MENU_ITEMS: { id: ViewId; label: string; detail: string }[] = [
 ];
 const ALL_VIEWS: ViewId[] = ["home", ...NAV_ITEMS.map((item) => item.id)];
 const HERO_FIGHTERS = [
-  { name: "El Pollo Rojo", image: elPolloRojoUrl, type: "Never Backs Down" },
-  { name: "Sentry Bobby", image: sentryBobbyUrl, type: "Built Like a Filing Cabinet" },
-  { name: "Sensei Ducktape", image: senseiDucktapeUrl, type: "Improvised Equipment Expert" },
-  { name: "Wavey Davey", image: waveyDaveyUrl, type: "Opening-Seeking Specialist" },
+  { name: "Honorable Trash Panda", image: honorableTrashPandaUrl, type: "Fights With Honor. Mostly." },
+  { name: "Karatesaurus", image: karatesaurusUrl, type: "Extinction-Level Kicks" },
+  { name: "Janitor Joe", image: janitorJoeUrl, type: "Mop-Fu Specialist" },
+  { name: "Miss Direction", image: missDirectionUrl, type: "Points Somewhere Else" },
 ];
 const CARD_IMAGE_URLS: Record<string, string> = {
   ...CHARACTER_CARD_URLS,
