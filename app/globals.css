@@ -2344,6 +2344,8 @@ body,
 .ascend-market > header h3, .ascend-combo > header h3, .ascend-belt > h3 { margin: 4px 0 0; font-family: var(--display); font-size: 28px; line-height: 1; }
 .ascend-market > header p { max-width: 520px; margin: 0; color: #5c6b61; font-size: 11px; line-height: 1.45; text-align: right; }
 .ascend-market-grid { display: grid; grid-template-columns: repeat(7, minmax(118px, 1fr)); gap: 10px; overflow-x: auto; padding: 5px 4px 14px; overscroll-behavior-inline: contain; scrollbar-gutter: stable; }
+.market-refill-choice { margin-top: 20px; padding: 16px; border: 1px dashed var(--line); background: color-mix(in srgb, var(--paper-light) 88%, var(--accent)); }
+.market-refill-choice .ascend-market-grid { grid-template-columns: repeat(2, minmax(150px, 220px)); }
 .ascend-market-grid .play-card { width: 100%; min-width: 118px; }
 .ascend-market-grid .play-card-main { height: clamp(205px, 30dvh, 286px); }
 .ascend-market-grid .play-card.is-disabled { filter: saturate(.72); opacity: .76; }

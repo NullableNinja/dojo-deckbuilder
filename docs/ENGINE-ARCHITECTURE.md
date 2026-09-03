@@ -4,7 +4,7 @@
 
 `app/data/game-definition.json` is the executable global-rules contract. It points at the same v2.3 rules record used by the website and declares setup, turn limits, formulas, Defense Practice, Controlled Refill, Quick Duel HP, progression, and victory limits as data. `app/data/cards.json` supplies all card identity, costs, printed Focus, stats, types, and text. `engine/rules-loader.mjs` refuses to start when those versions disagree.
 
-The React playtest now derives its starter deck, hand size, Attack limit, Market size, starting HP, and Belt table from those same records. `public/rules-manifest.json` is a stable cache-busted update signal. An open page checks it once per minute. A match pins its starting rules version until the duel ends; if a new deployment appears, the UI offers a reload instead of silently changing legal moves halfway through combat.
+The React playtest now derives its starter deck, hand size, Market size, starting HP, and Belt table from those same records. `public/rules-manifest.json` is a stable cache-busted update signal. An open page checks it once per minute. A match pins its starting rules version until the duel ends; if a new deployment appears, the UI offers a reload instead of silently changing legal moves halfway through combat.
 
 The engine code implements stable verbs—draw, play, defend, attack, buy, refill, discard—while their numbers and permitted decks come from the definition. Routine rule-number changes therefore require data edits, not engine edits. A new kind of verb still requires a schema/engine extension; prose is never executed with `eval`.
 

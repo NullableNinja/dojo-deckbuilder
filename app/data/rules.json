@@ -448,7 +448,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "5. During Yell, play cards one at a time. A normal turn allows two Attacks. One Attack with Flow and one required Combo finisher may exceed that limit. Once during Yell, you may use one Defense from hand for Defense Practice instead of playing it normally."
+              "text": "5. During Yell, play cards one at a time. You may play any number of legal Attacks from your hand, resolving each separately. After your first Attack with Flow each turn resolves, draw one card. Once during Yell, you may use one Defense from hand for Defense Practice instead of playing it normally."
             },
             {
               "kind": "paragraph",
@@ -681,7 +681,7 @@
             [
               "Y — Yell",
               "Main phase",
-              "Play cards, make up to two normal Attacks, trigger learned Combos, use abilities."
+              "Play cards, play any number of legal Attacks from hand, trigger learned Combos, use abilities."
             ],
             [
               "A — Ascend",
@@ -751,7 +751,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "Play one card at a time and resolve it completely before playing another, unless a Reaction interrupts it. You may play Katas, use Items, activate Equipment, make up to two normal Attacks, and trigger learned Combos as long as every action is legal."
+              "text": "Play one card at a time and resolve it completely before playing another, unless a Reaction interrupts it. You may play Katas, use Items, activate Equipment, play any number of legal Attacks from your hand, and trigger learned Combos as long as every action is legal."
             },
             {
               "kind": "paragraph",
@@ -759,7 +759,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "Flow and Combo Extension may each permit one additional Attack beyond the normal two-Attack limit. See Sections 7, 8, and 10."
+              "text": "After your first Attack with Flow each turn resolves, draw one card. See Sections 7 and 8."
             }
           ]
         },
@@ -903,13 +903,13 @@
               "kind": "table",
               "rows": [
                 [
-                  "FLOW\nThe first Attack you play with Flow each turn does not count against your normal two-Attack limit. Only one Attack can be exempted by Flow each turn, even if more than one Attack gains Flow. Flow changes only the Attack limit; it does not make an illegal target, timing, zone, or Combo step legal."
+                  "FLOW\nAfter the first Attack you play with Flow each turn resolves, draw one card. Later Attacks with Flow that turn do not draw a card. Flow does not make an illegal target, timing, zone, or Combo step legal."
                 ]
               ]
             },
             {
               "kind": "paragraph",
-              "text": "An effect that says your next Attack gains Flow lasts until that Attack is played or the turn ends. If multiple effects grant Flow to the same Attack, they do not create multiple exemptions."
+              "text": "An effect that says your next Attack gains Flow lasts until that Attack is played or the turn ends. If multiple effects grant Flow to the same Attack, they do not create multiple draws."
             }
           ]
         },
@@ -1112,23 +1112,15 @@
         },
         {
           "id": "multiple-attacks",
-          "title": "Attack Limit, Flow & Combo Extension",
+          "title": "Multiple Attacks & Flow",
           "content": [
             {
               "kind": "bullet",
-              "text": "You may normally play no more than two Attack cards during your turn. Each Attack resolves as a separate strike."
+              "text": "You may play any number of legal Attack cards from your hand during your turn. Each Attack resolves as a separate strike."
             },
             {
               "kind": "bullet",
-              "text": "Once per turn, an Attack with Flow does not count against the normal limit."
-            },
-            {
-              "kind": "bullet",
-              "text": "Once per turn, if a learned Combo requires a third Attack as its Finishing Technique, Combo Extension permits that required Attack even if the normal limit has been reached."
-            },
-            {
-              "kind": "bullet",
-              "text": "Flow and Combo Extension are separate exceptions and may both occur in one turn. Neither permits unrelated extra Attacks."
+              "text": "After the first Attack you play with Flow each turn resolves, draw one card. Later Flow Attacks that turn resolve normally without that draw."
             },
             {
               "kind": "bullet",
@@ -1172,7 +1164,7 @@
             },
             {
               "kind": "bullet",
-              "text": "A Reversal does not count against your normal Attack limit. The original attacker may defend normally."
+              "text": "A Reversal happens outside your turn. The original attacker may defend normally."
             },
             {
               "kind": "bullet",
@@ -1507,7 +1499,7 @@
             },
             {
               "kind": "bullet",
-              "text": "Combo Extension: once per turn, if a learned Combo requires a third Attack as its Finishing Technique, that required Attack is legal beyond the normal two-Attack limit. It must be the actual next required step."
+              "text": "A Combo's Finishing Technique is played normally as the actual next required step. It must still satisfy every printed requirement."
             },
             {
               "kind": "bullet",
@@ -2540,10 +2532,6 @@
       "meaning": "A legal strike played from hand with a target and declared zone. It contributes printed Attack Power and normally earns 1 XP after resolving."
     },
     {
-      "term": "Attack Limit",
-      "meaning": "A player may normally play two Attacks per turn. Flow and Combo Extension are the only core exceptions."
-    },
-    {
       "term": "Attack Power",
       "meaning": "The attack-side combat total before Defense is subtracted: printed Attack Power, Character ATK, eligible Weapon bonuses, and modifiers."
     },
@@ -2566,10 +2554,6 @@
     {
       "term": "Combo",
       "meaning": "A learned sequence from the separate face-down Combo Deck. Complete its requirement and resolve its payoff."
-    },
-    {
-      "term": "Combo Extension",
-      "meaning": "Once per turn, permission to play the third Attack required as a learned Combo's Finishing Technique beyond the normal Attack limit."
     },
     {
       "term": "Consumable",
@@ -2633,7 +2617,7 @@
     },
     {
       "term": "Flow",
-      "meaning": "The first Attack with Flow each turn does not count against the normal two-Attack limit. Only one Attack receives this exemption per turn."
+      "meaning": "After the first Attack you play with Flow each turn resolves, draw one card. Later Flow Attacks that turn do not draw a card."
     },
     {
       "term": "Focus",
@@ -2717,7 +2701,7 @@
     },
     {
       "term": "Reversal",
-      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally, does not count against the normal Attack limit, cannot make another Reversal, and grants no Focus."
+      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally outside your turn, cannot make another Reversal, and grants no Focus."
     },
     {
       "term": "Revive",

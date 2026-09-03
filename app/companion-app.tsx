@@ -105,7 +105,7 @@ type CardEntry = {
   fpCost?: string | number | null; chiCost?: string | number | null; focusValue?: string | number | null;
   zone?: string | null; timing?: string | null; rulesText?: string | null; flavorText?: string | null;
   tags: string[]; buildPaths: string[]; stats: Record<string, string | number>;
-  image?: string | null; sourceSheet: string; searchText?: string; details: Record<string, string | number>;
+  image?: string | null; sourceSheet: string; sourceRulesVersion?: string | null; searchText?: string; details: Record<string, string | number>;
 };
 type RuleBlock =
   | { kind: "paragraph"; text: string }
@@ -125,14 +125,23 @@ const storyChapter = rulesData.chapters.find((chapter) => chapter.number === 1);
 const ruleChapters = rulesData.chapters.filter((chapter) => chapter.number >= 1 && chapter.number <= 16);
 const glossaryKey = (term: string) => term.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
 const GLOSSARY_ENTRIES = Array.from(new Map(rulesData.glossary.map((entry) => [glossaryKey(entry.term), entry])).values()).sort((a, b) => a.term.localeCompare(b.term));
-const HIDDEN_CARD_DETAIL_KEYS = new Set(["Favored Build Paths", "Release Set", "v2 Status", "Rules Version", "Version"]);
 const DOWNLOADS = {
   fullRules: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Full_Rules.docx`,
   quickStart: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Quick_Start.docx`,
   glossary: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Glossary.docx`,
   cardCatalog: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Card_Catalog.xlsx`,
 };
-const publicCardDetails = (card: CardEntry) => Object.entries(card.details).filter(([key]) => !HIDDEN_CARD_DETAIL_KEYS.has(key));
+const publicCardDetails = (card: CardEntry): [string, string | number][] => [
+  ["Focus Cost", card.fpCost ?? "—"],
+  ["Focus Value", card.focusValue ?? "—"],
+  ["Stats", Object.entries(card.stats).map(([key, value]) => `${key}: ${value}`).join("; ") || "—"],
+  ["Tags", card.tags.join(", ") || "—"],
+  ["Build Paths", card.buildPaths.join(", ") || "—"],
+  ["Availability", card.availability ?? "—"],
+  ["Design Purpose", card.details["Design Purpose"] ?? "—"],
+  ["Playtest Focus", card.details["Playtest Focus"] ?? "—"],
+  ["Source Version", card.sourceRulesVersion ?? "—"],
+];
 const cardSearchText = (card: CardEntry) => [card.catalogId, card.name, card.cardType, card.subtype, card.category, card.deck, card.lineage, card.zone, card.timing, card.rulesText, card.flavorText, ...card.tags, ...card.buildPaths, ...Object.keys(card.stats), ...Object.values(card.stats), ...publicCardDetails(card).flatMap(([key, value]) => [key, value])].filter((value) => value !== null && value !== undefined && value !== "").join(" ").toLocaleLowerCase();
 
 const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
@@ -192,7 +201,7 @@ const PHASES = [
 const PHASE_DETAILS = [
   { name: "Honor", when: "Once at the beginning of the round", who: "Everyone together", steps: ["Scene Change and resolve the new Location.", "Every surviving player gains 1 XP.", "Refresh each player's Tempo.", "Lock initiative from highest current Speed to lowest."], quip: "One Honor. One Location. Several people insisting they were faster." },
   { name: "Initiate", when: "At the beginning of each player's turn", who: "The active player", steps: ["Ready exhausted cards and resolve start-of-turn effects.", "Tag once if the mode allows it.", "Equip permanent Equipment from your hand.", "Generate printed Focus from each card legally Equipped from hand."], quip: "Stretch, breathe, attach the suspicious helmet." },
-  { name: "Yell", when: "The active player's main phase", who: "The active player, with Reactions from others", steps: ["Play cards one at a time; there is no general play cost.", "Once, Practice one Defense from hand for its printed Focus only.", "Make up to two normal Attacks.", "One Flow Attack and one required Combo finisher may exceed that limit."], quip: "Practice the block. Spend the block. Try not to need the block." },
+  { name: "Yell", when: "The active player's main phase", who: "The active player, with Reactions from others", steps: ["Play cards one at a time; there is no general play cost.", "Once, Practice one Defense from hand for its printed Focus only.", "Play any number of legal Attacks from your hand, resolving each separately.", "After your first Flow Attack each turn resolves, draw one card."], quip: "Practice the block. Spend the block. Try not to need the block." },
   { name: "Ascend", when: "After the active player finishes acting", who: "The active player", steps: ["Spend Focus on face-up Market cards.", "After each purchase, reveal two Market cards; choose one as the refill and discard the other.", "Attempt to learn at most one Combo from the separate deck.", "Promote at most one Belt if its XP and task are complete."], quip: "Turn questionable decisions into a slightly better deck." },
   { name: "Hide", when: "At the end of each player's turn", who: "The active player", steps: ["Resolve end-of-turn effects.", "Discard played cards and the remaining hand.", "Draw the next hand.", "Lose unspent Focus."], quip: "Clean the paper cuts off the mat and pretend it was tactical." },
 ];
@@ -202,7 +211,11 @@ const STARTER_CARDS = [
   { group: "Katas", count: 2, icon: "K", purpose: "Set up your next move or alter your Speed.", cards: ["Breathing Drill", "Footwork Drill"] },
   { group: "Junk", count: 5, icon: "!", purpose: "Clog the opening deck and generate no Focus.", cards: ["Bad Habit ×5"] },
 ];
-const GOLDEN_RULE = "When a card directly contradicts this rulebook, the card wins. When two cards conflict, use the timing and priority rules. If the table still cannot agree, the active player makes the temporary ruling, finishes the turn, and everyone may yell about it afterward.";
+const GOLDEN_RULE = ruleChapters.flatMap((chapter) => [...chapter.intro, ...chapter.sections.flatMap((section) => section.content)])
+  .flatMap((block) => block.kind === "table" ? block.rows.flat() : [])
+  .map(String)
+  .find((text) => text.startsWith("THE GOLDEN RULE\n"))
+  ?.replace("THE GOLDEN RULE\n", "") ?? "When a card directly contradicts this rulebook, the card wins.";
 const RULE_VISUALS: Record<number, RuleVisual> = {
   1: { label: "Open the official file", quip: "The filing cabinet was never supposed to become ancient wisdom.", art: headerBackstoryUrl, alt: "The Department of Competitive Safety's improvised Paper-Fu origin story" },
   2: { label: "Sort the field kit", quip: "The Department catalogued this once. Do not make it happen again.", art: chapterComponentsUrl, alt: "Paper-Fu components organized on an official inventory desk" },

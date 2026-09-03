@@ -8,6 +8,7 @@ export type RulesSyncState = {
 type RulesManifest = {
   schemaVersion: number;
   rulesVersion: string;
+  rulesRevision?: string;
   refreshIntervalMs: number;
   activeMatchPolicy: "pin-until-match-ends";
 };

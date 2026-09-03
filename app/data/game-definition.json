@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "rulesVersion": "v2.3",
+  "rulesRevision": "v2.3-r2",
   "source": "app/data/rules.json",
   "mode": {
     "id": "quick-duel",
@@ -13,7 +14,6 @@
   "turn": {
     "phases": ["Honor", "Initiate", "Yell", "Ascend", "Hide"],
     "handSize": 5,
-    "normalAttackLimit": 2,
     "tempoAttackPower": 1,
     "tempoUsesPerRound": 1,
     "focusExpiresAt": "next-own-Hide"

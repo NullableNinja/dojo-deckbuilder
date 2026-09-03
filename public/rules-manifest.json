@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "rulesVersion": "v2.3",
+  "rulesRevision": "v2.3-r2",
   "definition": "app/data/game-definition.json",
   "rules": "app/data/rules.json",
   "cards": "app/data/cards.json",

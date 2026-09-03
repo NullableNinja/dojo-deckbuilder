@@ -11,6 +11,28 @@ test("glossary terms are unique", async () => {
   }
 });
 
+test("the active rules and playtest have no Attack cap", async () => {
+  const [rulesText, definitionText, playtest, engine, cli] = await Promise.all([
+    readFile(new URL("../app/data/rules.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/game-definition.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../engine/core.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../engine/cli.mjs", import.meta.url), "utf8"),
+  ]);
+  const rules = JSON.parse(rulesText);
+  const definition = JSON.parse(definitionText);
+  assert.equal("normalAttackLimit" in definition.turn, false, "Game definition must not expose a hidden Attack cap");
+  assert.equal(rules.glossary.some((entry) => entry.term === "Attack Limit" || entry.term === "Combo Extension"), false);
+  assert.match(rulesText, /play any number of legal Attacks from your hand/i);
+  assert.match(rulesText, /first Attack you play with Flow each turn resolves, draw one card/i);
+  for (const source of [playtest, engine, cli]) {
+    assert.doesNotMatch(source, /normalAttackLimit|attackLimit/, "Executable play surfaces must not retain the removed cap");
+  }
+  assert.match(playtest, /Flow draws 1 card/);
+  assert.match(playtest, /function attackHasFlow/);
+  assert.match(playtest, /practiceDefense/);
+});
+
 test("deployment gates publication on the test suite", async () => {
   const workflow = await readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
   assert.match(workflow, /run: npm test/);
@@ -144,6 +166,9 @@ test("field test three adds real digital-game decisions without replacing the Co
     "Combo Docket",
     "aiMarketScore",
     "aiAttackScore",
+    "revealMarketCards",
+    "chooseMarketRefill",
+    "refreshMarketRow",
     "playtest-action-dock",
     "NativeCardArt",
   ]) assert.ok(playtest.includes(feature), `Missing upgraded field-test feature: ${feature}`);
@@ -162,10 +187,11 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   ]);
   assert.match(playtest, /import gameDefinitionJson from "\.\/data\/game-definition\.json"/);
   assert.match(playtest, /fetchRulesManifest/);
-  assert.match(playtest, /pin-until-match-ends|rulesVersion: catalogRulesVersion/);
+  assert.match(playtest, /pin-until-match-ends|rulesVersion: activeRulesRevision/);
   assert.match(worker, /Math\.min\(1000/);
   assert.match(worker, /turn-snapshot/);
   assert.equal(JSON.parse(manifest).activeMatchPolicy, "pin-until-match-ends");
+  assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r2");
   assert.match(styles, /playtest-shell--live/);
   assert.match(styles, /\.market-row \{[^}]*overflow-x: auto/);
   assert.match(playtest, /type DeskView = "market" \| "combo" \| "belt"/);
