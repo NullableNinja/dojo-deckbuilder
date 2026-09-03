@@ -55,3 +55,4 @@ The Play the Game setup screen includes a background simulator for 1–1,000 gam
 - `index.html` — Vite document entry point
 
 <!-- Consumable card artwork refresh: v2.3. -->
+<!-- Layered Defensive Equipment and Consumable ORA sources published. -->
