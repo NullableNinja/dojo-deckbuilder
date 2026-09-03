@@ -26,8 +26,10 @@ test("public companion copy is version-free and uses the current featured roster
     assert.ok(!source.includes(forbidden), `Public version label survived: ${forbidden}`);
   }
   assert.ok(source.includes("Field test active"));
-  assert.ok(source.includes('name: "Sentry Bobby"'));
-  assert.ok(!source.includes('name: "Mr. Bobby"'));
+  for (const fighter of ["Honorable Trash Panda", "Karatesaurus", "Janitor Joe", "Miss Direction"]) {
+    assert.ok(source.includes(`name: "${fighter}"`), `Featured roster is missing ${fighter}`);
+  }
+  assert.ok(!source.includes('assets/cards/characters/sentry-bobby.webp'));
   assert.ok(source.includes("publicCardDetails(card)"));
 });
 
