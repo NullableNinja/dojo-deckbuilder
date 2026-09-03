@@ -33,3 +33,4 @@ jobs:
           git add app/assets/cards/consumables public/downloads/Dojo_Deckbuilder_v2.3_Consumable_Cards.zip scripts .github/workflows
           git diff --cached --quiet || git commit -m "Finalize Consumable card faces and backup"
           git push origin HEAD:main
+# ESM publisher retry
