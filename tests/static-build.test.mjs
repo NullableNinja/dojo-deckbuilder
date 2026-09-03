@@ -13,9 +13,7 @@ test("bundles the complete interactive companion", async () => {
   const assetDirectory = new URL("../dist/assets/", import.meta.url);
   const scripts = (await readdir(assetDirectory)).filter((name) => name.endsWith(".js"));
   const mainScript = scripts.find((name) => name.startsWith("index-"));
-  const workerScript = scripts.find((name) => name.startsWith("simulation-worker-"));
   assert.ok(mainScript, "Expected the main application bundle");
-  assert.ok(workerScript, "Expected a separately cacheable background simulation worker");
   const bundle = await readFile(new URL(mainScript, assetDirectory), "utf8");
   for (const expected of ["Quick Start", "Card Library", "Rulings & Errata", "Glossary", "House Rules", "Rita attacks Devin. Count the paper."]) {
     assert.ok(bundle.includes(expected), `Missing site content: ${expected}`);

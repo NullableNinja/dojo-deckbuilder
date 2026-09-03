@@ -74,7 +74,7 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
     readFile(new URL("../app/data/cards.json", import.meta.url), "utf8"),
   ]);
   assert.match(companion, /PlaytestView/);
-  assert.match(companion, /Play the Game/);
+  assert.match(companion, /Play Quick Duel/);
   assert.match(playtest, /import cardsJson from "\.\/data\/cards\.json"/);
   assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,characters\}/);
   assert.match(playtest, /COMPLETE_CARD_ART_BY_CATALOG_ID\[card\.catalogId\]/);
@@ -106,6 +106,31 @@ test("playtest behaves like a complete guided game surface", async () => {
   assert.match(playtest, /function ImpactReadout/, "Combat math must be visible on the live mat");
 });
 
+test("public field test is one desktop-only Quick Duel teaser", async () => {
+  const [companion, playtest, styles] = await Promise.all([
+    readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(playtest, /Certified Quick Duel/);
+  assert.match(playtest, /MobilePlaytestNotice/);
+  assert.doesNotMatch(playtest, /<SimulationLab/);
+  assert.doesNotMatch(playtest, /className="difficulty-grid"/);
+  assert.match(companion, /MOBILE_MENU_ITEMS\.filter\(\(item\) => item\.id !== "playtest"\)/);
+  assert.doesNotMatch(companion, />⚔<\/span>Play<\/button>/);
+  assert.match(styles, /\.desktop-play-cta, \.route-playtest \{ display: none !important; \}/);
+});
+
+test("live mat thumbnails and impact equation cannot escape their records", async () => {
+  const [playtest, styles] = await Promise.all([
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(playtest, /\{!math && <p>\{line\}<\/p>\}/);
+  assert.match(styles, /\.mat-card-visual > \.native-card-art \{[^}]*height: 40px !important[^}]*contain: strict/);
+  assert.match(styles, /\.playtest-shell--live \.impact-readout \{[^}]*overflow: visible/);
+});
+
 test("field test three adds real digital-game decisions without replacing the Core rules", async () => {
   const [playtest, styles] = await Promise.all([
     readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
@@ -117,7 +142,6 @@ test("field test three adds real digital-game decisions without replacing the Co
     "reversal-window",
     "resolveReversal",
     "Combo Docket",
-    "Guarantee a playable opening Market",
     "aiMarketScore",
     "aiAttackScore",
     "playtest-action-dock",

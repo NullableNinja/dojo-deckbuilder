@@ -5,7 +5,7 @@ import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import rulesJson from "./data/rules.json";
-import SimulationLab from "./simulation-lab";
+import { compileCardEffects, describeEffectPlan } from "./card-effects";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 
 type CardEntry = {
@@ -371,38 +371,28 @@ function cardEffectNote(card: CardEntry) {
   const text = card.rulesText ?? "";
   if (!text || /no (additional )?effect/i.test(text)) return "No extra printed effect.";
   if (isPermanent(card)) return "Equipped permanently; its printed stats apply now."
-  const supported: string[] = [];
-  if (/draw \d+ card/i.test(text)) supported.push("draw");
-  if (/discard \d+ card/i.test(text)) supported.push("discard");
-  if (/next Attack.*\+\d+ (Damage|Attack Power)/i.test(text)) supported.push("next-attack bonus");
-  if (/gain \+?\d+ Speed/i.test(text)) supported.push("Speed bonus");
-  if (/gain \+?\d+ Focus/i.test(text)) supported.push("bonus Focus");
-  if (/heal \d+/i.test(text)) supported.push("healing");
-  return supported.length ? `The engine applied: ${supported.join(", ")}.` : "Printed effect needs a table ruling; its exact text is shown in the Card Inspector.";
+  return describeEffectPlan(compileCardEffects(text));
 }
 
-function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai") {
-  const text = card.rulesText ?? "";
+function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai", timing: "onPlay" | "onHit" | "onBlock" | "afterResolve" = "onPlay") {
   let next = { ...board };
-  if (owner === "player" || owner === "ai") next.focus += numberValue(card.focusValue);
-  if (isPermanent(card)) next.equipment = [...next.equipment, card.id];
-  const draw = text.match(/draw (\d+) card/i);
-  if (draw) next = drawCards(next, Number(draw[1]));
-  const discard = text.match(/discard (\d+) card/i);
-  if (discard && next.hand.length) {
-    const discardCount = Math.min(Number(discard[1]), next.hand.length);
-    const ranked = [...next.hand].sort((left, right) => numberValue(cardFor(left)?.focusValue) - numberValue(cardFor(right)?.focusValue));
-    const discarded = ranked.slice(0, discardCount);
-    next = { ...next, hand: next.hand.filter((id) => !discarded.includes(id)), discard: [...next.discard, ...discarded] };
+  if (timing === "onPlay") {
+    if (owner === "player" || owner === "ai") next.focus += numberValue(card.focusValue);
+    if (isPermanent(card)) next.equipment = [...next.equipment, card.id];
   }
-  const attackBonus = text.match(/next Attack[^.]*\+(\d+) (?:Damage|Attack Power)|next [^.]*Attack[^.]*gains? \+(\d+) damage/i);
-  if (attackBonus) next.nextAttackBonus += Number(attackBonus[1] ?? attackBonus[2]);
-  const speed = text.match(/gain \+?(\d+) Speed/i);
-  if (speed) next.tempSpeed += Number(speed[1]);
-  const bonusFocus = text.match(/gain \+?(\d+) Focus/i);
-  if (bonusFocus) next.focus += Number(bonusFocus[1]);
-  const heal = text.match(/heal (\d+)/i);
-  if (heal) next.hp = Math.min(next.maxHp, next.hp + Number(heal[1]));
+  for (const effect of compileCardEffects(card.rulesText ?? "").effects.filter((entry) => entry.timing === timing)) {
+    if (effect.kind === "draw") next = drawCards(next, effect.amount);
+    if (effect.kind === "discard" && next.hand.length) {
+      const discardCount = Math.min(effect.amount, next.hand.length);
+      const ranked = [...next.hand].sort((left, right) => numberValue(cardFor(left)?.focusValue) - numberValue(cardFor(right)?.focusValue));
+      const discarded = ranked.slice(0, discardCount);
+      next = { ...next, hand: next.hand.filter((id) => !discarded.includes(id)), discard: [...next.discard, ...discarded] };
+    }
+    if (effect.kind === "nextAttackPower") next.nextAttackBonus += effect.amount;
+    if (effect.kind === "speed") next.tempSpeed += effect.amount;
+    if (effect.kind === "focus") next.focus += effect.amount;
+    if (effect.kind === "heal") next.hp = Math.min(next.maxHp, next.hp + effect.amount);
+  }
   return next;
 }
 
@@ -511,7 +501,7 @@ function ImpactReadout({ line }: { line: string }) {
   return <blockquote className={`impact-readout ${math ? (hit ? "is-hit" : "is-block") : ""}`} key={line}>
     <span>{math ? (hit ? "Impact certified" : "Block certified") : "Latest filing"}</span>
     {math && <div><b>{math[1]}<small>ATK</small></b><i>−</i><b>{math[2]}<small>DEF</small></b><i>=</i><strong>{finalDamage ?? Math.max(0, Number(math[1]) - Number(math[2]))}<small>HP</small></strong></div>}
-    <p>{line}</p>
+    {!math && <p>{line}</p>}
   </blockquote>;
 }
 
@@ -549,14 +539,17 @@ function SetupView({ selectedId, setSelectedId, settings, setSettings, begin }: 
     const next = choices[Math.floor(Math.random() * choices.length)] ?? filteredCharacters[0] ?? characters[0];
     setSelectedId(next.id);
   };
-  return <main className="playtest-shell shell">
+  return <main className="playtest-shell shell"><MobilePlaytestNotice />
     <section className="playtest-hero paper-stack"><span className="eyebrow">Department-certified digital field test</span><h1>Shuffle. Strike. Ascend.</h1><p>This is the actual Quick Duel loop: the fixed {starterIds.length}-card curriculum, all approved Market records, live fighter data, automated Locations, Reversals, Belt Exams, and a separate Combo docket.</p><div className="playtest-stamps"><span>{cards.length} approved records</span><span>Quick Duel vs. tactical AI</span><span>Progress saved on this device</span></div></section>
     <section className="playtest-setup-grid">
       <div className="playtest-roster paper-stack"><div className="roster-toolbar"><div><span className="eyebrow">1 · Choose a fighter</span><h2>Who signs the waiver?</h2></div><div><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a fighter" aria-label="Search fighters" /></label><button onClick={randomize}>Random draw</button></div></div><article className="selected-fighter-dossier"><img src={artistUrl(selected) ?? cardPlaceholderUrl} alt={selected.name} /><div><span>Selected delegation</span><h3>{selected.name}</h3><p>{selected.rulesText ?? "Ability pending an inspector with a functioning pen."}</p><div><b>{numberValue(selected.stats.ATK)}<small>ATK</small></b><b>{numberValue(selected.stats.DEF)}<small>DEF</small></b><b>{numberValue(selected.stats.Speed)}<small>SPD</small></b></div></div></article><div className="playtest-character-grid">{filteredCharacters.map((character) => <button key={character.id} className={selectedId === character.id ? "is-selected" : ""} onClick={() => setSelectedId(character.id)} aria-pressed={selectedId === character.id}><img src={artistUrl(character) ?? cardPlaceholderUrl} alt="" loading="lazy" /><span>{character.name}</span><small>{numberValue(character.stats.ATK)} ATK · {numberValue(character.stats.DEF)} DEF · {numberValue(character.stats.Speed)} SPD</small></button>)}</div></div>
-      <aside className="playtest-rules-panel paper-stack"><span className="eyebrow">2 · Choose the trouble</span><h2>How hard should the clipboard hit?</h2><div className="difficulty-grid">{(Object.keys(DIFFICULTIES) as Difficulty[]).map((difficulty) => { const option = DIFFICULTIES[difficulty]; return <button key={difficulty} className={settings.difficulty === difficulty ? "is-selected" : ""} onClick={() => setSettings({ ...settings, difficulty })} aria-pressed={settings.difficulty === difficulty}><span>{option.eyebrow}</span><b>{option.label}</b><small>{option.detail}</small></button>; })}</div><div className="field-switches"><label><input type="checkbox" checked={settings.guided} onChange={(event) => setSettings({ ...settings, guided: event.target.checked })} />Show decision coach</label><label><input type="checkbox" checked={settings.autoAi} onChange={(event) => setSettings({ ...settings, autoAi: event.target.checked })} />Let the computer take its turn automatically</label><label><input type="checkbox" checked={settings.balancedMarket} onChange={(event) => setSettings({ ...settings, balancedMarket: event.target.checked })} />Guarantee a playable opening Market</label><label><input type="checkbox" checked={settings.tempo} onChange={(event) => setSettings({ ...settings, tempo: event.target.checked })} />Use Tempo Advantage</label><label><input type="checkbox" checked={settings.locations} onChange={(event) => setSettings({ ...settings, locations: event.target.checked })} />Scene Change every Honor</label><label><input type="checkbox" checked={settings.openMarket} onChange={(event) => setSettings({ ...settings, openMarket: event.target.checked })} />Include cards awaiting finished art</label></div><p>The playable-Market option only curates the first seven cards; every replacement remains random. Quick Duel still uses Last Fighter Standing.</p><button className="button primary field-test-launch" onClick={() => begin()}>Begin as {selected.name} <span>→</span></button></aside>
+      <aside className="playtest-rules-panel quick-duel-brief paper-stack"><span className="eyebrow">2 · One official teaser</span><h2>Certified Quick Duel</h2><p>One fighter. One tactical opponent. Fixed HP, the complete Market, Locations, Reversals, Combos, and Belt progression. No mode selection and no setup maze—the Department has already made the questionable decisions.</p><ul><li>Desktop playtest</li><li>Guided tactical opponent</li><li>Real Core card catalog</li></ul><button className="button primary field-test-launch" onClick={() => begin()}>Begin Quick Duel as {selected.name} <span>→</span></button></aside>
     </section>
-    <SimulationLab />
   </main>;
+}
+
+function MobilePlaytestNotice() {
+  return <section className="playtest-mobile-notice paper-stack"><span className="eyebrow">Desktop field test</span><h1>Quick Duel needs a bigger mat.</h1><p>The playable teaser is intentionally hidden on phones. Open this page on a desktop or laptop to fight; the rules and Card Library remain fully mobile-friendly.</p></section>;
 }
 
 export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards") => void }) {
@@ -686,6 +679,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (hit && comboModifier.focusOnHit) nextPlayer.focus += comboModifier.focusOnHit;
     let nextAi = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit, damageTaken: reduced.board.damageTaken + damage };
     if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), playArea: [...nextAi.playArea, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true };
+    nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
+    if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
+    if (defenseCard) {
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onPlay");
+      if (!hit) nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onBlock");
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve");
+    }
     if (damage >= 3 && nextPlayer.belt >= 6) nextPlayer.focus += 1;
     if (!nextAi.hp) nextPlayer.xp += 2;
     nextPlayer = markCompletedTask(nextPlayer);
@@ -779,6 +779,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       tempoBonus = settings.tempo && nextPlayer.tempo && fighterStat(nextPlayer, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
       defensePower += cardPower(defenseCard) + tempoBonus + locationModifier.value;
       nextPlayer = markCompletedTask({ ...nextPlayer, hand: removeOne(nextPlayer.hand, defenseCard.id), playArea: [...nextPlayer.playArea, defenseCard.id], xp: nextPlayer.xp + 1, defendedThisRound: true, tempo: tempoBonus ? false : nextPlayer.tempo });
+      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onPlay");
     }
     const hit = pending.attackPower > defensePower;
     const rawDamage = hit ? Math.max(0, pending.attackPower - defensePower + (pending.damageModifier ?? 0)) : 0;
@@ -787,6 +788,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     nextPlayer = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit, damageTaken: reduced.board.damageTaken + damage };
     const aiCard = cardFor(pending.cardId)!;
     let nextAi = markCompletedTask({ ...current.ai, damageDealt: current.ai.damageDealt + damage, hitThisTurn: current.ai.hitThisTurn || hit });
+    nextAi = applyCardEffects(nextAi, aiCard, "ai", hit ? "onHit" : "afterResolve");
+    if (hit) nextAi = applyCardEffects(nextAi, aiCard, "ai", "afterResolve");
+    if (defenseCard) {
+      if (!hit) nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onBlock");
+      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve");
+    }
     if (!nextPlayer.hp) nextAi = { ...nextAi, xp: nextAi.xp + 2 };
     const message = hit ? `${aiCard.name} hits you for ${damage}. Attack ${pending.attackPower} vs Defense ${defensePower}.` : `${defenseCard?.name ?? "Your base DEF"} blocks ${aiCard.name}. Attack ${pending.attackPower} vs Defense ${defensePower}.`;
     const modifiers = [...(pending.modifierNotes ?? []), ...locationModifier.notes, ...(reduced.note ? [reduced.note] : [])];
@@ -830,6 +837,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (hit && comboModifier.focusOnHit) nextPlayer.focus += comboModifier.focusOnHit;
     let nextAi = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), damageTaken: reduced.board.damageTaken + damage, wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit };
     if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), playArea: [...nextAi.playArea, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true };
+    nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
+    if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
+    if (defenseCard) {
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onPlay");
+      if (!hit) nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onBlock");
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve");
+    }
     nextPlayer = markCompletedTask(nextPlayer);
     const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...comboModifier.notes, ...defenseModifier.notes, ...(reduced.note ? [reduced.note] : [])];
     const result = hit ? `Reversal! ${card.name} hits ${cardFor(current.ai.fighterId)?.name ?? "the computer"} for ${damage}.` : `Reversal! ${card.name} is blocked${defenseCard ? ` by ${defenseCard.name}` : " by base DEF"}.`;
@@ -868,7 +882,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
             ? "You Blocked with a Defense card. Choose one Attack from your hand for a free counterattack, or decline the Reversal. It earns XP but no printed Focus."
           : "The computer has initiative. Run its turn when you are ready to discover what it thinks strategy means.";
 
-  return <main className={`playtest-shell playtest-shell--live ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}>
+  return <main className={`playtest-shell playtest-shell--live ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}><MobilePlaytestNotice />
     <header className="playtest-topbar battle-versus-hud">
       <section className="versus-fighter versus-player"><div><b>{playerFighter.name}</b><span>{belts[player.belt].name} Belt · {player.hp}/{player.maxHp} HP</span></div><div className="versus-health"><span style={{ width: `${Math.max(0, Math.min(100, player.hp / player.maxHp * 100))}%` }} /></div></section>
       <div className="versus-center"><span>ROUND</span><b>{match.round}</b><small>{["HONOR", "INITIATE", "YELL", "ASCEND", "HIDE"][activePhaseIndex]}</small></div>

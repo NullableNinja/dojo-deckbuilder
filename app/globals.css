@@ -550,6 +550,28 @@ img { display: block; max-width: 100%; }
   .mobile-nav button.active { color: #fff; background: var(--red); }
 }
 
+/* Field Test 7 — contained mat cards, readable impact math, desktop-only teaser */
+.playtest-mobile-notice { display: none; }
+.quick-duel-brief ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.quick-duel-brief li { border-left: 4px solid var(--gold); padding: 7px 10px; color: #405348; background: rgba(255,255,255,.42); font-size: 11px; font-weight: 850; }
+.mat-lane-cards { height: 76px; min-height: 76px; align-items: stretch; contain: layout paint; }
+.mat-lane-cards > button { height: 100%; max-height: 66px; grid-template-rows: 40px 26px; align-self: center; contain: layout paint; }
+.mat-card-visual { width: 100%; height: 40px; min-height: 0; max-height: 40px; display: block; contain: strict; }
+.mat-card-visual > img { width: 100%; height: 40px; min-height: 0; max-height: 40px; object-fit: cover; }
+.mat-card-visual > .native-card-art { position: static; width: 100%; height: 40px !important; min-height: 0 !important; max-height: 40px; overflow: hidden; grid-template-rows: 12px 28px; contain: strict; }
+.playtest-shell--live .impact-readout { min-height: 59px; max-height: none; overflow: visible; padding-block: 6px; }
+.playtest-shell--live .impact-readout > div { margin: 4px 0 0; }
+:root[data-theme="dark"] .quick-duel-brief li { color: #d9e6dc; background: rgba(9,22,15,.3); }
+
+@media (max-width: 760px) {
+  .desktop-play-cta, .route-playtest { display: none !important; }
+  .playtest-shell > *:not(.playtest-mobile-notice) { display: none !important; }
+  .playtest-shell .playtest-mobile-notice { min-height: 58dvh; display: grid; align-content: center; gap: 10px; border-top: 8px solid var(--gold); padding: 28px 22px; text-align: center; }
+  .playtest-mobile-notice h1 { margin: 0; font-family: var(--display); font-size: clamp(38px, 12vw, 58px); line-height: .92; }
+  .playtest-mobile-notice p { max-width: 480px; margin: 0 auto; color: #5c6b61; font-size: 13px; line-height: 1.55; }
+  :root[data-theme="dark"] .playtest-mobile-notice p { color: #c4d3c8; }
+}
+
 @media (max-width: 520px) {
   .new-rule-panel > div { grid-template-columns: 1fr; }
   .new-rule-panel { padding: 25px; }
