@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-const fs = require("node:fs");
-const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+import fs from "node:fs";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 const root = process.cwd();
 const cards = JSON.parse(fs.readFileSync(path.join(root, "app/data/cards.json"), "utf8")).cards;
