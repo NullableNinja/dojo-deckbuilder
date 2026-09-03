@@ -38,7 +38,7 @@ test("deployment gates publication on the test suite", async () => {
   assert.match(workflow, /run: npm test/);
 });
 
-test("every Core Attack, Defense, Kata, and Consumable has a matching website card file", async () => {
+test("every Core Attack, Defense, Kata, Consumable, and Defense Equipment card has a matching website card file", async () => {
   const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
   const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
   const groups = [
@@ -46,17 +46,29 @@ test("every Core Attack, Defense, Kata, and Consumable has a matching website ca
     { prefix: "DDB-DEF-CORE-", folder: "defenses", count: 50 },
     { prefix: "DDB-KAT-CORE-", folder: "katas", count: 62 },
     { prefix: "DDB-CON-CORE-", folder: "consumables", count: 62 },
+    { prefix: "DDB-DEQ-CORE-", folder: "defense-equipment", count: 46 },
   ];
 
   for (const group of groups) {
     const completeCards = cards.filter((card) => card.catalogId.startsWith(group.prefix));
     const files = (await readdir(new URL(`../app/assets/cards/${group.folder}/`, import.meta.url))).filter((name) => name.endsWith(".webp"));
-    const cardCatalogIds = files.map((name) => name.match(/^(ddb-(?:atk|def|kat|con)-core-\d{3})_/i)?.[1].toUpperCase()).sort();
+    const cardCatalogIds = files.map((name) => name.match(/^(ddb-(?:atk|def|kat|con|deq)-core-\d{3})_/i)?.[1].toUpperCase()).sort();
     assert.equal(completeCards.length, group.count, `Unexpected ${group.folder} catalog count`);
     assert.equal(files.length, group.count, `Unexpected ${group.folder} card count`);
     assert.deepEqual(cardCatalogIds, completeCards.map((card) => card.catalogId).sort(), `Mismatched ${group.folder} catalog IDs`);
   }
   assert.match(source, /COMPLETE_CARD_URLS_BY_CATALOG_ID\[card\.catalogId\]/, "Complete card images must resolve by immutable catalog ID");
+  assert.match(source, /Dojo_Deckbuilder_v2\.3_Defensive_Equipment_Editable_ORA\.zip/);
+  assert.match(source, /Dojo_Deckbuilder_v2\.3_Consumable_Cards_Editable_ORA\.zip/);
+});
+
+test("editable card source pipeline emits GIMP-compatible OpenRaster deliverables", async () => {
+  const source = await readFile(new URL("../scripts/build_editable_card_sources.py", import.meta.url), "utf8");
+  assert.match(source, /image\/openraster/);
+  assert.match(source, /Expected 46 Defense Equipment cards/);
+  assert.match(source, /Expected 62 Consumable cards/);
+  assert.match(source, /Defensive_Equipment_Editable_ORA\.zip/);
+  assert.match(source, /Consumable_Cards_Editable_ORA\.zip/);
 });
 
 test("deployment stamps a build fingerprint and cache-busts the app shell", async () => {
@@ -98,7 +110,7 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(companion, /PlaytestView/);
   assert.match(companion, /Play Quick Duel/);
   assert.match(playtest, /import cardsJson from "\.\/data\/cards\.json"/);
-  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,characters\}/);
+  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,defense-equipment,characters\}/);
   assert.match(playtest, /COMPLETE_CARD_ART_BY_CATALOG_ID\[card\.catalogId\]/);
   assert.match(playtest, /gameDefinition\.starterDeck\.flatMap/);
   assert.match(playtest, /const marketPool = cards\.filter/);

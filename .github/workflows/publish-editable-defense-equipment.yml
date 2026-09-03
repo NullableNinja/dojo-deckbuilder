@@ -1,0 +1,36 @@
+name: Publish Editable Defense Equipment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-editable-defense-equipment.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-editable-card-assets:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure Pillow is available
+        run: python -c "import PIL" || python -m pip install --user Pillow
+      - name: Render card faces and OpenRaster sources
+        run: python scripts/build_editable_card_sources.py /tmp/dojo-editable-card-sources
+      - name: Verify complete editable deliverables
+        run: |
+          test "$(find app/assets/cards/defense-equipment -maxdepth 1 -name '*.webp' | wc -l)" -eq 46
+          test "$(find /tmp/dojo-editable-card-sources/defense-equipment -maxdepth 1 -name '*.ora' | wc -l)" -eq 46
+          test "$(find /tmp/dojo-editable-card-sources/consumables -maxdepth 1 -name '*.ora' | wc -l)" -eq 62
+          unzip -t public/downloads/Dojo_Deckbuilder_v2.3_Defensive_Equipment_Editable_ORA.zip >/dev/null
+          unzip -t public/downloads/Dojo_Deckbuilder_v2.3_Consumable_Cards_Editable_ORA.zip >/dev/null
+      - name: Commit generated card faces and source archives
+        run: |
+          rm .github/workflows/publish-editable-defense-equipment.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/assets/cards/defense-equipment public/downloads/Dojo_Deckbuilder_v2.3_Defensive_Equipment_Editable_ORA.zip public/downloads/Dojo_Deckbuilder_v2.3_Consumable_Cards_Editable_ORA.zip .github/workflows
+          git diff --cached --quiet || git commit -m "Add layered Defensive Equipment card sources"
+          git push origin HEAD:main

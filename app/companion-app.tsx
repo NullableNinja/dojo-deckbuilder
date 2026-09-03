@@ -90,9 +90,17 @@ const consumableCardModules = import.meta.glob<string>("./assets/cards/consumabl
 const CONSUMABLE_CARD_URLS = Object.fromEntries(
   Object.entries(consumableCardModules).map(([path, url]) => [`/cards/consumables/${path.split("/").at(-1)}`, url]),
 );
+const defenseEquipmentCardModules = import.meta.glob<string>("./assets/cards/defense-equipment/*.webp", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const DEFENSE_EQUIPMENT_CARD_URLS = Object.fromEntries(
+  Object.entries(defenseEquipmentCardModules).map(([path, url]) => [`/cards/defense-equipment/${path.split("/").at(-1)}`, url]),
+);
 const COMPLETE_CARD_URLS_BY_CATALOG_ID = Object.fromEntries(
-  Object.entries({ ...ATTACK_CARD_URLS, ...DEFENSE_CARD_URLS, ...KATA_CARD_URLS, ...CONSUMABLE_CARD_URLS }).flatMap(([path, url]) => {
-    const match = path.match(/\/(ddb-(?:atk|def|kat|con)-core-\d{3})_/i);
+  Object.entries({ ...ATTACK_CARD_URLS, ...DEFENSE_CARD_URLS, ...KATA_CARD_URLS, ...CONSUMABLE_CARD_URLS, ...DEFENSE_EQUIPMENT_CARD_URLS }).flatMap(([path, url]) => {
+    const match = path.match(/\/(ddb-(?:atk|def|kat|con|deq)-core-\d{3})_/i);
     return match ? [[match[1].toUpperCase(), url]] : [];
   }),
 );
@@ -130,6 +138,8 @@ const DOWNLOADS = {
   quickStart: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Quick_Start.docx`,
   glossary: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Glossary.docx`,
   cardCatalog: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Card_Catalog.xlsx`,
+  defenseEquipmentSources: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Defensive_Equipment_Editable_ORA.zip`,
+  consumableSources: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Consumable_Cards_Editable_ORA.zip`,
 };
 const publicCardDetails = (card: CardEntry): [string, string | number][] => [
   ["Focus Cost", card.fpCost ?? "—"],
@@ -190,6 +200,7 @@ const CARD_IMAGE_URLS: Record<string, string> = {
   ...DEFENSE_CARD_URLS,
   ...KATA_CARD_URLS,
   ...CONSUMABLE_CARD_URLS,
+  ...DEFENSE_EQUIPMENT_CARD_URLS,
 };
 const PHASES = [
   { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
@@ -600,6 +611,7 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
   const resetFilters = () => { setQuery(""); setType("All"); setDeck("All"); resetSecondaryFilters(); setVisible(24); };
   return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Exactly 500 in the main pool.`} intro="Search the complete Core catalog by ID, deck, type, rules text, or Focus Cost. The 500-card main pool excludes Starter, Character, and Boss-module cards." art={headerCardsUrl} />
     <div className="download-row"><span>For filters and suspiciously serious review</span><a className="button ghost" href={DOWNLOADS.cardCatalog} download>Download Card Catalog (.xlsx)</a></div>
+    <div className="download-row"><span>Editable Paper-Fu source cards, with separate GIMP layers</span><a className="button ghost" href={DOWNLOADS.defenseEquipmentSources} download>Defense Equipment sources (.ora.zip)</a><a className="button ghost" href={DOWNLOADS.consumableSources} download>Consumable sources (.ora.zip)</a></div>
     <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => { setDeck(event.target.value); resetSecondaryFilters(); setVisible(24); }}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Subtype</span><select value={subtype} onChange={(event) => { setSubtype(event.target.value); setVisible(24); }} disabled={!subtypeOptions.length}><option value="All">All subtypes</option>{subtypeOptions.map((entry) => <option value={entry} key={entry}>{entry} ({subtypeCounts[entry]})</option>)}</select></label><label className="library-control"><span>Timing</span><select value={timing} onChange={(event) => { setTiming(event.target.value); setVisible(24); }} disabled={!timingOptions.length}><option value="All">All timings</option>{timingOptions.map((entry) => <option value={entry} key={entry}>{entry} ({timingCounts[entry]})</option>)}</select></label><label className="library-control"><span>Focus Cost</span><select value={focusCost} onChange={(event) => { setFocusCost(event.target.value); setVisible(24); }} disabled={!focusCostOptions.length}><option value="All">Any cost</option>{focusCostOptions.map((entry) => <option value={entry} key={entry}>{entry} Focus ({focusCostCounts[entry]})</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option></select></label></section>
     <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); resetSecondaryFilters(); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
     <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || deck !== "All" || subtype !== "All" || timing !== "All" || focusCost !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>

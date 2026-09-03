@@ -155,11 +155,11 @@ const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail:
   master: { label: "Grandmaster", eyebrow: "Bad decision", detail: "More HP, sharper stats, and no sympathy from the clipboard.", aiHp: 35, statBoost: 1 },
 };
 
-const cardArtModules = import.meta.glob<string>("./assets/cards/{attacks,defenses,katas,consumables,characters}/*.webp", { eager: true, query: "?url", import: "default" });
+const cardArtModules = import.meta.glob<string>("./assets/cards/{attacks,defenses,katas,consumables,defense-equipment,characters}/*.webp", { eager: true, query: "?url", import: "default" });
 const CARD_ART = Object.fromEntries(Object.entries(cardArtModules).map(([path, url]) => [`/cards/${path.split("/cards/")[1]}`, url]));
 const COMPLETE_CARD_ART_BY_CATALOG_ID = Object.fromEntries(
   Object.entries(cardArtModules).flatMap(([path, url]) => {
-    const match = path.match(/\/(ddb-(?:atk|def|kat|con)-core-\d{3})_/i);
+    const match = path.match(/\/(ddb-(?:atk|def|kat|con|deq)-core-\d{3})_/i);
     return match ? [[match[1].toUpperCase(), url]] : [];
   }),
 );
