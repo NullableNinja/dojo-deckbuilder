@@ -335,4 +335,916 @@ function locationAttackModifier(location: CardEntry | undefined, card: CardEntry
 
 function locationDefenseModifier(location: CardEntry | undefined, card: CardEntry | null | undefined, board: Board, zone: string): CombatModifier {
   if (!location || !card) return { value: 0, notes: [] };
-  const firstDefense = !
+  const firstDefense = !board.defendedThisRound;
+  let value = 0;
+  const notes: string[] = [];
+  const apply = (amount: number, reason: string) => { value += amount; notes.push(`${reason} ${amount > 0 ? "+" : ""}${amount}`); };
+  if (location.name === "City Bus in Motion" && (hasTag(card, "Dodge") || hasTag(card, "Movement"))) apply(-1, "moving bus");
+  if (location.name === "Community Ice Rink" && hasTag(card, "Dodge")) apply(1, "ice-rink Dodge");
+  if (location.name === "River Dock" && zone === "Low") apply(1, "dockside Low Guard");
+  if (location.name === "School Gymnasium" && firstDefense) apply(1, "first Defense");
+  if (location.name === "Strip-Mall McDojo") apply(-1, "discount instruction");
+  if (location.name === "Traditional Dojo" && firstDefense) apply(1, "first Defense");
+  return { value, notes };
+}
+
+function locationFocusModifier(location: CardEntry | undefined, card: CardEntry, board: Board): CombatModifier {
+  const kataAlreadyPlayed = board.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; });
+  if (!location || !isKata(card) || kataAlreadyPlayed) return { value: 0, notes: [] };
+  if (["Public Library", "Strip-Mall McDojo", "Traditional Dojo", "Yoga Studio"].includes(location.name)) return { value: 1, notes: [`${location.name} first-Kata Focus +1`] };
+  return { value: 0, notes: [] };
+}
+
+function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry): AttackModifier {
+  const fighter = cardFor(attacker.fighterId);
+  if (!fighter) return { power: 0, damage: 0, notes: [] };
+  const firstAttack = attacker.attacksThisTurn === 0;
+  if (fighter.name === "El Pollo Rojo" && firstAttack && defender.xp > attacker.xp) return { power: 0, damage: 1, notes: ["El Pollo Rojo refuses to trail +1 damage"] };
+  if (fighter.name === "Knuckleton the Brawler" && firstAttack && !attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; })) return { power: 0, damage: 1, notes: ["Knuckleton's first unarmed strike +1 damage"] };
+  if (fighter.name === "Wavey Davey" && firstAttack && attacker.wasHitSinceLastTurn) return { power: 0, damage: 1, notes: ["Wavey Davey found the opening +1 damage"] };
+  if (fighter.name === "Whirlwind Wynn" && firstAttack && hasTag(card, "Spin")) return { power: 0, damage: 0, notes: ["Whirlwind Wynn opens the Spin zone"] };
+  return { power: 0, damage: 0, notes: [] };
+}
+
+function reduceDamageForFighter(board: Board, damage: number): { board: Board; damage: number; note: string | null } {
+  const fighter = cardFor(board.fighterId);
+  if (!fighter || board.damageReductionUsed || damage <= 0) return { board, damage, note: null };
+  const protects = fighter.name === "Sentry Bobby" || (fighter.name === "Crash Test Dummy" && damage >= 4);
+  if (!protects) return { board, damage, note: null };
+  return { board: { ...board, damageReductionUsed: true }, damage: Math.max(0, damage - 1), note: `${fighter.name} reduces the Hit by 1` };
+}
+
+function drawCards(board: Board, count: number) {
+  let deck = [...board.deck];
+  let discard = [...board.discard];
+  let hand = [...board.hand];
+  for (let index = 0; index < count; index += 1) {
+    if (!deck.length && discard.length) { deck = shuffle(discard); discard = []; }
+    const next = deck.pop();
+    if (next) hand.push(next);
+  }
+  return { ...board, deck, discard, hand };
+}
+
+function fighterStat(board: Board, stat: "ATK" | "DEF" | "Speed") {
+  const fighter = cardFor(board.fighterId);
+  const beltBonus = stat === "ATK" && board.belt >= 2 ? 1 : stat === "DEF" && board.belt >= 7 ? 1 : 0;
+  const base = numberValue(fighter?.stats[stat]);
+  const equipment = board.equipment.reduce((total, id) => {
+    const card = cardFor(id);
+    if (!card) return total;
+    if (stat === "ATK") return total + numberValue(card.stats["Attack Bonus"]);
+    if (stat === "DEF") return total + numberValue(card.stats.Guard);
+    return total;
+  }, 0);
+  const challengeBonus = stat === "ATK" || stat === "DEF" ? board.statBoost ?? 0 : 0;
+  return base + beltBonus + equipment + challengeBonus + (stat === "Speed" ? board.tempSpeed : 0);
+}
+
+function emptyBoard(fighterId: string): Board {
+  return drawCards({
+    fighterId, hp: gameDefinition.mode.startingHp, maxHp: gameDefinition.mode.startingHp, xp: 0, focus: 0, belt: 0,
+    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [],
+    tempSpeed: 0, nextAttackBonus: 0, attacksThisTurn: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false,
+    defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
+    damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false,
+    reversalUsedRound: false, learnedCombos: [], triggeredCombos: [], comboAttemptedTurn: false,
+    damageDealt: 0, damageTaken: 0, cardsBought: 0,
+  }, gameDefinition.turn.handSize);
+}
+
+function artistUrl(card: CardEntry) {
+  if (card.image && CARD_ART[card.image]) return CARD_ART[card.image];
+  if (COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId]) return COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId];
+  if (card.name === "Basic Jab") return starterJabArtUrl;
+  if (card.name === "High Guard") return highGuardArtUrl;
+  return undefined;
+}
+
+function cardEffectNote(card: CardEntry) {
+  const text = card.rulesText ?? "";
+  if (!text || /no (additional )?effect/i.test(text)) return "No extra printed effect.";
+  if (isPermanent(card)) return "Equipped permanently; its printed stats apply now."
+  return describeEffectPlan(compileCardEffects(text));
+}
+
+function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai", timing: "onPlay" | "onHit" | "onBlock" | "afterResolve" = "onPlay") {
+  let next = { ...board };
+  if (timing === "onPlay") {
+    if (owner === "player" || owner === "ai") next.focus += numberValue(card.focusValue);
+    if (isPermanent(card)) next.equipment = [...next.equipment, card.id];
+  }
+  for (const effect of compileCardEffects(card.rulesText ?? "").effects.filter((entry) => entry.timing === timing)) {
+    if (effect.kind === "draw") next = drawCards(next, effect.amount);
+    if (effect.kind === "discard" && next.hand.length) {
+      if (owner === "player" && timing === "onPlay" && card.name === "Morning-Shift Meditation") continue;
+      const discardCount = Math.min(effect.amount, next.hand.length);
+      const ranked = [...next.hand].sort((left, right) => numberValue(cardFor(left)?.focusValue) - numberValue(cardFor(right)?.focusValue));
+      const discarded = ranked.slice(0, discardCount);
+      next = { ...next, hand: next.hand.filter((id) => !discarded.includes(id)), discard: [...next.discard, ...discarded] };
+    }
+    if (effect.kind === "nextAttackPower") next.nextAttackBonus += effect.amount;
+    if (effect.kind === "speed") next.tempSpeed += effect.amount;
+    if (effect.kind === "focus") next.focus += effect.amount;
+    if (effect.kind === "heal") next.hp = Math.min(next.maxHp, next.hp + effect.amount);
+  }
+  const text = card.rulesText ?? "";
+  if (timing === "onPlay" && /After your first Attack resolves[^.]*next Attack gains Flow/i.test(text) && board.attacksThisTurn === 0) {
+    next.flowAfterFirstAttack = true;
+  } else if (timing === "onPlay" && /(?:^|[.!?]\s+)(?:Your|The) next [^.]*Attack[^.]*gains Flow/i.test(text)) {
+    next.nextAttackHasFlow = true;
+  } else if (timing === "onPlay" && card.name === "Second Wind Form" && board.hp > board.maxHp / 2) {
+    next.nextAttackHasFlow = true;
+  } else if (timing === "onHit" && /(?:On Hit|If (?:this Attack|it|that Attack) Hits?)[^.]*next [^.]*Attack[^.]*gains Flow/i.test(text)) {
+    next.nextAttackHasFlow = true;
+  } else if (timing === "afterResolve" && /After (?:this|it|that) Attack resolves[^.]*next [^.]*Attack[^.]*gains Flow/i.test(text)) {
+    next.nextAttackHasFlow = true;
+  }
+  return next;
+}
+
+function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier) {
+  if (board.nextAttackHasFlow || combo.grantsFlow) return true;
+  if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {
+    return !/Weapon equipped/i.test(card.rulesText ?? "") || board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
+  }
+  const pairedWeapons = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item && isWeapon(item) && hasTag(item, "Paired")));
+  if (board.attacksThisTurn === 1 && pairedWeapons.length >= 2 && board.equipment.some((id) => cardFor(id)?.name === "Escrima Sticks")) return true;
+  return false;
+}
+
+function legalDefenseIds(board: Board, zone: string) {
+  return board.hand.filter((id) => {
+    const card = cardFor(id);
+    return Boolean(card && isDefense(card) && matchesZone(card, zone));
+  });
+}
+
+function bestDefense(board: Board, zone: string, attackPower = Number.POSITIVE_INFINITY, difficulty: Difficulty = "certified", location?: CardEntry) {
+  const options = legalDefenseIds(board, zone);
+  if (!options.length || (difficulty === "student" && Math.random() < .28)) return null;
+  const ranked = options.map((id) => {
+    const card = cardFor(id)!;
+    const modifier = locationDefenseModifier(location, card, board, zone).value;
+    return { id, total: fighterStat(board, "DEF") + cardPower(card) + modifier };
+  }).sort((left, right) => left.total - right.total);
+  const efficientBlock = ranked.find((entry) => entry.total >= attackPower);
+  if (efficientBlock) return efficientBlock.id;
+  if (difficulty === "master" && attackPower - ranked.at(-1)!.total >= 5) return null;
+  return ranked.at(-1)?.id ?? null;
+}
+
+function aiMarketScore(card: CardEntry, board: Board) {
+  const owned = [...board.deck, ...board.hand, ...board.discard, ...board.playArea].map(cardFor).filter(Boolean) as CardEntry[];
+  const attacks = owned.filter(isAttack).length;
+  const defenses = owned.filter(isDefense).length;
+  const base = cardCost(card) * 2 + cardFocus(card);
+  if (isDefense(card) && defenses < 5) return base + 5;
+  if (isAttack(card) && attacks < 5) return base + 4;
+  if (isKata(card) && board.learnedCombos.length) return base + 3;
+  if (isPermanent(card)) return base + 2;
+  return base;
+}
+
+function aiAttackScore(card: CardEntry, attacker: Board, defender: Board, location?: CardEntry) {
+  const zones = card.zone?.includes("Any") ? ["High", "Mid", "Low"] : [card.zone?.split(",")[0] ?? "High"];
+  return Math.max(...zones.map((zone) => {
+    const defenseCards = legalDefenseIds(defender, zone).length;
+    const locationBonus = locationAttackModifier(location, card, attacker, zone);
+    return cardPower(card) + locationBonus.power + locationBonus.damage - defenseCards * .35;
+  }));
+}
+
+function playAreaCleanup(board: Board) {
+  const borrowed = board.borrowedEquipmentId;
+  const equipment = borrowed ? board.equipment.filter((id) => id !== borrowed) : board.equipment;
+  const discard = [...board.discard, ...board.hand, ...board.playArea.filter((id) => !board.equipment.includes(id)), ...(borrowed ? [borrowed] : [])];
+  return drawCards({ ...board, hand: [], playArea: [], equipment, discard, focus: 0, attacksThisTurn: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, borrowedEquipmentId: null, wasHitSinceLastTurn: false, comboAttemptedTurn: false }, board.belt >= 5 ? 6 : 5);
+}
+
+function cardLabel(card: CardEntry) { return `${card.name} · ${card.catalogId}`; }
+
+function NativeCardArt({ card }: { card: CardEntry }) {
+  const glyph = isAttack(card) ? "✦" : isDefense(card) ? "◆" : isKata(card) ? "◎" : isPermanent(card) ? "▣" : card.cardType === "Combo" ? "∞" : "✺";
+  return <span className="native-card-art" aria-hidden="true">
+    <span className="native-card-ribbon">{card.subtype || card.cardType}</span>
+    <b>{glyph}</b>
+    <strong>{card.name}</strong>
+    <small>{(card.rulesText ?? "No additional effect.").slice(0, 112)}</small>
+    <em>DDB · CERTIFIED COPY</em>
+  </span>;
+}
+
+function PlayCard({ card, selected, disabled, onClick, onInspect }: { card: CardEntry; selected?: boolean; disabled?: boolean; onClick?: () => void; onInspect: () => void }) {
+  const art = artistUrl(card);
+  const kind = isAttack(card) ? "attack" : isDefense(card) ? "defense" : isKata(card) ? "kata" : card.cardType.toLocaleLowerCase();
+  return <article className={`play-card play-card--${kind} ${selected ? "is-selected" : ""} ${disabled ? "is-disabled" : ""}`}>
+    <button className="play-card-main" disabled={disabled || !onClick} onClick={onClick} aria-label={`Use ${card.name}`}>
+      {art ? <img src={art} alt="" loading="lazy" decoding="async" /> : <NativeCardArt card={card} />}
+      {art && <span className="play-card-fallback"><b>{card.name}</b><small>{card.catalogId}</small><em>{card.subtype}</em></span>}
+      <span className="play-card-meta"><b>{card.fpCost ?? "—"}<small> COST</small></b><strong>{card.focusValue ?? "—"}<small> FOCUS</small></strong><em>{card.zone ?? "—"} · {card.timing ?? "—"}</em></span>
+    </button>
+    <button className="play-card-inspect" onClick={onInspect} aria-label={`Inspect ${card.name}`}>⌕</button>
+  </article>;
+}
+
+function StatGlyph({ stat }: { stat: "HP" | "XP" | "FP" | "ATK" | "DEF" | "SPD" }) {
+  const paths = {
+    HP: <path d="M12 20s-7-4.4-9.2-8.3C.8 8.2 2.6 4.5 6.4 4.5c2.1 0 3.4 1.2 4.1 2.4.7-1.2 2-2.4 4.1-2.4 3.8 0 5.6 3.7 3.6 7.2C16 15.6 12 20 12 20Z" />,
+    XP: <path d="m12 2.8 2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8L12 2.8Z" />,
+    FP: <path d="M18.5 12a6.5 6.5 0 1 1-6.5-6.5c3 0 5 1.8 5 4.1 0 2-1.7 3.5-3.8 3.5-1.7 0-2.9-1-2.9-2.3 0-1.1.9-1.9 2.1-1.9" />,
+    ATK: <path d="M6.3 11.2V7.1c0-1.6 2.2-1.7 2.2-.1V5.8c0-1.6 2.2-1.7 2.2-.1V5c0-1.6 2.2-1.6 2.2 0v.8c0-1.5 2.2-1.5 2.2.1v5l1-1.1c1.1-1.2 3 .2 2 1.6l-3.7 5.2V20H8.2v-3.2l-3-3.7c-1-1.3.2-3 1.1-1.9Z" />,
+    DEF: <path d="M12 2.7 19 5v5.5c0 4.4-2.7 7.7-7 10.8-4.3-3.1-7-6.4-7-10.8V5l7-2.3Z" />,
+    SPD: <path d="M13.5 2.5 5.8 13h5l-1 8.5L18.2 10h-5.1l.4-7.5Z" />,
+  };
+  return <svg className={`fighter-stat-glyph stat-${stat.toLocaleLowerCase()}`} viewBox="0 0 24 24" aria-hidden="true">{paths[stat]}</svg>;
+}
+
+function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void }) {
+  const fighter = cardFor(board.fighterId)!;
+  const art = artistUrl(fighter);
+  return <section className={`fighter-panel paper-stack ${enemy ? "is-enemy" : ""}`}>
+    <div className="fighter-panel-art">{art ? <img src={art} alt={fighter.name} /> : <img src={cardPlaceholderUrl} alt="" />}</div>
+    <div className="fighter-panel-copy"><span>{label} · {belts[board.belt].name} Belt</span><button onClick={() => onInspect(fighter)}>{fighter.name}</button><p>{fighter.rulesText}</p><div className="fighter-hp-track" aria-label={`${fighter.name} has ${board.hp} of ${board.maxHp} hit points`}><span style={{ width: `${Math.max(0, Math.min(100, board.hp / board.maxHp * 100))}%` }} /></div></div>
+    <div className="fighter-stats"><b><StatGlyph stat="HP" /><small>HP</small><span>{board.hp}/{board.maxHp}</span></b><b><StatGlyph stat="XP" /><small>XP</small><span>{board.xp}</span></b><b><StatGlyph stat="FP" /><small>FP</small><span>{board.focus}</span></b><b><StatGlyph stat="ATK" /><small>ATK</small><span>{fighterStat(board, "ATK")}</span></b><b><StatGlyph stat="DEF" /><small>DEF</small><span>{fighterStat(board, "DEF")}</span></b><b><StatGlyph stat="SPD" /><small>SPD</small><span>{fighterStat(board, "Speed")}</span></b></div>
+    {board.equipment.length > 0 && <div className="fighter-equipment-rack" aria-label={`${fighter.name} equipped cards`}><span>Equipped</span>{board.equipment.map((id, index) => { const card = cardFor(id); if (!card) return null; return <button type="button" onClick={() => onInspect(card)} title={`${card.name} · ${card.subtype}`} key={`${id}-${index}`}>{artistUrl(card) ? <img src={artistUrl(card)} alt="" /> : <b>{card.name.slice(0, 2)}</b>}<small>{card.name}</small></button>; })}</div>}
+  </section>;
+}
+
+function ImpactReadout({ line }: { line: string }) {
+  const math = line.match(/Attack (\d+) vs Defense (\d+)/i);
+  const hit = math ? Number(math[1]) > Number(math[2]) : false;
+  const finalDamage = line.match(/hits(?: [^.]*?)? for (\d+)/i)?.[1];
+  return <blockquote className={`impact-readout ${math ? (hit ? "is-hit" : "is-block") : ""}`} key={line}>
+    <span>{math ? (hit ? "Impact certified" : "Block certified") : "Latest filing"}</span>
+    {math && <div><b>{math[1]}<small>ATK</small></b><i>−</i><b>{math[2]}<small>DEF</small></b><i>=</i><strong>{finalDamage ?? Math.max(0, Number(math[1]) - Number(math[2]))}<small>HP</small></strong></div>}
+    {!math && <p>{line}</p>}
+  </blockquote>;
+}
+
+function MatLane({ label, cards: cardIds, activeId, onInspect }: { label: string; cards: string[]; activeId?: string | null; onInspect: (card: CardEntry) => void }) {
+  const visible = cardIds.slice(-4);
+  return <section className="mat-lane" aria-label={`${label} cards currently on the Live Mat`}>
+    <header><span>{label}</span><b>{visible.length ? `${visible.length} CARD${visible.length === 1 ? "" : "S"}` : "CLEAR"}</b></header>
+    <div className="mat-lane-cards">
+      {visible.length ? visible.map((id, index) => { const card = cardFor(id); if (!card) return null; const art = artistUrl(card); return <button type="button" className={id === activeId ? "is-active" : ""} onClick={() => onInspect(card)} title={`Inspect ${card.name}`} key={`${id}-${index}`}>
+        <span className="mat-card-visual">{art ? <img src={art} alt="" /> : <NativeCardArt card={card} />}</span>
+        <span className="mat-card-copy"><b>{card.name}</b><small>{card.subtype || card.cardType}{card.zone ? ` · ${card.zone}` : ""}</small></span>
+      </button>; }) : <p>No cards committed this turn.</p>}
+    </div>
+  </section>;
+}
+
+function BattleCallout({ line }: { line: string }) {
+  const damage = line.match(/hits(?: [^.]*?)? for (\d+)/i)?.[1];
+  const block = /\bblocks?\b|is blocked/i.test(line);
+  const purchase = /\bBought\b|\bbuys\b/i.test(line);
+  const promote = /Certification approved/i.test(line);
+  if (!damage && !block && !purchase && !promote) return null;
+  return <div className={`battle-callout ${damage ? "is-hit" : block ? "is-block" : "is-paperwork"}`} key={line} aria-hidden="true">
+    <b>{damage ? `${damage} DAMAGE` : block ? "BLOCK!" : promote ? "BELT UP!" : "ACQUIRED!"}</b>
+    <span>{damage ? "impact filing accepted" : block ? "denied by the defense desk" : "stamp applied with unreasonable force"}</span>
+  </div>;
+}
+
+function SetupView({ selectedId, setSelectedId, settings, setSettings, begin }: { selectedId: string; setSelectedId: (id: string) => void; settings: HouseSettings; setSettings: (settings: HouseSettings) => void; begin: () => void }) {
+  const [query, setQuery] = useState("");
+  const selected = cardFor(selectedId) ?? characters[0];
+  const filteredCharacters = characters.filter((character) => `${character.name} ${character.rulesText ?? ""} ${Object.values(character.stats).join(" ")}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  const randomize = () => {
+    const choices = filteredCharacters.filter((character) => character.id !== selectedId);
+    const next = choices[Math.floor(Math.random() * choices.length)] ?? filteredCharacters[0] ?? characters[0];
+    setSelectedId(next.id);
+  };
+  return <main className="playtest-shell shell"><MobilePlaytestNotice />
+    <section className="playtest-hero paper-stack"><span className="eyebrow">Department-certified digital field test</span><h1>Shuffle. Strike. Ascend.</h1><p>This is the actual Quick Duel loop: the fixed {starterIds.length}-card curriculum, all approved Market records, live fighter data, automated Locations, Reversals, Belt Exams, and a separate Combo docket.</p><div className="playtest-stamps"><span>{cards.length} approved records</span><span>Quick Duel vs. tactical AI</span><span>Progress saved on this device</span></div></section>
+    <section className="playtest-setup-grid">
+      <div className="playtest-roster paper-stack"><div className="roster-toolbar"><div><span className="eyebrow">1 · Choose a fighter</span><h2>Who signs the waiver?</h2></div><div><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a fighter" aria-label="Search fighters" /></label><button onClick={randomize}>Random draw</button></div></div><article className="selected-fighter-dossier"><img src={artistUrl(selected) ?? cardPlaceholderUrl} alt={selected.name} /><div><span>Selected delegation</span><h3>{selected.name}</h3><p>{selected.rulesText ?? "Ability pending an inspector with a functioning pen."}</p><div><b>{numberValue(selected.stats.ATK)}<small>ATK</small></b><b>{numberValue(selected.stats.DEF)}<small>DEF</small></b><b>{numberValue(selected.stats.Speed)}<small>SPD</small></b></div></div></article><div className="playtest-character-grid">{filteredCharacters.map((character) => <button key={character.id} className={selectedId === character.id ? "is-selected" : ""} onClick={() => setSelectedId(character.id)} aria-pressed={selectedId === character.id}><img src={artistUrl(character) ?? cardPlaceholderUrl} alt="" loading="lazy" /><span>{character.name}</span><small>{numberValue(character.stats.ATK)} ATK · {numberValue(character.stats.DEF)} DEF · {numberValue(character.stats.Speed)} SPD</small></button>)}</div></div>
+      <aside className="playtest-rules-panel quick-duel-brief paper-stack"><span className="eyebrow">2 · One official teaser</span><h2>Certified Quick Duel</h2><p>One fighter. One tactical opponent. Full Belt vitality, the persistent Market, Locations, Reversals, Combos, and Belt progression. No mode selection and no setup maze—the Department has already made the questionable decisions.</p><ul><li>Desktop playtest</li><li>Guided tactical opponent</li><li>Real Core card catalog</li></ul><button className="button primary field-test-launch" onClick={() => begin()}>Begin Quick Duel as {selected.name} <span>→</span></button></aside>
+    </section>
+  </main>;
+}
+
+function MobilePlaytestNotice() {
+  return <section className="playtest-mobile-notice paper-stack"><span className="eyebrow">Desktop field test</span><h1>Quick Duel needs a bigger mat.</h1><p>The playable teaser is intentionally hidden on phones. Open this page on a desktop or laptop to fight; the rules and Card Library remain fully mobile-friendly.</p></section>;
+}
+
+export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards") => void }) {
+  const [selectedId, setSelectedId] = useState(() => characters.find((card) => card.name === "Sensei Ducktape")?.id ?? characters[0].id);
+  const [settings, setSettings] = useState<HouseSettings>(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("ddb-field-settings") ?? "null") as Partial<HouseSettings> | null;
+      return { tempo: saved?.tempo ?? true, locations: saved?.locations ?? true, openMarket: saved?.openMarket ?? true, guided: saved?.guided ?? true, autoAi: saved?.autoAi ?? true, balancedMarket: saved?.balancedMarket ?? true, difficulty: saved?.difficulty && DIFFICULTIES[saved.difficulty] ? saved.difficulty : "certified" };
+    } catch { return { tempo: true, locations: true, openMarket: true, guided: true, autoAi: true, balancedMarket: true, difficulty: "certified" }; }
+  });
+  const [match, setMatch] = useState<Match | null>(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
+      return saved?.schema === 6 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;
+    } catch { return null; }
+  });
+  const [inspectedId, setInspectedId] = useState<string | null>(null);
+  const [inspectorZoomed, setInspectorZoomed] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
+  const [deskView, setDeskView] = useState<DeskView | null>(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
+      return saved?.phase === "player-ascend" ? "market" : null;
+    } catch { return null; }
+  });
+  const [rulesSync, setRulesSync] = useState<RulesSyncState>({ status: "checking", currentVersion: activeRulesRevision, latestVersion: activeRulesRevision, checkedAt: 0 });
+  const inspected = inspectedId ? cardFor(inspectedId) : null;
+
+  useEffect(() => { window.localStorage.setItem("ddb-field-settings", JSON.stringify(settings)); }, [settings]);
+  useEffect(() => {
+    try {
+      if (match) window.localStorage.setItem("ddb-field-match", JSON.stringify(match));
+      else window.localStorage.removeItem("ddb-field-match");
+    } catch {
+      window.localStorage.removeItem("ddb-field-match");
+    }
+  }, [match]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const check = () => fetchRulesManifest(controller.signal)
+      .then((manifest) => setRulesSync(rulesSyncState(activeRulesRevision, manifest.rulesRevision ?? manifest.rulesVersion)))
+      .catch(() => setRulesSync((current) => ({ ...current, status: "offline", checkedAt: Date.now() })));
+    void check();
+    const timer = window.setInterval(check, 60000);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, []);
+  useEffect(() => {
+    setInspectorZoomed(false);
+    if (!inspectedId && !deskView && !logOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (inspectedId) setInspectedId(null);
+      else if (deskView) setDeskView(null);
+      else setLogOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", close);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", close); };
+  }, [inspectedId, deskView, logOpen]);
+
+  const begin = (fighterId = selectedId) => {
+    const choices = characters.filter((card) => card.id !== fighterId);
+    const player = { ...emptyBoard(fighterId), xp: 1 };
+    const challenge = DIFFICULTIES[settings.difficulty];
+    const ai = { ...emptyBoard(choices[Math.floor(Math.random() * choices.length)].id), xp: 1, hp: challenge.aiHp, maxHp: challenge.aiHp, statBoost: challenge.statBoost };
+    const locations = shuffle(quickDuelLocationPool.map((card) => card.id));
+    const shuffledMarket = shuffle(marketPool.filter((card) => settings.openMarket || Boolean(artistUrl(card))).map((card) => card.id));
+    const openingMarket = curateOpeningMarket(shuffledMarket, settings.balancedMarket);
+    const comboDeck = shuffle(comboPool.map((card) => card.id));
+    const currentLocation = settings.locations ? locations[0] : locationPool.find((card) => card.name === "Tournament Mat")?.id ?? locations[0];
+    const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
+    const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
+    setDeskView(null);
+    setMatch({ schema: 6, rulesVersion: activeRulesRevision, player, ai, market: openingMarket.market, marketDeck: openingMarket.marketDeck, marketDiscard: [], marketPurchasedThisRound: false, comboDeck: comboDeck.slice(1), comboOfferId: comboDeck[0] ?? null, locations: locations.slice(1), locationId: currentLocation, round: 1, phase: playerFirst ? "player-initiate" : "ai-ready", turnOrder, turnIndex: 0, selectedAttackId: null, selectedZone: "High", pendingStrike: null, pendingDiscard: null, reversalRemainingAiAttacks: [], winner: null, log: [`${challenge.label} field test opened under rules ${activeRulesRevision}. The waiver is legally adjacent to complete.`, `Honor 1: ${cardFor(currentLocation)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo.`, `${playerFirst ? "You" : "Computer"} win initiative on current Speed.`] });
+  };
+
+  const write = (current: Match, line: string, changes: Partial<Match> = {}) => ({ ...current, ...changes, log: [line, ...current.log].slice(0, 32) });
+  const player = match?.player;
+  const ai = match?.ai;
+  const playerFighter = player ? cardFor(player.fighterId)! : null;
+  const aiFighter = ai ? cardFor(ai.fighterId)! : null;
+  const playerTask = useMemo(() => player ? player.completedTasks.includes(player.belt + 1) : false, [player]);
+
+  const chooseAttack = (card: CardEntry) => setMatch((current) => current ? { ...current, selectedAttackId: current.selectedAttackId === card.id ? null : card.id, selectedZone: card.zone?.includes("Any") ? current.selectedZone : card.zone?.split(",")[0] ?? "High" } : current);
+
+  const equipPermanent = (id: string) => setMatch((current) => {
+    if (!current || current.phase !== "player-initiate" || current.winner) return current;
+    const card = cardFor(id);
+    if (!card || !isPermanent(card)) return current;
+    if (cardFor(current.player.fighterId)?.name === "Knuckleton the Brawler" && isWeapon(card)) return write(current, "Knuckleton refuses the Weapon. The waiver cites 'personal reasons.'");
+    const nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id] }, card, "player");
+    return write(current, `${card.name} equipped during Initiate. ${cardEffectNote(card)}`, { player: nextPlayer });
+  });
+
+  const borrowEquipment = (id: string) => setMatch((current) => {
+    if (!current || current.phase !== "player-initiate" || current.player.abilityUsedRound || cardFor(current.player.fighterId)?.name !== "Sensei Ducktape") return current;
+    const card = cardFor(id);
+    if (!card || !isPermanent(card) || !current.player.discard.includes(id)) return current;
+    const nextPlayer = applyCardEffects({ ...current.player, discard: removeOne(current.player.discard, id), borrowedEquipmentId: id, abilityUsedRound: true }, card, "player");
+    return write(current, `Sensei Ducktape jury-rigs ${card.name} from the discard pile until Hide.`, { player: nextPlayer });
+  });
+
+  const beginYell = () => setMatch((current) => current?.phase === "player-initiate" ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell" }) : current);
+
+  const declareAttack = () => setMatch((current) => {
+    if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard) return current;
+    const card = cardFor(current.selectedAttackId);
+    if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
+    const anyZone = card.zone?.includes("Any") || (cardFor(current.player.fighterId)?.name === "Whirlwind Wynn" && current.player.attacksThisTurn === 0 && hasTag(card, "Spin"));
+    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
+    const tempoBonus = settings.tempo && current.player.tempo && fighterStat(current.player, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
+    const location = cardFor(current.locationId);
+    const locationModifier = locationAttackModifier(location, card, current.player, zone);
+    const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
+    const comboModifier = comboAttackModifier(current.player, card, zone);
+    const hasFlow = attackHasFlow(current.player, card, comboModifier);
+    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + comboModifier.power);
+    const defenseId = bestDefense(current.ai, zone, attackPower, settings.difficulty, location);
+    const defenseCard = defenseId ? cardFor(defenseId) : null;
+    const defenseModifier = locationDefenseModifier(location, defenseCard, current.ai, zone);
+    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + (defenseCard ? cardPower(defenseCard) : 0) + defenseModifier.value);
+    const hit = attackPower > defensePower;
+    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
+    const reduced = reduceDamageForFighter(current.ai, rawDamage);
+    const damage = reduced.damage;
+    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
+    const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
+    if (flowDraw) nextPlayer = drawCards({ ...nextPlayer, flowUsedThisTurn: true }, 1);
+    if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
+    if (hit && comboModifier.focusOnHit) nextPlayer.focus += comboModifier.focusOnHit;
+    let nextAi = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit, damageTaken: reduced.board.damageTaken + damage };
+    if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), discard: [...nextAi.discard, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true };
+    nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
+    if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
+    if (defenseCard) {
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onPlay");
+      if (!hit) nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onBlock");
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve");
+    }
+    if (damage >= 3 && nextPlayer.belt >= 6) nextPlayer.focus += 1;
+    if (!nextAi.hp) nextPlayer.xp += 2;
+    nextPlayer = markCompletedTask(nextPlayer);
+    const result = hit
+      ? `${card.name} hits ${aiFighter?.name ?? "the opponent"} for ${damage}.${defenseCard ? ` ${defenseCard.name} is discarded after this strike.` : ""}`
+      : defenseCard
+        ? `${card.name} is blocked by ${defenseCard.name}; that Defense is now discarded.`
+        : `${card.name} is blocked by ${aiFighter?.name ?? "the opponent"}'s base DEF; no Defense card was played.`;
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...comboModifier.notes, ...defenseModifier.notes, ...(reduced.note ? [reduced.note] : [])];
+    return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, winner: nextAi.hp ? null : "player" });
+  });
+
+  const playSupport = (id: string) => setMatch((current) => {
+    if (!current || current.phase !== "player-yell" || current.winner || current.pendingDiscard) return current;
+    const card = cardFor(id);
+    if (!card || isAttack(card) || isDefense(card) || isPermanent(card)) return current;
+    const locationModifier = locationFocusModifier(cardFor(current.locationId), card, current.player);
+    const nextPlayer = markCompletedTask(applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value }, card, "player"));
+    const pendingDiscard = card.name === "Morning-Shift Meditation" && nextPlayer.hand.length ? { sourceCardId: id, remaining: 1 } : null;
+    return write(current, `${card.name} played. ${pendingDiscard ? "Draw 1 card, then choose a card to discard." : cardEffectNote(card)}${locationModifier.notes.length ? ` ${locationModifier.notes.join("; ")}.` : ""}`, { player: nextPlayer, pendingDiscard });
+  });
+
+  const choosePendingDiscard = (id: string) => setMatch((current) => {
+    if (!current?.pendingDiscard || !current.player.hand.includes(id)) return current;
+    const discarded = cardFor(id);
+    const source = cardFor(current.pendingDiscard.sourceCardId);
+    const gainsFocus = source?.name === "Morning-Shift Meditation" && cardFocus(discarded) === 0;
+    const remaining = current.pendingDiscard.remaining - 1;
+    const player = {
+      ...current.player,
+      hand: removeOne(current.player.hand, id),
+      discard: [...current.player.discard, id],
+      focus: current.player.focus + (gainsFocus ? 1 : 0),
+    };
+    return write(current, `${discarded?.name ?? "The selected card"} discarded for ${source?.name ?? "the pending effect"}.${gainsFocus ? " Its Focus Value is 0, so you gain 1 Focus." : ""}`, { player, pendingDiscard: remaining > 0 && player.hand.length ? { ...current.pendingDiscard, remaining } : null });
+  });
+
+  const practiceDefense = (id: string) => setMatch((current) => {
+    if (!current || current.phase !== "player-yell" || current.winner || current.player.defensePracticeUsed || current.pendingDiscard) return current;
+    const card = cardFor(id);
+    if (!card || !isDefense(card) || !current.player.hand.includes(id) || gameDefinition.economy.defensePractice.usesPerTurn < 1) return current;
+    const nextPlayer = {
+      ...current.player,
+      hand: removeOne(current.player.hand, id),
+      playArea: [...current.player.playArea, id],
+      focus: current.player.focus + cardFocus(card),
+      defensePracticeUsed: true,
+    };
+    return write(current, `${card.name} used for Defense Practice: +${cardFocus(card)} printed Focus. No Guard, rules text, XP, Combo, or Belt credit applies.`, { player: nextPlayer });
+  });
+
+  const enterAscend = () => {
+    setDeskView("market");
+    setMatch((current) => current?.phase === "player-yell" && !current.pendingDiscard ? write(current, "Ascend: the acquisition desk opens. Spend this turn's Focus before it leaves your mat.", { phase: "player-ascend", selectedAttackId: null }) : current);
+  };
+
+  const buyMarket = (id: string) => setMatch((current) => {
+    if (!current || current.phase !== "player-ascend" || current.winner) return current;
+    const card = cardFor(id);
+    const slot = current.market.indexOf(id);
+    const price = cardCost(card);
+    if (!card || slot < 0 || current.player.focus < price) return current;
+    const focusBefore = current.player.focus;
+    const nextPlayer = markCompletedTask({ ...current.player, focus: focusBefore - price, discard: [...current.player.discard, id], purchasedTypes: [...current.player.purchasedTypes, card.cardType], cardsBought: current.player.cardsBought + 1 });
+    const refilled = refillPurchasedMarketSlot(current.market, current.marketDeck, current.marketDiscard, slot);
+    return write(current, `Bought ${card.name} for ${price} Focus (${focusBefore} → ${nextPlayer.focus}). The top Market card immediately fills the slot.`, { player: nextPlayer, ...refilled, marketPurchasedThisRound: true });
+  });
+
+  const cycleCombo = (learn: boolean) => setMatch((current) => {
+    if (!current || current.phase !== "player-ascend" || !current.comboOfferId || current.player.comboAttemptedTurn || current.winner) return current;
+    const combo = cardFor(current.comboOfferId);
+    if (!combo) return current;
+    const cost = cardCost(combo);
+    if (learn && (current.player.focus < cost || current.player.learnedCombos.length >= 2)) return current;
+    const nextOfferId = current.comboDeck[0] ?? null;
+    const nextDeck = [...current.comboDeck.slice(1), ...(learn ? [] : [combo.id])];
+    const player = learn
+      ? { ...current.player, focus: current.player.focus - cost, learnedCombos: [...current.player.learnedCombos, combo.id], comboAttemptedTurn: true }
+      : { ...current.player, comboAttemptedTurn: true };
+    return write(current, learn ? `Learned Combo: ${combo.name}. It remains face up beside your delegation.` : `${combo.name} returned to the bottom of the Combo docket.`, { player, comboOfferId: nextOfferId, comboDeck: nextDeck });
+  });
+
+  const promote = () => setMatch((current) => {
+    if (!current || current.phase !== "player-ascend" || current.player.belt >= belts.length - 1) return current;
+    const next = belts[current.player.belt + 1];
+    if (current.player.xp < next.xp || !current.player.completedTasks.includes(current.player.belt + 1)) return current;
+    const nextPlayer = applyBeltPromotion(current.player, current.player.belt + 1);
+    const vitality = nextPlayer.maxHp > current.player.maxHp ? ` Max HP ${current.player.maxHp} → ${nextPlayer.maxHp}; current HP ${current.player.hp} → ${nextPlayer.hp}.` : "";
+    return write(current, `Certification approved: ${next.name} Belt. ${next.reward}.${vitality}`, { player: nextPlayer });
+  });
+
+  const completeTurn = () => {
+    setDeskView(null);
+    setMatch((current) => {
+      if (!current || current.phase !== "player-ascend") return current;
+      const nextPlayer = playAreaCleanup(current.player);
+      const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer });
+      if (current.turnIndex === 0) return write(hidden, "The computer is second in this round's initiative order.", { phase: "ai-ready", turnIndex: 1 });
+      return advanceRound(hidden, settings.locations, "Both fighters have completed the round.");
+    });
+  };
+
+  const runAiTurn = () => setMatch((current) => {
+    if (!current || current.phase !== "ai-ready" || current.winner) return current;
+    const prepared = prepareAiTurn(current);
+    const availableAttacks = prepared.ai.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
+    const aiAttackIds = settings.difficulty === "student" ? shuffle(availableAttacks) : availableAttacks.sort((left, right) => aiAttackScore(cardFor(right)!, prepared.ai, prepared.player, cardFor(prepared.locationId)) - aiAttackScore(cardFor(left)!, prepared.ai, prepared.player, cardFor(prepared.locationId)));
+    if (!aiAttackIds.length) return finishAiTurn(prepared, "Computer finds no Attack and files an awkward report.", settings.locations);
+    return openAiStrike(prepared, aiAttackIds[0], aiAttackIds.slice(1), settings.tempo);
+  });
+
+  useEffect(() => {
+    if (!settings.autoAi || match?.phase !== "ai-ready" || match.winner) return;
+    const timer = window.setTimeout(runAiTurn, 760);
+    return () => window.clearTimeout(timer);
+  }, [match?.phase, match?.turnIndex, match?.winner, settings.autoAi]);
+
+  const resolveDefense = (defenseId: string | null) => setMatch((current) => {
+    if (!current?.pendingStrike || current.phase !== "defense-window") return current;
+    const pending = current.pendingStrike;
+    const defenseCard = defenseId ? cardFor(defenseId) : null;
+    let nextPlayer = { ...current.player };
+    let defensePower = fighterStat(nextPlayer, "DEF");
+    let tempoBonus = 0;
+    const locationModifier = locationDefenseModifier(cardFor(current.locationId), defenseCard, nextPlayer, pending.zone);
+    if (defenseCard) {
+      tempoBonus = settings.tempo && nextPlayer.tempo && fighterStat(nextPlayer, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
+      defensePower += cardPower(defenseCard) + tempoBonus + locationModifier.value;
+      nextPlayer = markCompletedTask({ ...nextPlayer, hand: removeOne(nextPlayer.hand, defenseCard.id), discard: [...nextPlayer.discard, defenseCard.id], xp: nextPlayer.xp + 1, defendedThisRound: true, tempo: tempoBonus ? false : nextPlayer.tempo });
+      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onPlay");
+    }
+    const hit = pending.attackPower > defensePower;
+    const rawDamage = hit ? Math.max(0, pending.attackPower - defensePower + (pending.damageModifier ?? 0)) : 0;
+    const reduced = reduceDamageForFighter(nextPlayer, rawDamage);
+    const damage = reduced.damage;
+    nextPlayer = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit, damageTaken: reduced.board.damageTaken + damage };
+    const aiCard = cardFor(pending.cardId)!;
+    let nextAi = markCompletedTask({ ...current.ai, damageDealt: current.ai.damageDealt + damage, hitThisTurn: current.ai.hitThisTurn || hit });
+    nextAi = applyCardEffects(nextAi, aiCard, "ai", hit ? "onHit" : "afterResolve");
+    if (hit) nextAi = applyCardEffects(nextAi, aiCard, "ai", "afterResolve");
+    if (defenseCard) {
+      if (!hit) nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onBlock");
+      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve");
+    }
+    if (!nextPlayer.hp) nextAi = { ...nextAi, xp: nextAi.xp + 2 };
+    const message = hit
+      ? `${aiCard.name} hits you for ${damage}. Attack ${pending.attackPower} vs Defense ${defensePower}.`
+      : defenseCard
+        ? `${defenseCard.name} blocks ${aiCard.name} and is discarded. Attack ${pending.attackPower} vs Defense ${defensePower}.`
+        : `No Defense card was played; your base DEF blocks ${aiCard.name}. Attack ${pending.attackPower} vs Defense ${defensePower}.`;
+    const modifiers = [...(pending.modifierNotes ?? []), ...locationModifier.notes, ...(reduced.note ? [reduced.note] : [])];
+    const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " : ""}${message}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingStrike: null, winner: nextPlayer.hp ? null : "ai" });
+    if (!nextPlayer.hp) return resolved;
+    const reversalAttacks = nextPlayer.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
+    if (!hit && defenseCard && !nextPlayer.reversalUsedRound && reversalAttacks.length) {
+      return write(resolved, `Reversal window: the block is certified and ${reversalAttacks.length} counterattack${reversalAttacks.length === 1 ? " is" : "s are"} ready.`, { phase: "reversal-window", reversalRemainingAiAttacks: pending.remainingAiAttacks, selectedAttackId: null });
+    }
+    if (pending.remainingAiAttacks.length) return openAiStrike(resolved, pending.remainingAiAttacks[0], pending.remainingAiAttacks.slice(1), settings.tempo);
+    return finishAiTurn(resolved, "Computer finishes its Yell and clears the mat.", settings.locations);
+  });
+
+  const declineReversal = () => setMatch((current) => {
+    if (!current || current.phase !== "reversal-window") return current;
+    const resumed = write(current, "Reversal declined. Restraint has been noted and immediately questioned.", { selectedAttackId: null });
+    if (current.reversalRemainingAiAttacks.length) return openAiStrike(resumed, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo);
+    return finishAiTurn(resumed, "Computer finishes its Yell and clears the mat.", settings.locations);
+  });
+
+  const resolveReversal = () => setMatch((current) => {
+    if (!current || current.phase !== "reversal-window" || !current.selectedAttackId || current.player.reversalUsedRound) return current;
+    const card = cardFor(current.selectedAttackId);
+    if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
+    const zone = card.zone?.includes("Any") ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
+    const location = cardFor(current.locationId);
+    const locationModifier = locationAttackModifier(location, card, current.player, zone);
+    const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
+    const comboModifier = comboAttackModifier(current.player, card, zone, true);
+    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + locationModifier.power + fighterModifier.power + comboModifier.power);
+    const defenseId = bestDefense(current.ai, zone, attackPower, settings.difficulty, location);
+    const defenseCard = defenseId ? cardFor(defenseId) : null;
+    const defenseModifier = locationDefenseModifier(location, defenseCard, current.ai, zone);
+    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + (defenseCard ? cardPower(defenseCard) : 0) + defenseModifier.value);
+    const hit = attackPower > defensePower;
+    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
+    const reduced = reduceDamageForFighter(current.ai, rawDamage);
+    const damage = reduced.damage;
+    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], reversalUsedRound: true, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
+    nextPlayer.focus = Math.max(0, nextPlayer.focus - cardFocus(card));
+    if (hit && comboModifier.focusOnHit) nextPlayer.focus += comboModifier.focusOnHit;
+    let nextAi = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), damageTaken: reduced.board.damageTaken + damage, wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit };
+    if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), playArea: [...nextAi.playArea, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true };
+    nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
+    if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
+    if (defenseCard) {
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onPlay");
+      if (!hit) nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onBlock");
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve");
+    }
+    nextPlayer = markCompletedTask(nextPlayer);
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...comboModifier.notes, ...defenseModifier.notes, ...(reduced.note ? [reduced.note] : [])];
+    const result = hit ? `Reversal! ${card.name} hits ${cardFor(current.ai.fighterId)?.name ?? "the computer"} for ${damage}.` : `Reversal! ${card.name} is blocked${defenseCard ? ` by ${defenseCard.name}` : " by base DEF"}.`;
+    const resolved = write(current, `${result} Attack ${attackPower} vs Defense ${defensePower}.${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, winner: nextAi.hp ? null : "player" });
+    if (!nextAi.hp) return resolved;
+    if (current.reversalRemainingAiAttacks.length) return openAiStrike(resolved, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo);
+    return finishAiTurn(resolved, "Computer finishes its Yell after surviving the Reversal paperwork.", settings.locations);
+  });
+
+  if (!match || !player || !ai || !playerFighter || !aiFighter) return <SetupView selectedId={selectedId} setSelectedId={setSelectedId} settings={settings} setSettings={setSettings} begin={begin} />;
+  const pendingAttack = match.selectedAttackId ? cardFor(match.selectedAttackId) : null;
+  const currentLocation = cardFor(match.locationId);
+  const comboOffer = match.comboOfferId ? cardFor(match.comboOfferId) : null;
+  const nextBelt = belts[player.belt + 1];
+  const canPromote = Boolean(nextBelt && player.xp >= nextBelt.xp && playerTask);
+  const defenseOptions = match.pendingStrike ? legalDefenseIds(player, match.pendingStrike.zone) : [];
+  const practiceFocus = player.defensePracticeUsed ? 0 : Math.max(0, ...player.hand.map((id) => {
+    const card = cardFor(id);
+    return card && isDefense(card) ? cardFocus(card) : 0;
+  }));
+  const attackFocus = player.hand.filter((id) => {
+    const card = cardFor(id);
+    return Boolean(card && isAttack(card));
+  }).map((id) => cardFocus(cardFor(id))).sort((left, right) => right - left)
+    .reduce((total, value) => total + value, 0);
+  const supportFocus = player.hand.reduce((total, id) => {
+    const card = cardFor(id);
+    const playable = card && !isAttack(card) && !isDefense(card) && !isPermanent(card);
+    return total + (playable ? cardFocus(card) : 0);
+  }, 0);
+  const playableFocus = player.focus + practiceFocus + attackFocus + supportFocus;
+  const affordableNow = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= player.focus).length;
+  const affordableForecast = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= playableFocus).length;
+  const activePhaseIndex = match.phase === "player-initiate" ? 1 : match.phase === "player-yell" || match.phase === "defense-window" || match.phase === "reversal-window" || match.phase === "ai-ready" ? 2 : 3;
+  const turnCoach = match.winner
+    ? (match.winner === "player" ? "The opponent is folded. Enjoy the extremely temporary paperwork-based glory." : "This test is over, but the Department has approved an immediate and emotionally reckless rematch.")
+    : match.phase === "player-initiate"
+      ? (player.hand.some((id) => isPermanent(cardFor(id)!)) ? "Equip any permanent Equipment you want before Yell. Each legal Equip generates its printed Focus." : "No permanent Equipment is waiting in hand. Finish Initiate and proceed directly to the yelling.")
+    : match.phase === "player-yell"
+      ? (pendingAttack ? `You selected ${pendingAttack.name}. Confirm its zone, then declare the Attack.` : !player.defensePracticeUsed && player.hand.some((id) => isDefense(cardFor(id)!)) ? "Use one Defense for Defense Practice to gain its printed Focus without playing its Guard or rules text." : player.hand.some((id) => isAttack(cardFor(id)!)) ? "Play support cards for Focus or select any legal Attack remaining in your hand." : "Your useful cards are spent. Move to Ascend and turn that Focus into a better deck.")
+      : match.phase === "player-ascend"
+        ? (canPromote ? `Your ${nextBelt?.name} Belt exam is complete. Promote before you Hide.` : player.focus > 0 ? "Spend Focus in the Market. Affordable cards are awake; the rest are judging you." : "No Focus remains. Hide to clean up, redraw, and hand the clipboard to the computer.")
+      : match.phase === "defense-window"
+          ? (defenseOptions.length ? `A ${match.pendingStrike?.zone} Attack is incoming. Play a glowing matching Defense or pass.` : "No matching Defense is in hand. Base DEF still applies; pass the Reaction Window to resolve the hit.")
+          : match.phase === "reversal-window"
+            ? "You Blocked with a Defense card. Choose one Attack from your hand for a free counterattack, or decline the Reversal. It earns XP but no printed Focus."
+          : "The computer has initiative. Run its turn when you are ready to discover what it thinks strategy means.";
+
+  return <main className={`playtest-shell playtest-shell--live ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}><MobilePlaytestNotice />
+    <header className="playtest-topbar battle-versus-hud">
+      <section className="versus-fighter versus-player"><div><b>{playerFighter.name}</b><span>{belts[player.belt].name} Belt · {player.hp}/{player.maxHp} HP</span></div><div className="versus-health"><span style={{ width: `${Math.max(0, Math.min(100, player.hp / player.maxHp * 100))}%` }} /></div></section>
+      <div className="versus-center"><span>ROUND</span><b>{match.round}</b><small>{["HONOR", "INITIATE", "YELL", "ASCEND", "HIDE"][activePhaseIndex]}</small></div>
+      <section className="versus-fighter versus-enemy"><div><b>{aiFighter.name}</b><span>{belts[ai.belt].name} Belt · {ai.hp}/{ai.maxHp} HP</span></div><div className="versus-health"><span style={{ width: `${Math.max(0, Math.min(100, ai.hp / ai.maxHp * 100))}%` }} /></div></section>
+      <div className="playtest-actions"><span className={`rules-sync rules-sync--${rulesSync.status}`}>{rulesSync.status === "update-available" ? `Rules ${rulesSync.latestVersion} ready` : rulesSync.status === "offline" ? "Rules offline" : "Rules synced"}</span>{rulesSync.status === "update-available" && <button onClick={() => window.location.reload()}>Reload</button>}<button onClick={() => setMatch(null)}>New Duel</button><button onClick={() => goTo("rules")}>Rules</button><button onClick={() => goTo("cards")}>Cards</button></div>
+    </header>
+    <section className="game-phase-rail" aria-label="Current H.I.Y.A.H. phase"><div className="phase-rail-line" aria-hidden="true"><span style={{ width: `${activePhaseIndex / 4 * 100}%` }} /></div>{["Honor", "Initiate", "Yell", "Ascend", "Hide"].map((phase, index) => <div className={index === activePhaseIndex ? "is-active" : index < activePhaseIndex ? "is-complete" : ""} key={phase}><b>{"HIYAH"[index]}</b><span>{phase}</span></div>)}</section>
+    {match.winner && <section className="match-result paper-stack"><span>{match.winner === "player" ? "Victory certified" : "The paperwork won"}</span><h2>{match.winner === "player" ? `${playerFighter.name} remains standing.` : `${aiFighter.name} wins this field test.`}</h2><p>The result has been stamped, loudly disputed, and filed beneath a suspicious vending-machine receipt.</p><div className="match-report"><b>{match.round}<small>ROUNDS</small></b><b>{player.damageDealt}<small>DAMAGE DEALT</small></b><b>{player.cardsBought}<small>CARDS BOUGHT</small></b><b>{player.learnedCombos.length}<small>COMBOS LEARNED</small></b></div><div className="match-result-actions"><button className="button primary" onClick={() => begin(player.fighterId)}>Instant rematch →</button><button className="button ghost" onClick={() => setMatch(null)}>Choose another fighter</button></div></section>}
+    <section className="playtest-arena">
+    <section className="playtest-location paper-stack"><span>Current stage · Honor {match.round}</span><div><h2>{currentLocation?.name ?? "Tournament Mat"}</h2><p>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</p></div><button onClick={() => currentLocation && setInspectedId(currentLocation.id)}>Inspect</button></section>
+    <section className="playtest-table">
+      <BattleCallout line={match.log[0]} />
+      <FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} />
+      <section className={`playtest-combat-desk paper-stack state-${match.phase}`}>
+        <div className="live-mat-heading"><span className="eyebrow">Live mat · cards in play</span><small>Click any filed card to inspect it</small></div>
+        <div className="live-mat-play">
+          <MatLane label="Your side" cards={player.playArea} activeId={match.selectedAttackId} onInspect={(card) => setInspectedId(card.id)} />
+          <MatLane label="Opponent side" cards={ai.playArea} activeId={match.pendingStrike?.cardId} onInspect={(card) => setInspectedId(card.id)} />
+        </div>
+        <div className="combat-meters">
+          <b><small>FOCUS / POTENTIAL</small>{player.focus}<em>/{playableFocus}</em></b>
+          <button type="button" onClick={() => setDeskView("belt")}><small>BELT / XP</small><strong>{belts[player.belt].name}</strong><em>{player.xp} XP</em></button>
+          <b className={player.tempo ? "tempo-ready" : ""}><small>TEMPO</small>{player.tempo ? "READY" : "USED"}</b>
+        </div>
+        <div className="combat-desk-links" aria-label="Open acquisition records">
+          <button type="button" onClick={() => setDeskView("market")}><span>Open Market</span><b>{affordableNow}/{match.market.length}</b><small>browse seven cards</small></button>
+          <button type="button" onClick={() => setDeskView("combo")}><span>Open Combos</span><b>{player.learnedCombos.length}/2</b><small>inspect the offer</small></button>
+        </div>
+        <div className="combat-zone-board" aria-label="Combat zones">{["High", "Mid", "Low"].map((zone) => <span className={(match.pendingStrike?.zone === zone || (pendingAttack && match.selectedZone === zone)) ? "is-hot" : ""} key={zone}><b>{zone.slice(0, 1)}</b>{zone}</span>)}</div>
+        <p>{match.phase === "player-initiate" ? "Initiate: equip permanent Equipment, then move to Yell." : match.phase === "player-yell" ? "Yell: play any number of legal Attacks from your hand." : match.phase === "player-ascend" ? "Ascend: the acquisition desk is open for Market, Combo, and Belt actions." : match.phase === "defense-window" ? "Reaction Window: play one matching Defense or pass." : match.phase === "reversal-window" ? "Reversal Window: counterattack with one Attack from hand or decline." : settings.autoAi ? "Computer is reviewing several bad ideas…" : "Computer turn: let it make its choices."}</p>
+        <ImpactReadout line={match.log[0]} />
+        {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary" onClick={runAiTurn}>Run computer turn →</button>}
+        {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}
+      </section>
+      <FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} />
+    </section>
+    </section>
+    <section className="playtest-workspace playtest-workspace--hand">
+      <section className="hand-panel paper-stack">
+        <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.pendingDiscard ? `Choose ${match.pendingDiscard.remaining} card to discard` : match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks played {player.attacksThisTurn}</span><span>Flow {player.flowUsedThisTurn ? "used" : "ready"}</span><span>Practice {player.defensePracticeUsed ? "used" : "ready"}</span></div></header>
+        {match.pendingDiscard && <div className="discard-choice-notice" role="status"><b>{cardFor(match.pendingDiscard.sourceCardId)?.name}</b><span>Select the card you want to discard. The engine will not choose for you.</span></div>}
+        <div className="play-card-row">{player.hand.map((id, index) => {
+          const card = cardFor(id); if (!card) return null;
+          const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card);
+          const choosingDiscard = Boolean(match.pendingDiscard);
+          const canInitiate = match.phase === "player-initiate" && permanent && !(playerFighter.name === "Knuckleton the Brawler" && isWeapon(card));
+          const canUse = match.phase === "player-yell" && (attack || (defense ? !player.defensePracticeUsed : !permanent));
+          const canDefend = match.phase === "defense-window" && defenseOptions.includes(id);
+          const canReverse = match.phase === "reversal-window" && attack;
+          return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingDiscard ? false : match.phase === "defense-window" ? !canDefend : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={choosingDiscard ? () => choosePendingDiscard(id) : match.phase === "defense-window" ? () => resolveDefense(id) : match.phase === "reversal-window" ? () => chooseAttack(card) : match.phase === "player-initiate" ? () => equipPermanent(id) : attack ? () => chooseAttack(card) : defense ? () => practiceDefense(id) : () => playSupport(id)} onInspect={() => setInspectedId(id)} />;
+        })}</div>
+        {match.phase === "player-initiate" && playerFighter.name === "Sensei Ducktape" && !player.abilityUsedRound && player.discard.some((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }) && <div className="ducktape-tray"><span>Sensei Ducktape · emergency repair</span>{player.discard.filter((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }).slice(0, 3).map((id) => <button onClick={() => borrowEquipment(id)} key={id}>Jury-rig {cardFor(id)?.name}</button>)}</div>}
+        {match.phase === "player-initiate" && <button className="button primary" onClick={beginYell}>Finish Initiate → Yell</button>}
+        {match.phase === "defense-window" && <button className="button ghost" onClick={() => resolveDefense(null)}>Pass the reaction window</button>}
+        {match.phase === "reversal-window" && <div className="reversal-actions"><div><span>One counterattack · no printed Focus</span>{pendingAttack?.zone?.includes("Any") && <fieldset className="zone-picker"><legend>Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset>}</div><button className="button primary" disabled={!pendingAttack} onClick={resolveReversal}>{pendingAttack ? `Reverse with ${pendingAttack.name} →` : "Choose an Attack"}</button><button className="button ghost" onClick={declineReversal}>Decline Reversal</button></div>}
+        {match.phase === "player-yell" && !match.pendingDiscard && <div className="playtest-yell-actions">{pendingAttack && <><fieldset className="zone-picker"><legend>Declare zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} disabled={!pendingAttack.zone?.includes("Any") && !(playerFighter.name === "Whirlwind Wynn" && player.attacksThisTurn === 0 && hasTag(pendingAttack, "Spin"))} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset><button className="button primary" onClick={declareAttack}>Declare {pendingAttack.name} →</button></>}<button className="button ghost" onClick={enterAscend}>Finish Yell → Ascend</button></div>}
+      </section>
+      <aside className="combat-utility-panel paper-stack">{settings.guided ? <div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Decision coach</span><p>{turnCoach}</p><button onClick={() => setSettings({ ...settings, guided: false })}>Dismiss coach</button></div> : <div className="coach-dismissed"><span>Coach dismissed</span><p>The clipboard trusts you. This may be a clerical error.</p></div>}<button className="fight-log-launch" type="button" onClick={() => setLogOpen(true)}><span>Fight Log</span><b>{match.log.length}</b><small>Open all filings →</small></button></aside>
+    </section>
+    {!match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action">
+      <div>
+        <span>{match.pendingDiscard ? "DISCARD" : match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span>
+        <b>{match.pendingDiscard ? "Choose a card from your hand" : match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn} attack${player.attacksThisTurn === 1 ? "" : "s"} played · no cap` : match.phase === "player-ascend" ? `${player.focus} Focus available` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b>
+      </div>
+      {match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}
+      {match.phase === "player-yell" && !match.pendingDiscard && (pendingAttack ? <button onClick={declareAttack}>Declare Attack →</button> : <button onClick={enterAscend}>Proceed to Ascend →</button>)}
+      {match.phase === "player-ascend" && <button onClick={completeTurn}>Hide · End turn →</button>}
+      {match.phase === "defense-window" && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}
+      {match.phase === "reversal-window" && (pendingAttack ? <button onClick={resolveReversal}>Launch Reversal →</button> : <button onClick={declineReversal}>Decline Reversal</button>)}
+      {match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}
+    </nav>}
+    {deskView && <div className="ascend-desk-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDeskView(null)}>
+      <section className="ascend-desk paper-stack" role="dialog" aria-modal="true" aria-labelledby="ascend-desk-title">
+        <header className="ascend-desk-header">
+          <div><span className="eyebrow">{match.phase === "player-ascend" ? "Ascend desk · purchasing authorized" : "Reference desk · inspection only"}</span><h2 id="ascend-desk-title">{deskView === "market" ? "Shared Market" : deskView === "combo" ? "Combo Docket" : "Certification Ledger"}</h2></div>
+          <div className="ascend-desk-balance"><span>Available Focus</span><b>{player.focus}</b><small>{affordableNow} of {match.market.length} Market cards in reach</small></div>
+          <button className="modal-close" onClick={() => setDeskView(null)} aria-label="Close Ascend Desk">×</button>
+        </header>
+        <nav className="ascend-desk-tabs" aria-label="Ascend desk sections">
+          <button type="button" className={deskView === "market" ? "is-active" : ""} aria-current={deskView === "market" ? "page" : undefined} onClick={() => setDeskView("market")}><i aria-hidden="true">▤</i><span>Shared Market</span><b>{affordableNow}/{match.market.length}</b><small>affordable · open section</small></button>
+          <button type="button" className={deskView === "combo" ? "is-active" : ""} aria-current={deskView === "combo" ? "page" : undefined} onClick={() => setDeskView("combo")}><i aria-hidden="true">∞</i><span>Combo Docket</span><b>{player.learnedCombos.length}/2</b><small>learned · open section</small></button>
+          <button type="button" className={deskView === "belt" ? "is-active" : ""} aria-current={deskView === "belt" ? "page" : undefined} onClick={() => setDeskView("belt")}><i aria-hidden="true">★</i><span>Belt Ledger</span><b>{belts[player.belt].name}</b><small>{player.xp} XP · open section</small></button>
+        </nav>
+        <div className="ascend-desk-body">
+          {deskView === "market" && <section className="ascend-market" aria-label="Seven-card Shared Market">
+            <header><div><span className="eyebrow">Seven live records · full cards</span><h3>Choose with the text visible</h3></div><p>{match.phase === "player-ascend" ? "Buy any number you can afford. Each purchase is replaced immediately by the top Market card." : "The row persists between rounds. If nobody buys for a full round, Market Mercy refreshes all seven cards."}</p></header>
+            <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= cardCost(card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
+          </section>}
+          {deskView === "combo" && <section className="ascend-combo combo-panel">
+            <header><div><span className="eyebrow">One face-up offer · one attempt per turn</span><h3>{player.learnedCombos.length ? `${player.learnedCombos.length}/2 learned` : "Reveal. Learn. Regret."}</h3></div><span className="combo-limit">{player.comboAttemptedTurn ? "Attempt filed" : "Ready"}</span></header>
+            {comboOffer ? <div className="combo-offer"><NativeCardArt card={comboOffer} /><div><span>{comboOffer.catalogId}</span><h3>{comboOffer.name}</h3><p>{comboOffer.rulesText}</p><div><b>{cardCost(comboOffer)} Focus</b><button onClick={() => setInspectedId(comboOffer.id)}>Inspect full card</button></div></div></div> : <p>The Combo docket has escaped the filing cabinet.</p>}
+            {match.phase === "player-ascend" && comboOffer && !player.comboAttemptedTurn && <div className="combo-actions"><button className="button primary" disabled={player.focus < cardCost(comboOffer) || player.learnedCombos.length >= 2} onClick={() => cycleCombo(true)}>Learn {comboOffer.name}</button><button className="button ghost" onClick={() => cycleCombo(false)}>Pass · bottom deck</button></div>}
+            {match.phase !== "player-ascend" && <p className="combo-spent">Combo actions unlock during Ascend.</p>}
+            {player.comboAttemptedTurn && <p className="combo-spent">Combo attempt filed for this turn.</p>}
+            {player.learnedCombos.length > 0 && <div className="learned-combos">{player.learnedCombos.map((id) => <button key={id} onClick={() => setInspectedId(id)}><span>∞</span><b>{cardFor(id)?.name}</b><small>{player.triggeredCombos.includes(id) ? "Triggered this round" : "Ready"}</small></button>)}</div>}
+          </section>}
+          {deskView === "belt" && <section className="ascend-belt belt-panel">
+            <span className="eyebrow">Certification ledger</span><h3>{belts[player.belt].name} Belt · {player.xp} XP</h3>
+            <p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBelt.xp} XP.</b> {nextBelt.task}</> : "Every available Belt has been certified."}</p>
+            <div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name} title={`${belt.name} Belt · ${belt.xp} XP`}>{belt.name.slice(0, 1)}</span>)}</div>
+            <div className="belt-ledger-list">{belts.map((belt, index) => <article className={index === player.belt ? "is-current" : index < player.belt ? "is-earned" : ""} key={belt.name}><span>{index < player.belt ? "✓" : index === player.belt ? "●" : index + 1}</span><div><b>{belt.name} Belt</b><small>{belt.xp} XP · {belt.task || "Starting certification"}</small></div></article>)}</div>
+            {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : `${nextBelt.name}: ${nextBelt.xp} XP + completed task`}</button>}
+          </section>}
+        </div>
+        <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <button className="button primary" onClick={completeTurn}>Hide · End turn →</button>}</footer>
+      </section>
+    </div>}
+    {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><ol>{match.log.map((line, index) => <li key={`${line}-${index}`}><b>{match.log.length - index}</b><span>{line}</span></li>)}</ol></section></div>}
+    {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}><article className={`playtest-inspector paper-stack ${inspectorZoomed ? "is-zoomed" : ""}`} role="dialog" aria-modal="true" aria-labelledby="playtest-inspector-title"><button className="modal-close" onClick={() => setInspectedId(null)} aria-label="Close Card Inspector">×</button><div className="inspector-heading"><button type="button" className="inspector-card-visual" onClick={() => setInspectorZoomed((current) => !current)} aria-label={`${inspectorZoomed ? "Reduce" : "Magnify"} ${inspected.name}`}>{artistUrl(inspected) ? <img src={artistUrl(inspected)} alt={inspected.name} /> : <NativeCardArt card={inspected} />}<span>{inspectorZoomed ? "Reduce card" : "Click to magnify"}</span></button><div><span className="eyebrow">{inspected.catalogId} · {inspected.cardType} · {inspected.subtype}</span><h2 id="playtest-inspector-title">{inspected.name}</h2><p>{inspected.flavorText}</p></div></div><dl><div><dt>Focus Cost</dt><dd>{inspected.fpCost ?? "—"}</dd></div><div><dt>Focus Value</dt><dd>{inspected.focusValue ?? "—"}</dd></div><div><dt>Zone</dt><dd>{inspected.zone ?? "—"}</dd></div><div><dt>Timing</dt><dd>{inspected.timing ?? "—"}</dd></div></dl><section><span>Printed rules text</span><p>{inspected.rulesText ?? "No printed rules text."}</p></section><footer>{cardEffectNote(inspected)} The Card Library remains the source of truth for the complete catalog record. Press Escape to close.</footer></article></div>}
+  </main>;
+}
+
+function beltTaskMet(board: Board) {
+  const next = board.belt + 1;
+  if (next === 1) return ["High", "Mid", "Low"].every((zone) => board.zonesPlayed.some((played) => played.toLocaleLowerCase() === zone.toLocaleLowerCase()));
+  if (next === 2) return board.attacksThisTurn >= 2 && board.hitThisTurn;
+  if (next === 3) return board.defendedThisRound && board.attackedThisRound;
+  if (next === 4) return new Set(board.purchasedTypes).size >= 2;
+  if (next === 5) return board.equipment.length >= 2;
+  if (next === 6) return board.comboTriggered;
+  if (next === 7) {
+    const playTypes = board.cardsThisTurn.map(cardFor).filter(Boolean) as CardEntry[];
+    return playTypes.length >= 4 && playTypes.some(isAttack) && playTypes.some(isKata) && playTypes.some((card) => isPermanent(card) || card.subtype === "Consumable");
+  }
+  return false;
+}
+
+function markCompletedTask(board: Board) {
+  const next = board.belt + 1;
+  if (!beltTaskMet(board) || board.completedTasks.includes(next)) return board;
+  return { ...board, completedTasks: [...board.completedTasks, next] };
+}
+
+function applyBeltPromotion(board: Board, beltIndex: number) {
+  const reward = belts[beltIndex]?.reward ?? "";
+  const maxHpIncrease = /\+10 Max HP/i.test(reward) ? 10 : 0;
+  const maxHp = board.maxHp + maxHpIncrease;
+  const hp = maxHpIncrease && board.hp > 0 ? Math.min(maxHp, board.hp + 5) : board.hp;
+  return { ...board, belt: beltIndex, maxHp, hp };
+}
+
+function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string[], useTempo: boolean) {
+  const card = cardFor(cardId)!;
+  const fighter = cardFor(current.ai.fighterId);
+  const anyZone = card.zone?.includes("Any") || (fighter?.name === "Whirlwind Wynn" && current.ai.attacksThisTurn === 0 && hasTag(card, "Spin"));
+  const zone = anyZone ? ["High", "Mid", "Low"][Math.floor(Math.random() * 3)] : card.zone?.split(",")[0] ?? "High";
+  const tempoBonus = useTempo && current.ai.tempo && fighterStat(current.ai, "Speed") > fighterStat(current.player, "Speed") ? 1 : 0;
+  const locationModifier = locationAttackModifier(cardFor(current.locationId), card, current.ai, zone);
+  const fighterModifier = fighterAttackModifier(current.ai, current.player, card);
+  const comboModifier = comboAttackModifier(current.ai, card, zone);
+  const hasFlow = attackHasFlow(current.ai, card, comboModifier);
+  const attackPower = Math.max(0, cardPower(card) + fighterStat(current.ai, "ATK") + current.ai.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + comboModifier.power);
+  let nextAi = applyCardEffects({ ...current.ai, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0 }, card, "ai");
+  const flowDraw = hasFlow && !current.ai.flowUsedThisTurn;
+  if (flowDraw) nextAi = drawCards({ ...nextAi, flowUsedThisTurn: true }, 1);
+  if (current.ai.flowAfterFirstAttack && current.ai.attacksThisTurn === 0) nextAi = { ...nextAi, flowAfterFirstAttack: false, nextAttackHasFlow: true };
+  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...comboModifier.notes];
+  return { ...current, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage + comboModifier.damage, modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
+}
+
+function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
+  const aiPurchase = current.market.filter((id) => numberValue(cardFor(id)?.fpCost) <= current.ai.focus).sort((left, right) => aiMarketScore(cardFor(right)!, current.ai) - aiMarketScore(cardFor(left)!, current.ai))[0];
+  const purchasedCard = aiPurchase ? cardFor(aiPurchase) : null;
+  let aiAfterPurchase = purchasedCard ? markCompletedTask({ ...current.ai, focus: current.ai.focus - numberValue(purchasedCard.fpCost), discard: [...current.ai.discard, purchasedCard.id], purchasedTypes: [...current.ai.purchasedTypes, purchasedCard.cardType], cardsBought: current.ai.cardsBought + 1 }) : current.ai;
+  let market = current.market;
+  let marketDeck = current.marketDeck;
+  let marketDiscard = current.marketDiscard;
+  if (purchasedCard) {
+    const slot = current.market.indexOf(purchasedCard.id);
+    const refilled = refillPurchasedMarketSlot(current.market, marketDeck, marketDiscard, slot);
+    market = refilled.market;
+    marketDeck = refilled.marketDeck;
+    marketDiscard = refilled.marketDiscard;
+  }
+  let promotionLog: string | null = null;
+  const nextBelt = belts[aiAfterPurchase.belt + 1];
+  if (nextBelt && aiAfterPurchase.xp >= nextBelt.xp && aiAfterPurchase.completedTasks.includes(aiAfterPurchase.belt + 1)) {
+    const before = aiAfterPurchase;
+    aiAfterPurchase = applyBeltPromotion(aiAfterPurchase, aiAfterPurchase.belt + 1);
+    promotionLog = `Computer certifies ${nextBelt.name} Belt.${aiAfterPurchase.maxHp > before.maxHp ? ` Max HP ${before.maxHp} → ${aiAfterPurchase.maxHp}; HP ${before.hp} → ${aiAfterPurchase.hp}.` : ""}`;
+  }
+  const nextAi = playAreaCleanup(aiAfterPurchase);
+  const purchaseLog = purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing.";
+  const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
+  if (current.turnIndex === 0) return { ...finished, phase: "player-initiate" as const, turnIndex: 1 as const, log: ["You are second in this round's initiative order. Initiate begins now.", ...finished.log].slice(0, 32) };
+  return advanceRound(finished, sceneChanges, "Both fighters have completed the round.");
+}
+
+function advanceRound(current: Match, sceneChanges: boolean, line: string) {
+  const nextRound = current.round + 1;
+  const freshLocations = current.locations.length ? current.locations : shuffle(quickDuelLocationPool.map((card) => card.id));
+  const locationId = sceneChanges ? freshLocations[0] ?? current.locationId : current.locationId;
+  const player = { ...current.player, xp: current.player.xp + 1, tempo: true, tempSpeed: 0, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
+  const ai = { ...current.ai, xp: current.ai.xp + 1, tempo: true, tempSpeed: 0, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
+  const marketState = current.marketPurchasedThisRound
+    ? { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard }
+    : refreshMarketRow(current.market, current.marketDeck, current.marketDiscard);
+  const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
+  const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
+  const marketNote = current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
+  return { ...current, ...marketState, player, ai, marketPurchasedThisRound: false, pendingDiscard: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
+}
+
+function prepareAiTurn(current: Match) {
+  const fighter = cardFor(current.ai.fighterId);
+  const practiceId = current.ai.defensePracticeUsed ? undefined : current.ai.hand
+    .filter((id) => { const card = cardFor(id); return Boolean(card && isDefense(card)); })
+    .sort((left, right) => cardFocus(cardFor(right)) - cardFocus(cardFor(left)))[0];
+  let nextAi = practiceId ? {
+    ...current.ai,
+    hand: removeOne(current.ai.hand, practiceId),
+    playArea: [...current.ai.playArea, practiceId],
+    focus: current.ai.focus + cardFocus(cardFor(practiceId)),
+    defensePracticeUsed: true,
+  } : current.ai;
+  const supportIds = nextAi.hand.filter((id) => {
+    const card = cardFor(id);
+    return Boolean(card && !isAttack(card) && !isDefense(card) && card.subtype !== "Junk" && !(fighter?.name === "Knuckleton the Brawler" && isWeapon(card)));
+  });
+  if (!supportIds.length && !practiceId) return current;
+  const played: string[] = [];
+  for (const id of supportIds) {
+    const card = cardFor(id);
+    if (!card) continue;
+    const locationModifier = locationFocusModifier(cardFor(current.locationId), card, nextAi);
+    nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value }, card, "ai");
+    played.push(card.name);
+  }
+  const preparations = [
+    ...(practiceId ? [`Defense Practice with ${cardFor(practiceId)?.name}`] : []),
+    ...played,
+  ];
+  return { ...current, ai: nextAi, log: [`Computer prepares with ${preparations.join(", ")}. The strategy is now technically documented.`, ...current.log].slice(0, 32) };
+}
