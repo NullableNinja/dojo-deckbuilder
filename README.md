@@ -53,3 +53,5 @@ The Play the Game setup screen includes a background simulator for 1–1,000 gam
 - `app/assets/` — site artwork and character images
 - `src/main.tsx` — static React entry point
 - `index.html` — Vite document entry point
+
+<!-- Consumable card artwork refresh: v2.3. -->
