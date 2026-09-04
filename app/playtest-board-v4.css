@@ -782,3 +782,47 @@
   .playtest-shell--live .live-mat-play { min-height: 145px !important; }
   .playtest-shell--live .hand-panel { max-height: min(34dvh, 255px); }
 }
+
+
+/* Opponent dossier mirror — inward-facing right-side HUD. */
+.playtest-shell--live .fighter-panel.is-enemy {
+  grid-template-columns: minmax(0, 1fr) 92px !important;
+}
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art {
+  grid-column: 2 !important;
+  grid-row: 1 / span 2 !important;
+  justify-self: end;
+}
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-copy {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  text-align: right;
+}
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-copy > span,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-copy p,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-dossier-name {
+  text-align: right !important;
+}
+.playtest-shell--live .fighter-panel.is-enemy .fighter-dossier-name { margin-left: auto; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-resource-strip b { flex-direction: row-reverse; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-stats--combat { direction: rtl; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-stats--combat > b {
+  direction: ltr;
+  grid-template-columns: auto 1fr 20px !important;
+  text-align: right;
+}
+.playtest-shell--live .fighter-panel.is-enemy .fighter-stats--combat > b svg { grid-column: 3; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-stats--combat > b small { grid-column: 2; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-stats--combat > b span { grid-column: 1; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-loadout-launch {
+  grid-template-columns: auto auto 1fr;
+  text-align: right;
+}
+.playtest-shell--live .fighter-panel.is-enemy .fighter-loadout-launch span { grid-column: 3; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-loadout-launch b { grid-column: 2; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-loadout-launch small { grid-column: 1; }
+
+@media (max-width: 1260px) and (min-width: 1121px) {
+  .playtest-shell--live .fighter-panel.is-enemy { grid-template-columns: minmax(0, 1fr) 74px !important; }
+  .playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art { width: 74px !important; }
+}
