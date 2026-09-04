@@ -235,7 +235,8 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.match(styles, /\.market-row \{[^}]*overflow-x: auto/);
   assert.match(playtest, /type DeskView = "market" \| "combo" \| "belt"/);
   assert.match(playtest, /className="ascend-desk-backdrop"/);
-  assert.match(playtest, /className="ascend-desk-tabs"/);
+  assert.match(playtest, /className="ascend-guide"/);
+  assert.match(playtest, /advanceAscendReview/);
   assert.match(playtest, /className="combat-desk-links"/);
   assert.doesNotMatch(playtest, /className="playtest-side-stack"/);
   assert.match(styles, /\.ascend-desk-backdrop \{[^}]*position: fixed/);
