@@ -65,3 +65,24 @@ test("Quick Duel gives the player control of mandatory discards and top-deck dec
   assert.match(source, /Choose what to discard/);
   assert.match(source, /Set your draw order/);
 });
+
+
+test("Quick Duel tracks Exhausted Equipment and exposes supported activation controls", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /exhaustedEquipment/);
+  assert.match(source, /equipmentAttackPlan/);
+  assert.match(source, /activateEquipment/);
+  assert.match(source, /chooseEquipmentZone/);
+  assert.match(source, /isEquipmentExhausted/);
+  assert.match(source, /readyEquipment/);
+  assert.match(source, /equipment-activate/);
+});
+
+test("Exhausted target state feeds Piercing and Honor readies the loadout", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /targetHasExhaustedEquipment: Boolean\(defender\.exhaustedEquipment\?\.length\)/);
+  assert.match(source, /exhaustedEquipment: \[\]/);
+  assert.match(source, /readyEquipmentOnHit/);
+  assert.match(source, /autoActivateAiAttackEquipment/);
+  assert.match(source, /autoActivateAiTurnEquipment/);
+});

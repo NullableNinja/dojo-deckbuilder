@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, readyEquipmentOnHit, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
 
 test("Defense Equipment protects only its printed zone", () => {
   const chest = { name: "Cardboard Chestplate", subtype: "Defense Equipment", rulesText: "+2 DEF against Mid Attacks.", stats: { Guard: 2 } };
@@ -119,4 +119,17 @@ test("top-deck look/search/reorder patterns compile into explicit plans", () => 
   assert.deepEqual(deckLookPlan({ rulesText: "Look at the top 3 cards of your deck. Put 1 Technique into your hand; return the rest in any order." }), { kind: "pick-reorder", count: 3, filter: "technique", optional: false });
   assert.deepEqual(deckLookPlan({ rulesText: "Look at the top 5 cards of your deck. You may reveal an Item and put it into your hand. Shuffle the rest." }), { kind: "pick-shuffle", count: 5, filter: "item", optional: true });
   assert.deepEqual(deckLookPlan({ rulesText: "Look at the top 2 cards of your deck. Put them back in either order. If they have different card types, gain 1 Focus." }), { kind: "reorder", count: 2, distinctTypeFocus: 1 });
+});
+
+
+test("Equipment Exhaust activation plans compile from printed Gear and Weapon text", () => {
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: Gain +1 Speed until the next Honor Phase. If you have Tempo after doing so, draw 1 card, then discard 1 card." }), { kind: "speed-cycle", speed: 1, draw: 1, discard: 1 });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: Your next Attack using this Weapon gets +3 Attack Power." }), { kind: "next-attack-power", power: 3 });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: Before you play an Attack, choose High, Mid, or Low. If your next Attack this turn uses that zone, it gains Piercing 1. If it is Blocked, gain 1 Focus." }), { kind: "zone-attack", power: 0, piercing: 1, blockedFocus: 1, requireDifferentPreviousZone: false });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: Before you play an Attack, choose High, Mid, or Low. If that Attack uses the chosen zone and differs from your previous Attack zone this turn, it gets +1 Attack Power." }), { kind: "zone-attack", power: 1, piercing: 0, blockedFocus: 0, requireDifferentPreviousZone: true });
+});
+
+test("on-hit ready text is recognized without pretending all Ready clauses are automatic", () => {
+  assert.equal(readyEquipmentOnHit({ rulesText: "If the target has exhausted Equipment, this Attack gains Piercing 1. If it Hits, you may ready one Equipment card you control." }), 1);
+  assert.equal(readyEquipmentOnHit({ rulesText: "Ready one Equipment during Initiate." }), 0);
 });

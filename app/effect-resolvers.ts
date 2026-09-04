@@ -329,3 +329,33 @@ export function deckLookPlan(card: EffectCardLike): DeckLookPlan | null {
   if (match) return { kind: 'reorder', count: Number(match[1]), distinctTypeFocus: Number(match[2]) };
   return null;
 }
+
+export type EquipmentActivationPlan =
+  | { kind: "speed-cycle"; speed: number; draw: number; discard: number }
+  | { kind: "next-attack-power"; power: number }
+  | { kind: "zone-attack"; power: number; piercing: number; blockedFocus: number; requireDifferentPreviousZone: boolean };
+
+export function equipmentActivationPlan(card: EffectCardLike): EquipmentActivationPlan | null {
+  const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
+
+  let match = text.match(/^Exhaust:\s*Gain \+(\d+) Speed until (?:the )?next Honor Phase\. If you have Tempo after doing so, draw (\d+) cards?, then discard (\d+) cards?/i);
+  if (match) return { kind: "speed-cycle", speed: Number(match[1]), draw: Number(match[2]), discard: Number(match[3]) };
+
+  match = text.match(/^Exhaust:\s*Your next Attack using this Weapon gets \+(\d+) Attack Power/i);
+  if (match) return { kind: "next-attack-power", power: Number(match[1]) };
+
+  match = text.match(/^Exhaust:\s*Before you play an Attack, choose High, Mid, or Low\. If your next Attack this turn uses that zone, it gains Piercing (\d+)\. If it is Blocked, gain (\d+) Focus/i);
+  if (match) return { kind: "zone-attack", power: 0, piercing: Number(match[1]), blockedFocus: Number(match[2]), requireDifferentPreviousZone: false };
+
+  match = text.match(/^Exhaust:\s*Before you play an Attack, choose High, Mid, or Low\. If that Attack uses the chosen zone and differs from your previous Attack zone this turn, it gets \+(\d+) Attack Power/i);
+  if (match) return { kind: "zone-attack", power: Number(match[1]), piercing: 0, blockedFocus: 0, requireDifferentPreviousZone: true };
+
+  return null;
+}
+
+export function readyEquipmentOnHit(card: EffectCardLike) {
+  const text = String(card.rulesText ?? "");
+  const match = text.match(/If (?:it|this Attack) Hits, you may ready one Equipment card you control/i);
+  return match ? 1 : 0;
+}
+
