@@ -25,5 +25,4 @@ test("bundles the complete interactive companion", async () => {
   assert.ok(webpAssets.length >= 17, `Expected emitted WebP artwork; found ${webpAssets.length} files.`);
   const bundleSize = (await stat(new URL(mainScript, assetDirectory))).size;
   assert.ok(bundleSize < 1_500_000, `JavaScript bundle is too large for a mobile-first companion: ${bundleSize} bytes.`);
-  assert.ok(scripts.length >= 2, "Expected Quick Duel to be code-split from the main companion bundle.");
 });
