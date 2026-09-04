@@ -133,3 +133,9 @@ test("on-hit ready text is recognized without pretending all Ready clauses are a
   assert.equal(readyEquipmentOnHit({ rulesText: "If the target has exhausted Equipment, this Attack gains Piercing 1. If it Hits, you may ready one Equipment card you control." }), 1);
   assert.equal(readyEquipmentOnHit({ rulesText: "Ready one Equipment during Initiate." }), 0);
 });
+
+
+test("reaction Exhaust plans compile from incoming-Attack and Defense Gear text", () => {
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: After an opponent declares an Attack targeting you, choose High, Mid, or Low. If that Attack uses the chosen zone, it gets −1 Attack Power." }), { kind: "incoming-zone-penalty", attackPowerPenalty: 1 });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: When you play a Defense outside your turn, it gets +1 Guard. At Green Belt or higher, if it Blocks, your Reversal this round gets +1 Attack Power." }), { kind: "defense-guard", guard: 1, reversalPower: 1 });
+});

@@ -333,7 +333,9 @@ export function deckLookPlan(card: EffectCardLike): DeckLookPlan | null {
 export type EquipmentActivationPlan =
   | { kind: "speed-cycle"; speed: number; draw: number; discard: number }
   | { kind: "next-attack-power"; power: number }
-  | { kind: "zone-attack"; power: number; piercing: number; blockedFocus: number; requireDifferentPreviousZone: boolean };
+  | { kind: "zone-attack"; power: number; piercing: number; blockedFocus: number; requireDifferentPreviousZone: boolean }
+  | { kind: "incoming-zone-penalty"; attackPowerPenalty: number }
+  | { kind: "defense-guard"; guard: number; reversalPower: number };
 
 export function equipmentActivationPlan(card: EffectCardLike): EquipmentActivationPlan | null {
   const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
@@ -349,6 +351,12 @@ export function equipmentActivationPlan(card: EffectCardLike): EquipmentActivati
 
   match = text.match(/^Exhaust:\s*Before you play an Attack, choose High, Mid, or Low\. If that Attack uses the chosen zone and differs from your previous Attack zone this turn, it gets \+(\d+) Attack Power/i);
   if (match) return { kind: "zone-attack", power: Number(match[1]), piercing: 0, blockedFocus: 0, requireDifferentPreviousZone: true };
+
+  match = text.match(/^Exhaust:\s*After an opponent declares an Attack targeting you, choose High, Mid, or Low\. If that Attack uses the chosen zone, it gets -(\d+) Attack Power/i);
+  if (match) return { kind: "incoming-zone-penalty", attackPowerPenalty: Number(match[1]) };
+
+  match = text.match(/^Exhaust:\s*When you play a Defense outside your turn, it gets \+(\d+) Guard\. At Green Belt or higher, if it Blocks, your Reversal this round gets \+(\d+) Attack Power/i);
+  if (match) return { kind: "defense-guard", guard: Number(match[1]), reversalPower: Number(match[2]) };
 
   return null;
 }

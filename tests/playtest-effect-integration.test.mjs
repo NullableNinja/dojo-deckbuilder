@@ -86,3 +86,24 @@ test("Exhausted target state feeds Piercing and Honor readies the loadout", asyn
   assert.match(source, /autoActivateAiAttackEquipment/);
   assert.match(source, /autoActivateAiTurnEquipment/);
 });
+
+
+test("Quick Duel exposes optional reaction Exhaust Gear without auto-spending the player's Equipment", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /equipmentReactions/);
+  assert.match(source, /equipment-reaction-strip/);
+  assert.match(source, /incoming-equipment-zone/);
+  assert.match(source, /chooseIncomingEquipmentZone/);
+  assert.match(source, /equipmentDefenseGuard/);
+  assert.match(source, /pendingReversalBonusOnBlock/);
+  assert.match(source, /reversalAttackBonus/);
+});
+
+test("AI uses deterministic reaction Equipment and late Exhaust can enable Piercing", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /autoActivateAiIncomingEquipment/);
+  assert.match(source, /autoActivateAiDefenseGuardEquipment/);
+  assert.match(source, /targetExhaustedAtDeclaration/);
+  assert.match(source, /exhaustedPiercingBonus/);
+  assert.match(source, /effectivePiercing/);
+});

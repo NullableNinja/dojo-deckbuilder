@@ -46,6 +46,9 @@ type Board = {
   equipment: string[];
   exhaustedEquipment?: string[];
   equipmentAttackPlan?: { sourceCardId: string; zone: string; power: number; piercing: number; blockedFocus: number; requireDifferentPreviousZone: boolean } | null;
+  equipmentDefenseGuard?: number;
+  pendingReversalBonusOnBlock?: number;
+  reversalAttackBonus?: number;
   tempSpeed: number;
   nextAttackBonus: number;
   attacksThisTurn: number;
@@ -87,6 +90,7 @@ type PendingStrike = {
   damageModifier: number;
   piercing?: number;
   blockedFocus?: number;
+  targetExhaustedAtDeclaration?: boolean;
   modifierNotes: string[];
   remainingAiAttacks: string[];
 };
@@ -103,6 +107,7 @@ type PendingChoice =
   | { kind: "deck-pick"; sourceCardId: string; revealed: string[]; filter: "defense-or-kata" | "technique" | "item"; optional: boolean; restAction: "discard" | "reorder" | "shuffle" }
   | { kind: "deck-order"; sourceCardId: string; revealed: string[]; ordered: string[]; bonusFocus: number }
   | { kind: "equipment-zone"; sourceCardId: string; power: number; piercing: number; blockedFocus: number; requireDifferentPreviousZone: boolean }
+  | { kind: "incoming-equipment-zone"; sourceCardId: string; attackPowerPenalty: number }
   | { kind: "ready-equipment"; sourceCardId: string; optional: boolean };
 
 type Match = {
@@ -477,6 +482,38 @@ function autoActivateAiTurnEquipment(board: Board) {
   return { board: next, notes };
 }
 
+function autoActivateAiIncomingEquipment(board: Board, zone: string) {
+  let next = board;
+  let attackPowerPenalty = 0;
+  const notes: string[] = [];
+  for (const id of board.equipment) {
+    if (isEquipmentExhausted(next, id)) continue;
+    const card = cardFor(id);
+    const plan = card ? equipmentActivationPlan(card) : null;
+    if (!card || !plan || plan.kind !== "incoming-zone-penalty") continue;
+    next = exhaustEquipment(next, id);
+    attackPowerPenalty += plan.attackPowerPenalty;
+    notes.push(`${card.name} exhausts, calls ${zone}, and applies -${plan.attackPowerPenalty} Attack Power`);
+  }
+  return { board: next, attackPowerPenalty, notes };
+}
+
+function autoActivateAiDefenseGuardEquipment(board: Board) {
+  let next = board;
+  let guard = 0;
+  const notes: string[] = [];
+  for (const id of board.equipment) {
+    if (isEquipmentExhausted(next, id)) continue;
+    const card = cardFor(id);
+    const plan = card ? equipmentActivationPlan(card) : null;
+    if (!card || !plan || plan.kind !== "defense-guard") continue;
+    next = exhaustEquipment(next, id);
+    guard += plan.guard;
+    notes.push(`${card.name} exhausts for +${plan.guard} Guard`);
+  }
+  return { board: next, guard, notes };
+}
+
 function attackHasFlexibleZone(board: Board, card: CardEntry) {
   if (card.zone?.includes("Any")) return true;
   const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
@@ -687,7 +724,7 @@ function destroyResolvedConsumable(board: Board, card: CardEntry) {
 function emptyBoard(fighterId: string): Board {
   return drawCards({
     fighterId, hp: gameDefinition.mode.startingHp, maxHp: gameDefinition.mode.startingHp, xp: 0, focus: 0, belt: 0,
-    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null,
+    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0,
     tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false,
     defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
     damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false,
@@ -1085,6 +1122,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       if (!card || !plan) return current;
       if ((plan.kind === "next-attack-power" || plan.kind === "zone-attack") && current.phase !== "player-yell") return current;
       if (plan.kind === "speed-cycle" && current.phase !== "player-initiate" && current.phase !== "player-yell") return current;
+      if ((plan.kind === "incoming-zone-penalty" || plan.kind === "defense-guard") && current.phase !== "defense-window") return current;
       let player = exhaustEquipment(current.player, id);
       let pendingChoice: PendingChoice | null = null;
       let note = `${card.name} exhausted.`;
@@ -1103,6 +1141,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           if (discard) pendingChoice = { kind: "discard-hand", sourceCardId: id, remaining: discard };
           note += ` Tempo is ready, so draw ${plan.draw}${discard ? ` and choose ${discard} discard${discard === 1 ? "" : "s"}` : ""}.`;
         }
+      } else if (plan.kind === "incoming-zone-penalty") {
+        pendingChoice = { kind: "incoming-equipment-zone", sourceCardId: id, attackPowerPenalty: plan.attackPowerPenalty };
+        note += " Call High, Mid, or Low against the declared Attack.";
+      } else if (plan.kind === "defense-guard") {
+        const greenBeltIndex = belts.findIndex((belt) => belt.name.toLocaleLowerCase() === "green");
+        const reversalPower = greenBeltIndex >= 0 && player.belt >= greenBeltIndex ? plan.reversalPower : 0;
+        player = {
+          ...player,
+          equipmentDefenseGuard: (player.equipmentDefenseGuard ?? 0) + plan.guard,
+          pendingReversalBonusOnBlock: (player.pendingReversalBonusOnBlock ?? 0) + reversalPower,
+        };
+        note += ` Your next Defense in this Reaction Window gets +${plan.guard} Guard.${reversalPower ? ` A Block primes the Reversal for +${reversalPower} Attack Power.` : ""}`;
       }
       return write(current, note, { player, pendingChoice });
     });
@@ -1113,6 +1163,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || !choice || choice.kind !== "equipment-zone") return current;
     const player = { ...current.player, equipmentAttackPlan: { sourceCardId: choice.sourceCardId, zone, power: choice.power, piercing: choice.piercing, blockedFocus: choice.blockedFocus, requireDifferentPreviousZone: choice.requireDifferentPreviousZone } };
     return write(current, `${cardFor(choice.sourceCardId)?.name ?? "Equipment"} commits its next-Attack effect to ${zone}.`, { player, pendingChoice: null });
+  });
+
+  const chooseIncomingEquipmentZone = (zone: string) => setMatch((current) => {
+    const choice = current?.pendingChoice;
+    if (!current || !choice || choice.kind !== "incoming-equipment-zone" || !current.pendingStrike) return current;
+    const matched = zone.toLocaleLowerCase() === current.pendingStrike.zone.toLocaleLowerCase();
+    const pendingStrike = matched
+      ? { ...current.pendingStrike, attackPower: Math.max(0, current.pendingStrike.attackPower - choice.attackPowerPenalty), modifierNotes: [...current.pendingStrike.modifierNotes, `${cardFor(choice.sourceCardId)?.name ?? "Equipment"} called ${zone}: -${choice.attackPowerPenalty} Attack Power`] }
+      : current.pendingStrike;
+    return write(current, `${cardFor(choice.sourceCardId)?.name ?? "Equipment"} calls ${zone}.${matched ? ` The declared Attack loses ${choice.attackPowerPenalty} Attack Power.` : " The call misses the declared zone."}`, { pendingStrike, pendingChoice: null });
   });
 
   const declareAttack = () => setMatch((current) => {
@@ -1129,19 +1189,21 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const incomingModifier = incomingAttackEquipmentModifier(current.ai);
     const comboModifier = comboAttackModifier(current.player, card, zone);
     const armedEquipment = armedEquipmentAttackModifier(current.player, zone);
-    const rawArmorModifier = equipmentDefenseModifier(current.ai, zone);
-    const piercingModifier = attackPiercingModifier(current.player, current.ai, card, zone, comboModifier.piercing + armedEquipment.piercing);
+    const aiIncomingReaction = autoActivateAiIncomingEquipment(current.ai, zone);
+    const rawArmorModifier = equipmentDefenseModifier(aiIncomingReaction.board, zone);
+    const piercingModifier = attackPiercingModifier(current.player, aiIncomingReaction.board, card, zone, comboModifier.piercing + armedEquipment.piercing);
     const armorModifier = piercedArmorModifier(rawArmorModifier, piercingModifier.value);
     const hasFlow = attackHasFlow(current.player, card, comboModifier);
-    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + armedEquipment.power);
-    const defenseId = bestDefense(current.ai, zone, attackPower, settings.difficulty, location, card, current.player, piercingModifier.value);
+    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
+    const defenseId = bestDefense(aiIncomingReaction.board, zone, attackPower, settings.difficulty, location, card, current.player, piercingModifier.value);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
-    const defenseModifier = locationDefenseModifier(location, defenseCard, current.ai, zone);
-    const defenseCardModifier = defenseCard ? defenseCardRuleModifier(current.ai, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
-    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) + (current.ai.nextDefenseCardBonus ?? 0) : 0) + defenseCardModifier.value + defenseModifier.value);
+    const aiDefenseReaction = defenseCard ? autoActivateAiDefenseGuardEquipment(aiIncomingReaction.board) : { board: aiIncomingReaction.board, guard: 0, notes: [] as string[] };
+    const defenseModifier = locationDefenseModifier(location, defenseCard, aiDefenseReaction.board, zone);
+    const defenseCardModifier = defenseCard ? defenseCardRuleModifier(aiDefenseReaction.board, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
+    const defensePower = Math.max(0, fighterStat(aiDefenseReaction.board, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) + (aiDefenseReaction.board.nextDefenseCardBonus ?? 0) + aiDefenseReaction.guard : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
     const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
-    const reduced = reduceDamageForFighter(current.ai, rawDamage);
+    const reduced = reduceDamageForFighter(aiDefenseReaction.board, rawDamage);
     const damage = reduced.damage;
     let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
     const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
@@ -1178,7 +1240,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const pendingChoice: PendingChoice | null = readyOnHit && (nextPlayer.exhaustedEquipment ?? []).length
       ? { kind: "ready-equipment", sourceCardId: card.id, optional: true }
       : optionalCycle && nextPlayer.hand.length ? { kind: "discard-draw", sourceCardId: card.id, remaining: optionalCycle.discard, draw: optionalCycle.draw } : null;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...piercingModifier.notes, ...armorModifier.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...(reduced.note ? [reduced.note] : [])];
     return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${pendingChoice ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, winner: nextAi.hp ? null : "player" });
   });
 
@@ -1407,26 +1469,34 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     const aiCard = cardFor(pending.cardId)!;
     let nextPlayer = { ...current.player };
-    const armorModifier = piercedArmorModifier(equipmentDefenseModifier(nextPlayer, pending.zone), pending.piercing ?? 0);
+    const matchingArmor = equipmentDefenseModifier(nextPlayer, pending.zone).value > 0;
+    const exhaustedPiercingBonus = !pending.targetExhaustedAtDeclaration && (nextPlayer.exhaustedEquipment ?? []).length
+      ? Math.max(0,
+          attackPiercing(aiCard, { matchingArmor, targetEquipmentCount: nextPlayer.equipment.length, targetHasExhaustedEquipment: true, speedChangedThisRound: Boolean(current.ai.speedChangedThisRound) }).amount
+          - attackPiercing(aiCard, { matchingArmor, targetEquipmentCount: nextPlayer.equipment.length, targetHasExhaustedEquipment: false, speedChangedThisRound: Boolean(current.ai.speedChangedThisRound) }).amount)
+      : 0;
+    const effectivePiercing = (pending.piercing ?? 0) + exhaustedPiercingBonus;
+    const armorModifier = piercedArmorModifier(equipmentDefenseModifier(nextPlayer, pending.zone), effectivePiercing);
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(nextPlayer, current.ai, defenseCard, aiCard) : { value: 0, notes: [] as string[] };
     let defensePower = fighterStat(nextPlayer, "DEF") + armorModifier.value;
     let tempoBonus = 0;
     const locationModifier = locationDefenseModifier(cardFor(current.locationId), defenseCard, nextPlayer, pending.zone);
     if (defenseCard) {
       tempoBonus = settings.tempo && nextPlayer.tempo && fighterStat(nextPlayer, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
-      defensePower += cardPower(defenseCard) + (nextPlayer.nextDefenseCardBonus ?? 0) + defenseCardModifier.value + tempoBonus + locationModifier.value;
+      defensePower += cardPower(defenseCard) + (nextPlayer.nextDefenseCardBonus ?? 0) + (nextPlayer.equipmentDefenseGuard ?? 0) + defenseCardModifier.value + tempoBonus + locationModifier.value;
       nextPlayer = markCompletedTask({ ...nextPlayer, hand: removeOne(nextPlayer.hand, defenseCard.id), discard: [...nextPlayer.discard, defenseCard.id], xp: nextPlayer.xp + 1, defendedThisRound: true, nextDefenseCardBonus: 0, tempo: tempoBonus ? false : nextPlayer.tempo });
       nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onPlay");
       const followup = applyAfterDefenseEquipment(nextPlayer);
       nextPlayer = followup.board;
     }
     const hit = pending.attackPower > defensePower;
+    const reversalEquipmentBonus = !hit && defenseCard ? (nextPlayer.pendingReversalBonusOnBlock ?? 0) : 0;
     const rawDamage = hit ? Math.max(0, pending.attackPower - defensePower + (pending.damageModifier ?? 0)) : 0;
     const reduced = reduceDamageForFighter(nextPlayer, rawDamage);
     const damage = reduced.damage;
     nextPlayer = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit, damageTaken: reduced.board.damageTaken + damage };
     const targetDebuff = hit ? applyTargetHitDebuffs(nextPlayer, aiCard) : { board: nextPlayer, notes: [] as string[] };
-    nextPlayer = targetDebuff.board;
+    nextPlayer = { ...targetDebuff.board, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: (targetDebuff.board.reversalAttackBonus ?? 0) + reversalEquipmentBonus };
     let nextAi = markCompletedTask({ ...current.ai, damageDealt: current.ai.damageDealt + damage, hitThisTurn: current.ai.hitThisTurn || hit });
     nextAi = applyCardEffects(nextAi, aiCard, "ai", hit ? "onHit" : "afterResolve");
     if (hit) nextAi = applyCardEffects(nextAi, aiCard, "ai", "afterResolve");
@@ -1442,7 +1512,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : defenseCard
         ? `${defenseCard.name} blocks ${aiCard.name} and is discarded. Attack ${pending.attackPower} vs Defense ${defensePower}.`
         : `No Defense card was played; your standing DEF/Equipment blocks ${aiCard.name}. Attack ${pending.attackPower} vs Defense ${defensePower}.`;
-    const modifiers = [...(pending.modifierNotes ?? []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...targetDebuff.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...(pending.modifierNotes ?? []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...targetDebuff.notes, ...(reduced.note ? [reduced.note] : [])];
     const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " : ""}${message}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingStrike: null, winner: nextPlayer.hp ? null : "ai" });
     if (!nextPlayer.hp) return resolved;
     const reversalAttacks = nextPlayer.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
@@ -1455,7 +1525,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const declineReversal = () => setMatch((current) => {
     if (!current || current.phase !== "reversal-window") return current;
-    const resumed = write(current, "Reversal declined. Restraint has been noted and immediately questioned.", { selectedAttackId: null });
+    const resumed = write(current, "Reversal declined. Restraint has been noted and immediately questioned.", { selectedAttackId: null, player: { ...current.player, reversalAttackBonus: 0 } });
     if (current.reversalRemainingAiAttacks.length) return openAiStrike(resumed, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo);
     return finishAiTurn(resumed, "Computer finishes its Yell and clears the mat.", settings.locations);
   });
@@ -1474,7 +1544,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const rawArmorModifier = equipmentDefenseModifier(current.ai, zone);
     const piercingModifier = attackPiercingModifier(current.player, current.ai, card, zone, comboModifier.piercing);
     const armorModifier = piercedArmorModifier(rawArmorModifier, piercingModifier.value);
-    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power);
+    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + (current.player.reversalAttackBonus ?? 0) + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power);
     const defenseId = bestDefense(current.ai, zone, attackPower, settings.difficulty, location, card, current.player, piercingModifier.value);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     const defenseModifier = locationDefenseModifier(location, defenseCard, current.ai, zone);
@@ -1484,7 +1554,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
     const reduced = reduceDamageForFighter(current.ai, rawDamage);
     const damage = reduced.damage;
-    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], reversalUsedRound: true, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
+    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], reversalUsedRound: true, reversalAttackBonus: 0, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
     nextPlayer.focus = Math.max(0, nextPlayer.focus - cardFocus(card));
     if (hit && comboModifier.focusOnHit) nextPlayer.focus += comboModifier.focusOnHit;
     if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
@@ -1519,6 +1589,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const nextBelt = belts[player.belt + 1];
   const canPromote = Boolean(nextBelt && player.xp >= nextBelt.xp && playerTask);
   const defenseOptions = match.pendingStrike ? legalDefenseIds(player, match.pendingStrike.zone) : [];
+  const equipmentReactions = match.phase === "defense-window"
+    ? player.equipment.map(cardFor).filter((card): card is CardEntry => {
+        if (!card || isEquipmentExhausted(player, card.id)) return false;
+        const plan = equipmentActivationPlan(card);
+        return plan?.kind === "incoming-zone-penalty" || plan?.kind === "defense-guard";
+      })
+    : [];
   const pendingChoiceOptions = match.pendingChoice?.kind === "destroy-junk"
     ? [
         ...player.hand.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => isJunk(cardFor(entry.id))),
@@ -1539,14 +1616,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         : match.pendingChoice?.kind === "deck-pick" ? "Choose from the revealed cards"
           : match.pendingChoice?.kind === "deck-order" ? "Set your draw order"
             : match.pendingChoice?.kind === "equipment-zone" ? "Commit your Equipment zone"
-              : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
+              : match.pendingChoice?.kind === "incoming-equipment-zone" ? "Call the incoming zone"
+                : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
   const effectChoicePrompt = match.pendingChoice?.kind === "destroy-junk" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more Junk card${match.pendingChoice.remaining === 1 ? "" : "s"} from your hand or discard pile.`
     : match.pendingChoice?.kind === "discard-draw" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Attack"} lets you discard ${match.pendingChoice.remaining} card${match.pendingChoice.remaining === 1 ? "" : "s"} to draw ${match.pendingChoice.draw}. You may decline.`
       : match.pendingChoice?.kind === "discard-hand" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more discard${match.pendingChoice.remaining === 1 ? "" : "s"}. You choose the card.`
         : match.pendingChoice?.kind === "deck-pick" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} revealed ${match.pendingChoice.revealed.length} card${match.pendingChoice.revealed.length === 1 ? "" : "s"}. ${match.pendingChoice.optional ? "Take an eligible card or skip." : "Choose the eligible card to put into your hand."}`
           : match.pendingChoice?.kind === "deck-order" ? `Choose the card you want to draw ${match.pendingChoice.ordered.length ? `in position ${match.pendingChoice.ordered.length + 1}` : "first"}. ${match.pendingChoice.revealed.length} card${match.pendingChoice.revealed.length === 1 ? " remains" : "s remain"}.`
             : match.pendingChoice?.kind === "equipment-zone" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} is exhausted. Choose High, Mid, or Low for its armed next-Attack effect.`
-              : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
+              : match.pendingChoice?.kind === "incoming-equipment-zone" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} is exhausted. Call High, Mid, or Low against the declared ${match.pendingStrike?.zone ?? "incoming"} Attack.`
+                : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
   const effectChoiceCanSkip = match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
   const inspectedBoard = inspected
     ? inspected.id === player.fighterId ? player : inspected.id === ai.fighterId ? ai : null
@@ -1666,6 +1745,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       <section className="hand-panel paper-stack">
         <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.pendingDiscard ? `Choose ${match.pendingDiscard.remaining} card to discard` : match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks played {player.attacksThisTurn}</span><span>Flow {player.flowUsedThisTurn ? "used" : "ready"}</span><span>Practice {player.defensePracticeUsed ? "used" : "ready"}</span></div></header>
         {match.pendingDiscard && <div className="discard-choice-notice" role="status"><b>{cardFor(match.pendingDiscard.sourceCardId)?.name}</b><span>Select the card you want to discard. The engine will not choose for you.</span></div>}
+        {equipmentReactions.length > 0 && <div className="equipment-reaction-strip" aria-label="Available Equipment reactions"><span>Equipment reactions</span>{equipmentReactions.map((item) => { const plan = equipmentActivationPlan(item)!; return <button type="button" disabled={Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)} key={item.id}><b>Exhaust {item.name}</b><small>{plan.kind === "incoming-zone-penalty" ? `Call a zone · -${plan.attackPowerPenalty} Attack Power on a match` : plan.kind === "defense-guard" ? `Your Defense gets +${plan.guard} Guard${plan.reversalPower ? " · Green+ Block boosts Reversal" : ""}` : "Unsupported activation"}</small></button>; })}</div>}
         <div className="play-card-row">{player.hand.map((id, index) => {
           const card = cardFor(id); if (!card) return null;
           const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card);
@@ -1740,7 +1820,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView !== "market" && <button className="button ghost" onClick={() => setDeskView(deskView === "belt" ? "combo" : "market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : `Next: ${deskView === "combo" ? "check Belt progress" : "review the Combo offer"}.`}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
       </section>
     </div>}
-    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
+    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
     {coachOpen && !match.winner && <div className="playtest-inspector-backdrop coach-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setCoachOpen(false)}><section className="coach-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="coach-dialog-title"><button className="modal-close" onClick={() => setCoachOpen(false)} aria-label="Close Decision Coach">×</button><span className="eyebrow">Decision coach · optional guidance</span><h2 id="coach-dialog-title">What should I do now?</h2><div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Recommended next step</span><p>{turnCoach}</p></div><div className="coach-dialog-actions"><button className="button primary" onClick={() => setCoachOpen(false)}>Back to the mat →</button><button className="button ghost" onClick={() => { setSettings({ ...settings, guided: false }); setCoachOpen(false); }}>Turn coach off</button></div><small>You can re-enable the Coach from the utility bar at any time.</small></section></div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><ol>{match.log.map((line, index) => <li key={`${line}-${index}`}><b>{match.log.length - index}</b><span>{line}</span></li>)}</ol></section></div>}
     {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
@@ -1757,7 +1837,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           <div><dt>ATK</dt><dd>{fighterStat(inspectedBoard, "ATK")}</dd></div><div><dt>DEF</dt><dd>{fighterStat(inspectedBoard, "DEF")}</dd></div><div><dt>SPD</dt><dd>{fighterStat(inspectedBoard, "Speed")}</dd></div><div><dt>XP</dt><dd>{inspectedBoard.xp}</dd></div><div><dt>Focus</dt><dd>{inspectedBoard.focus}</dd></div><div><dt>Belt</dt><dd>{belts[inspectedBoard.belt].name}</dd></div>
         </dl> : <dl><div><dt>Focus Cost</dt><dd>{inspected.fpCost ?? "—"}</dd></div><div><dt>Focus Value</dt><dd>{inspected.focusValue ?? "—"}</dd></div><div><dt>Zone</dt><dd>{inspected.zone ?? "—"}</dd></div><div><dt>Timing</dt><dd>{inspected.timing ?? "—"}</dd></div></dl>}
         <section className="inspector-rules"><span>Printed rules text</span><p>{inspected.rulesText ?? "No printed rules text."}</p></section>
-        {inspectedBoard && <section className="inspector-loadout"><header><div><span className="eyebrow">Current equipment</span><h3>Fighter loadout</h3></div><small>{inspectedBoard.equipment.length} equipped card{inspectedBoard.equipment.length === 1 ? "" : "s"} · {(inspectedBoard.exhaustedEquipment ?? []).length} exhausted</small></header><div className="inspector-loadout-grid">{LOADOUT_SLOTS.map((slot) => { const equipped = inspectedBoard.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && equipmentSlotLabel(card) === slot)); return <article className={`equipment-slot ${equipped.length ? "is-filled" : ""}`} key={slot}><span>{slot}</span>{equipped.length ? <div>{equipped.map((item, index) => { const exhausted = isEquipmentExhausted(inspectedBoard, item.id); const plan = equipmentActivationPlan(item); const ownLoadout = inspectedBoard === player; const legalPhase = plan?.kind === "speed-cycle" ? match.phase === "player-initiate" || match.phase === "player-yell" : plan ? match.phase === "player-yell" : false; return <div className={`equipment-slot-control ${exhausted ? "is-exhausted" : ""}`} key={`${item.id}-${index}`}><button type="button" onClick={() => setInspectedId(item.id)}><span className="equipment-slot-art">{artistUrl(item) ? <img src={artistUrl(item)} alt="" /> : <NativeCardArt card={item} />}</span><b>{item.name}</b><small>{exhausted ? "EXHAUSTED" : "READY"} · {item.details?.Slot ? String(item.details.Slot) : item.subtype}</small></button>{ownLoadout && plan && <button type="button" className="equipment-activate" disabled={exhausted || !legalPhase || Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)}>{exhausted ? "Exhausted" : legalPhase ? "Exhaust →" : "Use during Yell"}</button>}</div>; })}</div> : <em>Empty</em>}</article>; })}</div></section>}
+        {inspectedBoard && <section className="inspector-loadout"><header><div><span className="eyebrow">Current equipment</span><h3>Fighter loadout</h3></div><small>{inspectedBoard.equipment.length} equipped card{inspectedBoard.equipment.length === 1 ? "" : "s"} · {(inspectedBoard.exhaustedEquipment ?? []).length} exhausted</small></header><div className="inspector-loadout-grid">{LOADOUT_SLOTS.map((slot) => { const equipped = inspectedBoard.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && equipmentSlotLabel(card) === slot)); return <article className={`equipment-slot ${equipped.length ? "is-filled" : ""}`} key={slot}><span>{slot}</span>{equipped.length ? <div>{equipped.map((item, index) => { const exhausted = isEquipmentExhausted(inspectedBoard, item.id); const plan = equipmentActivationPlan(item); const ownLoadout = inspectedBoard === player; const legalPhase = plan?.kind === "speed-cycle" ? match.phase === "player-initiate" || match.phase === "player-yell" : plan?.kind === "incoming-zone-penalty" || plan?.kind === "defense-guard" ? match.phase === "defense-window" : plan ? match.phase === "player-yell" : false; return <div className={`equipment-slot-control ${exhausted ? "is-exhausted" : ""}`} key={`${item.id}-${index}`}><button type="button" onClick={() => setInspectedId(item.id)}><span className="equipment-slot-art">{artistUrl(item) ? <img src={artistUrl(item)} alt="" /> : <NativeCardArt card={item} />}</span><b>{item.name}</b><small>{exhausted ? "EXHAUSTED" : "READY"} · {item.details?.Slot ? String(item.details.Slot) : item.subtype}</small></button>{ownLoadout && plan && <button type="button" className="equipment-activate" disabled={exhausted || !legalPhase || Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)}>{exhausted ? "Exhausted" : legalPhase ? "Exhaust →" : plan?.kind === "incoming-zone-penalty" || plan?.kind === "defense-guard" ? "Use in Reaction" : "Use during Yell"}</button>}</div>; })}</div> : <em>Empty</em>}</article>; })}</div></section>}
         <footer>{inspectedBoard ? "Click an equipped card to inspect it. " : `${cardEffectNote(inspected)} `}Click the card image to magnify it. Press Escape to close.</footer>
       </article>
     </div>}
@@ -1813,7 +1893,7 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   if (flowDraw) nextAi = drawCards({ ...nextAi, flowUsedThisTurn: true }, 1);
   if (current.ai.flowAfterFirstAttack && current.ai.attacksThisTurn === 0) nextAi = { ...nextAi, flowAfterFirstAttack: false, nextAttackHasFlow: true };
   const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...activeEquipment.notes, ...piercingModifier.notes];
-  return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage + comboModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
+  return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage + comboModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
 }
 
 function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
@@ -1848,8 +1928,8 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string) {
   const nextRound = current.round + 1;
   const freshLocations = current.locations.length ? current.locations : shuffle(quickDuelLocationPool.map((card) => card.id));
   const locationId = sceneChanges ? freshLocations[0] ?? current.locationId : current.locationId;
-  const player = { ...current.player, xp: current.player.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, exhaustedEquipment: [], attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
-  const ai = { ...current.ai, xp: current.ai.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, exhaustedEquipment: [], attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
+  const player = { ...current.player, xp: current.player.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
+  const ai = { ...current.ai, xp: current.ai.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
   const marketState = current.marketPurchasedThisRound
     ? { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard }
     : refreshMarketRow(current.market, current.marketDeck, current.marketDiscard);
