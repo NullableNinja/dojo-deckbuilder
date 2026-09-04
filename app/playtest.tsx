@@ -163,7 +163,7 @@ const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail:
   master: { label: "Grandmaster", eyebrow: "Bad decision", detail: "More HP, sharper stats, and no sympathy from the clipboard.", aiHp: 35, statBoost: 1 },
 };
 
-const cardArtModules = import.meta.glob<string>("./assets/cards/{attacks,defenses,katas,consumables,defense-equipment,characters}/*.webp", { eager: true, query: "?url", import: "default" });
+const cardArtModules = import.meta.glob<string>("./assets/cards/{attacks,defenses,katas,consumables,defense-equipment,gear,characters}/*.webp", { eager: true, query: "?url", import: "default" });
 const CARD_ART = Object.fromEntries(Object.entries(cardArtModules).map(([path, url]) => [`/cards/${path.split("/cards/")[1]}`, url]));
 const COMPLETE_CARD_ART_BY_CATALOG_ID = Object.fromEntries(
   Object.entries(cardArtModules).flatMap(([path, url]) => {
@@ -1060,6 +1060,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const playableFocus = player.focus + practiceFocus + attackFocus + supportFocus;
   const affordableNow = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= player.focus).length;
   const affordableForecast = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= playableFocus).length;
+  const activePhaseIndex = match.phase === "player-initiate" ? 1 : match.phase === "player-yell" || match.phase === "defense-window" || match.phase === "reversal-window" || match.phase === "ai-ready" ? 2 : 3;
   const ascendStepIndex = deskView === "combo" ? 1 : deskView === "belt" ? 2 : 0;
   const ascendStepTitle = deskView === "combo" ? "Combo Docket" : deskView === "belt" ? "Belt Check" : "Shared Market";
   const ascendStepHelp = deskView === "combo"
@@ -1088,9 +1089,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   return <main className={`playtest-shell playtest-shell--live ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}><MobilePlaytestNotice />
     <header className="playtest-topbar battle-versus-hud">
       <section className="versus-fighter versus-player"><div><b>{playerFighter.name}</b><span>{belts[player.belt].name} Belt · {player.hp}/{player.maxHp} HP</span></div><div className="versus-health"><span style={{ width: `${Math.max(0, Math.min(100, player.hp / player.maxHp * 100))}%` }} /></div></section>
-      <div className="versus-center" aria-label={`Round ${match.round}`}><span>ROUND</span><b>{match.round}</b></div>
+      <div className="versus-center"><span>ROUND</span><b>{match.round}</b><small>{["HONOR", "INITIATE", "YELL", "ASCEND", "HIDE"][activePhaseIndex]}</small></div>
       <section className="versus-fighter versus-enemy"><div><b>{aiFighter.name}</b><span>{belts[ai.belt].name} Belt · {ai.hp}/{ai.maxHp} HP</span></div><div className="versus-health"><span style={{ width: `${Math.max(0, Math.min(100, ai.hp / ai.maxHp * 100))}%` }} /></div></section>
     </header>
+    <section className="game-phase-rail" aria-label="Current H.I.Y.A.H. phase"><div className="phase-rail-line" aria-hidden="true"><span style={{ width: `${activePhaseIndex / 4 * 100}%` }} /></div>{["Honor", "Initiate", "Yell", "Ascend", "Hide"].map((phase, index) => <div className={index === activePhaseIndex ? "is-active" : index < activePhaseIndex ? "is-complete" : ""} key={phase}><b>{"HIYAH"[index]}</b><span>{phase}</span></div>)}</section>
     {match.winner && <section className={`match-result paper-stack ${match.winner === "player" ? "is-victory" : "is-defeat"}`}>
       {match.winner === "player" && <div className="victory-confetti" aria-hidden="true">{Array.from({ length: 28 }, (_, index) => <i style={{ left: `${(index * 37) % 100}%`, animationDelay: `${(index % 8) * .11}s`, animationDuration: `${2.45 + (index % 5) * .2}s` }} key={index} />)}</div>}
       <div className="victory-certificate">

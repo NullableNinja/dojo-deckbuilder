@@ -71,12 +71,13 @@ test("every Core Attack, Defense, Kata, Consumable, and Defense Equipment card h
     { prefix: "DDB-KAT-CORE-", folder: "katas", count: 62 },
     { prefix: "DDB-CON-CORE-", folder: "consumables", count: 62 },
     { prefix: "DDB-DEQ-CORE-", folder: "defense-equipment", count: 46 },
+    { prefix: "DDB-GEA-CORE-", folder: "gear", count: 24 },
   ];
 
   for (const group of groups) {
     const completeCards = cards.filter((card) => card.catalogId.startsWith(group.prefix));
     const files = (await readdir(new URL(`../app/assets/cards/${group.folder}/`, import.meta.url))).filter((name) => name.endsWith(".webp"));
-    const cardCatalogIds = files.map((name) => name.match(/^(ddb-(?:atk|def|kat|con|deq)-core-\d{3})_/i)?.[1].toUpperCase()).sort();
+    const cardCatalogIds = files.map((name) => name.match(/^(ddb-(?:atk|def|kat|con|deq|gea)-core-\d{3})_/i)?.[1].toUpperCase()).sort();
     assert.equal(completeCards.length, group.count, `Unexpected ${group.folder} catalog count`);
     assert.equal(files.length, group.count, `Unexpected ${group.folder} card count`);
     assert.deepEqual(cardCatalogIds, completeCards.map((card) => card.catalogId).sort(), `Mismatched ${group.folder} catalog IDs`);
@@ -84,6 +85,7 @@ test("every Core Attack, Defense, Kata, Consumable, and Defense Equipment card h
   assert.match(source, /COMPLETE_CARD_URLS_BY_CATALOG_ID\[card\.catalogId\]/, "Complete card images must resolve by immutable catalog ID");
   assert.match(source, /Dojo_Deckbuilder_v2\.3_Defensive_Equipment_Editable_ORA\.zip/);
   assert.match(source, /Dojo_Deckbuilder_v2\.3_Consumable_Cards_Editable_ORA\.zip/);
+  assert.match(source, /Dojo_Deckbuilder_v2\.3_Gear_Editable_ORA\.zip/);
 });
 
 test("editable card source pipeline emits GIMP-compatible OpenRaster deliverables", async () => {
@@ -93,6 +95,13 @@ test("editable card source pipeline emits GIMP-compatible OpenRaster deliverable
   assert.match(source, /Expected 62 Consumable cards/);
   assert.match(source, /Defensive_Equipment_Editable_ORA\.zip/);
   assert.match(source, /Consumable_Cards_Editable_ORA\.zip/);
+});
+
+test("editable Gear source pipeline emits the complete GIMP-compatible deck", async () => {
+  const source = await readFile(new URL("../scripts/build_editable_gear_sources.py", import.meta.url), "utf8");
+  assert.match(source, /image\/openraster/);
+  assert.match(source, /Expected 24 Gear cards/);
+  assert.match(source, /Gear_Editable_ORA\.zip/);
 });
 
 test("deployment stamps a build fingerprint and cache-busts the app shell", async () => {
@@ -134,7 +143,7 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(companion, /PlaytestView/);
   assert.match(companion, /Play Quick Duel/);
   assert.match(playtest, /import cardsJson from "\.\/data\/cards\.json"/);
-  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,defense-equipment,characters\}/);
+  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,defense-equipment,gear,characters\}/);
   assert.match(playtest, /COMPLETE_CARD_ART_BY_CATALOG_ID\[card\.catalogId\]/);
   assert.match(playtest, /gameDefinition\.starterDeck\.flatMap/);
   assert.match(playtest, /const marketPool = cards\.filter/);
@@ -151,15 +160,13 @@ test("playtest behaves like a complete guided game surface", async () => {
     "prepareAiTurn",
     "ddb-field-match",
     "ddb-field-settings",
-    "versus-center",
+    "game-phase-rail",
     "turn-coach",
     "Instant rematch",
     "player-initiate",
     "turnOrder",
     "advanceRound",
   ]) assert.ok(playtest.includes(expected), `Missing field-test enhancement: ${expected}`);
-  assert.ok(!playtest.includes('className="game-phase-rail"'), "The retired HIYAH rail must not return to the live field test");
-  assert.match(playtest, /className="versus-center" aria-label=\{`Round \$\{match\.round\}`\}/, "The top HUD must retain the round-only counter");
   assert.ok(!playtest.includes("v2.2.2 catalog"), "Public field-test copy must remain version-free");
   assert.match(playtest, /onClick=\{\(\) => begin\(\)\}/, "The launch control must not pass React's click event as a fighter ID");
   assert.match(playtest, /QUICK_DUEL_LOCATION_NAMES/, "Quick Duel must use locations whose rules are automated by the engine");
