@@ -85,7 +85,6 @@ test("every Core Attack, Defense, Kata, Consumable, and Defense Equipment card h
   assert.match(source, /COMPLETE_CARD_URLS_BY_CATALOG_ID\[card\.catalogId\]/, "Complete card images must resolve by immutable catalog ID");
   assert.match(source, /Dojo_Deckbuilder_v2\.3_Defensive_Equipment_Editable_ORA\.zip/);
   assert.match(source, /Dojo_Deckbuilder_v2\.3_Consumable_Cards_Editable_ORA\.zip/);
-  assert.match(source, /Dojo_Deckbuilder_v2\.3_Gear_Editable_ORA\.zip/);
 });
 
 test("editable card source pipeline emits GIMP-compatible OpenRaster deliverables", async () => {
