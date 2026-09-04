@@ -62,3 +62,4 @@ Quick Duel intentionally ships in the proven main companion bundle. Do not reint
 <!-- Deployment trigger: smart companion tools. -->
 
 <!-- Illustrated Defensive Equipment Paper-Fu card set published. -->
+<!-- Illustrated Gear Paper-Fu card set published. -->
