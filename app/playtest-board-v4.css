@@ -713,77 +713,6 @@
   .victory-confetti i { animation: none; display: none; }
 }
 
-
-/* Live Mat / hand ownership fix — arena scrolls, hand never overlays it. */
-.playtest-shell--live {
-  grid-template-rows: 54px minmax(0, 1fr) auto !important;
-}
-
-/* Row 2 owns every arena pixel. If it gets short, scroll the arena instead of
-   letting a 500px mat paint underneath the hand row. */
-.playtest-shell--live .playtest-arena {
-  min-height: 0 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  scrollbar-gutter: stable;
-  overscroll-behavior: contain;
-  padding-bottom: 8px;
-}
-.playtest-shell--live .playtest-table {
-  min-height: 0 !important;
-  overflow: visible !important;
-}
-.playtest-shell--live .playtest-combat-desk {
-  min-height: 0 !important;
-  height: auto !important;
-  max-height: none !important;
-}
-.playtest-shell--live .live-mat-play {
-  min-height: clamp(150px, 24dvh, 270px) !important;
-}
-.playtest-shell--live .fighter-column {
-  min-height: 0 !important;
-}
-
-/* Row 3 is a real hand tray, never an overlay. Its opaque paper surface also
-   provides an unmistakable visual boundary between table and hand. */
-.playtest-shell--live .playtest-workspace--hand {
-  position: relative !important;
-  z-index: 12 !important;
-  min-height: 0 !important;
-  margin-top: 0 !important;
-  align-self: end !important;
-  overflow: hidden !important;
-  border-top: 2px solid rgba(245,179,34,.34);
-  box-shadow: 0 -10px 24px rgba(4,15,9,.24);
-  background: rgba(8,24,16,.98);
-}
-.playtest-shell--live .hand-panel {
-  margin: 0 !important;
-  min-height: 0 !important;
-  max-height: min(36dvh, 310px);
-  overflow: hidden !important;
-}
-
-/* Empty / exhausted hands should collapse to their useful header instead of
-   reserving a huge invisible card tray and stealing the mat. */
-.playtest-shell--live .play-card-row:empty {
-  display: none !important;
-}
-.playtest-shell--live .hand-panel:has(.play-card-row:empty) {
-  padding-bottom: 10px !important;
-}
-
-/* Short displays keep both surfaces usable: the hand remains stable and the
-   arena becomes scrollable rather than overlapping it. */
-@media (max-height: 720px) and (min-width: 761px) {
-  .playtest-shell--live .playtest-arena { padding-bottom: 5px; }
-  .playtest-shell--live .playtest-combat-desk { padding-block: 7px !important; }
-  .playtest-shell--live .live-mat-play { min-height: 145px !important; }
-  .playtest-shell--live .hand-panel { max-height: min(34dvh, 255px); }
-}
-
-
 /* Opponent dossier mirror — inward-facing right-side HUD. */
 .playtest-shell--live .fighter-panel.is-enemy {
   grid-template-columns: minmax(0, 1fr) 92px !important;
@@ -1090,52 +1019,61 @@
   }
 }
 
-/* Board ownership v7 — natural board flow, scrollable fighter rails. */
-/*
-   Keep the board in normal document/grid flow. We intentionally do NOT size the
-   shell from 100dvh: if a shorter screen needs a little page scrolling, it gets
-   page scrolling instead of clipping game state. The center mat keeps a stable
-   footprint while only the fighter rails own vertical overflow.
-*/
+
+/* Board ownership v8 — live shell is block flow; arena and hand cannot overlap. */
 .playtest-shell--live {
+  display: block !important;
   height: auto !important;
   min-height: 0 !important;
   overflow: visible !important;
-  grid-template-rows: auto auto auto !important;
-  padding-bottom: 44px !important;
+  padding-bottom: 108px !important;
+}
+
+.playtest-shell--live .battle-versus-hud {
+  position: relative !important;
+  width: 100% !important;
+  margin: 0 0 10px !important;
 }
 
 .playtest-shell--live .playtest-arena {
-  min-height: 0 !important;
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
   height: auto !important;
+  min-height: 0 !important;
   overflow: visible !important;
+  margin: 0 !important;
   padding-bottom: 8px !important;
 }
 
 .playtest-shell--live .playtest-table {
-  min-height: 0 !important;
-  height: auto !important;
-  align-items: start !important;
+  position: relative !important;
+  display: grid !important;
+  width: 100% !important;
+  min-height: 540px !important;
+  height: 540px !important;
+  grid-template-columns: clamp(230px, 15.5vw, 300px) minmax(660px, 1fr) clamp(230px, 15.5vw, 300px) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
   overflow: visible !important;
 }
 
-/* The playmat is the visual anchor. Give it enough real height to show both
-   card lanes plus meters/actions without asking the viewport to solve a ratio. */
+/* Center mat owns the fixed visual field. */
 .playtest-shell--live .playtest-combat-desk {
   min-height: 540px !important;
-  height: auto !important;
-  max-height: none !important;
+  height: 540px !important;
+  max-height: 540px !important;
   overflow: hidden !important;
 }
 .playtest-shell--live .live-mat-play {
   min-height: 210px !important;
 }
 
-/* The complete side rail scrolls as one surface. This means the fighter HUD,
-   Learned Combos, opponent HUD, and Current Stage never compete with the hand. */
+/* The complete fighter side is one scroll surface: fighter + Combos on the
+   left, opponent + Stage on the right. */
 .playtest-shell--live .fighter-column {
   min-height: 0 !important;
-  height: auto !important;
+  height: 540px !important;
   max-height: 540px !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
@@ -1149,45 +1087,55 @@
   padding-right: 0;
   padding-left: 5px;
 }
-
-/* One rail, one scrollbar. Do not put a second vertical scroller inside the
-   Learned Combo filing. */
-.playtest-shell--live .fighter-combo-rack {
+.playtest-shell--live .fighter-combo-rack,
+.playtest-shell--live .fighter-combo-rack .active-combo-grid {
   max-height: none !important;
   overflow: visible !important;
 }
 .playtest-shell--live .fighter-combo-rack .active-combo-grid {
-  max-height: none !important;
-  overflow: visible !important;
   padding-right: 0 !important;
   scrollbar-gutter: auto !important;
 }
 
-/* The hand is ordinary flow content below the arena. It can sit lower on the
-   page; the floating action dock is allowed to overlap the hand instead. */
+/* Hand is a normal block AFTER the arena. Explicitly clear every grid/overlay
+   property used by earlier responsive dashboard rules. */
 .playtest-shell--live .playtest-workspace--hand {
-  position: relative !important;
-  z-index: 2 !important;
+  position: static !important;
+  display: block !important;
+  grid-row: auto !important;
+  grid-column: auto !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: 100% !important;
   min-height: 0 !important;
   height: auto !important;
-  margin-top: 18px !important;
-  align-self: auto !important;
+  margin: 18px 0 0 !important;
+  padding: 0 !important;
   overflow: visible !important;
-  border-top: 2px solid rgba(245,179,34,.34);
-  background: rgba(8,24,16,.98);
+  z-index: 2 !important;
 }
 .playtest-shell--live .hand-panel {
+  position: relative !important;
+  width: 100% !important;
   min-height: 0 !important;
   height: auto !important;
   max-height: none !important;
+  margin: 0 !important;
   overflow: hidden !important;
 }
+
+/* Keep the floating primary action dock above the hand, as intended. */
 .playtest-shell--live .playtest-action-dock {
+  position: fixed !important;
   bottom: 48px !important;
   z-index: 92 !important;
 }
 
-/* Protect the player's left-facing dossier from enemy mirror rules. */
+/* Explicitly protect the player's left-facing dossier from enemy mirror rules. */
 .playtest-shell--live .fighter-panel.fighter-dossier:not(.is-enemy) {
   grid-template-columns: 88px minmax(0, 1fr) !important;
   grid-template-areas:
@@ -1230,12 +1178,13 @@
 .playtest-shell--live .fighter-panel.fighter-dossier:not(.is-enemy) .fighter-loadout-launch b { grid-column: 2 !important; }
 .playtest-shell--live .fighter-panel.fighter-dossier:not(.is-enemy) .fighter-loadout-launch small { grid-column: 3 !important; }
 
-/* Keep the same ownership model on laptop-height screens. We reduce card art a
-   little, but never collapse the mat or turn the arena into the scroll owner. */
 @media (max-height: 760px) and (min-width: 1121px) {
-  .playtest-shell--live .playtest-combat-desk { min-height: 500px !important; }
-  .playtest-shell--live .fighter-column { max-height: 500px !important; }
+  .playtest-shell--live .playtest-table,
+  .playtest-shell--live .playtest-combat-desk,
+  .playtest-shell--live .fighter-column {
+    height: 500px !important;
+    min-height: 500px !important;
+    max-height: 500px !important;
+  }
   .playtest-shell--live .live-mat-play { min-height: 185px !important; }
-  .playtest-shell--live .play-card-row .play-card-main { height: 190px !important; }
 }
-
