@@ -37,3 +37,13 @@ test("effect coverage reports the current v2.3 catalog without pretending unsupp
   assert.ok(coverage.partial > 0, "Expected mixed clauses to remain visible as partial coverage");
   assert.equal(coverage.full + coverage.partial + coverage.queued, coverage.total);
 });
+
+
+test("choice language is never auto-executed by the generic parser", () => {
+  const plan = compileCardEffects("After this Attack resolves, you may discard 1 card to draw 1 card.");
+  assert.deepEqual(plan.effects, []);
+  assert.equal(plan.unsupported.length, 1);
+  const choose = compileCardEffects("Choose one card. Draw 2 cards.");
+  assert.deepEqual(choose.effects, [{ timing: "onPlay", kind: "draw", amount: 2 }]);
+  assert.equal(choose.unsupported.length, 1);
+});

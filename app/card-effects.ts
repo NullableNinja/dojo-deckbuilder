@@ -48,6 +48,7 @@ export function compileCardEffects(text = ""): CardEffectPlan {
   const effects: CardEffect[] = [];
   const unsupported: string[] = [];
   for (const sentence of normalized.split(/(?<=[.!?])\s+/)) {
+    if (/\b(?:may|choose|up to|either|one of|optionally)\b/i.test(sentence)) { unsupported.push(sentence); continue; }
     const timing = sentenceTiming(sentence);
     if (!timing) { unsupported.push(sentence); continue; }
     const parsed = operationsForSentence(sentence, timing);

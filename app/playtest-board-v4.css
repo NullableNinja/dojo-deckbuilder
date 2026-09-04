@@ -1665,3 +1665,28 @@
     grid-template-rows: auto 110px auto auto auto auto !important;
   }
 }
+
+
+/* Explicit printed-effect choices — mechanics overlay, not board geometry. */
+.effect-choice-backdrop { z-index: 132 !important; }
+.effect-choice-dialog {
+  width: min(760px, calc(100vw - 40px));
+  max-height: min(82dvh, 720px);
+  overflow: auto;
+  border-top: 7px solid var(--gold);
+  padding: 24px;
+  color: #20372c;
+  background: #f1dfb8;
+}
+.effect-choice-dialog h2 { margin: 5px 0 8px; font-family: var(--display); font-size: clamp(30px, 4vw, 46px); }
+.effect-choice-dialog > p { margin: 0 0 16px; line-height: 1.55; }
+.effect-choice-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.effect-choice-options > button { min-width: 0; display: grid; gap: 3px; border: 1px solid rgba(32,55,44,.28); padding: 10px 12px; color: #20372c; background: rgba(255,255,255,.28); text-align: left; cursor: pointer; }
+.effect-choice-options > button:hover { border-color: #b74632; transform: translateY(-1px); }
+.effect-choice-options span { color: #9e3d2e; font-size: 7px; font-weight: 950; letter-spacing: .1em; }
+.effect-choice-options b { font-size: 13px; }
+.effect-choice-options small { opacity: .68; font-size: 8px; }
+.effect-choice-dialog footer { display: flex; justify-content: flex-end; margin-top: 14px; }
+:root[data-theme="dark"] .effect-choice-dialog { color: #edf4ef; background: #20342a; }
+:root[data-theme="dark"] .effect-choice-options > button { color: #edf4ef; border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.045); }
+@media (max-width: 700px) { .effect-choice-options { grid-template-columns: 1fr; } }

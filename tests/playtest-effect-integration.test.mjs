@@ -21,3 +21,14 @@ test("Quick Duel wires printed Attack/Defense modifiers and flexible zones into 
   assert.match(source, /locationAttackRuleModifiers/);
   assert.match(source, /conditionalHealAfterHit/);
 });
+
+
+test("Quick Duel pauses for explicit player-choice effects instead of auto-resolving them", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /type PendingChoice/);
+  assert.match(source, /kind: "destroy-junk"/);
+  assert.match(source, /kind: "discard-draw"/);
+  assert.match(source, /resolvePendingChoice/);
+  assert.match(source, /Skip this optional effect/);
+  assert.match(source, /effect-choice-dialog/);
+});

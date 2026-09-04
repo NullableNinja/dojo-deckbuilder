@@ -180,3 +180,15 @@ export function locationAttackRuleModifiers(location: EffectCardLike, context: {
   }
   return { power, damage, notes, matched };
 }
+
+
+export function destroyJunkChoiceCount(card: EffectCardLike) {
+  const match = String(card.rulesText ?? "").match(/Destroy (\d+) Junk cards? from your hand or discard pile/i);
+  return match ? Number(match[1]) : 0;
+}
+
+export function optionalDiscardDrawChoice(card: EffectCardLike) {
+  const text = String(card.rulesText ?? "");
+  const match = text.match(/After (?:this Attack|this|it|that Attack) resolves, you may discard (\d+) cards? to draw (\d+) cards?/i);
+  return match ? { discard: Number(match[1]), draw: Number(match[2]) } : null;
+}

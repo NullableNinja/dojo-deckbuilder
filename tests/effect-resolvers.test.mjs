@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentSpeedModifier, locationAttackRuleModifiers, passiveEquipmentGuard, targetNextAttackPenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentSpeedModifier, locationAttackRuleModifiers, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
 
 test("Defense Equipment protects only its printed zone", () => {
   const chest = { name: "Cardboard Chestplate", subtype: "Defense Equipment", rulesText: "+2 DEF against Mid Attacks.", stats: { Guard: 2 } };
@@ -71,4 +71,11 @@ test("flexible-zone and conditional recovery wording is recognized", () => {
   assert.equal(attackCanChooseAnyZone({ rulesText: "" }, true, [{ rulesText: "Your first Attack each turn may be declared as Any zone." }]), true);
   assert.equal(conditionalHealAfterHit({ rulesText: "If you were Hit since your last turn, heal 3 HP." }, true), 3);
   assert.equal(conditionalHealAfterHit({ rulesText: "If you were Hit since your last turn, heal 3 HP." }, false), 0);
+});
+
+
+test("explicit choice resolvers recognize Junk destruction and optional cycling", () => {
+  assert.equal(destroyJunkChoiceCount({ rulesText: "Destroy 1 Junk card from your hand or discard pile." }), 1);
+  assert.deepEqual(optionalDiscardDrawChoice({ rulesText: "After this Attack resolves, you may discard 1 card to draw 1 card." }), { discard: 1, draw: 1 });
+  assert.equal(optionalDiscardDrawChoice({ rulesText: "Draw 1 card." }), null);
 });
