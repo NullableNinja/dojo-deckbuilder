@@ -2769,3 +2769,39 @@ body,
 }
 .playtest-loading h1 { margin: 0; font-family: var(--display); font-size: clamp(42px, 7vw, 76px); }
 .playtest-loading p { color: var(--ink-soft); }
+
+
+/* Shareable rule-section navigation. */
+.rule-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 24px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper-light) 74%, transparent);
+}
+.rule-section-nav > span {
+  flex: 0 0 100%;
+  color: var(--ink-soft);
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.rule-section-nav button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.rule-section-nav button:hover,
+.rule-section-nav button:focus-visible { border-color: var(--red); color: var(--red-dark); }
+:root[data-theme="dark"] .rule-section-nav { background: rgba(31,48,39,.62); }
+@media (max-width: 840px) { .rule-section-nav { margin-inline: -4px; } }
