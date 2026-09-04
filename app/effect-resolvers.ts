@@ -192,3 +192,24 @@ export function optionalDiscardDrawChoice(card: EffectCardLike) {
   const match = text.match(/After (?:this Attack|this|it|that Attack) resolves, you may discard (\d+) cards? to draw (\d+) cards?/i);
   return match ? { discard: Number(match[1]), draw: Number(match[2]) } : null;
 }
+
+
+export function firstIncomingAttackPowerPenalty(cards: EffectCardLike[], isFirstIncomingAttack: boolean) {
+  if (!isFirstIncomingAttack) return { amount: 0, sources: [] as string[] };
+  let amount = 0;
+  const sources: string[] = [];
+  for (const card of cards) {
+    const text = normalizedMinus(String(card.rulesText ?? ""));
+    const match = text.match(/The first Attack targeting you each round gets -(\d+) Attack Power/i);
+    if (!match) continue;
+    amount -= Number(match[1]);
+    sources.push(card.name ?? "Equipment");
+  }
+  return { amount, sources };
+}
+
+export function targetNextDefensePenalty(card: EffectCardLike) {
+  const text = normalizedMinus(String(card.rulesText ?? ""));
+  const match = text.match(/(?:Their|target[’']s|opponent[’']s) next Defense card(?: this round)? (?:gets|has|provides) -(\d+) (?:Guard|Defense)/i);
+  return match ? Number(match[1]) : 0;
+}

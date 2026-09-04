@@ -32,3 +32,12 @@ test("Quick Duel pauses for explicit player-choice effects instead of auto-resol
   assert.match(source, /Skip this optional effect/);
   assert.match(source, /effect-choice-dialog/);
 });
+
+
+test("Quick Duel tracks incoming attacks and next-Defense penalties across cards", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /attacksReceivedThisRound/);
+  assert.match(source, /nextDefenseCardBonus/);
+  assert.match(source, /incomingAttackEquipmentModifier/);
+  assert.match(source, /targetNextDefensePenalty/);
+});

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentSpeedModifier, locationAttackRuleModifiers, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
 
 test("Defense Equipment protects only its printed zone", () => {
   const chest = { name: "Cardboard Chestplate", subtype: "Defense Equipment", rulesText: "+2 DEF against Mid Attacks.", stats: { Guard: 2 } };
@@ -78,4 +78,13 @@ test("explicit choice resolvers recognize Junk destruction and optional cycling"
   assert.equal(destroyJunkChoiceCount({ rulesText: "Destroy 1 Junk card from your hand or discard pile." }), 1);
   assert.deepEqual(optionalDiscardDrawChoice({ rulesText: "After this Attack resolves, you may discard 1 card to draw 1 card." }), { discard: 1, draw: 1 });
   assert.equal(optionalDiscardDrawChoice({ rulesText: "Draw 1 card." }), null);
+});
+
+
+test("first-incoming Attack and next-Defense penalties persist correctly", () => {
+  const shield = firstIncomingAttackPowerPenalty([{ name: "Museum Rope Barrier", rulesText: "The first Attack targeting you each round gets −1 Attack Power." }], true);
+  assert.equal(shield.amount, -1);
+  assert.equal(firstIncomingAttackPowerPenalty([{ rulesText: "The first Attack targeting you each round gets -2 Attack Power." }], false).amount, 0);
+  assert.equal(targetNextDefensePenalty({ rulesText: "Their next Defense card this round gets −2 Guard." }), 2);
+  assert.equal(targetNextDefensePenalty({ rulesText: "On Hit, target's next Defense card provides -1 Defense." }), 1);
 });
