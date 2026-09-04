@@ -1,6 +1,8 @@
 from pathlib import Path
+import re
 
 patch = Path(__file__).with_name("deploy_patch.py")
+root = patch.resolve().parents[1]
 text = patch.read_text(encoding="utf-8")
 
 # Repair generation artifacts in the queued patch before executing it.
@@ -27,13 +29,35 @@ exec(compiled, {"__file__": str(patch), "__name__": "__main__"})
 
 # The saved-match type is deliberately schema 8 after this rules change; update
 # the load guard too so TypeScript does not compare the new literal type to 7.
-play_path = patch.resolve().parents[1] / "app" / "playtest.tsx"
+play_path = root / "app" / "playtest.tsx"
 play = play_path.read_text(encoding="utf-8")
 old = 'return saved?.schema === 7 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;'
 new = 'return saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;'
 if old not in play:
     raise RuntimeError("Expected saved-match schema guard was not found")
 play_path.write_text(play.replace(old, new), encoding="utf-8")
+
+# The imported JSON is typed from the checked-in pre-patch literal (5) during the
+# TypeScript test compile. The r5 assertion intentionally compares it to 7, so
+# normalize the generated test's handSize operand through Number() to avoid a
+# false TS2367 literal-type error while preserving the runtime assertion.
+test_path = root / "tests" / "gameplay-rules.test.ts"
+test_text = test_path.read_text(encoding="utf-8")
+test_lines = test_text.splitlines()
+changed = False
+for i, line in enumerate(test_lines):
+    if "handSize" in line and "7" in line and "Number(" not in line:
+        rewritten = re.sub(
+            r'([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.handSize)',
+            r'Number(\1)',
+            line,
+        )
+        if rewritten != line:
+            test_lines[i] = rewritten
+            changed = True
+if not changed:
+    raise RuntimeError("Expected r5 handSize assertion needing numeric normalization was not found")
+test_path.write_text("\n".join(test_lines) + ("\n" if test_text.endswith("\n") else ""), encoding="utf-8")
 
 # The workflow removes the main patch after validation. Remove this helper now so
 # the validated commit cannot retrigger maintenance instead of deployment.
