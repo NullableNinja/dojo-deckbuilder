@@ -6,7 +6,7 @@ import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import rulesJson from "./data/rules.json";
 import { compileCardEffects, describeEffectPlan } from "./card-effects";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "./effect-resolvers";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import "./combo-rack.css";
 import "./playtest-board-v4.css";
@@ -95,7 +95,10 @@ type PendingDiscard = {
 
 type PendingChoice =
   | { kind: "destroy-junk"; sourceCardId: string; remaining: number }
-  | { kind: "discard-draw"; sourceCardId: string; remaining: number; draw: number };
+  | { kind: "discard-draw"; sourceCardId: string; remaining: number; draw: number }
+  | { kind: "discard-hand"; sourceCardId: string; remaining: number }
+  | { kind: "deck-pick"; sourceCardId: string; revealed: string[]; filter: "defense-or-kata" | "technique" | "item"; optional: boolean; restAction: "discard" | "reorder" | "shuffle" }
+  | { kind: "deck-order"; sourceCardId: string; revealed: string[]; ordered: string[]; bonusFocus: number };
 
 type Match = {
   schema: 6;
@@ -430,6 +433,89 @@ function drawCards(board: Board, count: number) {
   return { ...board, deck, discard, hand };
 }
 
+
+function cardMatchesDeckFilter(card: CardEntry | undefined, filter: "defense-or-kata" | "technique" | "item") {
+  if (!card) return false;
+  if (filter === "defense-or-kata") return isDefense(card) || isKata(card);
+  if (filter === "technique") return card.cardType.toLocaleLowerCase() === "technique";
+  return card.cardType.toLocaleLowerCase() === "item";
+}
+
+function revealDeckTop(board: Board, count: number) {
+  const take = Math.min(Math.max(0, count), board.deck.length);
+  const revealed = take ? board.deck.slice(-take).reverse() : [];
+  return { board: { ...board, deck: take ? board.deck.slice(0, -take) : board.deck }, revealed };
+}
+
+function deckOrderFocusBonus(revealed: string[], plan: Extract<DeckLookPlan, { kind: "reorder" }>) {
+  if (revealed.length !== plan.count) return 0;
+  const types = new Set(revealed.map((id) => cardFor(id)?.cardType ?? "Unknown"));
+  return types.size === revealed.length ? plan.distinctTypeFocus : 0;
+}
+
+function beginPlayerDeckLook(board: Board, source: CardEntry) {
+  const plan = deckLookPlan(source);
+  if (!plan || !board.deck.length) return { board, pendingChoice: null as PendingChoice | null, note: "" };
+  const revealedState = revealDeckTop(board, plan.count);
+  let next = revealedState.board;
+  const revealed = revealedState.revealed;
+  if (!revealed.length) return { board, pendingChoice: null as PendingChoice | null, note: "" };
+
+  if (plan.kind === "reorder") {
+    return {
+      board: next,
+      pendingChoice: { kind: "deck-order", sourceCardId: source.id, revealed, ordered: [], bonusFocus: deckOrderFocusBonus(revealed, plan) } as PendingChoice,
+      note: `Looked at ${revealed.length} card${revealed.length === 1 ? "" : "s"}. Choose their future draw order.`,
+    };
+  }
+
+  const eligible = revealed.filter((id) => cardMatchesDeckFilter(cardFor(id), plan.filter));
+  if (!eligible.length) {
+    if (plan.kind === "pick-discard") {
+      next = { ...next, discard: [...next.discard, ...revealed], focus: next.focus + plan.noMatchFocus };
+      return { board: next, pendingChoice: null as PendingChoice | null, note: `No Defense or Kata found; all revealed cards were discarded and +${plan.noMatchFocus} Focus applied.` };
+    }
+    if (plan.kind === "pick-reorder") {
+      return { board: next, pendingChoice: { kind: "deck-order", sourceCardId: source.id, revealed, ordered: [], bonusFocus: 0 } as PendingChoice, note: "No Technique found. Return the revealed cards in the order you choose." };
+    }
+    next = { ...next, deck: shuffle([...next.deck, ...revealed]) };
+    return { board: next, pendingChoice: null as PendingChoice | null, note: "No Item found; the revealed cards were shuffled back into your deck." };
+  }
+
+  const restAction = plan.kind === "pick-discard" ? "discard" : plan.kind === "pick-reorder" ? "reorder" : "shuffle";
+  return {
+    board: next,
+    pendingChoice: { kind: "deck-pick", sourceCardId: source.id, revealed, filter: plan.filter, optional: plan.optional, restAction } as PendingChoice,
+    note: `Looked at ${revealed.length} card${revealed.length === 1 ? "" : "s"}. Choose ${plan.optional ? "an eligible card or skip" : "the card to keep"}.`,
+  };
+}
+
+function resolveAiDeckLook(board: Board, source: CardEntry) {
+  const plan = deckLookPlan(source);
+  if (!plan || !board.deck.length) return board;
+  const revealedState = revealDeckTop(board, plan.count);
+  let next = revealedState.board;
+  const revealed = revealedState.revealed;
+  if (!revealed.length) return board;
+
+  if (plan.kind === "reorder") {
+    const ordered = [...revealed].sort((left, right) => cardCost(cardFor(right)) - cardCost(cardFor(left)));
+    return { ...next, deck: [...next.deck, ...ordered.reverse()], focus: next.focus + deckOrderFocusBonus(revealed, plan) };
+  }
+
+  const eligible = revealed.filter((id) => cardMatchesDeckFilter(cardFor(id), plan.filter)).sort((left, right) => cardCost(cardFor(right)) - cardCost(cardFor(left)));
+  const selected = eligible[0];
+  if (!selected) {
+    if (plan.kind === "pick-discard") return { ...next, discard: [...next.discard, ...revealed], focus: next.focus + plan.noMatchFocus };
+    if (plan.kind === "pick-reorder") return { ...next, deck: [...next.deck, ...revealed.reverse()] };
+    return { ...next, deck: shuffle([...next.deck, ...revealed]) };
+  }
+  const rest = removeOne(revealed, selected);
+  if (plan.kind === "pick-discard") return { ...next, hand: [...next.hand, selected], discard: [...next.discard, ...rest] };
+  if (plan.kind === "pick-reorder") return { ...next, hand: [...next.hand, selected], deck: [...next.deck, ...rest.reverse()] };
+  return { ...next, hand: [...next.hand, selected], deck: shuffle([...next.deck, ...rest]) };
+}
+
 function fighterStat(board: Board, stat: "ATK" | "DEF" | "Speed") {
   const fighter = cardFor(board.fighterId);
   const beltBonus = stat === "ATK" && board.belt >= 2 ? 1 : stat === "DEF" && board.belt >= 7 ? 1 : 0;
@@ -549,7 +635,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   for (const effect of compileCardEffects(card.rulesText ?? "").effects.filter((entry) => entry.timing === timing)) {
     if (effect.kind === "draw") next = drawCards(next, effect.amount);
     if (effect.kind === "discard" && next.hand.length) {
-      if (owner === "player" && timing === "onPlay" && card.name === "Morning-Shift Meditation") continue;
+      if (owner === "player" && timing === "onPlay") continue;
       const discardCount = Math.min(effect.amount, next.hand.length);
       const ranked = [...next.hand].sort((left, right) => numberValue(cardFor(left)?.focusValue) - numberValue(cardFor(right)?.focusValue));
       const discarded = ranked.slice(0, discardCount);
@@ -970,13 +1056,26 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     let nextPlayer = markCompletedTask(applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value }, card, "player"));
     const destroyedAfterUse = destroysAfterUse(card);
     if (destroyedAfterUse) nextPlayer = destroyResolvedConsumable(nextPlayer, card);
-    const pendingDiscard = card.name === "Morning-Shift Meditation" && nextPlayer.hand.length ? { sourceCardId: id, remaining: 1 } : null;
+    const pendingDiscard = null;
     const junkCount = destroyJunkChoiceCount(card);
+    const mandatoryDiscard = mandatoryDiscardChoiceCount(card);
     const hasJunk = [...nextPlayer.hand, ...nextPlayer.discard].some((candidate) => isJunk(cardFor(candidate)));
-    const pendingChoice: PendingChoice | null = !pendingDiscard && junkCount && hasJunk ? { kind: "destroy-junk", sourceCardId: id, remaining: junkCount } : null;
+    let pendingChoice: PendingChoice | null = junkCount && hasJunk
+      ? { kind: "destroy-junk", sourceCardId: id, remaining: junkCount }
+      : mandatoryDiscard && nextPlayer.hand.length
+        ? { kind: "discard-hand", sourceCardId: id, remaining: Math.min(mandatoryDiscard, nextPlayer.hand.length) }
+        : null;
+    let deckNote = "";
+    if (!pendingChoice && deckLookPlan(card)) {
+      const deckChoice = beginPlayerDeckLook(nextPlayer, card);
+      nextPlayer = deckChoice.board;
+      pendingChoice = deckChoice.pendingChoice;
+      deckNote = deckChoice.note;
+    }
     const defensePenalty = targetNextDefensePenalty(card);
     const nextAi = defensePenalty ? { ...current.ai, nextDefenseCardBonus: (current.ai.nextDefenseCardBonus ?? 0) - defensePenalty } : current.ai;
-    return write(current, `${card.name} played. ${pendingDiscard ? "Draw 1 card, then choose a card to discard." : pendingChoice ? `Choose ${junkCount} Junk card${junkCount === 1 ? "" : "s"} from your hand or discard pile to destroy.` : cardEffectNote(card)}${destroyedAfterUse ? " Destroyed after use; it will not enter your discard pile." : ""}${locationModifier.notes.length ? ` ${locationModifier.notes.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingDiscard, pendingChoice });
+    const choiceNote = pendingChoice?.kind === "destroy-junk" ? `Choose ${junkCount} Junk card${junkCount === 1 ? "" : "s"} from your hand or discard pile to destroy.` : pendingChoice?.kind === "discard-hand" ? `Choose ${pendingChoice.remaining} card${pendingChoice.remaining === 1 ? "" : "s"} from your hand to discard.` : deckNote || cardEffectNote(card);
+    return write(current, `${card.name} played. ${choiceNote}${destroyedAfterUse ? " Destroyed after use; it will not enter your discard pile." : ""}${locationModifier.notes.length ? ` ${locationModifier.notes.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingDiscard, pendingChoice });
   });
 
   const choosePendingDiscard = (id: string) => setMatch((current) => {
@@ -994,15 +1093,15 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     return write(current, `${discarded?.name ?? "The selected card"} discarded for ${source?.name ?? "the pending effect"}.${gainsFocus ? " Its Focus Value is 0, so you gain 1 Focus." : ""}`, { player, pendingDiscard: remaining > 0 && player.hand.length ? { ...current.pendingDiscard, remaining } : null });
   });
 
-  const resolvePendingChoice = (cardId: string, source: "hand" | "discard" = "hand") => setMatch((current) => {
+  const resolvePendingChoice = (cardId: string, source: "hand" | "discard" | "deck" = "hand") => setMatch((current) => {
     const choice = current?.pendingChoice;
     if (!current || !choice) return current;
     const selected = cardFor(cardId);
-    const sourceCards = source === "hand" ? current.player.hand : current.player.discard;
-    if (!selected || !sourceCards.includes(cardId)) return current;
+    if (!selected) return current;
 
     if (choice.kind === "destroy-junk") {
-      if (!isJunk(selected)) return current;
+      const sourceCards = source === "discard" ? current.player.discard : current.player.hand;
+      if (!sourceCards.includes(cardId) || !isJunk(selected)) return current;
       const player = source === "hand"
         ? { ...current.player, hand: removeOne(current.player.hand, cardId), destroyed: [...(current.player.destroyed ?? []), cardId] }
         : { ...current.player, discard: removeOne(current.player.discard, cardId), destroyed: [...(current.player.destroyed ?? []), cardId] };
@@ -1010,6 +1109,45 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       const junkRemains = [...player.hand, ...player.discard].some((id) => isJunk(cardFor(id)));
       const pendingChoice = remaining > 0 && junkRemains ? { ...choice, remaining } : null;
       return write(current, `${selected.name} destroyed from your ${source === "hand" ? "hand" : "discard pile"}.${pendingChoice ? ` Choose ${remaining} more Junk.` : " Choice resolved."}`, { player, pendingChoice });
+    }
+
+    if (choice.kind === "discard-hand") {
+      if (!current.player.hand.includes(cardId)) return current;
+      const sourceCard = cardFor(choice.sourceCardId);
+      const followup = sourceCard ? discardChoiceFollowup(sourceCard, selected) : { focus: 0, nextAttackPower: 0, nextDefenseGuard: 0, notes: [] as string[] };
+      const player = {
+        ...current.player,
+        hand: removeOne(current.player.hand, cardId),
+        discard: [...current.player.discard, cardId],
+        focus: current.player.focus + followup.focus,
+        nextAttackBonus: current.player.nextAttackBonus + followup.nextAttackPower,
+        nextDefenseCardBonus: (current.player.nextDefenseCardBonus ?? 0) + followup.nextDefenseGuard,
+      };
+      const remaining = choice.remaining - 1;
+      const pendingChoice = remaining > 0 && player.hand.length ? { ...choice, remaining } : null;
+      return write(current, `${selected.name} discarded for ${sourceCard?.name ?? "the printed effect"}.${followup.notes.length ? ` ${followup.notes.join("; ")}.` : ""}${pendingChoice ? ` Choose ${remaining} more.` : " Choice resolved."}`, { player, pendingChoice });
+    }
+
+    if (choice.kind === "deck-pick") {
+      if (source !== "deck" || !choice.revealed.includes(cardId) || !cardMatchesDeckFilter(selected, choice.filter)) return current;
+      const rest = removeOne(choice.revealed, cardId);
+      let player: Board = { ...current.player, hand: [...current.player.hand, cardId] };
+      let pendingChoice: PendingChoice | null = null;
+      if (choice.restAction === "discard") player = { ...player, discard: [...player.discard, ...rest] };
+      if (choice.restAction === "shuffle") player = { ...player, deck: shuffle([...player.deck, ...rest]) };
+      if (choice.restAction === "reorder" && rest.length) pendingChoice = { kind: "deck-order", sourceCardId: choice.sourceCardId, revealed: rest, ordered: [], bonusFocus: 0 };
+      return write(current, `${selected.name} moved from the revealed cards to your hand.${pendingChoice ? " Now choose the order for the remaining revealed cards." : choice.restAction === "discard" ? " The rest were discarded." : choice.restAction === "shuffle" ? " The rest were shuffled back." : ""}`, { player, pendingChoice });
+    }
+
+    if (choice.kind === "deck-order") {
+      if (source !== "deck" || !choice.revealed.includes(cardId) || choice.ordered.includes(cardId) && choice.revealed.filter((id) => id === cardId).length <= choice.ordered.filter((id) => id === cardId).length) return current;
+      const remainingRevealed = removeOne(choice.revealed, cardId);
+      const ordered = [...choice.ordered, cardId];
+      if (remainingRevealed.length) {
+        return write(current, `${selected.name} filed as draw position ${ordered.length}. Choose the next card.`, { pendingChoice: { ...choice, revealed: remainingRevealed, ordered } });
+      }
+      const player = { ...current.player, deck: [...current.player.deck, ...ordered.slice().reverse()], focus: current.player.focus + choice.bonusFocus };
+      return write(current, `Deck order certified: ${ordered.map((id) => cardFor(id)?.name ?? "Unknown").join(" → ")}.${choice.bonusFocus ? ` Different card types grant +${choice.bonusFocus} Focus.` : ""}`, { player, pendingChoice: null });
     }
 
     if (choice.kind === "discard-draw") {
@@ -1026,8 +1164,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
 
   const skipPendingChoice = () => setMatch((current) => {
-    if (!current?.pendingChoice || current.pendingChoice.kind !== "discard-draw") return current;
-    return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: discard/draw declined.`, { pendingChoice: null });
+    if (!current?.pendingChoice) return current;
+    if (current.pendingChoice.kind === "discard-draw") return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: discard/draw declined.`, { pendingChoice: null });
+    if (current.pendingChoice.kind === "deck-pick" && current.pendingChoice.optional) {
+      const player = { ...current.player, deck: shuffle([...current.player.deck, ...current.pendingChoice.revealed]) };
+      return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional search"}: no card taken; revealed cards shuffled back.`, { player, pendingChoice: null });
+    }
+    return current;
   });
 
   const practiceDefense = (id: string) => setMatch((current) => {
@@ -1238,9 +1381,24 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         ...player.hand.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => isJunk(cardFor(entry.id))),
         ...player.discard.map((id, index) => ({ id, source: "discard" as const, index })).filter((entry) => isJunk(cardFor(entry.id))),
       ]
-    : match.pendingChoice?.kind === "discard-draw"
+    : match.pendingChoice?.kind === "discard-draw" || match.pendingChoice?.kind === "discard-hand"
       ? player.hand.map((id, index) => ({ id, source: "hand" as const, index }))
-      : [];
+      : match.pendingChoice?.kind === "deck-pick"
+        ? match.pendingChoice.revealed.map((id, index) => ({ id, source: "deck" as const, index })).filter((entry) => cardMatchesDeckFilter(cardFor(entry.id), match.pendingChoice!.kind === "deck-pick" ? match.pendingChoice!.filter : "item"))
+        : match.pendingChoice?.kind === "deck-order"
+          ? match.pendingChoice.revealed.map((id, index) => ({ id, source: "deck" as const, index }))
+          : [];
+  const effectChoiceTitle = match.pendingChoice?.kind === "destroy-junk" ? "Choose Junk to destroy"
+    : match.pendingChoice?.kind === "discard-draw" ? "Discard to draw?"
+      : match.pendingChoice?.kind === "discard-hand" ? "Choose what to discard"
+        : match.pendingChoice?.kind === "deck-pick" ? "Choose from the revealed cards"
+          : match.pendingChoice?.kind === "deck-order" ? "Set your draw order" : "Resolve printed effect";
+  const effectChoicePrompt = match.pendingChoice?.kind === "destroy-junk" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more Junk card${match.pendingChoice.remaining === 1 ? "" : "s"} from your hand or discard pile.`
+    : match.pendingChoice?.kind === "discard-draw" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Attack"} lets you discard ${match.pendingChoice.remaining} card${match.pendingChoice.remaining === 1 ? "" : "s"} to draw ${match.pendingChoice.draw}. You may decline.`
+      : match.pendingChoice?.kind === "discard-hand" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more discard${match.pendingChoice.remaining === 1 ? "" : "s"}. You choose the card.`
+        : match.pendingChoice?.kind === "deck-pick" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} revealed ${match.pendingChoice.revealed.length} card${match.pendingChoice.revealed.length === 1 ? "" : "s"}. ${match.pendingChoice.optional ? "Take an eligible card or skip." : "Choose the eligible card to put into your hand."}`
+          : match.pendingChoice?.kind === "deck-order" ? `Choose the card you want to draw ${match.pendingChoice.ordered.length ? `in position ${match.pendingChoice.ordered.length + 1}` : "first"}. ${match.pendingChoice.revealed.length} card${match.pendingChoice.revealed.length === 1 ? " remains" : "s remain"}.` : "Resolve the printed effect.";
+  const effectChoiceCanSkip = match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional);
   const inspectedBoard = inspected
     ? inspected.id === player.fighterId ? player : inspected.id === ai.fighterId ? ai : null
     : null;
@@ -1433,7 +1591,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView !== "market" && <button className="button ghost" onClick={() => setDeskView(deskView === "belt" ? "combo" : "market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : `Next: ${deskView === "combo" ? "check Belt progress" : "review the Combo offer"}.`}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
       </section>
     </div>}
-    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{match.pendingChoice.kind === "destroy-junk" ? "Choose Junk to destroy" : "Discard to draw?"}</h2><p>{match.pendingChoice.kind === "destroy-junk" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more Junk card${match.pendingChoice.remaining === 1 ? "" : "s"} from your hand or discard pile.` : `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Attack"} lets you discard ${match.pendingChoice.remaining} card${match.pendingChoice.remaining === 1 ? "" : "s"} to draw ${match.pendingChoice.draw}. You may decline.`}</p><div className="effect-choice-options">{pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{match.pendingChoice.kind === "discard-draw" && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
+    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
     {coachOpen && !match.winner && <div className="playtest-inspector-backdrop coach-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setCoachOpen(false)}><section className="coach-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="coach-dialog-title"><button className="modal-close" onClick={() => setCoachOpen(false)} aria-label="Close Decision Coach">×</button><span className="eyebrow">Decision coach · optional guidance</span><h2 id="coach-dialog-title">What should I do now?</h2><div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Recommended next step</span><p>{turnCoach}</p></div><div className="coach-dialog-actions"><button className="button primary" onClick={() => setCoachOpen(false)}>Back to the mat →</button><button className="button ghost" onClick={() => { setSettings({ ...settings, guided: false }); setCoachOpen(false); }}>Turn coach off</button></div><small>You can re-enable the Coach from the utility bar at any time.</small></section></div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><ol>{match.log.map((line, index) => <li key={`${line}-${index}`}><b>{match.log.length - index}</b><span>{line}</span></li>)}</ol></section></div>}
     {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
@@ -1575,6 +1733,7 @@ function prepareAiTurn(current: Match) {
     if (!card) continue;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, nextAi);
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value }, card, "ai");
+    nextAi = resolveAiDeckLook(nextAi, card);
     if (destroysAfterUse(card)) nextAi = destroyResolvedConsumable(nextAi, card);
     const defensePenalty = targetNextDefensePenalty(card);
     if (defensePenalty) nextPlayer = { ...nextPlayer, nextDefenseCardBonus: (nextPlayer.nextDefenseCardBonus ?? 0) - defensePenalty };

@@ -51,3 +51,17 @@ test("Quick Duel applies Piercing only to matching Armor DEF", async () => {
   assert.match(source, /pending\.piercing/);
   assert.match(source, /speedChangedThisRound/);
 });
+
+
+test("Quick Duel gives the player control of mandatory discards and top-deck decisions", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /kind: "discard-hand"/);
+  assert.match(source, /kind: "deck-pick"/);
+  assert.match(source, /kind: "deck-order"/);
+  assert.match(source, /mandatoryDiscardChoiceCount/);
+  assert.match(source, /discardChoiceFollowup/);
+  assert.match(source, /beginPlayerDeckLook/);
+  assert.match(source, /resolveAiDeckLook/);
+  assert.match(source, /Choose what to discard/);
+  assert.match(source, /Set your draw order/);
+});

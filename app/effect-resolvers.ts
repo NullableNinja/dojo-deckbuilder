@@ -1,6 +1,8 @@
 export type EffectCardLike = {
   name?: string;
+  cardType?: string;
   subtype?: string;
+  focusValue?: string | number | null;
   rulesText?: string | null;
   zone?: string | null;
   tags?: string[];
@@ -268,4 +270,62 @@ export function equipmentPiercing(cards: EffectCardLike[], context: {
     sources.push(`${card.name ?? "Equipment"} Piercing ${value}`);
   }
   return { amount, sources };
+}
+
+
+export function mandatoryDiscardChoiceCount(card: EffectCardLike) {
+  const text = String(card.rulesText ?? "");
+  if (/\bmay\s+discard\b/i.test(text)) return 0;
+  const match = text.match(/Draw\s+\d+\s+cards?,\s*then\s+discard\s+(\d+)\s+cards?/i);
+  return match ? Number(match[1]) : 0;
+}
+
+export function discardChoiceFollowup(source: EffectCardLike, discarded: EffectCardLike) {
+  const text = String(source.rulesText ?? "");
+  let focus = 0;
+  let nextAttackPower = 0;
+  let nextDefenseGuard = 0;
+  const notes: string[] = [];
+
+  const zeroFocus = text.match(/If you discarded a card with Focus Value 0, gain (\d+) Focus/i);
+  if (zeroFocus && Number(discarded.focusValue ?? 0) === 0) {
+    focus += Number(zeroFocus[1]);
+    notes.push(`Focus Value 0: +${zeroFocus[1]} Focus`);
+  }
+  const technique = text.match(/If you discarded a Technique, your next Attack this turn gets \+(\d+) Attack Power/i);
+  if (technique && String(discarded.cardType ?? '').toLocaleLowerCase() === 'technique') {
+    nextAttackPower += Number(technique[1]);
+    notes.push(`Technique discarded: next Attack +${technique[1]} Attack Power`);
+  }
+  const item = text.match(/If you discarded an Item, your next Defense this round gets \+(\d+) Guard/i);
+  if (item && String(discarded.cardType ?? '').toLocaleLowerCase() === 'item') {
+    nextDefenseGuard += Number(item[1]);
+    notes.push(`Item discarded: next Defense +${item[1]} Guard`);
+  }
+  return { focus, nextAttackPower, nextDefenseGuard, notes };
+}
+
+export type DeckLookPlan =
+  | { kind: 'pick-discard'; count: number; filter: 'defense-or-kata'; optional: false; noMatchFocus: number }
+  | { kind: 'reorder'; count: number; distinctTypeFocus: number }
+  | { kind: 'pick-reorder'; count: number; filter: 'technique'; optional: false }
+  | { kind: 'pick-shuffle'; count: number; filter: 'item'; optional: true };
+
+export function deckLookPlan(card: EffectCardLike): DeckLookPlan | null {
+  const text = String(card.rulesText ?? '').replace(/\s+/g, ' ').trim();
+  let match = text.match(/Look at the top (\d+) cards? of your deck\. Put one Defense or Kata into your hand and discard the rest\. If you found neither, gain (\d+) Focus/i);
+  if (match) return { kind: 'pick-discard', count: Number(match[1]), filter: 'defense-or-kata', optional: false, noMatchFocus: Number(match[2]) };
+
+  match = text.match(/Look at the top (\d+) cards? of your deck and put them back in any order\. If they contain three different card types, gain (\d+) Focus/i);
+  if (match) return { kind: 'reorder', count: Number(match[1]), distinctTypeFocus: Number(match[2]) };
+
+  match = text.match(/Look at the top (\d+) cards? of your deck\. Put 1 Technique into your hand; return the rest in any order/i);
+  if (match) return { kind: 'pick-reorder', count: Number(match[1]), filter: 'technique', optional: false };
+
+  match = text.match(/Look at the top (\d+) cards? of your deck\. You may reveal an Item and put it into your hand\. Shuffle the rest/i);
+  if (match) return { kind: 'pick-shuffle', count: Number(match[1]), filter: 'item', optional: true };
+
+  match = text.match(/Look at the top (\d+) cards? of your deck\. Put them back in either order\. If they have different card types, gain (\d+) Focus/i);
+  if (match) return { kind: 'reorder', count: Number(match[1]), distinctTypeFocus: Number(match[2]) };
+  return null;
 }

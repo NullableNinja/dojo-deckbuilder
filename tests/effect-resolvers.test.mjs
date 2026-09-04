@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
 
 test("Defense Equipment protects only its printed zone", () => {
   const chest = { name: "Cardboard Chestplate", subtype: "Defense Equipment", rulesText: "+2 DEF against Mid Attacks.", stats: { Guard: 2 } };
@@ -101,4 +101,22 @@ test("Piercing resolvers cover deterministic Attack and Weapon wording", () => {
 test("matching-Armor and loaded-target Attack Power clauses resolve with Piercing cards", () => {
   assert.equal(conditionalAttackPowerBonus({ rulesText: "If the target has matching Armor, this Attack gets +1 Attack Power and gains Piercing 1." }, { playedKata: false, firstAttack: false, matchingArmor: true, targetEquipmentCount: 1 }).amount, 1);
   assert.equal(conditionalAttackPowerBonus({ rulesText: "If the target has two or more permanent Equipment cards equipped, this Attack gets +1 Attack Power and gains Piercing 1." }, { playedKata: false, firstAttack: false, matchingArmor: false, targetEquipmentCount: 2 }).amount, 1);
+});
+
+
+test("mandatory draw-discard effects pause for a player choice and apply typed followups", () => {
+  assert.equal(mandatoryDiscardChoiceCount({ rulesText: "Draw 1 card, then discard 1 card." }), 1);
+  assert.equal(mandatoryDiscardChoiceCount({ rulesText: "You may discard 1 card to draw 1 card." }), 0);
+  const huddle = { rulesText: "Draw 1 card, then discard 1 card. If you discarded a Technique, your next Attack this turn gets +1 Attack Power. If you discarded an Item, your next Defense this round gets +1 Guard." };
+  assert.equal(discardChoiceFollowup(huddle, { cardType: "Technique" }).nextAttackPower, 1);
+  assert.equal(discardChoiceFollowup(huddle, { cardType: "Item" }).nextDefenseGuard, 1);
+  assert.equal(discardChoiceFollowup({ rulesText: "If you discarded a card with Focus Value 0, gain 1 Focus." }, { focusValue: 0 }).focus, 1);
+});
+
+test("top-deck look/search/reorder patterns compile into explicit plans", () => {
+  assert.deepEqual(deckLookPlan({ rulesText: "Look at the top 3 cards of your deck. Put one Defense or Kata into your hand and discard the rest. If you found neither, gain 1 Focus." }), { kind: "pick-discard", count: 3, filter: "defense-or-kata", optional: false, noMatchFocus: 1 });
+  assert.deepEqual(deckLookPlan({ rulesText: "Look at the top 3 cards of your deck and put them back in any order. If they contain three different card types, gain 1 Focus." }), { kind: "reorder", count: 3, distinctTypeFocus: 1 });
+  assert.deepEqual(deckLookPlan({ rulesText: "Look at the top 3 cards of your deck. Put 1 Technique into your hand; return the rest in any order." }), { kind: "pick-reorder", count: 3, filter: "technique", optional: false });
+  assert.deepEqual(deckLookPlan({ rulesText: "Look at the top 5 cards of your deck. You may reveal an Item and put it into your hand. Shuffle the rest." }), { kind: "pick-shuffle", count: 5, filter: "item", optional: true });
+  assert.deepEqual(deckLookPlan({ rulesText: "Look at the top 2 cards of your deck. Put them back in either order. If they have different card types, gain 1 Focus." }), { kind: "reorder", count: 2, distinctTypeFocus: 1 });
 });
