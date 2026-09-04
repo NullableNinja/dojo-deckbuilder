@@ -25,6 +25,16 @@ compiled = compile(text, str(patch), "exec")
 # Execute the complete queued implementation. It owns all source/rules/test edits.
 exec(compiled, {"__file__": str(patch), "__name__": "__main__"})
 
+# The saved-match type is deliberately schema 8 after this rules change; update
+# the load guard too so TypeScript does not compare the new literal type to 7.
+play_path = patch.resolve().parents[1] / "app" / "playtest.tsx"
+play = play_path.read_text(encoding="utf-8")
+old = 'return saved?.schema === 7 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;'
+new = 'return saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;'
+if old not in play:
+    raise RuntimeError("Expected saved-match schema guard was not found")
+play_path.write_text(play.replace(old, new), encoding="utf-8")
+
 # The workflow removes the main patch after validation. Remove this helper now so
 # the validated commit cannot retrigger maintenance instead of deployment.
 Path(__file__).unlink()
