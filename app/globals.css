@@ -2827,3 +2827,126 @@ body,
   color: #e7f0e9;
   background: transparent;
 }
+
+
+/* Smart companion tools: grouped search, revision filing, and local Dojo Binder. */
+.global-result-group { border-bottom: 1px solid var(--line); }
+.global-result-group:last-child { border-bottom: 0; }
+.global-result-group > strong {
+  display: block;
+  padding: 8px 14px 6px;
+  color: #7a6650;
+  background: #eadbbd;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.global-results .global-result-group button.is-selected,
+.global-results .global-result-group button:hover,
+.mobile-search-results .global-result-group button.is-selected {
+  padding-left: 21px;
+  background: #f0e3c6;
+  box-shadow: inset 4px 0 0 var(--red);
+}
+.global-result-group button[aria-selected="true"] { outline: none; }
+
+.rules-update-pill {
+  min-width: 78px;
+  height: 38px;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  border: 1px solid rgba(255,218,112,.38);
+  border-radius: 9px 4px 10px 5px;
+  padding: 4px 8px;
+  color: #fff2c7;
+  background: rgba(219,163,39,.12);
+  cursor: pointer;
+}
+.rules-update-pill b { color: #ffd56a; font-size: 7px; letter-spacing: .14em; }
+.rules-update-pill span { font-size: 8px; font-weight: 900; white-space: nowrap; }
+.rules-update-pill:hover { background: rgba(219,163,39,.22); }
+.mobile-rules-update {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255,213,106,.28);
+  border-left: 5px solid var(--gold);
+  padding: 13px 14px;
+  color: #fff5d8;
+  text-align: left;
+  background: rgba(255,213,106,.08);
+  cursor: pointer;
+}
+.mobile-rules-update b { font-family: var(--display); font-size: 17px; }
+.mobile-rules-update span { color: #dbcda8; font-size: 10px; }
+.revision-notes { display: grid; gap: 9px; margin: 22px 0; padding: 0; list-style: none; }
+.revision-notes li { border-left: 5px solid var(--gold); padding: 10px 13px; background: rgba(255,250,240,.5); line-height: 1.55; }
+.revision-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
+
+.binder-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -4px 0 16px;
+  border: 1px dashed #b49e72;
+  border-radius: 8px 3px 9px 4px;
+  padding: 10px 12px;
+  background: rgba(255,246,219,.42);
+}
+.binder-strip p { margin: 0; color: #6c756e; font-size: 10px; }
+.binder-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #ad9568;
+  border-radius: 999px;
+  padding: 8px 11px;
+  color: #69542c;
+  background: #fff4cf;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.binder-toggle b { min-width: 20px; border-radius: 999px; padding: 2px 5px; color: #fff; background: #86682c; font-size: 8px; text-align: center; }
+.binder-toggle.is-saved { border-color: #b3871e; color: #563f0d; background: #f6d874; box-shadow: 2px 3px 0 rgba(117,83,16,.18); }
+.binder-toggle--modal { margin: 18px 0 0; }
+.binder-star {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #b58724;
+  border-radius: 50%;
+  color: #63480d;
+  background: #f7d96f;
+  box-shadow: 2px 3px 0 rgba(70,52,14,.2);
+  font-size: 15px;
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .global-result-group > strong { color: #e0c98d; background: #26382e; }
+:root[data-theme="dark"] .global-results .global-result-group button.is-selected,
+:root[data-theme="dark"] .global-results .global-result-group button:hover,
+:root[data-theme="dark"] .mobile-search-results .global-result-group button.is-selected { background: #2c4034; }
+:root[data-theme="dark"] .revision-notes li { color: #e1ece4; background: #24342a; }
+:root[data-theme="dark"] .binder-strip { border-color: #665b3e; background: rgba(95,77,34,.14); }
+:root[data-theme="dark"] .binder-strip p { color: #b8c8bc; }
+:root[data-theme="dark"] .binder-toggle { border-color: #75673f; color: #f0deb0; background: #3c3827; }
+:root[data-theme="dark"] .binder-toggle.is-saved { border-color: #c59c35; color: #fff0bc; background: #594b22; }
+
+@media (max-width: 1180px) {
+  .rules-update-pill span { display: none; }
+  .rules-update-pill { min-width: 42px; }
+}
+@media (max-width: 840px) {
+  .binder-strip { align-items: flex-start; flex-direction: column; }
+  .binder-strip p { line-height: 1.45; }
+  .revision-actions .button { width: 100%; }
+}

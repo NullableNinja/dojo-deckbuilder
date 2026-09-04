@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import brandEmblemUrl from "./assets/art/brand-emblem.webp";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
@@ -35,6 +35,7 @@ import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import rulesJson from "./data/rules.json";
+import gameDefinitionJson from "./data/game-definition.json";
 
 import PlaytestView from "./playtest";
 
@@ -130,6 +131,27 @@ type GlobalResult = { type: "Card" | "Glossary" | "Rule" | "Ruling" | "House Rul
 
 const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; decks: string[]; total: number };
 const rulesData = rulesJson as { version: string; chapters: RuleChapter[]; officialRulings: OfficialRuling[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
+const gameDefinition = gameDefinitionJson as { rulesVersion: string; rulesRevision: string };
+const CURRENT_RULES_REVISION = gameDefinition.rulesRevision;
+const BINDER_STORAGE_KEY = "dojo-binder-v1";
+const RULES_SEEN_STORAGE_KEY = "dojo-rules-seen-revision";
+const RULES_REVISION_NOTES = [
+  "Yell no longer has a two-Attack cap: play any number of legal Attacks from your hand and resolve each separately.",
+  "Defense Practice is once per Yell and grants only that Defense card’s printed Focus—no Guard, rules text, or Defense XP.",
+  "The Market now refills immediately after each purchase by revealing the top card for the empty slot.",
+  "Quick Duel uses fixed 25 HP while keeping the normal Belt perks and rewards active.",
+];
+const SEARCH_GROUP_ORDER: GlobalResult["type"][] = ["Card", "Rule", "Glossary", "Ruling", "House Rule"];
+const SEARCH_GROUP_LABELS: Record<GlobalResult["type"], string> = { Card: "Cards", Rule: "Rules", Glossary: "Glossary", Ruling: "Rulings", "House Rule": "House Rules" };
+const readStoredStringSet = (key: string) => {
+  if (typeof window === "undefined") return new Set<string>();
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    return new Set<string>(Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+};
 const storyChapter = rulesData.chapters.find((chapter) => chapter.number === 1);
 const ruleChapters = rulesData.chapters.filter((chapter) => chapter.number >= 1 && chapter.number <= 16);
 const glossaryKey = (term: string) => term.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
@@ -154,6 +176,15 @@ const publicCardDetails = (card: CardEntry): [string, string | number][] => [
   ["Source Version", card.sourceRulesVersion ?? "—"],
 ];
 const cardSearchText = (card: CardEntry) => [card.catalogId, card.name, card.cardType, card.subtype, card.category, card.deck, card.lineage, card.zone, card.timing, card.rulesText, card.flavorText, ...card.tags, ...card.buildPaths, ...Object.keys(card.stats), ...Object.values(card.stats), ...publicCardDetails(card).flatMap(([key, value]) => [key, value])].filter((value) => value !== null && value !== undefined && value !== "").join(" ").toLocaleLowerCase();
+const searchResultRank = (result: GlobalResult, term: string) => {
+  const title = result.title.toLocaleLowerCase();
+  const detail = result.detail.toLocaleLowerCase();
+  if (title === term || detail === term || detail.startsWith(`${term} ·`)) return 0;
+  if (title.startsWith(term)) return 1;
+  if (title.includes(term)) return 2;
+  if (detail.startsWith(term)) return 3;
+  return 4;
+};
 
 const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
   { id: "playtest", label: "Play the Game", short: "Play" },
@@ -503,9 +534,10 @@ function RulesView({ initialChapterId = "", initialSectionId = "" }: { initialCh
   </main>;
 }
 
-function CardTile({ card, onOpen }: { card: CardEntry; onOpen: () => void }) {
+function CardTile({ card, onOpen, saved = false }: { card: CardEntry; onOpen: () => void; saved?: boolean }) {
   const statPairs = Object.entries(card.stats).slice(0, 3);
   return <button className={`library-card paper-stack interactive-paper type-${card.cardType.toLocaleLowerCase().replaceAll(" ", "-")}`} onClick={onOpen}>
+    {saved && <span className="binder-star" aria-label="Saved in Dojo Binder" title="Saved in Dojo Binder">★</span>}
     <div className="card-topline"><span>{card.cardType}</span><b>{card.deck}</b></div><div className={`card-art${isCompleteCardArt(card) ? " card-art--complete" : ""}${!hasCardArt(card) ? " card-art--pending" : ""}`}><img src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : `Artwork pending for ${card.name}`} loading="lazy" decoding="async" /><span>{card.catalogId}</span></div>
     <div className="card-body"><small>{card.cardType}</small><h3>{card.name}</h3><div className="card-costs">{card.fpCost !== null && card.fpCost !== undefined && <span><b>{valueLabel(card.fpCost)}</b> Focus Cost</span>}{card.focusValue !== null && card.focusValue !== undefined && <span><b>{valueLabel(card.focusValue)}</b> Focus</span>}{card.zone && <span>{card.zone}</span>}</div>{statPairs.length > 0 && <div className="mini-stats">{statPairs.map(([key, value]) => <span key={key}><b>{value}</b>{key}</span>)}</div>}<p>{card.rulesText || card.flavorText || "Open for complete card details."}</p><div className="tag-row">{card.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div></div><span className="open-card">View card →</span>
   </button>;
@@ -517,6 +549,8 @@ function CardModal({
   nextCard,
   position,
   total,
+  saved,
+  onToggleSaved,
   onPrevious,
   onNext,
   onClose,
@@ -526,6 +560,8 @@ function CardModal({
   nextCard: CardEntry | null;
   position: number;
   total: number;
+  saved: boolean;
+  onToggleSaved: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onClose: () => void;
@@ -584,7 +620,7 @@ function CardModal({
           <span className="card-modal-link-copy"><small>Next</small><strong>{nextCard?.name ?? "Last card"}</strong></span><span aria-hidden="true">→</span>
         </button>
       </nav>
-      <div className="modal-heading"><img className={isCompleteCardArt(card) ? "modal-card-art--complete" : undefined} src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><div className="modal-badges"><span>{card.deck}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{publicCardDetails(card).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet}</footer>
+      <div className="modal-heading"><img className={isCompleteCardArt(card) ? "modal-card-art--complete" : undefined} src={cardImageUrl(card)} alt={hasCardArt(card) ? card.name : "Temporary Dojo Deckbuilder card artwork placeholder"} decoding="async" /><div><span className="eyebrow">{card.catalogId} · {card.cardType} · {card.subtype}</span><h2 id="card-modal-title">{card.name}</h2><p>{card.flavorText}</p></div></div><button type="button" className={`binder-toggle binder-toggle--modal${saved ? " is-saved" : ""}`} aria-pressed={saved} onClick={onToggleSaved}>{saved ? "★ In Dojo Binder" : "☆ Save to Dojo Binder"}</button><div className="modal-badges"><span>{card.deck}</span>{card.lineage && <span>{card.lineage}</span>}{card.timing && <span>{card.timing}</span>}{card.zone && <span>{card.zone}</span>}</div>{card.rulesText && <aside className="modal-rule"><span>Rules text</span><p>{card.rulesText}</p></aside>}<dl className="detail-grid">{publicCardDetails(card).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl><footer>Catalog: {card.catalogId} · Source: {card.sourceSheet}</footer>
     </article>
   </div>, document.body);
 }
@@ -593,7 +629,20 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
   const [query, setQuery] = useState(""); const [type, setType] = useState("All"); const [deck, setDeck] = useState("All");
   const [subtype, setSubtype] = useState("All"); const [timing, setTiming] = useState("All"); const [focusCost, setFocusCost] = useState("All");
   const [sort, setSort] = useState("catalog"); const [visible, setVisible] = useState(24); const [selectedCard, setSelectedCard] = useState<CardEntry | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(() => readStoredStringSet(BINDER_STORAGE_KEY));
+  const [binderOnly, setBinderOnly] = useState(false);
   const activeCard = selectedCard ?? initialCard;
+  useEffect(() => {
+    window.localStorage.setItem(BINDER_STORAGE_KEY, JSON.stringify([...savedIds]));
+  }, [savedIds]);
+  const toggleSaved = (card: CardEntry) => {
+    setSavedIds((current) => {
+      const next = new Set(current);
+      if (next.has(card.catalogId)) next.delete(card.catalogId); else next.add(card.catalogId);
+      return next;
+    });
+    if (binderOnly && savedIds.has(card.catalogId)) setBinderOnly(false);
+  };
   useEffect(() => { setSelectedCard(initialCard ?? null); }, [initialCard]);
   const openCard = (card: CardEntry) => { setSelectedCard(card); window.history.pushState(null, "", dojoHash("cards", card.catalogId)); };
   const stepCard = (card: CardEntry | null) => { if (!card) return; setSelectedCard(card); window.history.replaceState(null, "", dojoHash("cards", card.catalogId)); };
@@ -605,7 +654,7 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
     return cardData.cards.filter((card) => (deck === "All" || card.deck === deck) && matches(card));
   }, [query, deck]);
   const typeCounts = useMemo(() => cardsInScope.reduce<Record<string, number>>((counts, card) => { counts[card.cardType] = (counts[card.cardType] ?? 0) + 1; return counts; }, {}), [cardsInScope]);
-  const typedCards = useMemo(() => cardsInScope.filter((card) => type === "All" || card.cardType === type), [cardsInScope, type]);
+  const typedCards = useMemo(() => cardsInScope.filter((card) => (type === "All" || card.cardType === type) && (!binderOnly || savedIds.has(card.catalogId))), [cardsInScope, type, binderOnly, savedIds]);
   const optionCounts = (values: (string | number | null | undefined)[]) => values.reduce<Record<string, number>>((counts, value) => {
     const label = value === null || value === undefined ? "" : String(value).trim();
     if (label && label !== "—") counts[label] = (counts[label] ?? 0) + 1;
@@ -630,13 +679,14 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
   const previousCard = activeIndex > 0 ? filtered[activeIndex - 1] : null;
   const nextCard = activeIndex >= 0 && activeIndex < filtered.length - 1 ? filtered[activeIndex + 1] : null;
   const resetSecondaryFilters = () => { setSubtype("All"); setTiming("All"); setFocusCost("All"); };
-  const resetFilters = () => { setQuery(""); setType("All"); setDeck("All"); resetSecondaryFilters(); setVisible(24); };
+  const resetFilters = () => { setQuery(""); setType("All"); setDeck("All"); resetSecondaryFilters(); setBinderOnly(false); setVisible(24); };
   return <main className="page-shell shell card-library-page"><SectionHeader eyebrow="Card Library" title={`${cardData.total} registered cards. Exactly 500 in the main pool.`} intro="Search the complete Core catalog by ID, deck, type, rules text, or Focus Cost. The 500-card main pool excludes Starter, Character, and Boss-module cards." art={headerCardsUrl} />
             <section className="library-controls"><div className="library-control library-search-control"><label htmlFor="card-library-search">Search</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="card-library-search" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(24); }} placeholder="ID, name, rules, tag…" />{query && <button onClick={() => setQuery("")} aria-label="Clear card search">×</button>}</div></div><label className="library-control"><span>Deck</span><select value={deck} onChange={(event) => { setDeck(event.target.value); resetSecondaryFilters(); setVisible(24); }}><option>All</option>{cardData.decks.map((entry) => <option key={entry}>{entry}</option>)}</select></label><label className="library-control"><span>Subtype</span><select value={subtype} onChange={(event) => { setSubtype(event.target.value); setVisible(24); }} disabled={!subtypeOptions.length}><option value="All">All subtypes</option>{subtypeOptions.map((entry) => <option value={entry} key={entry}>{entry} ({subtypeCounts[entry]})</option>)}</select></label><label className="library-control"><span>Timing</span><select value={timing} onChange={(event) => { setTiming(event.target.value); setVisible(24); }} disabled={!timingOptions.length}><option value="All">All timings</option>{timingOptions.map((entry) => <option value={entry} key={entry}>{entry} ({timingCounts[entry]})</option>)}</select></label><label className="library-control"><span>Focus Cost</span><select value={focusCost} onChange={(event) => { setFocusCost(event.target.value); setVisible(24); }} disabled={!focusCostOptions.length}><option value="All">Any cost</option>{focusCostOptions.map((entry) => <option value={entry} key={entry}>{entry} Focus ({focusCostCounts[entry]})</option>)}</select></label><label className="library-control"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="catalog">Catalog order</option><option value="name">Name A–Z</option><option value="deck">Deck</option><option value="type">Card type</option><option value="focus">Focus Cost</option></select></label></section>
+    <div className="binder-strip"><button type="button" className={`binder-toggle${binderOnly ? " is-saved" : ""}`} aria-pressed={binderOnly} onClick={() => { setBinderOnly((current) => !current); setVisible(24); }}><span aria-hidden="true">{binderOnly ? "★" : "☆"}</span> Dojo Binder <b>{savedIds.size}</b></button><p>Saved on this device only. Open a card to add or remove it.</p></div>
     <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); resetSecondaryFilters(); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
     <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || deck !== "All" || subtype !== "All" || timing !== "All" || focusCost !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
-    {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} onOpen={() => openCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
-    {activeCard && <CardModal card={activeCard} previousCard={previousCard} nextCard={nextCard} position={activeIndex + 1} total={filtered.length} onPrevious={() => stepCard(previousCard)} onNext={() => stepCard(nextCard)} onClose={closeCard} />}
+    {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} saved={savedIds.has(card.catalogId)} onOpen={() => openCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
+    {activeCard && <CardModal card={activeCard} previousCard={previousCard} nextCard={nextCard} position={Math.max(1, activeIndex + 1)} total={filtered.length} saved={savedIds.has(activeCard.catalogId)} onToggleSaved={() => toggleSaved(activeCard)} onPrevious={() => stepCard(previousCard)} onNext={() => stepCard(nextCard)} onClose={closeCard} />}
   </main>;
 }
 
@@ -666,7 +716,9 @@ function GlossaryView({ initialQuery }: { initialQuery: string }) {
 
 export default function CompanionApp() {
   const [view, setView] = useState<ViewId>("home"); const [menuOpen, setMenuOpen] = useState(false); const [theme, setTheme] = useState<Theme>(initialTheme);
-  const [globalSearch, setGlobalSearch] = useState(""); const [searchedCard, setSearchedCard] = useState<CardEntry | null>(null); const [searchedTerm, setSearchedTerm] = useState("");
+  const [globalSearch, setGlobalSearch] = useState(""); const [globalSelection, setGlobalSelection] = useState(0); const [searchedCard, setSearchedCard] = useState<CardEntry | null>(null); const [searchedTerm, setSearchedTerm] = useState("");
+  const [showRevision, setShowRevision] = useState(false);
+  const [rulesUpdateAvailable, setRulesUpdateAvailable] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(RULES_SEEN_STORAGE_KEY) !== CURRENT_RULES_REVISION);
   const [searchedRuleChapter, setSearchedRuleChapter] = useState(""); const [searchedRuleSection, setSearchedRuleSection] = useState(""); const [searchedRuling, setSearchedRuling] = useState(""); const [searchedHouseRule, setSearchedHouseRule] = useState("");
   const [scrollProgress, setScrollProgress] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -734,13 +786,23 @@ export default function CompanionApp() {
       if (!JSON.stringify(chapter).toLocaleLowerCase().includes(term)) return [];
       const section = chapter.sections.find((entry) => JSON.stringify(entry).toLocaleLowerCase().includes(term));
       return [{ type: "Rule", title: chapter.title, detail: section ? `Chapter ${displayRuleNumber(chapter)} · ${section.title}` : `Chapter ${displayRuleNumber(chapter)} · overview`, view: "rules", chapterId: chapter.id, sectionId: section?.id }];
-    }).slice(0, 3);
-    const rulings: GlobalResult[] = OFFICIAL_RULINGS.filter((entry) => Object.values(entry).join(" ").toLocaleLowerCase().includes(term)).slice(0, 2).map(({ id, filed, tag, title }) => ({ type: "Ruling", title, detail: `${id} · ${tag} · ${filed}`, view: "rulings", query: id }));
-    const cards: GlobalResult[] = cardData.cards.filter((card) => cardSearchText(card).includes(term)).slice(0, 3).map((card) => ({ type: "Card", title: card.name, detail: `${card.cardType} · ${card.subtype}`, view: "cards", card }));
-    const terms: GlobalResult[] = GLOSSARY_ENTRIES.filter((entry) => `${entry.term} ${entry.meaning}`.toLocaleLowerCase().includes(term)).slice(0, 2).map((entry) => ({ type: "Glossary", title: entry.term, detail: entry.meaning, view: "glossary", query: entry.term }));
-    const houseRules: GlobalResult[] = rulesData.houseRules.filter((entry) => `${entry.name} ${entry.rule} ${entry.summary ?? ""} ${entry.notes ?? ""}`.toLocaleLowerCase().includes(term)).slice(0, 2).map((entry) => ({ type: "House Rule", title: entry.name, detail: entry.summary || entry.rule, view: "house-rules", query: entry.name }));
-    return [...rules, ...rulings, ...cards, ...terms, ...houseRules].slice(0, 10);
+    }).slice(0, 4);
+    const rulings: GlobalResult[] = OFFICIAL_RULINGS.filter((entry) => Object.values(entry).join(" ").toLocaleLowerCase().includes(term)).slice(0, 3).map(({ id, filed, tag, title }) => ({ type: "Ruling", title, detail: `${id} · ${tag} · ${filed}`, view: "rulings", query: id }));
+    const cards: GlobalResult[] = cardData.cards.filter((card) => cardSearchText(card).includes(term)).slice(0, 5).map((card) => ({ type: "Card", title: card.name, detail: `${card.catalogId} · ${card.cardType} · ${card.subtype}`, view: "cards", card }));
+    const terms: GlobalResult[] = GLOSSARY_ENTRIES.filter((entry) => `${entry.term} ${entry.meaning}`.toLocaleLowerCase().includes(term)).slice(0, 3).map((entry) => ({ type: "Glossary", title: entry.term, detail: entry.meaning, view: "glossary", query: entry.term }));
+    const houseRules: GlobalResult[] = rulesData.houseRules.filter((entry) => `${entry.name} ${entry.rule} ${entry.summary ?? ""} ${entry.notes ?? ""}`.toLocaleLowerCase().includes(term)).slice(0, 3).map((entry) => ({ type: "House Rule", title: entry.name, detail: entry.summary || entry.rule, view: "house-rules", query: entry.name }));
+    return [...rules, ...rulings, ...cards, ...terms, ...houseRules]
+      .sort((a, b) => searchResultRank(a, term) - searchResultRank(b, term) || SEARCH_GROUP_ORDER.indexOf(a.type) - SEARCH_GROUP_ORDER.indexOf(b.type) || a.title.localeCompare(b.title))
+      .slice(0, 14);
   }, [globalSearch]);
+  const groupedGlobalResults = useMemo(() => {
+    const term = globalSearch.trim().toLocaleLowerCase();
+    return SEARCH_GROUP_ORDER.map((type) => ({ type, results: globalResults.filter((result) => result.type === type) }))
+      .filter((group) => group.results.length)
+      .sort((a, b) => searchResultRank(a.results[0], term) - searchResultRank(b.results[0], term) || SEARCH_GROUP_ORDER.indexOf(a.type) - SEARCH_GROUP_ORDER.indexOf(b.type));
+  }, [globalResults, globalSearch]);
+  const orderedGlobalResults = useMemo(() => groupedGlobalResults.flatMap((group) => group.results), [groupedGlobalResults]);
+  useEffect(() => setGlobalSelection(0), [globalSearch]);
   const chooseResult = (result: GlobalResult) => {
     goTo(result.view);
     if (result.card) { setSearchedCard(result.card); window.history.replaceState(null, "", dojoHash("cards", result.card.catalogId)); }
@@ -749,13 +811,39 @@ export default function CompanionApp() {
     if (result.view === "rulings") { const target = result.query ?? result.title; setSearchedRuling(target); window.history.replaceState(null, "", dojoHash("rulings", target)); }
     if (result.view === "house-rules") { const target = result.query ?? result.title; setSearchedHouseRule(target); window.history.replaceState(null, "", dojoHash("house-rules", target)); }
   };
+  const handleGlobalSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      setGlobalSearch("");
+      event.currentTarget.blur();
+      return;
+    }
+    if (!orderedGlobalResults.length) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      setGlobalSelection((current) => (current + direction + orderedGlobalResults.length) % orderedGlobalResults.length);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const result = orderedGlobalResults[Math.min(globalSelection, orderedGlobalResults.length - 1)];
+      if (result) chooseResult(result);
+    }
+  };
+  const acknowledgeRulesRevision = () => {
+    window.localStorage.setItem(RULES_SEEN_STORAGE_KEY, CURRENT_RULES_REVISION);
+    setRulesUpdateAvailable(false);
+    setShowRevision(false);
+  };
+  const renderGlobalResults = (className: string, id: string) => <div className={className} id={id} role="listbox" aria-label="Dojo search results">{groupedGlobalResults.map((group) => <section className="global-result-group" key={group.type}><strong>{SEARCH_GROUP_LABELS[group.type]}</strong>{group.results.map((result) => { const index = orderedGlobalResults.indexOf(result); return <button type="button" role="option" aria-selected={index === globalSelection} className={index === globalSelection ? "is-selected" : ""} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setGlobalSelection(index)} onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${result.detail}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>; })}</section>)}</div>;
   const moreActive = view === "story" || view === "rulings" || view === "glossary" || view === "house-rules";
   const toggleTheme = () => setTheme((current) => current === "light" ? "dark" : "light");
   return <div className="site-frame">
-    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input ref={searchInputRef} value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /><kbd>Ctrl K</kbd></label>{globalResults.length > 0 && <div className="global-results">{globalResults.map((result, index) => <button onMouseDown={(event) => event.preventDefault()} onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>)}</div>}</div><ThemeToggle theme={theme} onToggle={toggleTheme} /><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen} aria-label={menuOpen ? "Close site menu" : "Open site menu"}><span /><span /><span /></button></div><div className="reading-progress" role="progressbar" aria-label={`${VIEW_LABELS[view]} reading progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(scrollProgress * 100)}><span style={{ width: `${scrollProgress * 100}%` }} /><b>{VIEW_LABELS[view]}</b></div></header>
-    {menuOpen && <><button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close site menu" /><aside className="mobile-menu-panel" id="mobile-menu" aria-label="Site menu"><div className="mobile-menu-heading"><div><span className="eyebrow">Department directory</span><h2>Find your fight.</h2></div><button className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Close site menu">×</button></div><label className="mobile-global-search"><span aria-hidden="true">⌕</span><input autoFocus value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /></label>{globalSearch.trim().length >= 2 && <div className="mobile-search-results">{globalResults.length ? globalResults.map((result, index) => <button onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${index}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>) : <p>No matching filing number. Try a shorter search.</p>}</div>}<nav className="mobile-menu-links" aria-label="All site pages">{MOBILE_MENU_ITEMS.filter((item) => item.id !== "playtest").map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}><span>{item.label}</span><small>{item.detail}</small></button>)}</nav><ThemeToggle theme={theme} onToggle={toggleTheme} full /></aside></>}
+    <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input ref={searchInputRef} value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} onKeyDown={handleGlobalSearchKeyDown} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /><kbd>Ctrl K</kbd></label>{globalResults.length > 0 && renderGlobalResults("global-results", "dojo-global-results")}</div>{rulesUpdateAvailable && <button type="button" className="rules-update-pill" onClick={() => setShowRevision(true)} title={`Review ${CURRENT_RULES_REVISION}`}><b>NEW</b><span>{CURRENT_RULES_REVISION}</span></button>}<ThemeToggle theme={theme} onToggle={toggleTheme} /><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen} aria-label={menuOpen ? "Close site menu" : "Open site menu"}><span /><span /><span /></button></div><div className="reading-progress" role="progressbar" aria-label={`${VIEW_LABELS[view]} reading progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(scrollProgress * 100)}><span style={{ width: `${scrollProgress * 100}%` }} /><b>{VIEW_LABELS[view]}</b></div></header>
+    {menuOpen && <><button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close site menu" /><aside className="mobile-menu-panel" id="mobile-menu" aria-label="Site menu"><div className="mobile-menu-heading"><div><span className="eyebrow">Department directory</span><h2>Find your fight.</h2></div><button className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Close site menu">×</button></div><label className="mobile-global-search"><span aria-hidden="true">⌕</span><input autoFocus value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} onKeyDown={handleGlobalSearchKeyDown} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /></label>{globalSearch.trim().length >= 2 && (globalResults.length ? renderGlobalResults("mobile-search-results", "dojo-mobile-search-results") : <div className="mobile-search-results"><p>No matching filing number. Try a shorter search.</p></div>)}{rulesUpdateAvailable && <button type="button" className="mobile-rules-update" onClick={() => setShowRevision(true)}><b>New rules filing</b><span>{CURRENT_RULES_REVISION} · See what changed →</span></button>}<nav className="mobile-menu-links" aria-label="All site pages">{MOBILE_MENU_ITEMS.filter((item) => item.id !== "playtest").map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}><span>{item.label}</span><small>{item.detail}</small></button>)}</nav><ThemeToggle theme={theme} onToggle={toggleTheme} full /></aside></>}
     <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "playtest" && <PlaytestView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView key={`${searchedRuleChapter || "rules"}-${searchedRuleSection}`} initialChapterId={searchedRuleChapter} initialSectionId={searchedRuleSection} />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView key={searchedRuling || "rulings"} initialQuery={searchedRuling} />}{view === "glossary" && <GlossaryView key={searchedTerm || "glossary"} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView key={searchedHouseRule || "house-rules"} initialQuery={searchedHouseRule} />}</div>
     <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Filed with the Department. Probably correctly.</span></div></footer>
+    {showRevision && <DetailModal eyebrow="New Department Filing" title={`${CURRENT_RULES_REVISION} is now current`} onClose={() => setShowRevision(false)} accent="gold"><p className="modal-lede">This browser has not marked the current rules revision as reviewed yet. Here are the changes most likely to matter at the table.</p><ul className="revision-notes">{RULES_REVISION_NOTES.map((note) => <li key={note}>{note}</li>)}</ul><div className="revision-actions"><button className="button primary" type="button" onClick={() => { acknowledgeRulesRevision(); goTo("rules"); }}>Review full rules →</button><button className="button ghost" type="button" onClick={acknowledgeRulesRevision}>Mark reviewed</button></div></DetailModal>}
     {scrollProgress > .2 && <button className="back-to-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Back to top"><span aria-hidden="true">↑</span><b>Top</b></button>}
     <nav className="mobile-nav" aria-label="Mobile navigation"><button className={view === "home" ? "active" : ""} onClick={() => goTo("home")}><span aria-hidden="true">⌂</span>Home</button><button className={view === "quickstart" ? "active" : ""} onClick={() => goTo("quickstart")}><span aria-hidden="true">▶</span>Start</button><button className={view === "rules" ? "active" : ""} onClick={() => goTo("rules")}><span aria-hidden="true">§</span>Rules</button><button className={view === "cards" ? "active" : ""} onClick={() => goTo("cards")}><span aria-hidden="true">▤</span>Cards</button><button className={moreActive || menuOpen ? "active" : ""} onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen}><span aria-hidden="true">☰</span>Menu</button></nav>
   </div>;
