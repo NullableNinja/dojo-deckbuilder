@@ -4,7 +4,7 @@ import test from "node:test";
 
 test("builds a GitHub Pages index with repository-relative assets", async () => {
   const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
-  assert.match(html, /<title>Dojo Deckbuilder<\/title>/);
+  assert.match(html, /<title>Dojo Deckbuilder(?: — Shuffle\. Strike\. Ascend\.)?<\/title>/);
   assert.match(html, /\/dojo-deckbuilder\/assets\//);
   assert.doesNotMatch(html, /localhost|terminal\.local|nullableninja\.chatgpt\.site/);
 });
@@ -14,14 +14,16 @@ test("bundles the complete interactive companion", async () => {
   const scripts = (await readdir(assetDirectory)).filter((name) => name.endsWith(".js"));
   const mainScript = scripts.find((name) => name.startsWith("index-"));
   assert.ok(mainScript, "Expected the main application bundle");
-  const bundle = await readFile(new URL(mainScript, assetDirectory), "utf8");
+  const bundles = await Promise.all(scripts.map((name) => readFile(new URL(name, assetDirectory), "utf8")));
+  const completeBundle = bundles.join("\n");
   for (const expected of ["Quick Start", "Card Library", "Rulings & Errata", "Glossary", "House Rules", "Rita attacks Devin. Count the paper."]) {
-    assert.ok(bundle.includes(expected), `Missing site content: ${expected}`);
+    assert.ok(completeBundle.includes(expected), `Missing site content: ${expected}`);
   }
-  const embeddedWebpImages = bundle.match(/data:image\/webp;base64,/g)?.length ?? 0;
+  const embeddedWebpImages = completeBundle.match(/data:image\/webp;base64,/g)?.length ?? 0;
   assert.equal(embeddedWebpImages, 0, "Artwork should be cacheable files, not embedded in the JavaScript bundle.");
   const webpAssets = (await readdir(assetDirectory)).filter((name) => name.endsWith(".webp"));
   assert.ok(webpAssets.length >= 17, `Expected emitted WebP artwork; found ${webpAssets.length} files.`);
   const bundleSize = (await stat(new URL(mainScript, assetDirectory))).size;
   assert.ok(bundleSize < 1_500_000, `JavaScript bundle is too large for a mobile-first companion: ${bundleSize} bytes.`);
+  assert.ok(scripts.length >= 2, "Expected Quick Duel to be code-split from the main companion bundle.");
 });
