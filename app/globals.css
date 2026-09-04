@@ -2730,3 +2730,42 @@ body,
     font-size: 14px;
   }
 }
+
+
+/* Intentional unfinished-art state and lazy field-test handoff. */
+.card-art--pending { position: relative; }
+.card-art--pending img { opacity: .42; filter: saturate(.45) contrast(.9); }
+.card-art--pending::after {
+  content: "ARTWORK PENDING · FORM 37-B";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(82%, 230px);
+  transform: translate(-50%, -50%) rotate(-4deg);
+  border: 2px solid var(--red);
+  padding: 9px 12px;
+  color: var(--red-dark);
+  background: color-mix(in srgb, var(--paper-light) 92%, transparent);
+  box-shadow: 3px 4px 0 rgba(23,33,29,.16);
+  font-family: var(--display);
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-align: center;
+}
+:root[data-theme="dark"] .card-art--pending::after {
+  color: #ffb29f;
+  border-color: #e8745f;
+  background: rgba(31,48,39,.94);
+}
+.playtest-loading {
+  min-height: min(72dvh, 760px);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding-block: 80px;
+  text-align: center;
+}
+.playtest-loading h1 { margin: 0; font-family: var(--display); font-size: clamp(42px, 7vw, 76px); }
+.playtest-loading p { color: var(--ink-soft); }

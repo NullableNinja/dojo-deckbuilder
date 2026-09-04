@@ -39,3 +39,16 @@ test("global search spans the whole companion", async () => {
     assert.ok(source.includes(expected), `Missing unified search behavior: ${expected}`);
   }
 });
+
+
+test("Quick Duel is code-split and missing artwork is presented intentionally", async () => {
+  const [source, css] = await Promise.all([
+    readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(source, /const PlaytestView = lazy\(\(\) => import\("\.\/playtest"\)\)/);
+  assert.match(source, /<Suspense fallback=/);
+  assert.doesNotMatch(source, /import PlaytestView from "\.\/playtest"/);
+  assert.match(source, /card-art--pending/);
+  assert.match(css, /ARTWORK PENDING · FORM 37-B/);
+});
