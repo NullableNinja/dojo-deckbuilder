@@ -22,6 +22,12 @@ if (currentBuild && currentBuild !== "__DDB_BUILD__") {
     .catch(() => undefined);
 }
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
+  }, { once: true });
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CompanionApp />
