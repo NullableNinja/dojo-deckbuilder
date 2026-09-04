@@ -2805,3 +2805,25 @@ body,
 .rule-section-nav button:focus-visible { border-color: var(--red); color: var(--red-dark); }
 :root[data-theme="dark"] .rule-section-nav { background: rgba(31,48,39,.62); }
 @media (max-width: 840px) { .rule-section-nav { margin-inline: -4px; } }
+
+/* Dark-mode rule tables: keep zebra rows readable. */
+:root[data-theme="dark"] .rule-table {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .rule-table th,
+:root[data-theme="dark"] .rule-table td {
+  border-color: #42584a;
+}
+:root[data-theme="dark"] .rule-table tbody tr {
+  color: var(--ink);
+  background: #1a271f;
+}
+:root[data-theme="dark"] .rule-table tbody tr:nth-child(even) {
+  background: #22352a;
+}
+:root[data-theme="dark"] .rule-table td,
+:root[data-theme="dark"] .rule-table td:first-child,
+:root[data-theme="dark"] .rule-table tbody tr:nth-child(even) td:first-child {
+  color: #e7f0e9;
+  background: transparent;
+}
