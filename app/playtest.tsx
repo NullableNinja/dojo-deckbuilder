@@ -892,6 +892,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     });
   };
 
+  const advanceAscendReview = () => {
+    if (match?.phase !== "player-ascend") return;
+    if (deskView === "market" || !deskView) setDeskView("combo");
+    else if (deskView === "combo") setDeskView("belt");
+    else completeTurn();
+  };
+
   const runAiTurn = () => setMatch((current) => {
     if (!current || current.phase !== "ai-ready" || current.winner) return current;
     const prepared = prepareAiTurn(current);
@@ -1042,6 +1049,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const affordableNow = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= player.focus).length;
   const affordableForecast = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= playableFocus).length;
   const activePhaseIndex = match.phase === "player-initiate" ? 1 : match.phase === "player-yell" || match.phase === "defense-window" || match.phase === "reversal-window" || match.phase === "ai-ready" ? 2 : 3;
+  const ascendStepIndex = deskView === "combo" ? 1 : deskView === "belt" ? 2 : 0;
+  const ascendStepTitle = deskView === "combo" ? "Combo Docket" : deskView === "belt" ? "Belt Check" : "Shared Market";
+  const ascendStepHelp = deskView === "combo"
+    ? "Review the face-up Combo. Learn it if you can and want it, or pass it to the bottom of the docket. Then check your Belt."
+    : deskView === "belt"
+      ? "Check your XP and Belt Exam requirement. Promote if you qualify. This is the final review before Hide clears unspent Focus."
+      : "Spend Focus on any number of Market cards you want. When shopping is finished, continue to the Combo Docket before you Hide.";
+  const ascendNextLabel = deskView === "combo" ? "Continue to Belt Check →" : deskView === "belt" ? "Finish Ascend → Hide" : "Continue to Combo Docket →";
   const turnCoach = match.winner
     ? (match.winner === "player" ? "The opponent is folded. Enjoy the extremely temporary paperwork-based glory." : "This test is over, but the Department has approved an immediate and emotionally reckless rematch.")
     : match.phase === "player-initiate"
@@ -1049,7 +1064,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     : match.phase === "player-yell"
       ? (pendingAttack ? `You selected ${pendingAttack.name}. Confirm its zone, then declare the Attack.` : !player.defensePracticeUsed && player.hand.some((id) => isDefense(cardFor(id)!)) ? "Use one Defense for Defense Practice to gain its printed Focus without playing its Guard or rules text." : player.hand.some((id) => isAttack(cardFor(id)!)) ? "Play support cards for Focus or select any legal Attack remaining in your hand." : "Your useful cards are spent. Move to Ascend and turn that Focus into a better deck.")
       : match.phase === "player-ascend"
-        ? (canPromote ? `Your ${nextBelt?.name} Belt exam is complete. Promote before you Hide.` : player.focus > 0 ? "Spend Focus in the Market. Affordable cards are awake; the rest are judging you." : "No Focus remains. Hide to clean up, redraw, and hand the clipboard to the computer.")
+        ? (deskView === "combo" ? "Ascend step 2: inspect the Combo offer. Learning is optional; reviewing it is not. Your remaining Focus can still buy it." : deskView === "belt" ? (canPromote ? `Ascend step 3: your ${nextBelt?.name} Belt certification is ready. Promote before Hide if you want the reward now.` : "Ascend step 3: review your XP and exam progress. After this check, Hide ends the turn and clears unspent Focus.") : `Ascend step 1: shop the Market with ${player.focus} Focus. When you are done buying, continue to the Combo Docket.`)
       : match.phase === "defense-window"
           ? (defenseOptions.length ? `A ${match.pendingStrike?.zone} Attack is incoming. Play a glowing matching Defense or pass.` : "No matching Defense is in hand. Base DEF still applies; pass the Reaction Window to resolve the hit.")
           : match.phase === "reversal-window"
@@ -1119,11 +1134,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     {!match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action">
       <div>
         <span>{match.pendingDiscard ? "DISCARD" : match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span>
-        <b>{match.pendingDiscard ? "Choose a card from your hand" : match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn} attack${player.attacksThisTurn === 1 ? "" : "s"} played · no cap` : match.phase === "player-ascend" ? `${player.focus} Focus available` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b>
+        <b>{match.pendingDiscard ? "Choose a card from your hand" : match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn} attack${player.attacksThisTurn === 1 ? "" : "s"} played · no cap` : match.phase === "player-ascend" ? `${player.focus} Focus · Market → Combo → Belt` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b>
       </div>
       {match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}
       {match.phase === "player-yell" && !match.pendingDiscard && (pendingAttack ? <button onClick={declareAttack}>Declare Attack →</button> : <button onClick={enterAscend}>Proceed to Ascend →</button>)}
-      {match.phase === "player-ascend" && <button onClick={completeTurn}>Hide · End turn →</button>}
+      {match.phase === "player-ascend" && <button onClick={() => setDeskView(deskView ?? "market")}>{deskView === "belt" ? "Resume Belt Check" : deskView === "combo" ? "Resume Combo Review" : "Resume Ascend Review"} →</button>}
       {match.phase === "defense-window" && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}
       {match.phase === "reversal-window" && (pendingAttack ? <button onClick={resolveReversal}>Launch Reversal →</button> : <button onClick={declineReversal}>Decline Reversal</button>)}
       {match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}
@@ -1131,16 +1146,21 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     {deskView && <div className="ascend-desk-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDeskView(null)}>
       <section className="ascend-desk paper-stack" role="dialog" aria-modal="true" aria-labelledby="ascend-desk-title">
         <header className="ascend-desk-header">
-          <div><span className="eyebrow">{match.phase === "player-ascend" ? "Ascend desk · purchasing authorized" : "Reference desk · inspection only"}</span><h2 id="ascend-desk-title">{deskView === "market" ? "Shared Market" : deskView === "combo" ? "Combo Docket" : "Certification Ledger"}</h2></div>
+          <div><span className="eyebrow">{match.phase === "player-ascend" ? `Ascend review · step ${ascendStepIndex + 1} of 3` : "Reference desk · inspection only"}</span><h2 id="ascend-desk-title">{ascendStepTitle}</h2><p>{match.phase === "player-ascend" ? ascendStepHelp : "Inspect this station without advancing the turn."}</p></div>
           <div className="ascend-desk-balance"><span>Available Focus</span><b>{player.focus}</b><small>{affordableNow} of {match.market.length} Market cards in reach</small></div>
           <button className="modal-close" onClick={() => setDeskView(null)} aria-label="Close Ascend Desk">×</button>
         </header>
-        <nav className="ascend-desk-tabs" aria-label="Ascend desk sections">
-          <button type="button" className={deskView === "market" ? "is-active" : ""} aria-current={deskView === "market" ? "page" : undefined} onClick={() => setDeskView("market")}><i aria-hidden="true">▤</i><span>Shared Market</span><b>{affordableNow}/{match.market.length}</b><small>affordable · open section</small></button>
-          <button type="button" className={deskView === "combo" ? "is-active" : ""} aria-current={deskView === "combo" ? "page" : undefined} onClick={() => setDeskView("combo")}><i aria-hidden="true">∞</i><span>Combo Docket</span><b>{player.learnedCombos.length}/2</b><small>learned · open section</small></button>
-          <button type="button" className={deskView === "belt" ? "is-active" : ""} aria-current={deskView === "belt" ? "page" : undefined} onClick={() => setDeskView("belt")}><i aria-hidden="true">★</i><span>Belt Ledger</span><b>{belts[player.belt].name}</b><small>{player.xp} XP · open section</small></button>
-        </nav>
+        {match.phase === "player-ascend" && <section className="ascend-guide" aria-label="Ascend review path">
+          <div className="ascend-guide-kicker"><span>Do these in order</span><b>Shop → Combo → Belt → Hide</b></div>
+          <ol>
+            <li className={ascendStepIndex === 0 ? "is-current" : ascendStepIndex > 0 ? "is-complete" : ""}><b>1</b><div><span>Shared Market</span><small>Spend Focus · buy any number</small></div></li>
+            <li className={ascendStepIndex === 1 ? "is-current" : ascendStepIndex > 1 ? "is-complete" : ""}><b>2</b><div><span>Combo Docket</span><small>Learn or pass once</small></div></li>
+            <li className={ascendStepIndex === 2 ? "is-current" : ""}><b>3</b><div><span>Belt Check</span><small>XP + exam + reward</small></div></li>
+            <li><b>4</b><div><span>Hide</span><small>Clear Focus · redraw</small></div></li>
+          </ol>
+        </section>}
         <div className="ascend-desk-body">
+          {match.phase === "player-ascend" && <aside className={`ascend-step-coach step-${ascendStepIndex + 1}`}><b>STEP {ascendStepIndex + 1}</b><span>{ascendStepHelp}</span></aside>}
           {deskView === "market" && <section className="ascend-market" aria-label="Seven-card Shared Market">
             <header><div><span className="eyebrow">Seven live records · full cards</span><h3>Choose with the text visible</h3></div><p>{match.phase === "player-ascend" ? "Buy any number you can afford. Each purchase is replaced immediately by the top Market card." : "The row persists between rounds. If nobody buys for a full round, Market Mercy refreshes all seven cards."}</p></header>
             <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= cardCost(card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
@@ -1162,7 +1182,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
             {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : `${nextBelt.name}: ${nextBelt.xp} XP + completed task`}</button>}
           </section>}
         </div>
-        <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <button className="button primary" onClick={completeTurn}>Hide · End turn →</button>}</footer>
+        <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView !== "market" && <button className="button ghost" onClick={() => setDeskView(deskView === "belt" ? "combo" : "market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : `Next: ${deskView === "combo" ? "check Belt progress" : "review the Combo offer"}.`}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
       </section>
     </div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><ol>{match.log.map((line, index) => <li key={`${line}-${index}`}><b>{match.log.length - index}</b><span>{line}</span></li>)}</ol></section></div>}
