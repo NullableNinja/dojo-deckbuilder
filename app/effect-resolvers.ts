@@ -302,6 +302,11 @@ export function discardChoiceFollowup(source: EffectCardLike, discarded: EffectC
     nextDefenseGuard += Number(item[1]);
     notes.push(`Item discarded: next Defense +${item[1]} Guard`);
   }
+  const discardForFocus = text.match(/discard \d+ cards? to gain (\d+) Focus/i);
+  if (discardForFocus) {
+    focus += Number(discardForFocus[1]);
+    notes.push(`Discard cost paid: +${discardForFocus[1]} Focus`);
+  }
   return { focus, nextAttackPower, nextDefenseGuard, notes };
 }
 
@@ -335,7 +340,13 @@ export type EquipmentActivationPlan =
   | { kind: "next-attack-power"; power: number }
   | { kind: "zone-attack"; power: number; piercing: number; blockedFocus: number; requireDifferentPreviousZone: boolean }
   | { kind: "incoming-zone-penalty"; attackPowerPenalty: number }
-  | { kind: "defense-guard"; guard: number; reversalPower: number };
+  | { kind: "defense-guard"; guard: number; reversalPower: number }
+  | { kind: "initiate-tempo-focus"; focus: number }
+  | { kind: "after-kata-focus"; focus: number }
+  | { kind: "first-hit-discard-focus"; discard: number; focus: number }
+  | { kind: "hit-direct-damage"; damage: number }
+  | { kind: "hit-next-initiate-focus"; focus: number }
+  | { kind: "numbered-attack-power"; attackNumber: number; power: number; minBelt: string };
 
 export function equipmentActivationPlan(card: EffectCardLike): EquipmentActivationPlan | null {
   const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
@@ -358,6 +369,27 @@ export function equipmentActivationPlan(card: EffectCardLike): EquipmentActivati
   match = text.match(/^Exhaust:\s*When you play a Defense outside your turn, it gets \+(\d+) Guard\. At Green Belt or higher, if it Blocks, your Reversal this round gets \+(\d+) Attack Power/i);
   if (match) return { kind: "defense-guard", guard: Number(match[1]), reversalPower: Number(match[2]) };
 
+  match = text.match(/^Exhaust at Initiate\. If you have Tempo after Speed is set, gain (\d+) Focus/i);
+  if (match) return { kind: "initiate-tempo-focus", focus: Number(match[1]) };
+
+  match = text.match(/^Exhaust after you play a Kata:\s*Gain (\d+) Focus/i);
+  if (match) return { kind: "after-kata-focus", focus: Number(match[1]) };
+
+  match = text.match(/^Exhaust:\s*After your first Attack Hits this turn, discard (\d+) cards? to gain (\d+) Focus/i);
+  if (match) return { kind: "first-hit-discard-focus", discard: Number(match[1]), focus: Number(match[2]) };
+
+  match = text.match(/^Exhaust after one of your Attacks Hits:\s*deal (\d+) direct damage to the same target/i);
+  if (match) return { kind: "hit-direct-damage", damage: Number(match[1]) };
+
+  match = text.match(/^Exhaust after your Attack Hits:\s*Generate (\d+) Focus during your next Initiate/i);
+  if (match) return { kind: "hit-next-initiate-focus", focus: Number(match[1]) };
+
+  match = text.match(/^At ([A-Za-z]+) Belt or higher, exhaust:\s*Your (second|third|fourth) normal Attack this turn gets \+(\d+) Attack Power/i);
+  if (match) {
+    const attackNumber = match[2].toLocaleLowerCase() === "second" ? 2 : match[2].toLocaleLowerCase() === "third" ? 3 : 4;
+    return { kind: "numbered-attack-power", attackNumber, power: Number(match[3]), minBelt: match[1] };
+  }
+
   return null;
 }
 
@@ -367,3 +399,8 @@ export function readyEquipmentOnHit(card: EffectCardLike) {
   return match ? 1 : 0;
 }
 
+export function mandatoryDamageReductionEquipment(card: EffectCardLike) {
+  const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
+  const match = text.match(/The first time you take damage each round, reduce that damage by (\d+); then exhaust this card\. Ready it during your next Initiate Phase/i);
+  return match ? { reduce: Number(match[1]), readyAtInitiate: true } : null;
+}

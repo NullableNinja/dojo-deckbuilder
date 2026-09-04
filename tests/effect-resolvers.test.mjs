@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, readyEquipmentOnHit, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, readyEquipmentOnHit, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
 
 test("Defense Equipment protects only its printed zone", () => {
   const chest = { name: "Cardboard Chestplate", subtype: "Defense Equipment", rulesText: "+2 DEF against Mid Attacks.", stats: { Guard: 2 } };
@@ -138,4 +138,24 @@ test("on-hit ready text is recognized without pretending all Ready clauses are a
 test("reaction Exhaust plans compile from incoming-Attack and Defense Gear text", () => {
   assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: After an opponent declares an Attack targeting you, choose High, Mid, or Low. If that Attack uses the chosen zone, it gets −1 Attack Power." }), { kind: "incoming-zone-penalty", attackPowerPenalty: 1 });
   assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: When you play a Defense outside your turn, it gets +1 Guard. At Green Belt or higher, if it Blocks, your Reversal this round gets +1 Attack Power." }), { kind: "defense-guard", guard: 1, reversalPower: 1 });
+});
+
+test("triggered Equipment activation plans compile from printed timing clauses", () => {
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust at Initiate. If you have Tempo after Speed is set, gain 1 Focus." }), { kind: "initiate-tempo-focus", focus: 1 });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust after you play a Kata: Gain 1 Focus. Once per round." }), { kind: "after-kata-focus", focus: 1 });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust: After your first Attack Hits this turn, discard 1 card to gain 1 Focus." }), { kind: "first-hit-discard-focus", discard: 1, focus: 1 });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust after one of your Attacks Hits: deal 1 direct damage to the same target." }), { kind: "hit-direct-damage", damage: 1 });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "Exhaust after your Attack Hits: Generate 1 Focus during your next Initiate." }), { kind: "hit-next-initiate-focus", focus: 1 });
+  assert.deepEqual(equipmentActivationPlan({ rulesText: "At Orange Belt or higher, exhaust: Your second normal Attack this turn gets +2 Attack Power." }), { kind: "numbered-attack-power", attackNumber: 2, power: 2, minBelt: "Orange" });
+});
+
+test("mandatory first-damage Armor reduction is parsed separately from optional reduction", () => {
+  assert.deepEqual(mandatoryDamageReductionEquipment({ rulesText: "Chest slot. +1 DEF against all zones. The first time you take damage each round, reduce that damage by 2; then exhaust this card. Ready it during your next Initiate Phase." }), { reduce: 2, readyAtInitiate: true });
+  assert.equal(mandatoryDamageReductionEquipment({ rulesText: "The first time you take combat damage each round, you may exhaust this to reduce that damage by 1." }), null);
+});
+
+test("discard-as-cost Equipment followups award Focus only after the player pays the discard", () => {
+  const result = discardChoiceFollowup({ rulesText: "Exhaust: After your first Attack Hits this turn, discard 1 card to gain 1 Focus." }, { focusValue: 2 });
+  assert.equal(result.focus, 1);
+  assert.match(result.notes.join(" "), /Discard cost paid/);
 });

@@ -107,3 +107,27 @@ test("AI uses deterministic reaction Equipment and late Exhaust can enable Pierc
   assert.match(source, /exhaustedPiercingBonus/);
   assert.match(source, /effectivePiercing/);
 });
+
+test("Quick Duel wires trigger-heavy Equipment families and Initiate carryover", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /equipmentActivationAvailable/);
+  assert.match(source, /equipmentActions/);
+  assert.match(source, /autoTriggerAiAfterKataEquipment/);
+  assert.match(source, /autoTriggerAiAfterAttackEquipment/);
+  assert.match(source, /nextInitiateFocus/);
+  assert.match(source, /applyInitiateCarryover/);
+  assert.match(source, /lastAttackHit/);
+  assert.match(source, /applyMandatoryEquipmentDamageReduction/);
+});
+
+test("Cover Up remains the weak universal starter Defense and its printed Guard is added to defense math", async () => {
+  const catalog = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8"));
+  const byName = new Map(catalog.cards.map((card) => [card.name, card]));
+  const cover = byName.get("Cover Up");
+  assert.equal(cover.zone, "Any");
+  assert.equal(Number(cover.stats.Guard), 1);
+  for (const name of ["High Guard", "Center Guard", "Low Guard"]) assert.equal(Number(byName.get(name).stats.Guard), 2);
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /defensePower \+= cardPower\(defenseCard\)/);
+  assert.match(source, /\$\{defenseCard\.name\} \+\$\{cardPower\(defenseCard\)\} Guard/);
+});

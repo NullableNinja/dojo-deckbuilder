@@ -6,7 +6,7 @@ import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import rulesJson from "./data/rules.json";
 import { compileCardEffects, describeEffectPlan } from "./card-effects";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, readyEquipmentOnHit, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, type DeckLookPlan } from "./effect-resolvers";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, readyEquipmentOnHit, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import "./combo-rack.css";
 import "./playtest-board-v4.css";
@@ -49,6 +49,9 @@ type Board = {
   equipmentDefenseGuard?: number;
   pendingReversalBonusOnBlock?: number;
   reversalAttackBonus?: number;
+  nextInitiateFocus?: number;
+  readyAtInitiate?: string[];
+  lastAttackHit?: boolean;
   tempSpeed: number;
   nextAttackBonus: number;
   attacksThisTurn: number;
@@ -413,6 +416,119 @@ function readyEquipment(board: Board, id: string) {
   return { ...board, exhaustedEquipment: (board.exhaustedEquipment ?? []).filter((candidate) => candidate !== id) };
 }
 
+
+function beltAtLeast(board: Board, beltName: string) {
+  const index = belts.findIndex((belt) => belt.name.toLocaleLowerCase() === beltName.toLocaleLowerCase());
+  return index >= 0 && board.belt >= index;
+}
+
+function applyInitiateCarryover(board: Board) {
+  const ready = new Set(board.readyAtInitiate ?? []);
+  return {
+    ...board,
+    focus: board.focus + (board.nextInitiateFocus ?? 0),
+    nextInitiateFocus: 0,
+    exhaustedEquipment: (board.exhaustedEquipment ?? []).filter((id) => !ready.has(id)),
+    readyAtInitiate: [],
+  };
+}
+
+function equipmentActivationAvailable(board: Board, card: CardEntry, phase: Match["phase"]) {
+  if (isEquipmentExhausted(board, card.id)) return false;
+  const plan = equipmentActivationPlan(card);
+  if (!plan) return false;
+  const lastCard = board.cardsThisTurn.length ? cardFor(board.cardsThisTurn[board.cardsThisTurn.length - 1]) : null;
+  if (plan.kind === "incoming-zone-penalty" || plan.kind === "defense-guard") return phase === "defense-window";
+  if (plan.kind === "speed-cycle") return phase === "player-initiate" || phase === "player-yell";
+  if (plan.kind === "initiate-tempo-focus") return phase === "player-initiate" && board.tempo;
+  if (plan.kind === "next-attack-power" || plan.kind === "zone-attack") return phase === "player-yell";
+  if (plan.kind === "after-kata-focus") return phase === "player-yell" && Boolean(lastCard && isKata(lastCard));
+  if (plan.kind === "first-hit-discard-focus") return phase === "player-yell" && board.attacksThisTurn === 1 && Boolean(board.lastAttackHit) && board.hand.length >= plan.discard;
+  if (plan.kind === "hit-direct-damage" || plan.kind === "hit-next-initiate-focus") return phase === "player-yell" && Boolean(board.lastAttackHit) && Boolean(lastCard && isAttack(lastCard));
+  if (plan.kind === "numbered-attack-power") return phase === "player-yell" && board.attacksThisTurn === plan.attackNumber - 1 && beltAtLeast(board, plan.minBelt);
+  return false;
+}
+
+function equipmentActivationSummary(card: CardEntry) {
+  const plan = equipmentActivationPlan(card);
+  if (!plan) return "Unsupported activation";
+  if (plan.kind === "initiate-tempo-focus") return `Tempo ready · +${plan.focus} Focus`;
+  if (plan.kind === "after-kata-focus") return `Kata resolved · +${plan.focus} Focus`;
+  if (plan.kind === "first-hit-discard-focus") return `First Attack Hit · discard ${plan.discard} → +${plan.focus} Focus`;
+  if (plan.kind === "hit-direct-damage") return `Attack Hit · ${plan.damage} direct damage`;
+  if (plan.kind === "hit-next-initiate-focus") return `Attack Hit · +${plan.focus} Focus next Initiate`;
+  if (plan.kind === "numbered-attack-power") return `Attack ${plan.attackNumber} · +${plan.power} Attack Power`;
+  if (plan.kind === "next-attack-power") return `Next Attack +${plan.power} Attack Power`;
+  if (plan.kind === "zone-attack") return `Choose a zone · ${plan.piercing ? `Piercing ${plan.piercing}` : `+${plan.power} Attack Power`}`;
+  if (plan.kind === "speed-cycle") return `+${plan.speed} Speed${plan.draw ? ` · Tempo cycles ${plan.draw}` : ""}`;
+  if (plan.kind === "incoming-zone-penalty") return `Call a zone · -${plan.attackPowerPenalty} Attack Power on a match`;
+  if (plan.kind === "defense-guard") return `Your Defense gets +${plan.guard} Guard${plan.reversalPower ? " · Green+ Block boosts Reversal" : ""}`;
+  return "Printed Equipment activation";
+}
+
+function applyMandatoryEquipmentDamageReduction(board: Board, damage: number) {
+  let next = board;
+  let remaining = damage;
+  const notes: string[] = [];
+  if (remaining <= 0) return { board: next, damage: remaining, notes };
+  for (const id of board.equipment) {
+    if (isEquipmentExhausted(next, id)) continue;
+    const card = cardFor(id);
+    const plan = card ? mandatoryDamageReductionEquipment(card) : null;
+    if (!card || !plan || remaining <= 0) continue;
+    next = exhaustEquipment(next, id);
+    if (plan.readyAtInitiate) next = { ...next, readyAtInitiate: [...new Set([...(next.readyAtInitiate ?? []), id])] };
+    remaining = Math.max(0, remaining - plan.reduce);
+    notes.push(`${card.name} reduces damage by ${plan.reduce} and exhausts`);
+  }
+  return { board: next, damage: remaining, notes };
+}
+
+function autoTriggerAiAfterKataEquipment(board: Board) {
+  let next = board;
+  const notes: string[] = [];
+  for (const id of board.equipment) {
+    if (isEquipmentExhausted(next, id)) continue;
+    const card = cardFor(id);
+    const plan = card ? equipmentActivationPlan(card) : null;
+    if (!card || !plan || plan.kind !== "after-kata-focus") continue;
+    next = exhaustEquipment(next, id);
+    next = { ...next, focus: next.focus + plan.focus };
+    notes.push(`${card.name} exhausts after the Kata for +${plan.focus} Focus`);
+  }
+  return { board: next, notes };
+}
+
+function autoTriggerAiAfterAttackEquipment(board: Board, target: Board, hit: boolean) {
+  let attacker: Board = { ...board, lastAttackHit: hit };
+  let defender = target;
+  const notes: string[] = [];
+  if (!hit) return { attacker, target: defender, notes };
+  for (const id of board.equipment) {
+    if (isEquipmentExhausted(attacker, id)) continue;
+    const card = cardFor(id);
+    const plan = card ? equipmentActivationPlan(card) : null;
+    if (!card || !plan) continue;
+    if (plan.kind === "first-hit-discard-focus" && attacker.attacksThisTurn === 1 && attacker.hand.length >= plan.discard) {
+      attacker = exhaustEquipment(attacker, id);
+      const ranked = [...attacker.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right)));
+      const discarded = ranked.slice(0, plan.discard);
+      attacker = { ...attacker, hand: attacker.hand.filter((candidate) => !discarded.includes(candidate)), discard: [...attacker.discard, ...discarded], focus: attacker.focus + plan.focus };
+      notes.push(`${card.name} exhausts; computer discards ${plan.discard} and gains ${plan.focus} Focus`);
+    } else if (plan.kind === "hit-direct-damage") {
+      attacker = exhaustEquipment(attacker, id);
+      defender = { ...defender, hp: Math.max(0, defender.hp - plan.damage), damageTaken: defender.damageTaken + plan.damage };
+      attacker = { ...attacker, damageDealt: attacker.damageDealt + plan.damage };
+      notes.push(`${card.name} exhausts for ${plan.damage} direct damage`);
+    } else if (plan.kind === "hit-next-initiate-focus") {
+      attacker = exhaustEquipment(attacker, id);
+      attacker = { ...attacker, nextInitiateFocus: (attacker.nextInitiateFocus ?? 0) + plan.focus };
+      notes.push(`${card.name} exhausts; +${plan.focus} Focus scheduled for next Initiate`);
+    }
+  }
+  return { attacker, target: defender, notes };
+}
+
 function armedEquipmentAttackModifier(board: Board, zone: string) {
   const plan = board.equipmentAttackPlan;
   if (!plan) return { power: 0, piercing: 0, blockedFocus: 0, notes: [] as string[] };
@@ -444,6 +560,13 @@ function autoActivateAiAttackEquipment(board: Board, zone: string) {
       notes.push(`${card.name} exhausts for +${plan.power} Attack Power`);
       continue;
     }
+    if (plan.kind === "numbered-attack-power") {
+      if (next.attacksThisTurn !== plan.attackNumber - 1 || !beltAtLeast(next, plan.minBelt)) continue;
+      next = exhaustEquipment(next, id);
+      power += plan.power;
+      notes.push(`${card.name} exhausts for Attack ${plan.attackNumber}: +${plan.power} Attack Power`);
+      continue;
+    }
     if (plan.kind === "zone-attack") {
       const previousZone = next.zonesPlayed.at(-1);
       if (plan.requireDifferentPreviousZone && (!previousZone || previousZone.toLocaleLowerCase() === zone.toLocaleLowerCase())) continue;
@@ -464,7 +587,15 @@ function autoActivateAiTurnEquipment(board: Board) {
     if (isEquipmentExhausted(next, id)) continue;
     const card = cardFor(id);
     const plan = card ? equipmentActivationPlan(card) : null;
-    if (!card || !plan || plan.kind !== "speed-cycle") continue;
+    if (!card || !plan) continue;
+    if (plan.kind === "initiate-tempo-focus") {
+      if (!next.tempo) continue;
+      next = exhaustEquipment(next, id);
+      next = { ...next, focus: next.focus + plan.focus };
+      notes.push(`${card.name} exhausts at Initiate for +${plan.focus} Focus`);
+      continue;
+    }
+    if (plan.kind !== "speed-cycle") continue;
     next = exhaustEquipment(next, id);
     next = { ...next, tempSpeed: next.tempSpeed + plan.speed, speedChangedThisRound: true };
     notes.push(`${card.name} exhausts for +${plan.speed} Speed`);
@@ -539,11 +670,20 @@ function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry
 }
 
 function reduceDamageForFighter(board: Board, damage: number): { board: Board; damage: number; note: string | null } {
-  const fighter = cardFor(board.fighterId);
-  if (!fighter || board.damageReductionUsed || damage <= 0) return { board, damage, note: null };
-  const protects = fighter.name === "Sentry Bobby" || (fighter.name === "Crash Test Dummy" && damage >= 4);
-  if (!protects) return { board, damage, note: null };
-  return { board: { ...board, damageReductionUsed: true }, damage: Math.max(0, damage - 1), note: `${fighter.name} reduces the Hit by 1` };
+  const equipmentReduction = applyMandatoryEquipmentDamageReduction(board, damage);
+  let next = equipmentReduction.board;
+  let remaining = equipmentReduction.damage;
+  const notes = [...equipmentReduction.notes];
+  const fighter = cardFor(next.fighterId);
+  if (fighter && !next.damageReductionUsed && remaining > 0) {
+    const protects = fighter.name === "Sentry Bobby" || (fighter.name === "Crash Test Dummy" && remaining >= 4);
+    if (protects) {
+      next = { ...next, damageReductionUsed: true };
+      remaining = Math.max(0, remaining - 1);
+      notes.push(`${fighter.name} reduces the Hit by 1`);
+    }
+  }
+  return { board: next, damage: remaining, note: notes.length ? notes.join("; ") : null };
 }
 
 function drawCards(board: Board, count: number) {
@@ -724,7 +864,7 @@ function destroyResolvedConsumable(board: Board, card: CardEntry) {
 function emptyBoard(fighterId: string): Board {
   return drawCards({
     fighterId, hp: gameDefinition.mode.startingHp, maxHp: gameDefinition.mode.startingHp, xp: 0, focus: 0, belt: 0,
-    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0,
+    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, nextInitiateFocus: 0, readyAtInitiate: [], lastAttackHit: false,
     tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false,
     defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
     damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false,
@@ -1119,11 +1259,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       if (!current || current.winner || current.pendingChoice || !current.player.equipment.includes(id) || isEquipmentExhausted(current.player, id)) return current;
       const card = cardFor(id);
       const plan = card ? equipmentActivationPlan(card) : null;
-      if (!card || !plan) return current;
-      if ((plan.kind === "next-attack-power" || plan.kind === "zone-attack") && current.phase !== "player-yell") return current;
-      if (plan.kind === "speed-cycle" && current.phase !== "player-initiate" && current.phase !== "player-yell") return current;
-      if ((plan.kind === "incoming-zone-penalty" || plan.kind === "defense-guard") && current.phase !== "defense-window") return current;
+      if (!card || !plan || !equipmentActivationAvailable(current.player, card, current.phase)) return current;
       let player = exhaustEquipment(current.player, id);
+      let ai = current.ai;
+      let winner: Match["winner"] = current.winner;
       let pendingChoice: PendingChoice | null = null;
       let note = `${card.name} exhausted.`;
       if (plan.kind === "next-attack-power") {
@@ -1153,8 +1292,25 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           pendingReversalBonusOnBlock: (player.pendingReversalBonusOnBlock ?? 0) + reversalPower,
         };
         note += ` Your next Defense in this Reaction Window gets +${plan.guard} Guard.${reversalPower ? ` A Block primes the Reversal for +${reversalPower} Attack Power.` : ""}`;
+      } else if (plan.kind === "initiate-tempo-focus" || plan.kind === "after-kata-focus") {
+        player = { ...player, focus: player.focus + plan.focus };
+        note += ` +${plan.focus} Focus.`;
+      } else if (plan.kind === "first-hit-discard-focus") {
+        pendingChoice = { kind: "discard-hand", sourceCardId: id, remaining: Math.min(plan.discard, player.hand.length) };
+        note += ` Choose ${plan.discard} card${plan.discard === 1 ? "" : "s"} to discard; completing the cost gains ${plan.focus} Focus.`;
+      } else if (plan.kind === "hit-direct-damage") {
+        ai = { ...ai, hp: Math.max(0, ai.hp - plan.damage), damageTaken: ai.damageTaken + plan.damage };
+        player = { ...player, damageDealt: player.damageDealt + plan.damage, xp: ai.hp - plan.damage <= 0 ? player.xp + 2 : player.xp };
+        winner = ai.hp ? winner : "player";
+        note += ` ${plan.damage} direct damage to ${cardFor(ai.fighterId)?.name ?? "the opponent"}.`;
+      } else if (plan.kind === "hit-next-initiate-focus") {
+        player = { ...player, nextInitiateFocus: (player.nextInitiateFocus ?? 0) + plan.focus };
+        note += ` +${plan.focus} Focus scheduled for your next Initiate.`;
+      } else if (plan.kind === "numbered-attack-power") {
+        player = { ...player, nextAttackBonus: player.nextAttackBonus + plan.power };
+        note += ` Attack ${plan.attackNumber} gets +${plan.power} Attack Power.`;
       }
-      return write(current, note, { player, pendingChoice });
+      return write(current, note, { player, ai, pendingChoice, winner });
     });
   };
 
@@ -1205,7 +1361,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
     const reduced = reduceDamageForFighter(aiDefenseReaction.board, rawDamage);
     const damage = reduced.damage;
-    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
+    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage, lastAttackHit: hit }, card, "player");
     const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
     if (flowDraw) nextPlayer = drawCards({ ...nextPlayer, flowUsedThisTurn: true }, 1);
     if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
@@ -1249,7 +1405,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const card = cardFor(id);
     if (!card || isAttack(card) || isDefense(card) || isPermanent(card)) return current;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, current.player);
-    let nextPlayer = markCompletedTask(applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value }, card, "player"));
+    let nextPlayer = markCompletedTask(applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value, lastAttackHit: false }, card, "player"));
     const destroyedAfterUse = destroysAfterUse(card);
     if (destroyedAfterUse) nextPlayer = destroyResolvedConsumable(nextPlayer, card);
     const pendingDiscard = null;
@@ -1386,6 +1542,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       playArea: [...current.player.playArea, id],
       focus: current.player.focus + cardFocus(card),
       defensePracticeUsed: true,
+      lastAttackHit: false,
     };
     return write(current, `${card.name} used for Defense Practice: +${cardFocus(card)} printed Focus. No Guard, rules text, XP, Combo, or Belt credit applies.`, { player: nextPlayer });
   });
@@ -1497,9 +1654,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     nextPlayer = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit, damageTaken: reduced.board.damageTaken + damage };
     const targetDebuff = hit ? applyTargetHitDebuffs(nextPlayer, aiCard) : { board: nextPlayer, notes: [] as string[] };
     nextPlayer = { ...targetDebuff.board, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: (targetDebuff.board.reversalAttackBonus ?? 0) + reversalEquipmentBonus };
-    let nextAi = markCompletedTask({ ...current.ai, damageDealt: current.ai.damageDealt + damage, hitThisTurn: current.ai.hitThisTurn || hit });
+    let nextAi = markCompletedTask({ ...current.ai, damageDealt: current.ai.damageDealt + damage, hitThisTurn: current.ai.hitThisTurn || hit, lastAttackHit: hit });
     nextAi = applyCardEffects(nextAi, aiCard, "ai", hit ? "onHit" : "afterResolve");
     if (hit) nextAi = applyCardEffects(nextAi, aiCard, "ai", "afterResolve");
+    const aiTriggeredEquipment = autoTriggerAiAfterAttackEquipment(nextAi, nextPlayer, hit);
+    nextAi = aiTriggeredEquipment.attacker;
+    nextPlayer = aiTriggeredEquipment.target;
     if (!hit && pending.blockedFocus) nextAi.focus += pending.blockedFocus;
     if (hit && readyEquipmentOnHit(aiCard) && (nextAi.exhaustedEquipment ?? []).length) nextAi = readyEquipment(nextAi, (nextAi.exhaustedEquipment ?? [])[0]);
     if (defenseCard) {
@@ -1512,7 +1672,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : defenseCard
         ? `${defenseCard.name} blocks ${aiCard.name} and is discarded. Attack ${pending.attackPower} vs Defense ${defensePower}.`
         : `No Defense card was played; your standing DEF/Equipment blocks ${aiCard.name}. Attack ${pending.attackPower} vs Defense ${defensePower}.`;
-    const modifiers = [...(pending.modifierNotes ?? []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...targetDebuff.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...targetDebuff.notes, ...aiTriggeredEquipment.notes, ...(reduced.note ? [reduced.note] : [])];
     const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " : ""}${message}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingStrike: null, winner: nextPlayer.hp ? null : "ai" });
     if (!nextPlayer.hp) return resolved;
     const reversalAttacks = nextPlayer.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
@@ -1595,6 +1755,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         const plan = equipmentActivationPlan(card);
         return plan?.kind === "incoming-zone-penalty" || plan?.kind === "defense-guard";
       })
+    : [];
+  const equipmentActions = (match.phase === "player-initiate" || match.phase === "player-yell")
+    ? player.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && equipmentActivationAvailable(player, card, match.phase)))
     : [];
   const pendingChoiceOptions = match.pendingChoice?.kind === "destroy-junk"
     ? [
@@ -1745,7 +1908,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       <section className="hand-panel paper-stack">
         <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.pendingDiscard ? `Choose ${match.pendingDiscard.remaining} card to discard` : match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks played {player.attacksThisTurn}</span><span>Flow {player.flowUsedThisTurn ? "used" : "ready"}</span><span>Practice {player.defensePracticeUsed ? "used" : "ready"}</span></div></header>
         {match.pendingDiscard && <div className="discard-choice-notice" role="status"><b>{cardFor(match.pendingDiscard.sourceCardId)?.name}</b><span>Select the card you want to discard. The engine will not choose for you.</span></div>}
-        {equipmentReactions.length > 0 && <div className="equipment-reaction-strip" aria-label="Available Equipment reactions"><span>Equipment reactions</span>{equipmentReactions.map((item) => { const plan = equipmentActivationPlan(item)!; return <button type="button" disabled={Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)} key={item.id}><b>Exhaust {item.name}</b><small>{plan.kind === "incoming-zone-penalty" ? `Call a zone · -${plan.attackPowerPenalty} Attack Power on a match` : plan.kind === "defense-guard" ? `Your Defense gets +${plan.guard} Guard${plan.reversalPower ? " · Green+ Block boosts Reversal" : ""}` : "Unsupported activation"}</small></button>; })}</div>}
+        {equipmentReactions.length > 0 && <div className="equipment-reaction-strip" aria-label="Available Equipment reactions"><span>Equipment reactions</span>{equipmentReactions.map((item) => <button type="button" disabled={Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)} key={item.id}><b>Exhaust {item.name}</b><small>{equipmentActivationSummary(item)}</small></button>)}</div>}
+        {equipmentActions.length > 0 && <div className="equipment-reaction-strip equipment-trigger-strip" aria-label="Available Equipment actions"><span>Equipment actions</span>{equipmentActions.map((item) => <button type="button" disabled={Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)} key={item.id}><b>Exhaust {item.name}</b><small>{equipmentActivationSummary(item)}</small></button>)}</div>}
         <div className="play-card-row">{player.hand.map((id, index) => {
           const card = cardFor(id); if (!card) return null;
           const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card);
@@ -1920,7 +2084,11 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
   const nextAi = playAreaCleanup(aiAfterPurchase);
   const purchaseLog = purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing.";
   const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
-  if (current.turnIndex === 0) return { ...finished, phase: "player-initiate" as const, turnIndex: 1 as const, log: ["You are second in this round's initiative order. Initiate begins now.", ...finished.log].slice(0, 32) };
+  if (current.turnIndex === 0) {
+    const player = applyInitiateCarryover(finished.player);
+    const carryover = player.focus - finished.player.focus;
+    return { ...finished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...finished.log].slice(0, 32) };
+  }
   return advanceRound(finished, sceneChanges, "Both fighters have completed the round.");
 }
 
@@ -1928,20 +2096,22 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string) {
   const nextRound = current.round + 1;
   const freshLocations = current.locations.length ? current.locations : shuffle(quickDuelLocationPool.map((card) => card.id));
   const locationId = sceneChanges ? freshLocations[0] ?? current.locationId : current.locationId;
-  const player = { ...current.player, xp: current.player.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
-  const ai = { ...current.ai, xp: current.ai.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
+  const player = { ...current.player, xp: current.player.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
+  const ai = { ...current.ai, xp: current.ai.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] };
   const marketState = current.marketPurchasedThisRound
     ? { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard }
     : refreshMarketRow(current.market, current.marketDeck, current.marketDiscard);
   const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
+  const initiatedPlayer = playerFirst ? applyInitiateCarryover(player) : player;
   const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
   const marketNote = current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
-  return { ...current, ...marketState, player, ai, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
+  return { ...current, ...marketState, player: initiatedPlayer, ai, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
 }
 
 function prepareAiTurn(current: Match) {
   const fighter = cardFor(current.ai.fighterId);
-  const turnEquipment = autoActivateAiTurnEquipment(current.ai);
+  const initiatedAi = applyInitiateCarryover(current.ai);
+  const turnEquipment = autoActivateAiTurnEquipment(initiatedAi);
   const aiStart = turnEquipment.board;
   const practiceId = aiStart.defensePracticeUsed ? undefined : aiStart.hand
     .filter((id) => { const card = cardFor(id); return Boolean(card && isDefense(card)); })
@@ -1959,12 +2129,18 @@ function prepareAiTurn(current: Match) {
   });
   if (!supportIds.length && !practiceId && !turnEquipment.notes.length) return current;
   const played: string[] = [];
+  const triggeredEquipment: string[] = [];
   let nextPlayer = current.player;
   for (const id of supportIds) {
     const card = cardFor(id);
     if (!card) continue;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, nextAi);
-    nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value }, card, "ai");
+    nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai");
+    if (isKata(card)) {
+      const kataEquipment = autoTriggerAiAfterKataEquipment(nextAi);
+      nextAi = kataEquipment.board;
+      triggeredEquipment.push(...kataEquipment.notes);
+    }
     nextAi = resolveAiDeckLook(nextAi, card);
     if (destroysAfterUse(card)) nextAi = destroyResolvedConsumable(nextAi, card);
     const defensePenalty = targetNextDefensePenalty(card);
@@ -1973,6 +2149,7 @@ function prepareAiTurn(current: Match) {
   }
   const preparations = [
     ...turnEquipment.notes,
+    ...triggeredEquipment,
     ...(practiceId ? [`Defense Practice with ${cardFor(practiceId)?.name}`] : []),
     ...played,
   ];
