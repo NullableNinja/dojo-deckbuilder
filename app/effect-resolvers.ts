@@ -404,3 +404,17 @@ export function mandatoryDamageReductionEquipment(card: EffectCardLike) {
   const match = text.match(/The first time you take damage each round, reduce that damage by (\d+); then exhaust this card\. Ready it during your next Initiate Phase/i);
   return match ? { reduce: Number(match[1]), readyAtInitiate: true } : null;
 }
+
+export function optionalCombatDamageReductionEquipment(card: EffectCardLike) {
+  const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
+  const match = text.match(/The first time you take combat damage each round, you may exhaust this to reduce that damage by (\d+)\. At ([A-Za-z]+) Belt or higher, ready it at Hide if that damage was (\d+) or more/i);
+  if (!match) return null;
+  return { reduce: Number(match[1]), readyAtHideMinBelt: match[2], readyAtHideMinDamage: Number(match[3]) };
+}
+
+export function postBlockEquipmentCycle(card: EffectCardLike) {
+  const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
+  const match = text.match(/At ([A-Za-z]+) Belt or higher, after you Block a (High|Mid|Low) Attack, you may exhaust this to draw (\d+) cards?, then discard (\d+) cards?/i);
+  if (!match) return null;
+  return { minBelt: match[1], zone: match[2], draw: Number(match[3]), discard: Number(match[4]) };
+}
