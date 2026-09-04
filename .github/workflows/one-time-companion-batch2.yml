@@ -1,0 +1,29 @@
+name: One-time companion batch two
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/one-time-companion-batch2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply patch
+        run: python scripts/one_time_companion_batch2.py
+      - name: Clean temporary files
+        run: rm scripts/one_time_companion_batch2.py .github/workflows/one-time-companion-batch2.yml
+      - name: Commit batch two
+        run: |
+          git config user.name "NullableNinja Site Automation"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add -A
+          git commit -m "Lazy load Quick Duel and brand pending artwork"
+          git push origin HEAD:main
