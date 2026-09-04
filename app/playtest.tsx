@@ -8,6 +8,7 @@ import rulesJson from "./data/rules.json";
 import { compileCardEffects, describeEffectPlan } from "./card-effects";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import "./combo-rack.css";
+import "./playtest-board-v4.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 
 type CardEntry = {
@@ -542,14 +543,53 @@ function StatGlyph({ stat }: { stat: "HP" | "XP" | "FP" | "ATK" | "DEF" | "SPD" 
   return <svg className={`fighter-stat-glyph stat-${stat.toLocaleLowerCase()}`} viewBox="0 0 24 24" aria-hidden="true">{paths[stat]}</svg>;
 }
 
+const LOADOUT_SLOTS = ["Head", "Chest", "Arms", "Legs", "Feet", "Accessory", "Hands"] as const;
+
+function equipmentSlotLabel(card: CardEntry) {
+  const raw = String(card.details?.Slot ?? "").trim();
+  if (/hand/i.test(raw) || isWeapon(card)) return "Hands";
+  const named = LOADOUT_SLOTS.find((slot) => slot.toLocaleLowerCase() === raw.toLocaleLowerCase());
+  if (named) return named;
+  if (/head|helmet|hat/i.test(`${raw} ${card.name}`)) return "Head";
+  if (/chest|body|torso/i.test(`${raw} ${card.name}`)) return "Chest";
+  if (/arm|bracer|glove/i.test(`${raw} ${card.name}`)) return "Arms";
+  if (/leg|shin|knee/i.test(`${raw} ${card.name}`)) return "Legs";
+  if (/feet|foot|shoe|boot/i.test(`${raw} ${card.name}`)) return "Feet";
+  return "Accessory";
+}
+
 function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void }) {
   const fighter = cardFor(board.fighterId)!;
   const art = artistUrl(fighter);
-  return <section className={`fighter-panel paper-stack ${enemy ? "is-enemy" : ""}`}>
-    <div className="fighter-panel-art">{art ? <img src={art} alt={fighter.name} /> : <img src={cardPlaceholderUrl} alt="" />}</div>
-    <div className="fighter-panel-copy"><span>{label} · {belts[board.belt].name} Belt</span><button onClick={() => onInspect(fighter)}>{fighter.name}</button><p>{fighter.rulesText}</p><div className="fighter-hp-track" aria-label={`${fighter.name} has ${board.hp} of ${board.maxHp} hit points`}><span style={{ width: `${Math.max(0, Math.min(100, board.hp / board.maxHp * 100))}%` }} /></div></div>
-    <div className="fighter-stats"><b><StatGlyph stat="HP" /><small>HP</small><span>{board.hp}/{board.maxHp}</span></b><b><StatGlyph stat="XP" /><small>XP</small><span>{board.xp}</span></b><b><StatGlyph stat="FP" /><small>FP</small><span>{board.focus}</span></b><b><StatGlyph stat="ATK" /><small>ATK</small><span>{fighterStat(board, "ATK")}</span></b><b><StatGlyph stat="DEF" /><small>DEF</small><span>{fighterStat(board, "DEF")}</span></b><b><StatGlyph stat="SPD" /><small>SPD</small><span>{fighterStat(board, "Speed")}</span></b></div>
-    {board.equipment.length > 0 && <div className="fighter-equipment-rack" aria-label={`${fighter.name} equipped cards`}><span>Equipped</span>{board.equipment.map((id, index) => { const card = cardFor(id); if (!card) return null; return <button type="button" onClick={() => onInspect(card)} title={`${card.name} · ${card.subtype}`} key={`${id}-${index}`}>{artistUrl(card) ? <img src={artistUrl(card)} alt="" /> : <b>{card.name.slice(0, 2)}</b>}<small>{card.name}</small></button>; })}</div>}
+  return <section className={`fighter-panel fighter-dossier paper-stack ${enemy ? "is-enemy" : ""}`}>
+    <button type="button" className="fighter-panel-art" onClick={() => onInspect(fighter)} aria-label={`Open ${fighter.name} fighter dossier`}>
+      {art ? <img src={art} alt={fighter.name} /> : <img src={cardPlaceholderUrl} alt="" />}
+      <span>Inspect</span>
+    </button>
+    <div className="fighter-panel-copy">
+      <span>{label} · {belts[board.belt].name} Belt</span>
+      <button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button>
+      <p>{fighter.rulesText}</p>
+      <div className="fighter-resource-strip"><b>{board.xp}<small>XP</small></b><b>{board.focus}<small>FP</small></b></div>
+    </div>
+    <div className="fighter-stats fighter-stats--combat" aria-label={`${fighter.name} combat statistics`}>
+      <b><StatGlyph stat="ATK" /><small>ATK</small><span>{fighterStat(board, "ATK")}</span></b>
+      <b><StatGlyph stat="DEF" /><small>DEF</small><span>{fighterStat(board, "DEF")}</span></b>
+      <b><StatGlyph stat="SPD" /><small>SPD</small><span>{fighterStat(board, "Speed")}</span></b>
+    </div>
+    <button type="button" className="fighter-loadout-launch" onClick={() => onInspect(fighter)}><span>Fighter & loadout</span><b>{board.equipment.length}</b><small>equipped</small></button>
+  </section>;
+}
+
+function LearnedComboRack({ states, onInspect }: { states: { combo: CardEntry; evaluation: ReturnType<typeof evaluateCombo> | null; triggered: boolean }[]; onInspect: (card: CardEntry) => void }) {
+  if (!states.length) return null;
+  return <section className="active-combo-rack fighter-combo-rack" aria-label="Learned Combos">
+    <header><span>∞ Learned Combos</span><small>Face up · always watching</small></header>
+    <div className="active-combo-grid">{states.map(({ combo, evaluation, triggered }) => {
+      const state = triggered ? "is-triggered" : evaluation?.eligible ? "is-ready" : evaluation && !evaluation.supported ? "is-manual" : "";
+      const status = triggered ? "Triggered" : evaluation?.eligible ? "Will trigger" : evaluation && !evaluation.supported ? "Manual resolver" : "Watching";
+      return <button type="button" className={`active-combo-card ${state}`} onClick={() => onInspect(combo)} key={combo.id}><i aria-hidden="true">∞</i><b>{combo.name}</b><span>{comboRequirementText(combo)}</span><small>{status}</small></button>;
+    })}</div>
   </section>;
 }
 
@@ -965,6 +1005,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const nextBelt = belts[player.belt + 1];
   const canPromote = Boolean(nextBelt && player.xp >= nextBelt.xp && playerTask);
   const defenseOptions = match.pendingStrike ? legalDefenseIds(player, match.pendingStrike.zone) : [];
+  const inspectedBoard = inspected
+    ? inspected.id === player.fighterId ? player : inspected.id === ai.fighterId ? ai : null
+    : null;
   const learnedComboStates = player.learnedCombos.map((id) => {
     const combo = cardFor(id);
     if (!combo) return null;
@@ -1026,9 +1069,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     <section className="playtest-location paper-stack"><span>Current stage · Honor {match.round}</span><div><h2>{currentLocation?.name ?? "Tournament Mat"}</h2><p>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</p></div><button onClick={() => currentLocation && setInspectedId(currentLocation.id)}>Inspect</button></section>
     <section className="playtest-table">
       <BattleCallout line={match.log[0]} />
-      <FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} />
+      <div className="fighter-column fighter-column--player"><FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} /><LearnedComboRack states={learnedComboStates} onInspect={(card) => setInspectedId(card.id)} /></div>
       <section className={`playtest-combat-desk paper-stack state-${match.phase}`}>
-        {learnedComboStates.length > 0 && <section className="active-combo-rack" aria-label="Learned Combos"><header><span>∞ Learned Combos · face up</span><small>The digital field test fires supported payoffs automatically when the requirement completes.</small></header><div className="active-combo-grid">{learnedComboStates.map(({ combo, evaluation, triggered }) => { const state = triggered ? "is-triggered" : evaluation?.eligible ? "is-ready" : evaluation && !evaluation.supported ? "is-manual" : ""; const status = triggered ? "Triggered this round" : evaluation?.eligible ? "WILL TRIGGER on selected Attack" : evaluation && !evaluation.supported ? "Manual resolver pending" : "Watching your sequence"; return <button type="button" className={`active-combo-card ${state}`} onClick={() => setInspectedId(combo.id)} key={combo.id}><i aria-hidden="true">∞</i><b>{combo.name}</b><span>{comboRequirementText(combo)}</span><small>{status}</small></button>; })}</div></section>}
         <div className="live-mat-heading"><span className="eyebrow">Live mat · cards in play</span><small>Click any filed card to inspect it</small></div>
         <div className="live-mat-play">
           <MatLane label="Your side" cards={player.playArea} activeId={match.selectedAttackId} onInspect={(card) => setInspectedId(card.id)} />
@@ -1049,7 +1091,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary" onClick={runAiTurn}>Run computer turn →</button>}
         {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}
       </section>
-      <FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} />
+      <div className="fighter-column fighter-column--enemy"><FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} /></div>
     </section>
     </section>
     <section className="playtest-workspace playtest-workspace--hand">
@@ -1124,7 +1166,24 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       </section>
     </div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><ol>{match.log.map((line, index) => <li key={`${line}-${index}`}><b>{match.log.length - index}</b><span>{line}</span></li>)}</ol></section></div>}
-    {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}><article className={`playtest-inspector paper-stack ${inspectorZoomed ? "is-zoomed" : ""}`} role="dialog" aria-modal="true" aria-labelledby="playtest-inspector-title"><button className="modal-close" onClick={() => setInspectedId(null)} aria-label="Close Card Inspector">×</button><div className="inspector-heading"><button type="button" className="inspector-card-visual" onClick={() => setInspectorZoomed((current) => !current)} aria-label={`${inspectorZoomed ? "Reduce" : "Magnify"} ${inspected.name}`}>{artistUrl(inspected) ? <img src={artistUrl(inspected)} alt={inspected.name} /> : <NativeCardArt card={inspected} />}<span>{inspectorZoomed ? "Reduce card" : "Click to magnify"}</span></button><div><span className="eyebrow">{inspected.catalogId} · {inspected.cardType} · {inspected.subtype}</span><h2 id="playtest-inspector-title">{inspected.name}</h2><p>{inspected.flavorText}</p></div></div><dl><div><dt>Focus Cost</dt><dd>{inspected.fpCost ?? "—"}</dd></div><div><dt>Focus Value</dt><dd>{inspected.focusValue ?? "—"}</dd></div><div><dt>Zone</dt><dd>{inspected.zone ?? "—"}</dd></div><div><dt>Timing</dt><dd>{inspected.timing ?? "—"}</dd></div></dl><section><span>Printed rules text</span><p>{inspected.rulesText ?? "No printed rules text."}</p></section><footer>{cardEffectNote(inspected)} The Card Library remains the source of truth for the complete catalog record. Press Escape to close.</footer></article></div>}
+    {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
+      <article className={`playtest-inspector paper-stack ${inspectorZoomed ? "is-zoomed" : ""} ${inspectedBoard ? "is-fighter-dossier" : ""}`} role="dialog" aria-modal="true" aria-labelledby="playtest-inspector-title">
+        <button className="modal-close" onClick={() => setInspectedId(null)} aria-label="Close Card Inspector">×</button>
+        <div className="inspector-heading">
+          <button type="button" className="inspector-card-visual" onClick={() => setInspectorZoomed((current) => !current)} aria-label={`${inspectorZoomed ? "Reduce" : "Magnify"} ${inspected.name}`}>
+            {artistUrl(inspected) ? <img src={artistUrl(inspected)} alt={inspected.name} /> : <NativeCardArt card={inspected} />}
+            <span>{inspectorZoomed ? "Return to dossier" : "Click card to zoom"}</span>
+          </button>
+          <div className="inspector-copy"><span className="eyebrow">{inspected.catalogId} · {inspected.cardType} · {inspected.subtype}</span><h2 id="playtest-inspector-title">{inspected.name}</h2><p>{inspected.flavorText}</p></div>
+        </div>
+        {inspectedBoard ? <dl className="fighter-inspector-stats">
+          <div><dt>ATK</dt><dd>{fighterStat(inspectedBoard, "ATK")}</dd></div><div><dt>DEF</dt><dd>{fighterStat(inspectedBoard, "DEF")}</dd></div><div><dt>SPD</dt><dd>{fighterStat(inspectedBoard, "Speed")}</dd></div><div><dt>XP</dt><dd>{inspectedBoard.xp}</dd></div><div><dt>Focus</dt><dd>{inspectedBoard.focus}</dd></div><div><dt>Belt</dt><dd>{belts[inspectedBoard.belt].name}</dd></div>
+        </dl> : <dl><div><dt>Focus Cost</dt><dd>{inspected.fpCost ?? "—"}</dd></div><div><dt>Focus Value</dt><dd>{inspected.focusValue ?? "—"}</dd></div><div><dt>Zone</dt><dd>{inspected.zone ?? "—"}</dd></div><div><dt>Timing</dt><dd>{inspected.timing ?? "—"}</dd></div></dl>}
+        <section className="inspector-rules"><span>Printed rules text</span><p>{inspected.rulesText ?? "No printed rules text."}</p></section>
+        {inspectedBoard && <section className="inspector-loadout"><header><div><span className="eyebrow">Current equipment</span><h3>Fighter loadout</h3></div><small>{inspectedBoard.equipment.length} equipped card{inspectedBoard.equipment.length === 1 ? "" : "s"}</small></header><div className="inspector-loadout-grid">{LOADOUT_SLOTS.map((slot) => { const equipped = inspectedBoard.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && equipmentSlotLabel(card) === slot)); return <article className={`equipment-slot ${equipped.length ? "is-filled" : ""}`} key={slot}><span>{slot}</span>{equipped.length ? <div>{equipped.map((item, index) => <button type="button" onClick={() => setInspectedId(item.id)} key={`${item.id}-${index}`}><span className="equipment-slot-art">{artistUrl(item) ? <img src={artistUrl(item)} alt="" /> : <NativeCardArt card={item} />}</span><b>{item.name}</b><small>{item.details?.Slot ? String(item.details.Slot) : item.subtype}</small></button>)}</div> : <em>Empty</em>}</article>; })}</div></section>}
+        <footer>{inspectedBoard ? "Click an equipped card to inspect it. " : `${cardEffectNote(inspected)} `}Click the card image to magnify it. Press Escape to close.</footer>
+      </article>
+    </div>}
   </main>;
 }
 
