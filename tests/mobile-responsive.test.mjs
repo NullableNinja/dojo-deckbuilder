@@ -82,3 +82,18 @@ test("the paper interface makes scrolling and progress visible", async () => {
   assert.match(css, /scrollbar-color: var\(--red\) var\(--paper-deep\)/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
 });
+
+
+test("public companion keeps downloads out of the visitor experience and renumbers mobile routes", async () => {
+  const [app, css] = await Promise.all([
+    readFile(appUrl, "utf8"),
+    readFile(cssUrl, "utf8"),
+  ]);
+  assert.doesNotMatch(app, /className="download-row"/);
+  assert.doesNotMatch(app, />Download (?:Quick Start|Full Rules|Card Catalog|Glossary)/);
+  assert.doesNotMatch(app, />Defense Equipment sources \(\.ora\.zip\)/);
+  assert.doesNotMatch(app, />Consumable sources \(\.ora\.zip\)/);
+  assert.match(app, /detail: "Return to the Dojo Desk\."/);
+  assert.match(css, /counter-reset: mobile-route/);
+  assert.match(css, /counter-increment: mobile-route/);
+});

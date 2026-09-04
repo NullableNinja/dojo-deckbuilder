@@ -2718,3 +2718,15 @@ body,
     overflow: visible;
   }
 }
+
+
+/* Mobile route cards renumber after the desktop-only Play route is hidden. */
+@media (max-width: 840px) {
+  .route-grid { counter-reset: mobile-route; }
+  .route-grid .route-card:not(.route-playtest) { counter-increment: mobile-route; }
+  .route-grid .route-card:not(.route-playtest) > span { font-size: 0; }
+  .route-grid .route-card:not(.route-playtest) > span::after {
+    content: "0" counter(mobile-route);
+    font-size: 14px;
+  }
+}
