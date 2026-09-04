@@ -13,7 +13,7 @@
     "engine:local": "node engine/cli.mjs local",
     "engine:ai": "node engine/cli.mjs ai",
     "simulate": "node engine/simulate.mjs",
-    "test": "npm run build && node --test tests/*.test.mjs"
+    "test": "npm run build && node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
     "react": "19.2.6",

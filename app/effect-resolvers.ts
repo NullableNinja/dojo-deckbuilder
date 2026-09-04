@@ -66,7 +66,7 @@ export function afterDefenseNextAttackBonus(cards: EffectCardLike[]) {
 
 export function targetDiscardOnHitCount(card: EffectCardLike) {
   const text = String(card.rulesText ?? "").replace(/\s+/g, " ").trim();
-  const match = text.match(/If (?:this Attack|it|that Attack) Hits?, (?:the )?target discards? (\d+) cards?/i);
+  const match = text.match(/(?:If (?:this Attack|it|that Attack) Hits?|On Hit), (?:the )?(?:target|opponent) discards? (\d+) cards?/i);
   return match ? Number(match[1]) : 0;
 }
 

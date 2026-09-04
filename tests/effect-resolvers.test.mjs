@@ -40,6 +40,12 @@ test("on-hit target debuffs parse real Attack wording", () => {
   assert.equal(targetSpeedPenaltyUntilHonor({ rulesText: "If this Attack Hits, the target's active Character gets −1 Speed until the next Honor Phase." }), 1);
 });
 
+test("target-discard Hit wording supports If-Hits and On-Hit variants", () => {
+  assert.equal(targetDiscardOnHitCount({ rulesText: "If this Attack Hits, the target discards 1 card." }), 1);
+  assert.equal(targetDiscardOnHitCount({ rulesText: "On Hit, opponent discards 2 cards." }), 2);
+  assert.equal(targetDiscardOnHitCount({ rulesText: "Target gains 1 Focus." }), 0);
+});
+
 test("Consumables marked Destroy after use are removed from circulation", () => {
   assert.equal(destroysAfterUse({ rulesText: "Gain 2 Focus. Destroy this after use." }), true);
   assert.equal(destroysAfterUse({ rulesText: "Gain 2 Focus." }), false);

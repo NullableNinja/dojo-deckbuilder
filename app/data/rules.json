@@ -292,7 +292,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "A fast 1v1 variant with one Character per player. Last Fighter Standing wins; Black Belt Victory is not used. Belt Exams and every printed Belt reward still apply, including ATK, DEF, abilities, hand size, +10 Max HP, and healing. Quick Duel keeps the paperwork and the full promotion package."
+              "text": "A fast 1v1 variant with one Character per player. Last Fighter Standing wins; Black Belt Victory is not used. Belt Exams, abilities, ATK, DEF, Focus, and hand-size rewards still apply, but promotion never raises Max HP or heals a fighter. Quick Duel keeps the paperwork and removes the medical expansion plan."
             }
           ]
         },
@@ -492,7 +492,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards increase maximum HP in every mode, including Quick Duel."
+              "text": "Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards increase maximum HP except in Quick Duel, where Max HP remains 25 unless a card or scenario explicitly changes it."
             }
           ]
         },
@@ -1662,7 +1662,7 @@
             },
             {
               "kind": "bullet",
-              "text": "When a promotion grants +10 Max HP, every Character on that player's roster increases Max HP by 10. Then only the active Character heals 5 HP, up to its new maximum. KO'd Characters remain KO'd and never heal from promotion. These rewards apply in every mode, including Quick Duel."
+              "text": "When a promotion grants +10 Max HP, every Character on that player's roster increases Max HP by 10. Then only the active Character heals 5 HP, up to its new maximum. KO'd Characters remain KO'd and never heal from promotion. Quick Duel ignores every promotion's Max HP increase and healing; all other printed Belt rewards still apply."
             }
           ]
         },
@@ -2669,7 +2669,7 @@
     },
     {
       "term": "Max HP",
-      "meaning": "The highest current HP a Character may have. Printed promotion rewards can raise it in every mode, including Quick Duel."
+      "meaning": "The highest current HP a Character may have. Promotions normally raise it, but Quick Duel ignores promotion Max-HP increases and promotion healing."
     },
     {
       "term": "Modifier Combo",
