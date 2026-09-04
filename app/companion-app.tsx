@@ -108,9 +108,17 @@ const gearCardModules = import.meta.glob<string>("./assets/cards/gear/*.webp", {
 const GEAR_CARD_URLS = Object.fromEntries(
   Object.entries(gearCardModules).map(([path, url]) => [`/cards/gear/${path.split("/").at(-1)}`, url]),
 );
+const comboCardModules = import.meta.glob<string>("./assets/cards/combos/*.webp", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const COMBO_CARD_URLS = Object.fromEntries(
+  Object.entries(comboCardModules).map(([path, url]) => [`/cards/combos/${path.split("/").at(-1)}`, url]),
+);
 const COMPLETE_CARD_URLS_BY_CATALOG_ID = Object.fromEntries(
-  Object.entries({ ...ATTACK_CARD_URLS, ...DEFENSE_CARD_URLS, ...KATA_CARD_URLS, ...CONSUMABLE_CARD_URLS, ...DEFENSE_EQUIPMENT_CARD_URLS, ...GEAR_CARD_URLS }).flatMap(([path, url]) => {
-    const match = path.match(/\/(ddb-(?:atk|def|kat|con|deq|gea)-core-\d{3})_/i);
+  Object.entries({ ...ATTACK_CARD_URLS, ...DEFENSE_CARD_URLS, ...KATA_CARD_URLS, ...CONSUMABLE_CARD_URLS, ...DEFENSE_EQUIPMENT_CARD_URLS, ...GEAR_CARD_URLS, ...COMBO_CARD_URLS }).flatMap(([path, url]) => {
+    const match = path.match(/\/(ddb-(?:atk|def|kat|con|deq|gea|cmb)-core-\d{3})_/i);
     return match ? [[match[1].toUpperCase(), url]] : [];
   }),
 );
@@ -251,6 +259,7 @@ const CARD_IMAGE_URLS: Record<string, string> = {
   ...CONSUMABLE_CARD_URLS,
   ...DEFENSE_EQUIPMENT_CARD_URLS,
   ...GEAR_CARD_URLS,
+  ...COMBO_CARD_URLS,
 };
 const PHASES = [
   { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
