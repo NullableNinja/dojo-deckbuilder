@@ -27,11 +27,19 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Restore installed dependencies
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node22-modules-${{ hashFiles('package-lock.json') }}
+
       - name: Set up GitHub Pages
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        run: npm ci
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Test and build static site
         run: npm test
