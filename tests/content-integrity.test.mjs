@@ -151,13 +151,15 @@ test("playtest behaves like a complete guided game surface", async () => {
     "prepareAiTurn",
     "ddb-field-match",
     "ddb-field-settings",
-    "game-phase-rail",
+    "versus-center",
     "turn-coach",
     "Instant rematch",
     "player-initiate",
     "turnOrder",
     "advanceRound",
   ]) assert.ok(playtest.includes(expected), `Missing field-test enhancement: ${expected}`);
+  assert.ok(!playtest.includes('className="game-phase-rail"'), "The retired HIYAH rail must not return to the live field test");
+  assert.match(playtest, /className="versus-center" aria-label=\{`Round \$\{match\.round\}`\}/, "The top HUD must retain the round-only counter");
   assert.ok(!playtest.includes("v2.2.2 catalog"), "Public field-test copy must remain version-free");
   assert.match(playtest, /onClick=\{\(\) => begin\(\)\}/, "The launch control must not pass React's click event as a fighter ID");
   assert.match(playtest, /QUICK_DUEL_LOCATION_NAMES/, "Quick Duel must use locations whose rules are automated by the engine");
