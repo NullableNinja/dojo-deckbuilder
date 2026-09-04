@@ -5,6 +5,7 @@ root = Path('.')
 tsx_path = root / 'app/playtest.tsx'
 css_path = root / 'app/playtest-board-v4.css'
 test_path = root / 'tests/playtest-round-hud.test.mjs'
+integrity_path = root / 'tests/content-integrity.test.mjs'
 
 tsx = tsx_path.read_text()
 
@@ -121,3 +122,15 @@ test("removing HIYAH also reclaims its legacy board column", async () => {
   assert.match(css, /\.versus-center > small[\s\S]*?display:\s*none\s*!important/);
 });
 ''')
+
+# The old integrity contract required the phase rail itself. Replace that stale
+# requirement with the round HUD that now carries the persistent top-level status.
+integrity = integrity_path.read_text()
+integrity = integrity.replace('    "game-phase-rail",\n', '    "versus-center",\n')
+needle = '  ]) assert.ok(playtest.includes(expected), `Missing field-test enhancement: ${expected}`);\n'
+extra = '  assert.ok(!playtest.includes(\'className="game-phase-rail"\'), "The retired HIYAH rail must not return to the live field test");\n  assert.match(playtest, /className="versus-center" aria-label=\\{`Round \\$\\{match\\.round\\}`\\}/, "The top HUD must retain the round-only counter");\n'
+if extra not in integrity:
+    if needle not in integrity:
+        raise SystemExit('Could not update guided game surface integrity contract')
+    integrity = integrity.replace(needle, needle + extra, 1)
+integrity_path.write_text(integrity)
