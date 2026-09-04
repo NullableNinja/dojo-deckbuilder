@@ -22,40 +22,32 @@ jobs:
           cache: npm
       - name: Patch dark-mode rule tables
         run: |
-          python - <<'PY'
-          from pathlib import Path
+          if ! grep -q "Dark-mode rule tables: keep zebra rows readable" app/globals.css; then
+            cat >> app/globals.css <<'CSS'
 
-          path = Path("app/globals.css")
-          css = path.read_text()
-          marker = "/* Dark-mode rule tables: keep zebra rows readable. */"
-          addition = r'''
-
-/* Dark-mode rule tables: keep zebra rows readable. */
-:root[data-theme="dark"] .rule-table {
-  color: var(--ink);
-}
-:root[data-theme="dark"] .rule-table th,
-:root[data-theme="dark"] .rule-table td {
-  border-color: #42584a;
-}
-:root[data-theme="dark"] .rule-table tbody tr {
-  color: var(--ink);
-  background: #1a271f;
-}
-:root[data-theme="dark"] .rule-table tbody tr:nth-child(even) {
-  background: #22352a;
-}
-:root[data-theme="dark"] .rule-table td,
-:root[data-theme="dark"] .rule-table td:first-child,
-:root[data-theme="dark"] .rule-table tbody tr:nth-child(even) td:first-child {
-  color: #e7f0e9;
-  background: transparent;
-}
-'''
-          if marker not in css:
-              css += addition
-          path.write_text(css)
-          PY
+          /* Dark-mode rule tables: keep zebra rows readable. */
+          :root[data-theme="dark"] .rule-table {
+            color: var(--ink);
+          }
+          :root[data-theme="dark"] .rule-table th,
+          :root[data-theme="dark"] .rule-table td {
+            border-color: #42584a;
+          }
+          :root[data-theme="dark"] .rule-table tbody tr {
+            color: var(--ink);
+            background: #1a271f;
+          }
+          :root[data-theme="dark"] .rule-table tbody tr:nth-child(even) {
+            background: #22352a;
+          }
+          :root[data-theme="dark"] .rule-table td,
+          :root[data-theme="dark"] .rule-table td:first-child,
+          :root[data-theme="dark"] .rule-table tbody tr:nth-child(even) td:first-child {
+            color: #e7f0e9;
+            background: transparent;
+          }
+          CSS
+          fi
       - name: Install dependencies
         run: npm ci
       - name: Run complete test suite
