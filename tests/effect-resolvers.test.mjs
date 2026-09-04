@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { afterDefenseNextAttackBonus, defenseEquipmentBonus, destroysAfterUse, passiveEquipmentGuard, targetNextAttackPenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentSpeedModifier, locationAttackRuleModifiers, passiveEquipmentGuard, targetNextAttackPenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
 
 test("Defense Equipment protects only its printed zone", () => {
   const chest = { name: "Cardboard Chestplate", subtype: "Defense Equipment", rulesText: "+2 DEF against Mid Attacks.", stats: { Guard: 2 } };
@@ -43,4 +43,32 @@ test("on-hit target debuffs parse real Attack wording", () => {
 test("Consumables marked Destroy after use are removed from circulation", () => {
   assert.equal(destroysAfterUse({ rulesText: "Gain 2 Focus. Destroy this after use." }), true);
   assert.equal(destroysAfterUse({ rulesText: "Gain 2 Focus." }), false);
+});
+
+
+test("location Attack Power rules are applied before damage math", () => {
+  const bus = locationAttackRuleModifiers({ name: "City Bus in Motion", rulesText: "Mid Attacks get +1 Attack Power." }, { zone: "Mid", firstAttack: true, attackTags: [], hasWeapon: false, equipmentTags: [] });
+  assert.equal(bus.power, 1);
+  assert.equal(bus.damage, 0);
+  const alley = locationAttackRuleModifiers({ name: "Rain-Slick Alley", rulesText: "Low Attacks get +1 Attack Power. Spin-tag Attacks get -1 Attack Power." }, { zone: "Low", firstAttack: true, attackTags: ["Spin"], hasWeapon: false, equipmentTags: [] });
+  assert.equal(alley.power, 0);
+});
+
+test("conditional Attack and Defense wording resolves from printed text", () => {
+  assert.equal(conditionalAttackPowerBonus({ rulesText: "If you played a Kata this turn, this Attack gets +2 Attack Power." }, { playedKata: true, firstAttack: false }).amount, 2);
+  assert.equal(conditionalDefenseGuardBonus({ rulesText: "Against a Weapon Attack, this Defense gets +2 Guard." }, { weaponAttack: true, defenderAttackedThisRound: false }).amount, 2);
+  assert.equal(conditionalDefenseGuardBonus({ rulesText: "If you played an Attack this round, this Defense gets +1 Guard." }, { weaponAttack: false, defenderAttackedThisRound: true }).amount, 1);
+});
+
+test("equipment conditional Attack bonuses and Speed penalties resolve", () => {
+  const bonus = equipmentConditionalAttackPowerBonus([{ name: "Tanto", rulesText: "Your first Attack against a fighter with higher Speed gets +1 Attack Power." }], { firstAttack: true, attackerSpeed: 3, defenderSpeed: 5 });
+  assert.equal(bonus.amount, 1);
+  assert.equal(equipmentSpeedModifier({ rulesText: "+4 DEF against all zones and −2 Speed." }), -2);
+});
+
+test("flexible-zone and conditional recovery wording is recognized", () => {
+  assert.equal(attackCanChooseAnyZone({ rulesText: "Choose High, Mid, or Low when declared." }, false, []), true);
+  assert.equal(attackCanChooseAnyZone({ rulesText: "" }, true, [{ rulesText: "Your first Attack each turn may be declared as Any zone." }]), true);
+  assert.equal(conditionalHealAfterHit({ rulesText: "If you were Hit since your last turn, heal 3 HP." }, true), 3);
+  assert.equal(conditionalHealAfterHit({ rulesText: "If you were Hit since your last turn, heal 3 HP." }, false), 0);
 });

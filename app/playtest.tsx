@@ -6,7 +6,7 @@ import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import rulesJson from "./data/rules.json";
 import { compileCardEffects, describeEffectPlan } from "./card-effects";
-import { afterDefenseNextAttackBonus, defenseEquipmentBonus, destroysAfterUse, passiveEquipmentGuard, targetNextAttackPenalty, targetSpeedPenaltyUntilHonor } from "./effect-resolvers";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentSpeedModifier, locationAttackRuleModifiers, passiveEquipmentGuard, targetNextAttackPenalty, targetSpeedPenaltyUntilHonor } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import "./combo-rack.css";
 import "./playtest-board-v4.css";
@@ -296,26 +296,25 @@ function comboAttackModifier(board: Board, card: CardEntry, zone: string, isReve
 function locationAttackModifier(location: CardEntry | undefined, card: CardEntry, board: Board, zone: string): AttackModifier {
   if (!location) return { power: 0, damage: 0, notes: [] };
   const firstAttack = board.attacksThisTurn === 0;
+  const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
+  const parsed = locationAttackRuleModifiers(location, {
+    zone,
+    firstAttack,
+    attackTags: card.tags,
+    hasWeapon: equipped.some(isWeapon),
+    equipmentTags: equipped.flatMap((item) => item.tags),
+  });
+  if (parsed.matched) return { power: parsed.power, damage: parsed.damage, notes: parsed.notes };
+
+  // Legacy fallback for unusual Quick Duel stages whose printed sentence has not
+  // yet been generalized. Keep this list small and delete entries as parsers land.
+  let power = 0;
   let damage = 0;
   const notes: string[] = [];
-  const applyDamage = (amount: number, reason: string) => { damage += amount; notes.push(`${reason} ${amount > 0 ? "+" : ""}${amount} damage`); };
-  if (location.name === "City Bus in Motion" && zone === "Mid") applyDamage(1, "bus momentum");
-  if (location.name === "Community Ice Rink" && firstAttack) applyDamage(-1, "first-attack footing");
-  if (location.name === "Concrete Stairwell" && zone === "High") applyDamage(1, "stairwell height");
-  if (location.name === "Concrete Stairwell" && hasTag(card, "Jump")) applyDamage(-1, "low ceiling");
-  if (location.name === "Parking Garage Spiral" && hasTag(card, "Spin")) applyDamage(1, "spiral momentum");
-  if (location.name === "Parking Garage Spiral" && firstAttack && zone === "Low") applyDamage(1, "first Low Attack");
-  if (location.name === "Public Library" && firstAttack) applyDamage(-1, "mandatory quiet");
-  if (location.name === "Rain-Slick Alley" && zone === "Low") applyDamage(1, "slick Low Attack");
-  if (location.name === "Rain-Slick Alley" && hasTag(card, "Spin")) applyDamage(-1, "spin hazard");
-  if (location.name === "River Dock" && hasTag(card, "Push")) applyDamage(2, "dock edge");
-  if (location.name === "School Gymnasium" && !board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; })) applyDamage(1, "unarmed curriculum");
-  if (location.name === "Tournament Mat") {
-    const hasWeapon = board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
-    applyDamage(hasWeapon ? -1 : 1, hasWeapon ? "regulated Weapon" : "unarmed showcase");
-  }
-  if (location.name === "Yoga Studio") applyDamage(-1, "indoor voice");
-  return { power: 0, damage, notes };
+  const applyPower = (amount: number, reason: string) => { power += amount; notes.push(`${reason} ${amount > 0 ? "+" : ""}${amount} Attack Power`); };
+  if (location.name === "River Dock" && hasTag(card, "Push")) applyPower(2, "dock edge");
+  if (location.name === "Yoga Studio") applyPower(-1, "indoor voice");
+  return { power, damage, notes };
 }
 
 function locationDefenseModifier(location: CardEntry | undefined, card: CardEntry | null | undefined, board: Board, zone: string): CombatModifier {
@@ -338,6 +337,35 @@ function locationFocusModifier(location: CardEntry | undefined, card: CardEntry,
   if (!location || !isKata(card) || kataAlreadyPlayed) return { value: 0, notes: [] };
   if (["Public Library", "Strip-Mall McDojo", "Traditional Dojo", "Yoga Studio"].includes(location.name)) return { value: 1, notes: [`${location.name} first-Kata Focus +1`] };
   return { value: 0, notes: [] };
+}
+
+function printedAttackRuleModifier(attacker: Board, defender: Board, card: CardEntry): AttackModifier {
+  const playedKata = attacker.cardsThisTurn.some((id) => { const prior = cardFor(id); return Boolean(prior && isKata(prior)); });
+  const printed = conditionalAttackPowerBonus(card, { playedKata, firstAttack: attacker.attacksThisTurn === 0 });
+  const equipped = attacker.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
+  const equipment = equipmentConditionalAttackPowerBonus(equipped, {
+    firstAttack: attacker.attacksThisTurn === 0,
+    attackerSpeed: fighterStat(attacker, "Speed"),
+    defenderSpeed: fighterStat(defender, "Speed"),
+  });
+  return {
+    power: printed.amount + equipment.amount,
+    damage: 0,
+    notes: [...printed.notes, ...(equipment.amount ? [`${equipment.sources.join(" + ")} +${equipment.amount} Attack Power vs faster fighter`] : [])],
+  };
+}
+
+function attackHasFlexibleZone(board: Board, card: CardEntry) {
+  if (card.zone?.includes("Any")) return true;
+  const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
+  if (attackCanChooseAnyZone(card, board.attacksThisTurn === 0, equipped)) return true;
+  return cardFor(board.fighterId)?.name === "Whirlwind Wynn" && board.attacksThisTurn === 0 && hasTag(card, "Spin");
+}
+
+function defenseCardRuleModifier(defender: Board, attacker: Board, defense: CardEntry, incomingAttack: CardEntry): CombatModifier {
+  const weaponAttack = hasTag(incomingAttack, "Weapon") || attacker.equipment.some((id) => { const item = cardFor(id); return Boolean(item && isWeapon(item)); });
+  const parsed = conditionalDefenseGuardBonus(defense, { weaponAttack, defenderAttackedThisRound: defender.attackedThisRound });
+  return { value: parsed.amount, notes: parsed.notes };
 }
 
 function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry): AttackModifier {
@@ -380,6 +408,7 @@ function fighterStat(board: Board, stat: "ATK" | "DEF" | "Speed") {
     if (!card) return total;
     if (stat === "ATK") return total + numberValue(card.stats["Attack Bonus"]);
     if (stat === "DEF") return total + passiveEquipmentGuard(card);
+    if (stat === "Speed") return total + equipmentSpeedModifier(card);
     return total;
   }, 0);
   const challengeBonus = stat === "ATK" || stat === "DEF" ? board.statBoost ?? 0 : 0;
@@ -482,6 +511,10 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
     if (effect.kind === "focus") next.focus += effect.amount;
     if (effect.kind === "heal") next.hp = Math.min(next.maxHp, next.hp + effect.amount);
   }
+  if (timing === "onPlay") {
+    const conditionalHeal = conditionalHealAfterHit(card, board.wasHitSinceLastTurn);
+    if (conditionalHeal) next.hp = Math.min(next.maxHp, next.hp + conditionalHeal);
+  }
   const text = card.rulesText ?? "";
   if (timing === "onPlay" && /After your first Attack resolves[^.]*next Attack gains Flow/i.test(text) && board.attacksThisTurn === 0) {
     next.flowAfterFirstAttack = true;
@@ -514,13 +547,14 @@ function legalDefenseIds(board: Board, zone: string) {
   });
 }
 
-function bestDefense(board: Board, zone: string, attackPower = Number.POSITIVE_INFINITY, difficulty: Difficulty = "certified", location?: CardEntry) {
+function bestDefense(board: Board, zone: string, attackPower = Number.POSITIVE_INFINITY, difficulty: Difficulty = "certified", location?: CardEntry, incomingAttack?: CardEntry, attacker?: Board) {
   const options = legalDefenseIds(board, zone);
   if (!options.length || (difficulty === "student" && Math.random() < .28)) return null;
   const ranked = options.map((id) => {
     const card = cardFor(id)!;
     const modifier = locationDefenseModifier(location, card, board, zone).value;
-    return { id, total: fighterStat(board, "DEF") + equipmentDefenseModifier(board, zone).value + cardPower(card) + modifier };
+    const printed = incomingAttack && attacker ? defenseCardRuleModifier(board, attacker, card, incomingAttack).value : 0;
+    return { id, total: fighterStat(board, "DEF") + equipmentDefenseModifier(board, zone).value + cardPower(card) + printed + modifier };
   }).sort((left, right) => left.total - right.total);
   const efficientBlock = ranked.find((entry) => entry.total >= attackPower);
   if (efficientBlock) return efficientBlock.id;
@@ -821,20 +855,22 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard) return current;
     const card = cardFor(current.selectedAttackId);
     if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
-    const anyZone = card.zone?.includes("Any") || (cardFor(current.player.fighterId)?.name === "Whirlwind Wynn" && current.player.attacksThisTurn === 0 && hasTag(card, "Spin"));
+    const anyZone = attackHasFlexibleZone(current.player, card);
     const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
     const tempoBonus = settings.tempo && current.player.tempo && fighterStat(current.player, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
     const location = cardFor(current.locationId);
     const locationModifier = locationAttackModifier(location, card, current.player, zone);
     const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
+    const printedModifier = printedAttackRuleModifier(current.player, current.ai, card);
     const comboModifier = comboAttackModifier(current.player, card, zone);
     const hasFlow = attackHasFlow(current.player, card, comboModifier);
-    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + comboModifier.power);
-    const defenseId = bestDefense(current.ai, zone, attackPower, settings.difficulty, location);
+    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + comboModifier.power);
+    const defenseId = bestDefense(current.ai, zone, attackPower, settings.difficulty, location, card, current.player);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     const defenseModifier = locationDefenseModifier(location, defenseCard, current.ai, zone);
     const armorModifier = equipmentDefenseModifier(current.ai, zone);
-    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) : 0) + defenseModifier.value);
+    const defenseCardModifier = defenseCard ? defenseCardRuleModifier(current.ai, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
+    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
     const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
     const reduced = reduceDamageForFighter(current.ai, rawDamage);
@@ -868,7 +904,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : defenseCard
         ? `${card.name} is blocked by ${defenseCard.name}; that Defense is now discarded.`
         : `${card.name} is blocked by ${aiFighter?.name ?? "the opponent"}'s standing DEF/Equipment; no Defense card was played.`;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...comboModifier.notes, ...armorModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...comboModifier.notes, ...armorModifier.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...(reduced.note ? [reduced.note] : [])];
     return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, winner: nextAi.hp ? null : "player" });
   });
 
@@ -990,14 +1026,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current?.pendingStrike || current.phase !== "defense-window") return current;
     const pending = current.pendingStrike;
     const defenseCard = defenseId ? cardFor(defenseId) : null;
+    const aiCard = cardFor(pending.cardId)!;
     let nextPlayer = { ...current.player };
     const armorModifier = equipmentDefenseModifier(nextPlayer, pending.zone);
+    const defenseCardModifier = defenseCard ? defenseCardRuleModifier(nextPlayer, current.ai, defenseCard, aiCard) : { value: 0, notes: [] as string[] };
     let defensePower = fighterStat(nextPlayer, "DEF") + armorModifier.value;
     let tempoBonus = 0;
     const locationModifier = locationDefenseModifier(cardFor(current.locationId), defenseCard, nextPlayer, pending.zone);
     if (defenseCard) {
       tempoBonus = settings.tempo && nextPlayer.tempo && fighterStat(nextPlayer, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
-      defensePower += cardPower(defenseCard) + tempoBonus + locationModifier.value;
+      defensePower += cardPower(defenseCard) + defenseCardModifier.value + tempoBonus + locationModifier.value;
       nextPlayer = markCompletedTask({ ...nextPlayer, hand: removeOne(nextPlayer.hand, defenseCard.id), discard: [...nextPlayer.discard, defenseCard.id], xp: nextPlayer.xp + 1, defendedThisRound: true, tempo: tempoBonus ? false : nextPlayer.tempo });
       nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onPlay");
       const followup = applyAfterDefenseEquipment(nextPlayer);
@@ -1008,7 +1046,6 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const reduced = reduceDamageForFighter(nextPlayer, rawDamage);
     const damage = reduced.damage;
     nextPlayer = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit, damageTaken: reduced.board.damageTaken + damage };
-    const aiCard = cardFor(pending.cardId)!;
     const targetDebuff = hit ? applyTargetHitDebuffs(nextPlayer, aiCard) : { board: nextPlayer, notes: [] as string[] };
     nextPlayer = targetDebuff.board;
     let nextAi = markCompletedTask({ ...current.ai, damageDealt: current.ai.damageDealt + damage, hitThisTurn: current.ai.hitThisTurn || hit });
@@ -1024,7 +1061,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : defenseCard
         ? `${defenseCard.name} blocks ${aiCard.name} and is discarded. Attack ${pending.attackPower} vs Defense ${defensePower}.`
         : `No Defense card was played; your standing DEF/Equipment blocks ${aiCard.name}. Attack ${pending.attackPower} vs Defense ${defensePower}.`;
-    const modifiers = [...(pending.modifierNotes ?? []), ...armorModifier.notes, ...locationModifier.notes, ...targetDebuff.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...(pending.modifierNotes ?? []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...targetDebuff.notes, ...(reduced.note ? [reduced.note] : [])];
     const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " : ""}${message}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingStrike: null, winner: nextPlayer.hp ? null : "ai" });
     if (!nextPlayer.hp) return resolved;
     const reversalAttacks = nextPlayer.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
@@ -1046,17 +1083,19 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "reversal-window" || !current.selectedAttackId || current.player.reversalUsedRound) return current;
     const card = cardFor(current.selectedAttackId);
     if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
-    const zone = card.zone?.includes("Any") ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
+    const zone = attackHasFlexibleZone(current.player, card) ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
     const location = cardFor(current.locationId);
     const locationModifier = locationAttackModifier(location, card, current.player, zone);
     const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
+    const printedModifier = printedAttackRuleModifier(current.player, current.ai, card);
     const comboModifier = comboAttackModifier(current.player, card, zone, true);
-    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + locationModifier.power + fighterModifier.power + comboModifier.power);
-    const defenseId = bestDefense(current.ai, zone, attackPower, settings.difficulty, location);
+    const attackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + locationModifier.power + fighterModifier.power + printedModifier.power + comboModifier.power);
+    const defenseId = bestDefense(current.ai, zone, attackPower, settings.difficulty, location, card, current.player);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     const defenseModifier = locationDefenseModifier(location, defenseCard, current.ai, zone);
     const armorModifier = equipmentDefenseModifier(current.ai, zone);
-    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) : 0) + defenseModifier.value);
+    const defenseCardModifier = defenseCard ? defenseCardRuleModifier(current.ai, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
+    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
     const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
     const reduced = reduceDamageForFighter(current.ai, rawDamage);
@@ -1081,7 +1120,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve");
     }
     nextPlayer = markCompletedTask(nextPlayer);
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...comboModifier.notes, ...armorModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...comboModifier.notes, ...armorModifier.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...(reduced.note ? [reduced.note] : [])];
     const result = hit ? `Reversal! ${card.name} hits ${cardFor(current.ai.fighterId)?.name ?? "the computer"} for ${damage}.` : `Reversal! ${card.name} is blocked${defenseCard ? ` by ${defenseCard.name}` : " by base DEF"}.`;
     const resolved = write(current, `${result} Attack ${attackPower} vs Defense ${defensePower}.${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, winner: nextAi.hp ? null : "player" });
     if (!nextAi.hp) return resolved;
@@ -1342,19 +1381,20 @@ function applyBeltPromotion(board: Board, beltIndex: number) {
 function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string[], useTempo: boolean) {
   const card = cardFor(cardId)!;
   const fighter = cardFor(current.ai.fighterId);
-  const anyZone = card.zone?.includes("Any") || (fighter?.name === "Whirlwind Wynn" && current.ai.attacksThisTurn === 0 && hasTag(card, "Spin"));
+  const anyZone = attackHasFlexibleZone(current.ai, card);
   const zone = anyZone ? ["High", "Mid", "Low"][Math.floor(Math.random() * 3)] : card.zone?.split(",")[0] ?? "High";
   const tempoBonus = useTempo && current.ai.tempo && fighterStat(current.ai, "Speed") > fighterStat(current.player, "Speed") ? 1 : 0;
   const locationModifier = locationAttackModifier(cardFor(current.locationId), card, current.ai, zone);
   const fighterModifier = fighterAttackModifier(current.ai, current.player, card);
+  const printedModifier = printedAttackRuleModifier(current.ai, current.player, card);
   const comboModifier = comboAttackModifier(current.ai, card, zone);
   const hasFlow = attackHasFlow(current.ai, card, comboModifier);
-  const attackPower = Math.max(0, cardPower(card) + fighterStat(current.ai, "ATK") + current.ai.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + comboModifier.power);
+  const attackPower = Math.max(0, cardPower(card) + fighterStat(current.ai, "ATK") + current.ai.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + comboModifier.power);
   let nextAi = applyCardEffects({ ...current.ai, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0 }, card, "ai");
   const flowDraw = hasFlow && !current.ai.flowUsedThisTurn;
   if (flowDraw) nextAi = drawCards({ ...nextAi, flowUsedThisTurn: true }, 1);
   if (current.ai.flowAfterFirstAttack && current.ai.attacksThisTurn === 0) nextAi = { ...nextAi, flowAfterFirstAttack: false, nextAttackHasFlow: true };
-  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...comboModifier.notes];
+  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...comboModifier.notes];
   return { ...current, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage + comboModifier.damage, modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
 }
 

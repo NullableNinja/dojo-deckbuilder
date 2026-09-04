@@ -11,3 +11,13 @@ test("Quick Duel applies zonal equipment, destroy-after-use, and target debuffs"
   assert.match(source, /destroyResolvedConsumable/);
   assert.match(source, /Destroyed after use; it will not enter your discard pile/);
 });
+
+
+test("Quick Duel wires printed Attack/Defense modifiers and flexible zones into combat math", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /printedAttackRuleModifier/);
+  assert.match(source, /defenseCardRuleModifier/);
+  assert.match(source, /attackHasFlexibleZone/);
+  assert.match(source, /locationAttackRuleModifiers/);
+  assert.match(source, /conditionalHealAfterHit/);
+});
