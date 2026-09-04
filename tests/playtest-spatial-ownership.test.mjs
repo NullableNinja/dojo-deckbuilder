@@ -2,22 +2,28 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("Quick Duel gives Live Mat and hand separate non-overlapping layout ownership", async () => {
+test("Quick Duel keeps the Live Mat stationary and scrolls fighter rails independently", async () => {
   const css = await readFile(new URL("../app/playtest-board-v4.css", import.meta.url), "utf8");
-  assert.match(css, /Live Mat \/ hand ownership fix/);
-  assert.match(css, /grid-template-rows:\s*54px minmax\(0, 1fr\) auto/);
-  assert.match(css, /\.playtest-shell--live \.playtest-arena[\s\S]*?overflow-y:\s*auto/);
-  assert.match(css, /\.playtest-shell--live \.playtest-combat-desk[\s\S]*?min-height:\s*0\s*!important/);
-  assert.match(css, /\.playtest-shell--live \.playtest-workspace--hand[\s\S]*?z-index:\s*12/);
-  assert.match(css, /\.play-card-row:empty[\s\S]*?display:\s*none/);
+  assert.match(css, /Board ownership v6/);
+  assert.match(css, /grid-template-rows:\s*54px minmax\(0, 1fr\) clamp\(225px, 27dvh, 265px\)/);
+  assert.match(css, /\.playtest-shell--live \.playtest-arena[\s\S]*?overflow:\s*hidden/);
+  assert.match(css, /\.playtest-shell--live \.fighter-column[\s\S]*?overflow-y:\s*auto/);
+  assert.match(css, /\.playtest-shell--live \.playtest-combat-desk[\s\S]*?height:\s*100%/);
+  assert.match(css, /\.playtest-shell--live \.playtest-workspace--hand[\s\S]*?z-index:\s*20/);
+  assert.match(css, /\.play-card-row \.play-card-main[\s\S]*?height:\s*clamp\(164px, 19dvh, 198px\)/);
 });
 
-test("opponent fighter dossier is a structural mirror and the stage owns the right rail", async () => {
+test("player fighter dossier keeps an explicit left-facing layout", async () => {
   const css = await readFile(new URL("../app/playtest-board-v4.css", import.meta.url), "utf8");
-  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
-  assert.match(css, /Board density v5/);
-  assert.match(css, /fighter-panel\.fighter-dossier\.is-enemy[\s\S]*?grid-template-areas:[\s\S]*?"copy art"/);
-  assert.match(source, /enemy \? <>\{identity\}\{portrait\}<\/> : <>\{portrait\}\{identity\}<\/>/);
-  assert.match(source, /playtest-stage-rail/);
-  assert.doesNotMatch(source, /className="playtest-location paper-stack"/);
+  assert.match(css, /fighter-panel\.fighter-dossier:not\(\.is-enemy\)[\s\S]*?grid-template-columns:\s*88px minmax\(0, 1fr\)/);
+  assert.match(css, /fighter-panel\.fighter-dossier:not\(\.is-enemy\) \.fighter-panel-copy[\s\S]*?text-align:\s*left/);
+  assert.match(css, /fighter-panel\.fighter-dossier:not\(\.is-enemy\) \.fighter-stats--combat > b[\s\S]*?grid-template-columns:\s*18px minmax\(0, 1fr\) auto/);
+  assert.match(css, /fighter-panel\.fighter-dossier:not\(\.is-enemy\) \.fighter-loadout-launch[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) auto auto/);
+});
+
+test("opponent fighter dossier remains the true inward-facing mirror", async () => {
+  const css = await readFile(new URL("../app/playtest-board-v4.css", import.meta.url), "utf8");
+  assert.match(css, /fighter-panel\.fighter-dossier\.is-enemy[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) 88px/);
+  assert.match(css, /fighter-panel\.fighter-dossier\.is-enemy \.fighter-panel-copy[\s\S]*?text-align:\s*right/);
+  assert.match(css, /fighter-panel\.fighter-dossier\.is-enemy \.fighter-loadout-launch[\s\S]*?grid-template-columns:\s*auto auto minmax\(0, 1fr\)/);
 });
