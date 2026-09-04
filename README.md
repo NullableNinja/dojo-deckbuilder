@@ -58,3 +58,4 @@ Quick Duel intentionally ships in the proven main companion bundle. Do not reint
 
 <!-- Consumable card artwork refresh: v2.3. -->
 <!-- Layered Defensive Equipment and Consumable ORA sources published. -->
+<!-- Deployment trigger: dark-mode rule table contrast. -->
