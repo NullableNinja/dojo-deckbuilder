@@ -826,3 +826,266 @@
   .playtest-shell--live .fighter-panel.is-enemy { grid-template-columns: minmax(0, 1fr) 74px !important; }
   .playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art { width: 74px !important; }
 }
+
+
+/* Board density v5 — stage rail, full mat ledger, structural mirror, contained loadout. */
+.playtest-shell--live .playtest-arena {
+  padding-top: 8px !important;
+}
+.playtest-shell--live .playtest-table {
+  width: 100% !important;
+  grid-template-columns: clamp(230px, 15.5vw, 300px) minmax(660px, 1fr) clamp(230px, 15.5vw, 300px) !important;
+  gap: 12px !important;
+}
+
+/* True opponent mirror. The DOM is mirrored too; these areas make the contract
+   explicit and protect it from narrower-screen overrides. */
+.playtest-shell--live .fighter-panel.fighter-dossier:not(.is-enemy) {
+  grid-template-areas:
+    "art copy"
+    "art copy"
+    "stats stats"
+    "loadout loadout" !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy {
+  grid-template-columns: minmax(0, 1fr) 88px !important;
+  grid-template-areas:
+    "copy art"
+    "copy art"
+    "stats stats"
+    "loadout loadout" !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier .fighter-panel-art {
+  grid-area: art !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier .fighter-panel-copy {
+  grid-area: copy !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier .fighter-stats--combat {
+  grid-area: stats !important;
+  grid-column: auto !important;
+  direction: ltr !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier .fighter-loadout-launch {
+  grid-area: loadout !important;
+  grid-column: auto !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-panel-copy,
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-panel-copy > span,
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-panel-copy p,
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-dossier-name {
+  text-align: right !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-resource-strip b {
+  flex-direction: row-reverse !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-loadout-launch {
+  grid-template-columns: auto auto minmax(0, 1fr) !important;
+  text-align: right !important;
+}
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-loadout-launch small { grid-column: 1 !important; }
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-loadout-launch b { grid-column: 2 !important; }
+.playtest-shell--live .fighter-panel.fighter-dossier.is-enemy .fighter-loadout-launch span { grid-column: 3 !important; }
+
+/* Location is now a side-stage filing under the opponent. It consumes the rail
+   that was visually dead instead of consuming precious vertical mat height. */
+.playtest-stage-rail {
+  min-width: 0;
+  margin: 0 !important;
+  border-top: 3px solid rgba(245,179,34,.38) !important;
+  padding: 10px !important;
+  background: linear-gradient(145deg, rgba(245,179,34,.075), transparent 42%), rgba(19,47,32,.94) !important;
+  overflow: hidden;
+}
+.playtest-stage-rail > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--gold);
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.playtest-stage-rail > header b { color: #e9f2ec; font-size: 8px; }
+.playtest-stage-rail > button {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(255,255,255,.13);
+  padding: 9px;
+  color: inherit;
+  background: rgba(5,20,13,.36);
+  text-align: right;
+  cursor: pointer;
+}
+.playtest-stage-rail > button strong { font-family: var(--display); font-size: clamp(15px, 1vw, 19px); }
+.playtest-stage-rail > button small { color: var(--gold); font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.playtest-stage-rail > p {
+  margin: 8px 2px 0 !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 9px !important;
+  line-height: 1.45 !important;
+  opacity: .76;
+}
+
+/* Every filed card remains on the Live Mat. Lanes scroll horizontally instead
+   of creating more vertical rows or silently dropping older cards. */
+.playtest-shell--live .playtest-combat-desk {
+  min-height: 0 !important;
+  grid-template-rows: auto minmax(180px, 1fr) auto auto auto auto !important;
+}
+.playtest-shell--live .live-mat-play {
+  min-height: 180px !important;
+}
+.playtest-shell--live .mat-lane {
+  overflow: hidden !important;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.playtest-shell--live .mat-lane-cards {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  gap: 7px !important;
+  min-height: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 1px 2px 8px !important;
+  scrollbar-gutter: stable;
+  overscroll-behavior-x: contain;
+}
+.playtest-shell--live .mat-lane-cards > button {
+  flex: 0 0 clamp(150px, 11.5vw, 205px) !important;
+  width: clamp(150px, 11.5vw, 205px) !important;
+  min-width: clamp(150px, 11.5vw, 205px) !important;
+  min-height: 102px !important;
+  grid-template-columns: 58px minmax(0, 1fr) !important;
+}
+.playtest-shell--live .mat-card-visual {
+  width: 58px !important;
+  min-width: 58px !important;
+  height: 82px !important;
+}
+.playtest-shell--live .mat-lane > header b { white-space: nowrap; }
+
+/* Fighter inspector has fixed outer geometry. Equipment scrolls inside the
+   right pane and can never stretch the modal itself. */
+.playtest-inspector.is-fighter-dossier {
+  width: min(1180px, 94vw) !important;
+  height: min(760px, 88dvh) !important;
+  max-height: 88dvh !important;
+  display: grid !important;
+  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr) !important;
+  grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+  gap: 12px 22px !important;
+  overflow: hidden !important;
+}
+.playtest-inspector.is-fighter-dossier .inspector-heading {
+  grid-column: 1 !important;
+  grid-row: 1 / -1 !important;
+  display: flex !important;
+  flex-direction: column;
+  gap: 12px !important;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+.playtest-inspector.is-fighter-dossier .inspector-card-visual {
+  flex: 0 0 auto;
+  width: min(290px, 100%) !important;
+  max-width: 290px !important;
+  max-height: 405px !important;
+}
+.playtest-inspector.is-fighter-dossier .inspector-copy { width: 100%; }
+.playtest-inspector.is-fighter-dossier .inspector-copy h2 { font-size: clamp(24px, 2.2vw, 36px) !important; }
+.playtest-inspector.is-fighter-dossier .fighter-inspector-stats {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  margin: 0 !important;
+}
+.playtest-inspector.is-fighter-dossier .inspector-rules {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  margin: 0 !important;
+}
+.playtest-inspector.is-fighter-dossier .inspector-loadout {
+  grid-column: 2 !important;
+  grid-row: 3 !important;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 !important;
+  padding-top: 10px !important;
+  overflow: hidden;
+}
+.playtest-inspector.is-fighter-dossier .inspector-loadout > header { margin-bottom: 8px; }
+.playtest-inspector.is-fighter-dossier .inspector-loadout-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  height: calc(100% - 42px);
+  max-height: none !important;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 5px;
+  scrollbar-gutter: stable;
+}
+.playtest-inspector.is-fighter-dossier > footer {
+  grid-column: 2 !important;
+  grid-row: 4 !important;
+  margin: 0 !important;
+}
+
+/* Native fallback art inside an Equipment slot must stay inside the slot. This
+   is the regression that made the inspector explode after equipping a card. */
+.playtest-inspector .equipment-slot-art {
+  position: relative !important;
+  display: block;
+  overflow: hidden !important;
+  contain: layout paint;
+}
+.playtest-inspector .equipment-slot-art > .native-card-art {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-rows: auto 1fr auto !important;
+  overflow: hidden !important;
+  transform: none !important;
+}
+.playtest-inspector .equipment-slot-art > .native-card-art .native-card-ribbon,
+.playtest-inspector .equipment-slot-art > .native-card-art > small,
+.playtest-inspector .equipment-slot-art > .native-card-art > em { display: none !important; }
+.playtest-inspector .equipment-slot-art > .native-card-art > b { font-size: 18px !important; }
+.playtest-inspector .equipment-slot-art > .native-card-art > strong {
+  padding: 2px !important;
+  font-size: 6px !important;
+  line-height: 1 !important;
+  overflow: hidden;
+}
+
+@media (max-width: 1260px) and (min-width: 761px) {
+  .playtest-shell--live .playtest-table {
+    grid-template-columns: 220px minmax(560px, 1fr) 220px !important;
+  }
+  .playtest-shell--live .fighter-panel.fighter-dossier.is-enemy {
+    grid-template-columns: minmax(0, 1fr) 70px !important;
+  }
+  .playtest-inspector.is-fighter-dossier {
+    grid-template-columns: 270px minmax(0, 1fr) !important;
+  }
+}

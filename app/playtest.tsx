@@ -561,23 +561,33 @@ function equipmentSlotLabel(card: CardEntry) {
 function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void }) {
   const fighter = cardFor(board.fighterId)!;
   const art = artistUrl(fighter);
+  const combatStats: { stat: "ATK" | "DEF" | "SPD"; label: "ATK" | "DEF" | "SPD"; value: number }[] = enemy
+    ? [
+        { stat: "SPD", label: "SPD", value: fighterStat(board, "Speed") },
+        { stat: "DEF", label: "DEF", value: fighterStat(board, "DEF") },
+        { stat: "ATK", label: "ATK", value: fighterStat(board, "ATK") },
+      ]
+    : [
+        { stat: "ATK", label: "ATK", value: fighterStat(board, "ATK") },
+        { stat: "DEF", label: "DEF", value: fighterStat(board, "DEF") },
+        { stat: "SPD", label: "SPD", value: fighterStat(board, "Speed") },
+      ];
+  const portrait = <button type="button" className="fighter-panel-art" onClick={() => onInspect(fighter)} aria-label={`Open ${fighter.name} fighter dossier`}>
+    {art ? <img src={art} alt={fighter.name} /> : <img src={cardPlaceholderUrl} alt="" />}
+    <span>Inspect</span>
+  </button>;
+  const identity = <div className="fighter-panel-copy">
+    <span>{label} · {belts[board.belt].name} Belt</span>
+    <button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button>
+    <p>{fighter.rulesText}</p>
+    <div className="fighter-resource-strip"><b>{board.xp}<small>XP</small></b><b>{board.focus}<small>FP</small></b></div>
+  </div>;
   return <section className={`fighter-panel fighter-dossier paper-stack ${enemy ? "is-enemy" : ""}`}>
-    <button type="button" className="fighter-panel-art" onClick={() => onInspect(fighter)} aria-label={`Open ${fighter.name} fighter dossier`}>
-      {art ? <img src={art} alt={fighter.name} /> : <img src={cardPlaceholderUrl} alt="" />}
-      <span>Inspect</span>
-    </button>
-    <div className="fighter-panel-copy">
-      <span>{label} · {belts[board.belt].name} Belt</span>
-      <button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button>
-      <p>{fighter.rulesText}</p>
-      <div className="fighter-resource-strip"><b>{board.xp}<small>XP</small></b><b>{board.focus}<small>FP</small></b></div>
-    </div>
+    {enemy ? <>{identity}{portrait}</> : <>{portrait}{identity}</>}
     <div className="fighter-stats fighter-stats--combat" aria-label={`${fighter.name} combat statistics`}>
-      <b><StatGlyph stat="ATK" /><small>ATK</small><span>{fighterStat(board, "ATK")}</span></b>
-      <b><StatGlyph stat="DEF" /><small>DEF</small><span>{fighterStat(board, "DEF")}</span></b>
-      <b><StatGlyph stat="SPD" /><small>SPD</small><span>{fighterStat(board, "Speed")}</span></b>
+      {combatStats.map((entry) => <b key={entry.stat}><StatGlyph stat={entry.stat} /><small>{entry.label}</small><span>{entry.value}</span></b>)}
     </div>
-    <button type="button" className="fighter-loadout-launch" onClick={() => onInspect(fighter)}><span>Fighter & loadout</span><b>{board.equipment.length}</b><small>equipped</small></button>
+    <button type="button" className="fighter-loadout-launch" onClick={() => onInspect(fighter)}>{enemy ? <><small>equipped</small><b>{board.equipment.length}</b><span>Fighter & loadout</span></> : <><span>Fighter & loadout</span><b>{board.equipment.length}</b><small>equipped</small></>}</button>
   </section>;
 }
 
@@ -605,7 +615,7 @@ function ImpactReadout({ line }: { line: string }) {
 }
 
 function MatLane({ label, cards: cardIds, activeId, onInspect }: { label: string; cards: string[]; activeId?: string | null; onInspect: (card: CardEntry) => void }) {
-  const visible = cardIds.slice(-4);
+  const visible = cardIds;
   return <section className="mat-lane" aria-label={`${label} cards currently on the Live Mat`}>
     <header><span>{label}</span><b>{visible.length ? `${visible.length} CARD${visible.length === 1 ? "" : "S"}` : "CLEAR"}</b></header>
     <div className="mat-lane-cards">
@@ -1096,7 +1106,6 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       </div>
     </section>}
     <section className="playtest-arena">
-    <section className="playtest-location paper-stack"><span>Current stage · Honor {match.round}</span><div><h2>{currentLocation?.name ?? "Tournament Mat"}</h2><p>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</p></div><button onClick={() => currentLocation && setInspectedId(currentLocation.id)}>Inspect</button></section>
     <section className="playtest-table">
       <BattleCallout line={match.log[0]} />
       <div className="fighter-column fighter-column--player"><FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} /><LearnedComboRack states={learnedComboStates} onInspect={(card) => setInspectedId(card.id)} /></div>
@@ -1121,7 +1130,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary" onClick={runAiTurn}>Run computer turn →</button>}
         {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}
       </section>
-      <div className="fighter-column fighter-column--enemy"><FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} /></div>
+      <div className="fighter-column fighter-column--enemy">
+        <FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} />
+        <section className="playtest-stage-rail paper-stack" aria-label="Current stage">
+          <header><span>Current stage</span><b>Honor {match.round}</b></header>
+          <button type="button" onClick={() => currentLocation && setInspectedId(currentLocation.id)}><strong>{currentLocation?.name ?? "Tournament Mat"}</strong><small>Inspect stage rules →</small></button>
+          <p>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</p>
+        </section>
+      </div>
     </section>
     </section>
     <section className="playtest-workspace playtest-workspace--hand">
