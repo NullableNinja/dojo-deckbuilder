@@ -246,3 +246,21 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.match(styles, /\.playtest-shell--live \.playtest-action-dock \{[^}]*position: static/);
   assert.match(styles, /\.fighter-stats \{[^}]*repeat\(6/);
 });
+
+
+test("Quick Duel polish keeps the HUD clear and the primary action surface singular", async () => {
+  const [playtest, styles] = await Promise.all([
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest-board-v4.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(playtest, /className="playtest-utility-dock"/);
+  assert.match(playtest, /className="coach-dialog paper-stack"/);
+  assert.match(playtest, /victory-certificate/);
+  assert.match(playtest, /className="hand-context-strip"/);
+  assert.doesNotMatch(playtest, /className="combat-utility-panel paper-stack"/);
+  assert.doesNotMatch(playtest, /className="playtest-yell-actions"/);
+  assert.match(styles, /Stable hand geometry/);
+  assert.match(styles, /fighter-combo-rack \.active-combo-grid \{[\s\S]*overflow-y: auto/);
+  assert.match(styles, /playtest-inspector \.inspector-card-visual > \.native-card-art \{[\s\S]*position: relative !important/);
+  assert.match(styles, /victory-confetti/);
+});
