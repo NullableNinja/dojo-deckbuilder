@@ -1,0 +1,113 @@
+name: Apply Quick Duel fixed HP repair
+
+on:
+  push:
+    branches:
+      - fix/quick-duel-fixed-hp
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repair branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Apply fixed-HP Quick Duel rule
+        shell: python
+        run: |
+          from pathlib import Path
+          import json
+
+          def replace_exact(path, old, new, count=1):
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              actual = text.count(old)
+              if actual != count:
+                  raise SystemExit(f'{path}: expected {count} occurrence(s), found {actual}: {old[:90]!r}')
+              file.write_text(text.replace(old, new), encoding='utf-8')
+
+          playtest = 'app/playtest.tsx'
+          replace_exact(playtest, '  schema: 6;', '  schema: 7;')
+          replace_exact(playtest, 'saved?.schema === 6', 'saved?.schema === 7')
+          replace_exact(playtest, 'setMatch({ schema: 6,', 'setMatch({ schema: 7,')
+          replace_exact(
+              playtest,
+              'One fighter. One tactical opponent. Full Belt vitality, the persistent Market, Locations, Reversals, Combos, and Belt progression. No mode selection and no setup maze—the Department has already made the questionable decisions.',
+              'One fighter. One tactical opponent. Fixed 25 Max HP, non-HP Belt rewards, the persistent Market, Locations, Reversals, Combos, and Belt progression. No mode selection and no setup maze—the Department has already made the questionable decisions.'
+          )
+          replace_exact(
+              playtest,
+              '''function applyBeltPromotion(board: Board, beltIndex: number) {
+            const reward = belts[beltIndex]?.reward ?? "";
+            const maxHpIncrease = /\\+10 Max HP/i.test(reward) ? 10 : 0;
+            const maxHp = board.maxHp + maxHpIncrease;
+            const hp = maxHpIncrease && board.hp > 0 ? Math.min(maxHp, board.hp + 5) : board.hp;
+            return { ...board, belt: beltIndex, maxHp, hp };
+          }'''.replace('\n          ', '\n'),
+              '''function applyBeltPromotion(board: Board, beltIndex: number) {
+            // Quick Duel uses fixed HP: promotion changes rank/perks, never current or Max HP.
+            return { ...board, belt: beltIndex };
+          }'''.replace('\n          ', '\n')
+          )
+
+          rules = 'app/data/rules.json'
+          replace_exact(
+              rules,
+              'A fast 1v1 variant with one Character per player. Last Fighter Standing wins; Black Belt Victory is not used. Belt Exams and every printed Belt reward still apply, including ATK, DEF, abilities, hand size, +10 Max HP, and healing. Quick Duel keeps the paperwork and the full promotion package.',
+              'A fast 1v1 variant with one Character per player. Last Fighter Standing wins; Black Belt Victory is not used. Belt Exams, abilities, ATK, DEF, Focus, and hand-size rewards still apply, but promotion never raises Max HP or heals a fighter. Quick Duel keeps the paperwork and removes the medical expansion plan.'
+          )
+          replace_exact(
+              rules,
+              'Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards increase maximum HP in every mode, including Quick Duel.',
+              'Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards increase maximum HP except in Quick Duel, where Max HP remains 25 unless a card or scenario explicitly changes it.'
+          )
+          replace_exact(
+              rules,
+              "When a promotion grants +10 Max HP, every Character on that player's roster increases Max HP by 10. Then only the active Character heals 5 HP, up to its new maximum. KO'd Characters remain KO'd and never heal from promotion. These rewards apply in every mode, including Quick Duel.",
+              "When a promotion grants +10 Max HP, every Character on that player's roster increases Max HP by 10. Then only the active Character heals 5 HP, up to its new maximum. KO'd Characters remain KO'd and never heal from promotion. Quick Duel ignores every promotion's Max HP increase and healing; all other printed Belt rewards still apply."
+          )
+          replace_exact(
+              rules,
+              'The highest current HP a Character may have. Printed promotion rewards can raise it in every mode, including Quick Duel.',
+              'The highest current HP a Character may have. Promotions normally raise it, but Quick Duel ignores promotion Max-HP increases and promotion healing.'
+          )
+
+          definition_path = Path('app/data/game-definition.json')
+          definition = json.loads(definition_path.read_text(encoding='utf-8'))
+          definition['rulesRevision'] = 'v2.3-r4'
+          definition['progression']['quickDuelUsesFullBeltRewards'] = False
+          definition_path.write_text(json.dumps(definition, indent=2) + '\n', encoding='utf-8')
+
+          manifest_path = Path('public/rules-manifest.json')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          manifest['rulesRevision'] = 'v2.3-r4'
+          manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+
+          test = Path('tests/quick-duel-fixed-hp.test.mjs')
+          test.write_text('''import test from "node:test";\nimport assert from "node:assert/strict";\nimport { readFileSync } from "node:fs";\n\nconst playtest = readFileSync(new URL("../app/playtest.tsx", import.meta.url), "utf8");\nconst rules = JSON.parse(readFileSync(new URL("../app/data/rules.json", import.meta.url), "utf8"));\nconst definition = JSON.parse(readFileSync(new URL("../app/data/game-definition.json", import.meta.url), "utf8"));\n\ntest("Quick Duel promotion keeps current and Max HP fixed", () => {\n  assert.equal(definition.progression.quickDuelUsesFullBeltRewards, false);\n  assert.match(playtest, /schema: 7/);\n  assert.match(playtest, /function applyBeltPromotion[\\s\\S]*return \\{ \\.\\.\\.board, belt: beltIndex \\};/);\n  assert.doesNotMatch(playtest.match(/function applyBeltPromotion[\\s\\S]*?\\n\\}/)?.[0] ?? "", /maxHpIncrease|board\\.hp \\+ 5/);\n});\n\ntest("published Quick Duel rules explicitly disable promotion HP rewards", () => {\n  const text = JSON.stringify(rules);\n  assert.match(text, /promotion never raises Max HP or heals a fighter/);\n  assert.match(text, /Quick Duel ignores every promotion's Max HP increase and healing/);\n  assert.match(text, /Quick Duel ignores promotion Max-HP increases and promotion healing/);\n});\n''', encoding='utf-8')
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run full test suite
+        run: npm test
+
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx app/data/game-definition.json app/data/rules.json public/rules-manifest.json tests/quick-duel-fixed-hp.test.mjs
+          git commit -m "Fix Quick Duel belt promotion HP"
+          git push origin HEAD:fix/quick-duel-fixed-hp
