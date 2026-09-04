@@ -32,6 +32,7 @@ export type ComboEvaluation = {
   focusOnHit: number;
   grantsFlow: boolean;
   speedOnTrigger: number;
+  piercing: number;
 };
 
 const value = (entry: unknown) => String(entry ?? '').trim();
@@ -95,10 +96,11 @@ function parsePayoff(payoff: string) {
   const damage = Number(payoff.match(/\+(\d+)\s+Damage/i)?.[1] ?? 0);
   const focus = Number(payoff.match(/gain\s+\+?(\d+)\s+Focus/i)?.[1] ?? 0);
   const speed = Number(payoff.match(/gain\s+\+?(\d+)\s+Speed/i)?.[1] ?? 0);
+  const piercing = Number(payoff.match(/Piercing\s+(\d+)/i)?.[1] ?? 0);
   const grantsFlow = /(?:Attack|strike|finisher)[^.]*gains? Flow|gains? Flow[^.]*Attack/i.test(payoff);
   const focusOnHit = focus && /\bHit(?:s)?\b/i.test(payoff) ? focus : 0;
-  const recognized = Boolean(power || damage || focusOnHit || grantsFlow || speed);
-  return { power, damage, focusOnHit, grantsFlow, speedOnTrigger: speed, recognized };
+  const recognized = Boolean(power || damage || focusOnHit || grantsFlow || speed || piercing);
+  return { power, damage, focusOnHit, grantsFlow, speedOnTrigger: speed, piercing, recognized };
 }
 
 export function evaluateCombo(combo: ComboCardLike, context: ComboContext): ComboEvaluation {
@@ -149,6 +151,17 @@ export function evaluateCombo(combo: ComboCardLike, context: ComboContext): Comb
     if (context.equipment.length < 2) { eligible = false; reasons.push('needs 2 permanent Equipment'); }
   }
 
+  if (/weapon attack/i.test(requirement)) {
+    recognizedRequirement = true;
+    const weaponReady = hasTag(context.currentCard, 'Weapon') || context.equipment.some((card) => /weapon/i.test(value(card.subtype)) || hasTag(card, 'Weapon'));
+    if (!weaponReady) { eligible = false; reasons.push('needs a Weapon Attack'); }
+  }
+  if (/all three zones/i.test(requirement)) {
+    recognizedRequirement = true;
+    const zones = new Set([...context.zonesPlayed, context.currentZone].map((zone) => zone.toLocaleLowerCase()));
+    if (!['high', 'mid', 'low'].every((zone) => zones.has(zone))) { eligible = false; reasons.push('needs High, Mid, and Low Attacks'); }
+  }
+
   if (!recognizedRequirement) {
     if ((combo.tags ?? []).some((tag) => /Kata/i.test(tag))) {
       recognizedRequirement = true;
@@ -181,5 +194,6 @@ export function evaluateCombo(combo: ComboCardLike, context: ComboContext): Comb
     focusOnHit: parsed.focusOnHit,
     grantsFlow: parsed.grantsFlow,
     speedOnTrigger: parsed.speedOnTrigger,
+    piercing: parsed.piercing,
   };
 }

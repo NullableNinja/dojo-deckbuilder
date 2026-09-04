@@ -41,3 +41,13 @@ test("Quick Duel tracks incoming attacks and next-Defense penalties across cards
   assert.match(source, /incomingAttackEquipmentModifier/);
   assert.match(source, /targetNextDefensePenalty/);
 });
+
+
+test("Quick Duel applies Piercing only to matching Armor DEF", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /attackPiercingModifier/);
+  assert.match(source, /piercedArmorModifier/);
+  assert.match(source, /Piercing \$\{piercing\} ignores \$\{ignored\} Armor DEF/);
+  assert.match(source, /pending\.piercing/);
+  assert.match(source, /speedChangedThisRound/);
+});

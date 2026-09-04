@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, optionalDiscardDrawChoice, passiveEquipmentGuard, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
 
 test("Defense Equipment protects only its printed zone", () => {
   const chest = { name: "Cardboard Chestplate", subtype: "Defense Equipment", rulesText: "+2 DEF against Mid Attacks.", stats: { Guard: 2 } };
@@ -87,4 +87,18 @@ test("first-incoming Attack and next-Defense penalties persist correctly", () =>
   assert.equal(firstIncomingAttackPowerPenalty([{ rulesText: "The first Attack targeting you each round gets -2 Attack Power." }], false).amount, 0);
   assert.equal(targetNextDefensePenalty({ rulesText: "Their next Defense card this round gets −2 Guard." }), 2);
   assert.equal(targetNextDefensePenalty({ rulesText: "On Hit, target's next Defense card provides -1 Defense." }), 1);
+});
+
+
+test("Piercing resolvers cover deterministic Attack and Weapon wording", () => {
+  assert.equal(attackPiercing({ rulesText: "If the target has matching Armor, this Attack gains Piercing 2." }, { matchingArmor: true, targetEquipmentCount: 1 }).amount, 2);
+  assert.equal(attackPiercing({ rulesText: "If the target has two or more permanent Equipment cards equipped, this Attack gets +1 Attack Power and gains Piercing 1." }, { matchingArmor: false, targetEquipmentCount: 2 }).amount, 1);
+  assert.equal(attackPiercing({ rulesText: "If your Speed changed this round, this Attack gets Piercing 1." }, { matchingArmor: false, targetEquipmentCount: 0, speedChangedThisRound: true }).amount, 1);
+  assert.equal(equipmentPiercing([{ name: "Naginata", rulesText: "Your first Low or Mid Attack each turn gains Piercing 1." }], { firstAttack: true, zone: "Low", matchingArmor: true }).amount, 1);
+  assert.equal(equipmentPiercing([{ name: "Club", rulesText: "Your Attacks with this gain Piercing 1 against Armor." }], { firstAttack: false, zone: "Mid", matchingArmor: true }).amount, 1);
+});
+
+test("matching-Armor and loaded-target Attack Power clauses resolve with Piercing cards", () => {
+  assert.equal(conditionalAttackPowerBonus({ rulesText: "If the target has matching Armor, this Attack gets +1 Attack Power and gains Piercing 1." }, { playedKata: false, firstAttack: false, matchingArmor: true, targetEquipmentCount: 1 }).amount, 1);
+  assert.equal(conditionalAttackPowerBonus({ rulesText: "If the target has two or more permanent Equipment cards equipped, this Attack gets +1 Attack Power and gains Piercing 1." }, { playedKata: false, firstAttack: false, matchingArmor: false, targetEquipmentCount: 2 }).amount, 1);
 });

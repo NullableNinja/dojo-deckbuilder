@@ -93,12 +93,16 @@ export function attackCanChooseAnyZone(card: EffectCardLike, firstAttack: boolea
   return false;
 }
 
-export function conditionalAttackPowerBonus(card: EffectCardLike, context: { playedKata: boolean; firstAttack: boolean }) {
+export function conditionalAttackPowerBonus(card: EffectCardLike, context: { playedKata: boolean; firstAttack: boolean; matchingArmor?: boolean; targetEquipmentCount?: number }) {
   const text = normalizedMinus(String(card.rulesText ?? ""));
   let amount = 0;
   const notes: string[] = [];
   const kata = text.match(/If you played a Kata this turn, this Attack gets \+(\d+) Attack Power/i);
   if (kata && context.playedKata) { amount += Number(kata[1]); notes.push(`Kata setup +${kata[1]} Attack Power`); }
+  const armor = text.match(/If the target has matching Armor, this Attack gets \+(\d+) Attack Power/i);
+  if (armor && context.matchingArmor) { amount += Number(armor[1]); notes.push(`matching Armor +${armor[1]} Attack Power`); }
+  const equipment = text.match(/If the target has two or more permanent Equipment cards equipped, this Attack gets \+(\d+) Attack Power/i);
+  if (equipment && (context.targetEquipmentCount ?? 0) >= 2) { amount += Number(equipment[1]); notes.push(`loaded target +${equipment[1]} Attack Power`); }
   const unconditional = text.match(/(?:^|[.!?]\s+)(?:This|The) Attack gets \+(\d+) Attack Power/i);
   if (unconditional && !/Payoff:/i.test(text)) { amount += Number(unconditional[1]); notes.push(`printed Attack bonus +${unconditional[1]}`); }
   return { amount, notes };
@@ -212,4 +216,56 @@ export function targetNextDefensePenalty(card: EffectCardLike) {
   const text = normalizedMinus(String(card.rulesText ?? ""));
   const match = text.match(/(?:Their|target[’']s|opponent[’']s) next Defense card(?: this round)? (?:gets|has|provides) -(\d+) (?:Guard|Defense)/i);
   return match ? Number(match[1]) : 0;
+}
+
+
+export function attackPiercing(card: EffectCardLike, context: {
+  matchingArmor: boolean;
+  targetEquipmentCount: number;
+  targetHasExhaustedEquipment?: boolean;
+  speedChangedThisRound?: boolean;
+}) {
+  const text = normalizedMinus(String(card.rulesText ?? ""));
+  let amount = 0;
+  const notes: string[] = [];
+  const add = (value: number, note: string) => { amount += value; notes.push(note); };
+
+  const armor = text.match(/If the target has matching Armor, this Attack(?: gets \+\d+ Attack Power and)? gains Piercing (\d+)/i);
+  if (armor && context.matchingArmor) add(Number(armor[1]), `matching Armor grants Piercing ${armor[1]}`);
+
+  const equipment = text.match(/If the target has two or more permanent Equipment cards equipped, this Attack(?: gets \+\d+ Attack Power and)? gains Piercing (\d+)/i);
+  if (equipment && context.targetEquipmentCount >= 2) add(Number(equipment[1]), `loaded target grants Piercing ${equipment[1]}`);
+
+  const exhausted = text.match(/If the target has exhausted Equipment, this Attack gains Piercing (\d+)/i);
+  if (exhausted && context.targetHasExhaustedEquipment) add(Number(exhausted[1]), `exhausted Equipment grants Piercing ${exhausted[1]}`);
+
+  const speed = text.match(/If your Speed changed this round, this Attack gets Piercing (\d+)/i);
+  if (speed && context.speedChangedThisRound) add(Number(speed[1]), `Speed change grants Piercing ${speed[1]}`);
+
+  return { amount, notes };
+}
+
+export function equipmentPiercing(cards: EffectCardLike[], context: {
+  firstAttack: boolean;
+  zone: string;
+  matchingArmor: boolean;
+}) {
+  let amount = 0;
+  const sources: string[] = [];
+  const zone = context.zone.toLocaleLowerCase();
+
+  for (const card of cards) {
+    const text = normalizedMinus(String(card.rulesText ?? ""));
+    let value = 0;
+    const firstLowMid = text.match(/Your first Low or Mid Attack each turn gains Piercing (\d+)/i);
+    if (firstLowMid && context.firstAttack && (zone === "low" || zone === "mid")) value += Number(firstLowMid[1]);
+    const high = text.match(/Your High Attacks with this gain Piercing (\d+)/i);
+    if (high && zone === "high") value += Number(high[1]);
+    const armor = text.match(/Your Attacks with this gain Piercing (\d+) against Armor/i);
+    if (armor && context.matchingArmor) value += Number(armor[1]);
+    if (!value) continue;
+    amount += value;
+    sources.push(`${card.name ?? "Equipment"} Piercing ${value}`);
+  }
+  return { amount, sources };
 }

@@ -21,9 +21,17 @@ test("Combo evaluator enforces a different-zone finisher", () => {
   assert.equal(evaluateCombo(combo, { ...base, currentZone: "Low" }).speedOnTrigger, 2);
 });
 
-test("Combo evaluator does not pretend an unsupported payoff works", () => {
+test("Combo evaluator resolves Piercing payoffs and Weapon requirements", () => {
   const combo = { id: "c3", name: "Piercing Filing", tags: ["Block"], rulesText: "Requirement: Block an Attack, then make a Weapon Attack. Payoff: That Attack gets Piercing 1.", details: {} };
   const result = evaluateCombo(combo, { priorCards: [], attacksThisTurn: 0, defendedThisRound: true, hitThisTurn: false, zonesPlayed: [], equipment: [], currentCard: attack("Weapon hit", ["Weapon"]), currentZone: "Mid" });
-  assert.equal(result.supported, false);
-  assert.equal(result.eligible, false);
+  assert.equal(result.supported, true);
+  assert.equal(result.eligible, true);
+  assert.equal(result.piercing, 1);
+});
+
+test("Combo evaluator recognizes the all-three-zones Piercing finisher", () => {
+  const combo = { id: "c4", name: "Three-Zone Filing", tags: ["Zone"], rulesText: "Requirement: Play Attacks in all three zones across one round. Payoff: The final Attack gets Piercing 2.", details: {} };
+  const result = evaluateCombo(combo, { priorCards: [attack("High", [], "High"), attack("Mid", [], "Mid")], attacksThisTurn: 2, defendedThisRound: false, hitThisTurn: false, zonesPlayed: ["High", "Mid"], equipment: [], currentCard: attack("Low", [], "Low"), currentZone: "Low" });
+  assert.equal(result.eligible, true);
+  assert.equal(result.piercing, 2);
 });
