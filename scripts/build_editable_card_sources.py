@@ -350,10 +350,77 @@ def source_art_from_flat(card: dict) -> Layer:
     return Layer("04 · Recovered paper-cut illustration", image)
 
 
+def strip_external_matte(raw: Image.Image) -> Image.Image:
+    """Remove only the renderer's neutral presentation matte."""
+    raw = raw.convert("RGBA")
+    raw.thumbnail((408, 278), Image.Resampling.LANCZOS)
+    pixels = raw.load()
+    width, height = raw.size
+    eligible = bytearray(width * height)
+    for y in range(height):
+        for x in range(width):
+            red, green, blue, _ = pixels[x, y]
+            # The renderer's neutral checkerboard/matte is nearly gray and very
+            # bright.  Actual cream paper, skin, and white gi panels retain a
+            # warmer color relationship and are left intact.
+            if min(red, green, blue) > 233 and max(red, green, blue) - min(red, green, blue) < 10:
+                eligible[y * width + x] = 1
+    # Remove only light-neutral pixels connected to the outside of the artwork;
+    # bright paper details inside a silhouetted figure survive as editable art.
+    from collections import deque
+    queue = deque()
+    seen = bytearray(width * height)
+    for x in range(width):
+        for y in (0, height - 1):
+            index = y * width + x
+            if eligible[index] and not seen[index]:
+                seen[index] = 1; queue.append((x, y))
+    for y in range(height):
+        for x in (0, width - 1):
+            index = y * width + x
+            if eligible[index] and not seen[index]:
+                seen[index] = 1; queue.append((x, y))
+    while queue:
+        x, y = queue.popleft()
+        pixels[x, y] = (0, 0, 0, 0)
+        for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if 0 <= nx < width and 0 <= ny < height:
+                index = ny * width + nx
+                if eligible[index] and not seen[index]:
+                    seen[index] = 1; queue.append((nx, ny))
+    bounds = raw.getchannel("A").getbbox()
+    if bounds:
+        left, top, right, bottom = bounds
+        raw = raw.crop((max(0, left - 8), max(0, top - 8), min(width, right + 8), min(height, bottom + 8)))
+    return raw
+
+
+def normalize_defense_art_sources() -> None:
+    """Make compact alpha-clean source assets for the published card build."""
+    source_dir = ROOT / "app/assets/art/defense-equipment"
+    ready_dir = source_dir / "ready"
+    ready_dir.mkdir(parents=True, exist_ok=True)
+    for source in source_dir.glob("ddb-deq-core-*.png"):
+        strip_external_matte(Image.open(source)).save(ready_dir / source.name, optimize=True)
+
+
+def defense_art_from_source(card: dict) -> Layer:
+    """Place one authored Paper-Fu illustration on its own editable card layer."""
+    card_id = card["catalogId"].lower()
+    candidates = list((ROOT / "app/assets/art/defense-equipment/ready").glob(f"{card_id}_*.png"))
+    if not candidates:
+        raise FileNotFoundError(f"Missing authored Paper-Fu illustration for {card['catalogId']}")
+    raw = Image.open(candidates[0]).convert("RGBA")
+    width, height = raw.size
+    image = rgba()
+    image.alpha_composite(raw, ((WIDTH - width) // 2, 183 + (278 - height) // 2))
+    return Layer("04 · Authored Paper-Fu illustration", image)
+
+
 def card_layers(card: dict, kind: str) -> list[Layer]:
     layers = template_layers(card, kind)
     layers.append(tab_layer(kind))
-    layers.append(illustrated_art(card) if kind == "defense_equipment" else source_art_from_flat(card))
+    layers.append(defense_art_from_source(card) if kind == "defense_equipment" else source_art_from_flat(card))
     title_canvas = rgba()
     title_draw = ImageDraw.Draw(title_canvas)
     title_font = fit_font(title_draw, card["name"].upper(), 29, 15, 380)
@@ -446,4 +513,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    if "--normalize-art" in sys.argv:
+        normalize_defense_art_sources()
+    else:
+        raise SystemExit(main())

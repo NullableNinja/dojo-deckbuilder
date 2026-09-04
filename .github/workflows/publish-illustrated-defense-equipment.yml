@@ -1,0 +1,35 @@
+name: Publish Illustrated Defense Equipment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-illustrated-defense-equipment.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-illustrated-card-assets:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure Pillow is available
+        run: python -c "import PIL" || python -m pip install --user Pillow
+      - name: Render illustrated Defense Equipment cards and OpenRaster sources
+        run: python scripts/build_editable_card_sources.py /tmp/dojo-editable-card-sources
+      - name: Verify complete published artwork
+        run: |
+          test "$(find app/assets/art/defense-equipment/ready -maxdepth 1 -name '*.png' | wc -l)" -eq 46
+          test "$(find app/assets/cards/defense-equipment -maxdepth 1 -name '*.webp' | wc -l)" -eq 46
+          test "$(find /tmp/dojo-editable-card-sources/defense-equipment -maxdepth 1 -name '*.ora' | wc -l)" -eq 46
+          unzip -t public/downloads/Dojo_Deckbuilder_v2.3_Defensive_Equipment_Editable_ORA.zip >/dev/null
+      - name: Commit illustrated card faces and sources
+        run: |
+          rm .github/workflows/publish-illustrated-defense-equipment.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/assets/cards/defense-equipment public/downloads/Dojo_Deckbuilder_v2.3_Defensive_Equipment_Editable_ORA.zip public/downloads/Dojo_Deckbuilder_v2.3_Consumable_Cards_Editable_ORA.zip .github/workflows
+          git diff --cached --quiet || git commit -m "Replace Defensive Equipment with illustrated Paper-Fu cards"
+          git push origin HEAD:main
