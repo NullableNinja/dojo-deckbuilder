@@ -1,0 +1,25 @@
+/* Learned Combo rack — persistent face-up Combo visibility during Quick Duel. */
+.active-combo-rack {
+  margin: 0 0 14px;
+  border: 1px solid rgba(245,179,34,.34);
+  background: linear-gradient(135deg, rgba(245,179,34,.12), rgba(255,255,255,.035));
+  padding: 12px;
+}
+.active-combo-rack > header { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 9px; }
+.active-combo-rack > header span { color: var(--gold); font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.active-combo-rack > header small { color: #aebbb4; font-size: 10px; }
+.active-combo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.active-combo-card { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; width: 100%; border: 1px solid rgba(255,255,255,.13); padding: 10px 11px; text-align: left; color: #eef5f1; background: rgba(8,22,16,.42); cursor: pointer; }
+.active-combo-card > i { grid-row: 1 / span 3; display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid rgba(245,179,34,.5); border-radius: 50%; color: var(--gold); font-style: normal; font-size: 18px; }
+.active-combo-card b { font-size: 12px; }
+.active-combo-card span { color: #b9c8c0; font-size: 10px; line-height: 1.35; }
+.active-combo-card small { color: #d6dfda; font-size: 9px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.active-combo-card.is-ready { border-color: rgba(245,179,34,.8); box-shadow: inset 3px 0 0 var(--gold); }
+.active-combo-card.is-ready small { color: #ffd566; }
+.active-combo-card.is-triggered { border-color: rgba(101,195,143,.55); opacity: .82; }
+.active-combo-card.is-triggered small { color: #7ed7a6; }
+.active-combo-card.is-manual small { color: #eaa47e; }
+.combo-digital-note { margin: 11px 0; border-left: 3px solid var(--gold); padding: 9px 12px; color: #45534c; background: rgba(245,179,34,.1); font-size: 11px; line-height: 1.5; }
+:root[data-theme="dark"] .combo-digital-note { color: #d4dfd8; background: rgba(245,179,34,.08); }
+.learned-combos button small.combo-requirement-mini { display: block; margin-top: 3px; white-space: normal; line-height: 1.25; text-align: left; }
+@media (max-width: 900px) { .active-combo-grid { grid-template-columns: 1fr; } }

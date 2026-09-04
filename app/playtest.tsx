@@ -6,6 +6,8 @@ import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import rulesJson from "./data/rules.json";
 import { compileCardEffects, describeEffectPlan } from "./card-effects";
+import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
+import "./combo-rack.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 
 type CardEntry = {
@@ -254,56 +256,36 @@ function refreshMarketRow(market: string[], marketDeck: string[], marketDiscard:
 
 type CombatModifier = { value: number; notes: string[] };
 type AttackModifier = { power: number; damage: number; notes: string[] };
-type ComboModifier = AttackModifier & { focusOnHit: number; grantsFlow: boolean; triggeredIds: string[] };
+type ComboModifier = AttackModifier & { focusOnHit: number; grantsFlow: boolean; speedOnTrigger: number; triggeredIds: string[] };
 
 function comboAttackModifier(board: Board, card: CardEntry, zone: string, isReversal = false): ComboModifier {
-  const result: ComboModifier = { power: 0, damage: 0, focusOnHit: 0, grantsFlow: false, triggeredIds: [], notes: [] };
+  const result: ComboModifier = { power: 0, damage: 0, focusOnHit: 0, grantsFlow: false, speedOnTrigger: 0, triggeredIds: [], notes: [] };
   const priorCards = board.cardsThisTurn.map(cardFor).filter(Boolean) as CardEntry[];
-  const priorAttacks = priorCards.filter(isAttack);
-  const priorZone = board.zonesPlayed.at(-1);
+  const equipment = board.equipment.map(cardFor).filter(Boolean) as CardEntry[];
   for (const comboId of board.learnedCombos) {
     if (board.triggeredCombos.includes(comboId)) continue;
     const combo = cardFor(comboId);
     if (!combo) continue;
-    const text = combo.rulesText ?? "";
-    let recognizedTrigger = /Requirement:/i.test(text);
-    if (/play(?:ed)? a Kata|Kata that/i.test(text) && !priorCards.some(isKata)) continue;
-    if (/Block(?:ed)? an? Attack|after you played a Defense/i.test(text) && !board.defendedThisRound) continue;
-    if (combo.tags.includes("Kata")) {
-      if (!priorCards.some(isKata)) continue;
-      recognizedTrigger = true;
-    }
-    if (combo.tags.includes("Block")) {
-      if (!board.defendedThisRound) continue;
-      recognizedTrigger = true;
-    }
-    if (combo.tags.includes("Jump") && combo.tags.includes("Kick")) {
-      if (!priorAttacks.some((entry) => hasTag(entry, "Jump")) || !hasTag(card, "Kick")) continue;
-      recognizedTrigger = true;
-    }
-    if (/second Attack/i.test(text)) { if (board.attacksThisTurn !== 1) continue; recognizedTrigger = true; }
-    if (/third Attack|first two Attacks/i.test(text)) { if (board.attacksThisTurn < 2) continue; recognizedTrigger = true; }
-    if (/first Attack Hit|first Attack Hits/i.test(text)) { if (!board.hitThisTurn || board.attacksThisTurn < 1) continue; recognizedTrigger = true; }
-    if (/different zone/i.test(text) && (!priorZone || priorZone === zone)) continue;
-    if (/Requirement:[^.]*\bMid Attack/i.test(text) && zone !== "Mid") continue;
-    if (/Requirement:[^.]*\bHigh Attack/i.test(text) && zone !== "High") continue;
-    if (/Requirement:[^.]*\bLow Attack/i.test(text) && zone !== "Low") continue;
-    if (/Requirement:[^.]*Reversal/i.test(text) && !isReversal) continue;
-    if (/Punch/i.test(text) && combo.tags.some((tag) => /Punch|Hand/.test(tag)) && !hasTag(card, "Punch") && !hasTag(card, "Hand")) continue;
-    if (/Kick/i.test(text) && combo.tags.includes("Kick") && !hasTag(card, "Kick")) continue;
-    if (/Weapon Attack/i.test(text) && !hasTag(card, "Weapon")) continue;
-    if (!recognizedTrigger) continue;
-    const power = numberValue(text.match(/\+(\d+) Attack Power/i)?.[1]);
-    const damage = numberValue(text.match(/\+(\d+) Damage/i)?.[1]);
-    const focusOnHit = numberValue(text.match(/gain (\d+) Focus/i)?.[1]);
-    const grantsFlow = /(?:final|Hand|Low|Mid|High|the) Attack[^.]*gains Flow/i.test(text);
-    if (!power && !damage && !focusOnHit && !grantsFlow) continue;
-    result.power += power;
-    result.damage += damage;
-    result.focusOnHit += focusOnHit;
-    result.grantsFlow ||= grantsFlow;
+    const evaluation = evaluateCombo(combo, {
+      priorCards,
+      attacksThisTurn: board.attacksThisTurn,
+      defendedThisRound: board.defendedThisRound,
+      hitThisTurn: board.hitThisTurn,
+      zonesPlayed: board.zonesPlayed,
+      equipment,
+      currentCard: card,
+      currentZone: zone,
+      isReversal,
+    });
+    if (!evaluation.eligible) continue;
+    result.power += evaluation.power;
+    result.damage += evaluation.damage;
+    result.focusOnHit += evaluation.focusOnHit;
+    result.grantsFlow ||= evaluation.grantsFlow;
+    result.speedOnTrigger += evaluation.speedOnTrigger;
     result.triggeredIds.push(combo.id);
-    result.notes.push(`${combo.name} ${power ? `+${power} power` : damage ? `+${damage} damage` : focusOnHit ? `files a Focus payoff` : `grants Flow`}`);
+    const payoffBits = [evaluation.power ? `+${evaluation.power} power` : "", evaluation.damage ? `+${evaluation.damage} damage` : "", evaluation.grantsFlow ? "Flow" : "", evaluation.focusOnHit ? `${evaluation.focusOnHit} Focus on Hit` : "", evaluation.speedOnTrigger ? `+${evaluation.speedOnTrigger} Speed` : ""].filter(Boolean);
+    result.notes.push(`COMBO — ${combo.name}: ${payoffBits.join(", ")}`);
   }
   return result;
 }
@@ -758,6 +740,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (flowDraw) nextPlayer = drawCards({ ...nextPlayer, flowUsedThisTurn: true }, 1);
     if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
     if (hit && comboModifier.focusOnHit) nextPlayer.focus += comboModifier.focusOnHit;
+    if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
     let nextAi = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit, damageTaken: reduced.board.damageTaken + damage };
     if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), discard: [...nextAi.discard, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true };
     nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
@@ -956,6 +939,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], reversalUsedRound: true, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
     nextPlayer.focus = Math.max(0, nextPlayer.focus - cardFocus(card));
     if (hit && comboModifier.focusOnHit) nextPlayer.focus += comboModifier.focusOnHit;
+    if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
     let nextAi = { ...reduced.board, hp: Math.max(0, reduced.board.hp - damage), damageTaken: reduced.board.damageTaken + damage, wasHitSinceLastTurn: reduced.board.wasHitSinceLastTurn || hit };
     if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), playArea: [...nextAi.playArea, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true };
     nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
@@ -981,6 +965,22 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const nextBelt = belts[player.belt + 1];
   const canPromote = Boolean(nextBelt && player.xp >= nextBelt.xp && playerTask);
   const defenseOptions = match.pendingStrike ? legalDefenseIds(player, match.pendingStrike.zone) : [];
+  const learnedComboStates = player.learnedCombos.map((id) => {
+    const combo = cardFor(id);
+    if (!combo) return null;
+    const evaluation = pendingAttack ? evaluateCombo(combo, {
+      priorCards: player.cardsThisTurn.map(cardFor).filter(Boolean) as CardEntry[],
+      attacksThisTurn: player.attacksThisTurn,
+      defendedThisRound: player.defendedThisRound,
+      hitThisTurn: player.hitThisTurn,
+      zonesPlayed: player.zonesPlayed,
+      equipment: player.equipment.map(cardFor).filter(Boolean) as CardEntry[],
+      currentCard: pendingAttack,
+      currentZone: match.selectedZone,
+      isReversal: match.phase === "reversal-window",
+    }) : null;
+    return { combo, evaluation, triggered: player.triggeredCombos.includes(id) };
+  }).filter(Boolean) as { combo: CardEntry; evaluation: ReturnType<typeof evaluateCombo> | null; triggered: boolean }[];
   const practiceFocus = player.defensePracticeUsed ? 0 : Math.max(0, ...player.hand.map((id) => {
     const card = cardFor(id);
     return card && isDefense(card) ? cardFocus(card) : 0;
@@ -1028,6 +1028,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       <BattleCallout line={match.log[0]} />
       <FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} />
       <section className={`playtest-combat-desk paper-stack state-${match.phase}`}>
+        {learnedComboStates.length > 0 && <section className="active-combo-rack" aria-label="Learned Combos"><header><span>∞ Learned Combos · face up</span><small>The digital field test fires supported payoffs automatically when the requirement completes.</small></header><div className="active-combo-grid">{learnedComboStates.map(({ combo, evaluation, triggered }) => { const state = triggered ? "is-triggered" : evaluation?.eligible ? "is-ready" : evaluation && !evaluation.supported ? "is-manual" : ""; const status = triggered ? "Triggered this round" : evaluation?.eligible ? "WILL TRIGGER on selected Attack" : evaluation && !evaluation.supported ? "Manual resolver pending" : "Watching your sequence"; return <button type="button" className={`active-combo-card ${state}`} onClick={() => setInspectedId(combo.id)} key={combo.id}><i aria-hidden="true">∞</i><b>{combo.name}</b><span>{comboRequirementText(combo)}</span><small>{status}</small></button>; })}</div></section>}
         <div className="live-mat-heading"><span className="eyebrow">Live mat · cards in play</span><small>Click any filed card to inspect it</small></div>
         <div className="live-mat-play">
           <MatLane label="Your side" cards={player.playArea} activeId={match.selectedAttackId} onInspect={(card) => setInspectedId(card.id)} />
@@ -1103,12 +1104,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
             <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= cardCost(card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
           </section>}
           {deskView === "combo" && <section className="ascend-combo combo-panel">
+            <p className="combo-digital-note"><b>Learned Combos stay face up beside your fighter.</b> During Yell, the live Combo rack shows the printed requirement and previews whether your selected Attack will complete it. Supported payoffs fire automatically; anything not yet automated is labeled instead of being silently faked.</p>
             <header><div><span className="eyebrow">One face-up offer · one attempt per turn</span><h3>{player.learnedCombos.length ? `${player.learnedCombos.length}/2 learned` : "Reveal. Learn. Regret."}</h3></div><span className="combo-limit">{player.comboAttemptedTurn ? "Attempt filed" : "Ready"}</span></header>
             {comboOffer ? <div className="combo-offer"><NativeCardArt card={comboOffer} /><div><span>{comboOffer.catalogId}</span><h3>{comboOffer.name}</h3><p>{comboOffer.rulesText}</p><div><b>{cardCost(comboOffer)} Focus</b><button onClick={() => setInspectedId(comboOffer.id)}>Inspect full card</button></div></div></div> : <p>The Combo docket has escaped the filing cabinet.</p>}
             {match.phase === "player-ascend" && comboOffer && !player.comboAttemptedTurn && <div className="combo-actions"><button className="button primary" disabled={player.focus < cardCost(comboOffer) || player.learnedCombos.length >= 2} onClick={() => cycleCombo(true)}>Learn {comboOffer.name}</button><button className="button ghost" onClick={() => cycleCombo(false)}>Pass · bottom deck</button></div>}
             {match.phase !== "player-ascend" && <p className="combo-spent">Combo actions unlock during Ascend.</p>}
             {player.comboAttemptedTurn && <p className="combo-spent">Combo attempt filed for this turn.</p>}
-            {player.learnedCombos.length > 0 && <div className="learned-combos">{player.learnedCombos.map((id) => <button key={id} onClick={() => setInspectedId(id)}><span>∞</span><b>{cardFor(id)?.name}</b><small>{player.triggeredCombos.includes(id) ? "Triggered this round" : "Ready"}</small></button>)}</div>}
+            {player.learnedCombos.length > 0 && <div className="learned-combos">{player.learnedCombos.map((id) => { const learned = cardFor(id); if (!learned) return null; return <button key={id} onClick={() => setInspectedId(id)}><span>∞</span><b>{learned.name}</b><small>{player.triggeredCombos.includes(id) ? "Triggered this round" : "Face up · watches automatically"}</small><small className="combo-requirement-mini">Requirement: {comboRequirementText(learned)}</small><small className="combo-requirement-mini">Payoff: {comboPayoffText(learned)}</small></button>; })}</div>}
           </section>}
           {deskView === "belt" && <section className="ascend-belt belt-panel">
             <span className="eyebrow">Certification ledger</span><h3>{belts[player.belt].name} Belt · {player.xp} XP</h3>
