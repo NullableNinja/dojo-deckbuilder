@@ -25,8 +25,6 @@ if "export function targetDiscardOnHitCount" not in text:
     resolver.write_text(text.replace(anchor, insert + anchor, 1))
 
 # Wire resolver into Quick Duel.
-playtest = Path("app/playtest.tsx")
-text = playtest.read_text()
 replace_once(
     "app/playtest.tsx",
     'readyEquipmentOnHit, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, type DeckLookPlan',
@@ -61,12 +59,12 @@ new = '''    const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " 
 replace_once("app/playtest.tsx", old, new)
 
 # Resolver regression tests.
-test = Path("tests/effect-resolvers.test.mjs")
-t = test.read_text()
+test_path = Path("tests/effect-resolvers.test.mjs")
+t = test_path.read_text()
 if "targetDiscardOnHitCount" not in t:
     t = t.replace(
-        'targetNextAttackPenalty,',
-        'targetDiscardOnHitCount, targetNextAttackPenalty,',
+        'readyEquipmentOnHit, targetNextAttackPenalty,',
+        'readyEquipmentOnHit, targetDiscardOnHitCount, targetNextAttackPenalty,',
         1,
     )
     t += r'''
@@ -77,11 +75,11 @@ test("targetDiscardOnHitCount parses forced discard Hit effects", () => {
   assert.equal(targetDiscardOnHitCount({ rulesText: "If this Attack is Blocked, gain 1 Focus." }), 0);
 });
 '''
-    test.write_text(t)
+    test_path.write_text(t)
 
-# Static integration guards for both sides of the duel.
-regression = Path("tests/playtest-reported-bugs.test.mjs")
-r = regression.read_text()
+# Static integration guards for both sides of the duel. Create the file if another branch removed it.
+regression = Path("tests/playtest-target-discard.test.mjs")
+r = regression.read_text() if regression.exists() else '''import assert from "node:assert/strict";\nimport { readFile } from "node:fs/promises";\nimport test from "node:test";\n'''
 if "forced target-discard Hit effects" not in r:
     r += r'''
 
