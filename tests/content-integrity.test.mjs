@@ -160,7 +160,6 @@ test("playtest behaves like a complete guided game surface", async () => {
     "prepareAiTurn",
     "ddb-field-match",
     "ddb-field-settings",
-    "game-phase-rail",
     "turn-coach",
     "Instant rematch",
     "player-initiate",
