@@ -63,3 +63,5 @@ Quick Duel intentionally ships in the proven main companion bundle. Do not reint
 
 <!-- Illustrated Defensive Equipment Paper-Fu card set published. -->
 <!-- Illustrated Gear Paper-Fu card set published. -->
+
+<!-- Deployment trigger: complete Learned Combo card faces and editable ORA archive. -->
