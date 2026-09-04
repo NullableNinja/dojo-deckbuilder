@@ -13,6 +13,21 @@ replacement = '''replace_first(\n    play_path,\n    'damageDealt: current.playe
 if needle not in text:
     raise SystemExit('Could not locate the ambiguous normal-Attack patch call.')
 text = text.replace(needle, replacement, 1)
+
+# Tighten two generated TypeScript inference boundaries while keeping Board fields
+# backward-compatible with existing saved matches.
+old_attacker = '  let attacker = { ...board, lastAttackHit: hit };'
+new_attacker = '  let attacker: Board = { ...board, lastAttackHit: hit };'
+if old_attacker not in text:
+    raise SystemExit('Could not locate AI triggered-equipment attacker state.')
+text = text.replace(old_attacker, new_attacker, 1)
+
+old_winner = '      let winner = current.winner;'
+new_winner = '      let winner: Match["winner"] = current.winner;'
+if old_winner not in text:
+    raise SystemExit('Could not locate Equipment activation winner state.')
+text = text.replace(old_winner, new_winner, 1)
+
 patch.write_text(text)
 
 # Execute the corrected maintenance patch in this process.
