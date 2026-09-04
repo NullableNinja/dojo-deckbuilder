@@ -28,6 +28,21 @@ if old_winner not in text:
     raise SystemExit('Could not locate Equipment activation winner state.')
 text = text.replace(old_winner, new_winner, 1)
 
+# The gameplay patch is already validated, but the workflow token is not allowed to
+# push changes to .github/workflows. Remove only that cleanup block from the queued
+# maintenance patch so the validated source/test changes can commit normally.
+workflow_marker = '# Remove the temporary patch-fix workflow branch from earlier maintenance work.'
+workflow_start = text.find(workflow_marker)
+print_start = text.find('print("Triggered Equipment effects', workflow_start)
+if workflow_start < 0 or print_start < 0:
+    raise SystemExit('Could not locate the workflow-cleanup block in the queued patch.')
+text = text[:workflow_start] + text[print_start:]
+text = text.replace(
+    'Triggered Equipment effects, Bubble Wrap reduction, Cover Up contract, and workflow cleanup patched.',
+    'Triggered Equipment effects, Bubble Wrap reduction, and Cover Up contract patched.',
+    1,
+)
+
 patch.write_text(text)
 
 # Execute the corrected maintenance patch in this process.
