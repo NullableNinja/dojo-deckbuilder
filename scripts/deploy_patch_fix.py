@@ -2,25 +2,31 @@ from pathlib import Path
 
 patch = Path(__file__).with_name("deploy_patch.py")
 text = patch.read_text(encoding="utf-8")
-text = text.replace('rules = load_json("app/data/rules.json")n\n', 'rules = load_json("app/data/rules.json")\n')
-patch.write_text(text, encoding="utf-8")
+
+# Repair the one malformed generated HTML literal in the queued patch.
+lines = text.splitlines()
+repaired = False
+for i, line in enumerate(lines):
+    if "Once per turn, you may discard <strong>1 Bad Habit</strong>" in line and '"</div>",' in line:
+        indent = line[: len(line) - len(line.lstrip())]
+        lines[i:i + 1] = [
+            indent + '"<div>Once per turn, you may discard <strong>1 Bad Habit</strong> from your hand to gain <strong>1 Focus</strong>. This does not count as playing the card, resolving its text, or gaining XP.</div>\\n"',
+            indent + '"</div>",',
+        ]
+        repaired = True
+        break
+
+if repaired:
+    text = "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+    patch.write_text(text, encoding="utf-8")
+
+# Fail clearly if the queued patch is still not valid Python.
+compile(text, str(patch), "exec")
+
+# Execute the complete queued implementation. It owns all source/rules/test edits.
 exec(compile(text, str(patch), "exec"), {"__file__": str(patch), "__name__": "__main__"})
 
-root = patch.resolve().parents[1]
-play_path = root / "app/playtest.tsx"
-play = play_path.read_text(encoding="utf-8")
-old = 'return saved?.schema === 7 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;'
-new = 'return saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;'
-if old not in play:
-    raise RuntimeError("Saved-match schema guard was not found")
-play_path.write_text(play.replace(old, new), encoding="utf-8")
-
-test_path = root / "tests/playtest-regression-guardrails.test.mjs"
-test_text = test_path.read_text(encoding="utf-8")
-old_test = 'assert.ok(source.includes(\'drawCards(packedBoard, packedBoard.belt >= 5 ? 6 : 5)\'), "Hide draw count must be explicit and should not depend on how many cards were retained.");'
-new_test = 'assert.ok(source.includes(\'gameDefinition.turn.handSize + (readyBoard.belt >= 5 ? 1 : 0)\'), "Hide draw count must come from the configured hand size plus the Blue Belt bonus and should not depend on retained cards.");'
-if old_test not in test_text:
-    raise RuntimeError("Stale Hide draw guard was not found")
-test_path.write_text(test_text.replace(old_test, new_test), encoding="utf-8")
-
+# The workflow already removes deploy_patch.py after validation. Remove this helper
+# so the validated commit cannot retrigger maintenance instead of deployment.
 Path(__file__).unlink()
+print("Repaired and executed queued Dojo economy/rules patch.")
