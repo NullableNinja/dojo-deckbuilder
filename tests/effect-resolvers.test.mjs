@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, readyEquipmentOnHit, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalDiscardDrawChoice, passiveEquipmentGuard, readyEquipmentOnHit, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor } from "../app/effect-resolvers.ts";
 
 test("Defense Equipment protects only its printed zone", () => {
   const chest = { name: "Cardboard Chestplate", subtype: "Defense Equipment", rulesText: "+2 DEF against Mid Attacks.", stats: { Guard: 2 } };
@@ -158,4 +158,11 @@ test("discard-as-cost Equipment followups award Focus only after the player pays
   const result = discardChoiceFollowup({ rulesText: "Exhaust: After your first Attack Hits this turn, discard 1 card to gain 1 Focus." }, { focusValue: 2 });
   assert.equal(result.focus, 1);
   assert.match(result.notes.join(" "), /Discard cost paid/);
+});
+
+
+test("targetDiscardOnHitCount parses forced discard Hit effects", () => {
+  assert.equal(targetDiscardOnHitCount({ rulesText: "If this Attack Hits, the target discards 1 card." }), 1);
+  assert.equal(targetDiscardOnHitCount({ rulesText: "If it Hits, target discards 2 cards." }), 2);
+  assert.equal(targetDiscardOnHitCount({ rulesText: "If this Attack is Blocked, gain 1 Focus." }), 0);
 });
