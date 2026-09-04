@@ -50,16 +50,16 @@ jobs:
           replace_exact(
               playtest,
               '''function applyBeltPromotion(board: Board, beltIndex: number) {
-            const reward = belts[beltIndex]?.reward ?? "";
-            const maxHpIncrease = /\\+10 Max HP/i.test(reward) ? 10 : 0;
-            const maxHp = board.maxHp + maxHpIncrease;
-            const hp = maxHpIncrease && board.hp > 0 ? Math.min(maxHp, board.hp + 5) : board.hp;
-            return { ...board, belt: beltIndex, maxHp, hp };
-          }'''.replace('\n          ', '\n'),
+  const reward = belts[beltIndex]?.reward ?? "";
+  const maxHpIncrease = /\\+10 Max HP/i.test(reward) ? 10 : 0;
+  const maxHp = board.maxHp + maxHpIncrease;
+  const hp = maxHpIncrease && board.hp > 0 ? Math.min(maxHp, board.hp + 5) : board.hp;
+  return { ...board, belt: beltIndex, maxHp, hp };
+}''',
               '''function applyBeltPromotion(board: Board, beltIndex: number) {
-            // Quick Duel uses fixed HP: promotion changes rank/perks, never current or Max HP.
-            return { ...board, belt: beltIndex };
-          }'''.replace('\n          ', '\n')
+  // Quick Duel uses fixed HP: promotion changes rank/perks, never current or Max HP.
+  return { ...board, belt: beltIndex };
+}'''
           )
 
           rules = 'app/data/rules.json'
@@ -95,6 +95,20 @@ jobs:
           manifest['rulesRevision'] = 'v2.3-r4'
           manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
 
+          integrity = 'tests/content-integrity.test.mjs'
+          replace_exact(
+              integrity,
+              'test("active rules and play surfaces use the persistent Market and full Quick Duel vitality", async () => {',
+              'test("active rules and play surfaces use the persistent Market and fixed Quick Duel vitality", async () => {'
+          )
+          replace_exact(integrity, 'assert.equal(JSON.parse(definition).progression.quickDuelUsesFullBeltRewards, true);', 'assert.equal(JSON.parse(definition).progression.quickDuelUsesFullBeltRewards, false);')
+          replace_exact(integrity, 'assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r3");', 'assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r4");', count=2)
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          package['scripts']['test'] = 'npm run build && node --experimental-strip-types --test tests/*.test.mjs'
+          package_path.write_text(json.dumps(package, indent=2) + '\n', encoding='utf-8')
+
           test = Path('tests/quick-duel-fixed-hp.test.mjs')
           test.write_text('''import test from "node:test";\nimport assert from "node:assert/strict";\nimport { readFileSync } from "node:fs";\n\nconst playtest = readFileSync(new URL("../app/playtest.tsx", import.meta.url), "utf8");\nconst rules = JSON.parse(readFileSync(new URL("../app/data/rules.json", import.meta.url), "utf8"));\nconst definition = JSON.parse(readFileSync(new URL("../app/data/game-definition.json", import.meta.url), "utf8"));\n\ntest("Quick Duel promotion keeps current and Max HP fixed", () => {\n  assert.equal(definition.progression.quickDuelUsesFullBeltRewards, false);\n  assert.match(playtest, /schema: 7/);\n  assert.match(playtest, /function applyBeltPromotion[\\s\\S]*return \\{ \\.\\.\\.board, belt: beltIndex \\};/);\n  assert.doesNotMatch(playtest.match(/function applyBeltPromotion[\\s\\S]*?\\n\\}/)?.[0] ?? "", /maxHpIncrease|board\\.hp \\+ 5/);\n});\n\ntest("published Quick Duel rules explicitly disable promotion HP rewards", () => {\n  const text = JSON.stringify(rules);\n  assert.match(text, /promotion never raises Max HP or heals a fighter/);\n  assert.match(text, /Quick Duel ignores every promotion's Max HP increase and healing/);\n  assert.match(text, /Quick Duel ignores promotion Max-HP increases and promotion healing/);\n});\n''', encoding='utf-8')
 
@@ -108,6 +122,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/playtest.tsx app/data/game-definition.json app/data/rules.json public/rules-manifest.json tests/quick-duel-fixed-hp.test.mjs
+          git add app/playtest.tsx app/data/game-definition.json app/data/rules.json public/rules-manifest.json package.json tests/content-integrity.test.mjs tests/quick-duel-fixed-hp.test.mjs
           git commit -m "Fix Quick Duel belt promotion HP"
           git push origin HEAD:fix/quick-duel-fixed-hp
