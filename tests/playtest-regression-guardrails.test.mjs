@@ -17,13 +17,13 @@ test("a played Defense card is consumed by the strike it resolves", () => {
 });
 
 test("player discard effects remain explicit choices instead of silent auto-discard", () => {
-  assert.match(playtest, /if \(owner === "player" && timing === "onPlay"\) continue;/);
+  assert.match(playtest, /if \(owner === "player" && \(timing === "onPlay" \|\| timing === "onBlock"\)\) continue;/);
   assert.match(playtest, /pendingChoice:\s*\{ kind: "discard-hand"/);
   assert.match(playtest, /Choose what to discard/);
 });
 
-test("belt promotion reports and applies max HP progression", () => {
-  assert.match(playtest, /const nextPlayer = applyBeltPromotion\(current\.player, current\.player\.belt \+ 1\);/);
-  assert.match(playtest, /nextPlayer\.maxHp > current\.player\.maxHp/);
-  assert.match(playtest, /current HP \$\{current\.player\.hp\} → \$\{nextPlayer\.hp\}/);
+test("Quick Duel belt promotion changes rank without changing current or Max HP", () => {
+  const promotion = playtest.match(/function applyBeltPromotion\(board: Board, beltIndex: number\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.match(promotion, /return \{ \.\.\.board, belt: beltIndex \};/);
+  assert.doesNotMatch(promotion, /maxHpIncrease|board\.hp \+ 5|maxHp,/);
 });
