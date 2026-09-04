@@ -41,6 +41,8 @@ See `docs/ENGINE-ARCHITECTURE.md` for the rules-as-data contract, supported rule
 
 The Play the Game setup screen includes a background simulator for 1–1,000 games. It keeps the interface responsive while producing win rates, average length, top card picks, and XP/Focus curves from the current rules snapshot.
 
+Quick Duel intentionally ships in the proven main companion bundle. Do not reintroduce lazy-loading/code-splitting for `PlaytestView` without an end-to-end browser regression test; a prior split-chunk deployment produced a blank field-test screen after the loading handoff.
+
 ## GitHub Pages deployment
 
 `.github/workflows/deploy-pages.yml` automatically builds and publishes the site whenever `main` changes. In GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions** once. Future pushes to `main` deploy automatically.
