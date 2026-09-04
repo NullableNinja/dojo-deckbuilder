@@ -59,12 +59,18 @@ jobs:
 
       - name: Commit validated maintenance patch
         if: steps.maintenance.outputs.present == 'true'
+        shell: bash
         run: |
+          message="Apply validated live site maintenance"
+          if [ -f scripts/deploy_patch_message.txt ]; then
+            message="$(cat scripts/deploy_patch_message.txt)"
+            rm scripts/deploy_patch_message.txt
+          fi
           rm scripts/deploy_patch.py
           git config user.name "NullableNinja Site Automation"
           git config user.email "130773741+NullableNinja@users.noreply.github.com"
           git add -A
-          git commit -m "Fix learned Combo visibility and triggers"
+          git commit -m "$message"
           git push origin HEAD:main
 
       - name: Stamp deployment and bust stale app-shell caches
