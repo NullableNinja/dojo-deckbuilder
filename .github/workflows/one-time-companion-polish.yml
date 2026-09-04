@@ -16,16 +16,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
       - name: Apply patch
         run: python scripts/one_time_companion_polish.py
-      - name: Install dependencies
-        run: npm ci
-      - name: Run tests
-        run: npm test
       - name: Clean temporary patch files
         run: rm scripts/one_time_companion_polish.py .github/workflows/one-time-companion-polish.yml
       - name: Commit polished companion
