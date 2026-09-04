@@ -60,3 +60,5 @@ Quick Duel intentionally ships in the proven main companion bundle. Do not reint
 <!-- Layered Defensive Equipment and Consumable ORA sources published. -->
 <!-- Deployment trigger: dark-mode rule table contrast. -->
 <!-- Deployment trigger: smart companion tools. -->
+
+<!-- Illustrated Defensive Equipment Paper-Fu card set published. -->
