@@ -42,7 +42,11 @@ jobs:
         run: |
           if [ -f scripts/deploy_patch.py ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
-            python scripts/deploy_patch.py
+            if [ -f scripts/deploy_patch_fix.py ]; then
+              python scripts/deploy_patch_fix.py
+            else
+              python scripts/deploy_patch.py
+            fi
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
           fi
