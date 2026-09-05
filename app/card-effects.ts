@@ -134,6 +134,7 @@ function operationsForSentence(sentence: string, timing: EffectTiming): CardEffe
 }
 
 function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | null {
+  if (effect.conditions?.length) return null;
   if (!["onPlay", "onHit", "onBlock", "afterResolve"].includes(effect.trigger)) return null;
   const timing = effect.trigger as EffectTiming;
   const effectAmount = Number(effect.amount ?? 0);
