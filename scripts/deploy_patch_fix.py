@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 patch = Path(__file__).with_name("deploy_patch.py")
 root = patch.resolve().parents[1]
@@ -37,29 +36,7 @@ if old not in play:
     raise RuntimeError("Expected saved-match schema guard was not found")
 play_path.write_text(play.replace(old, new), encoding="utf-8")
 
-# The imported JSON is typed from the checked-in pre-patch literal (5) during the
-# TypeScript test compile. The r5 assertion intentionally compares it to 7, so
-# normalize the generated test's handSize operand through Number() to avoid a
-# false TS2367 literal-type error while preserving the runtime assertion.
-test_path = root / "tests" / "gameplay-rules.test.ts"
-test_text = test_path.read_text(encoding="utf-8")
-test_lines = test_text.splitlines()
-changed = False
-for i, line in enumerate(test_lines):
-    if "handSize" in line and "7" in line and "Number(" not in line:
-        rewritten = re.sub(
-            r'([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.handSize)',
-            r'Number(\1)',
-            line,
-        )
-        if rewritten != line:
-            test_lines[i] = rewritten
-            changed = True
-if not changed:
-    raise RuntimeError("Expected r5 handSize assertion needing numeric normalization was not found")
-test_path.write_text("\n".join(test_lines) + ("\n" if test_text.endswith("\n") else ""), encoding="utf-8")
-
-# The workflow removes the main patch after validation. Remove this helper now so
-# the validated commit cannot retrigger maintenance instead of deployment.
+# Do not touch generated test files here. They do not exist until later workflow
+# steps, which was the cause of the previous maintenance-step crash.
 Path(__file__).unlink()
 print("Repaired and executed queued Dojo economy/rules patch.")
