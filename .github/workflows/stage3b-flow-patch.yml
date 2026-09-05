@@ -1,0 +1,48 @@
+name: Stage 3B Flow migration
+
+on:
+  push:
+    branches:
+      - stage3b-attack-flow-batch
+    paths:
+      - scripts/stage3b-flow-patch-v2.mjs
+      - .github/workflows/stage3b-flow-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3b-attack-flow-batch
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply structured Flow migration
+        run: node scripts/stage3b-flow-patch-v2.mjs
+
+      - name: Run automated tests
+        run: npm test
+
+      - name: Validate diff
+        run: git diff --check
+
+      - name: Commit generated migration changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/card-effects.json app/data/card-effects.json app/card-effects.ts app/effect-resolvers.ts app/playtest.tsx tests/attack-structured-resolvers-batch.test.mjs
+          git commit -m "feat: structure Flow-granting Attacks"
+          git push origin HEAD:stage3b-attack-flow-batch
