@@ -5,14 +5,13 @@ on:
     branches:
       - stage3b-attack-flow-batch
     paths:
-      - scripts/stage3b-flow-patch-v2.mjs
       - .github/workflows/stage3b-flow-patch.yml
 
 permissions:
   contents: write
 
 jobs:
-  migrate:
+  diagnose:
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
@@ -30,19 +29,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Apply structured Flow migration
-        run: node scripts/stage3b-flow-patch-v2.mjs
+      - name: Capture automated test output
+        shell: bash
+        run: |
+          set +e
+          npm test > stage3b-test-output.txt 2>&1
+          code=$?
+          cat stage3b-test-output.txt
+          echo "$code" > stage3b-test-exit-code.txt
+          exit 0
 
-      - name: Validate diff
-        run: git diff --check
-
-      - name: Preserve migration changes on branch
+      - name: Preserve diagnostics on branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add content/card-effects.json app/data/card-effects.json app/card-effects.ts app/effect-resolvers.ts app/playtest.tsx tests/attack-structured-resolvers-batch.test.mjs
-          git commit -m "feat: structure Flow-granting Attacks"
+          git add stage3b-test-output.txt stage3b-test-exit-code.txt
+          git commit -m "chore: capture Stage 3B test diagnostics"
           git push origin HEAD:stage3b-attack-flow-batch
-
-      - name: Run automated tests
-        run: npm test
