@@ -46,6 +46,26 @@ test("structured effects take precedence over prose and map into the compatibili
   assert.deepEqual(plan.unsupported, []);
 });
 
+test("conditional structured effects require a condition-aware resolver", () => {
+  const plan = effectPlanForCard({
+    rulesText: "Draw 99 cards.",
+    effects: [
+      {
+        id: "conditional-draw",
+        trigger: "onHit",
+        action: "draw",
+        target: "self",
+        amount: 1,
+        conditions: [{ kind: "firstAttackThisTurn", operator: "eq", value: true }],
+      },
+    ],
+  });
+  assert.equal(plan.source, "structured");
+  assert.deepEqual(plan.effects, []);
+  assert.deepEqual(plan.dedicated, []);
+  assert.deepEqual(plan.unsupported, ["conditional-draw"]);
+});
+
 test("structured effects never fall back to prose when a dedicated resolver is still pending", () => {
   const plan = effectPlanForCard({
     rulesText: "Draw 5 cards.",
