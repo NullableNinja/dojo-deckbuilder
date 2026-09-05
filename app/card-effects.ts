@@ -76,6 +76,11 @@ const TIMING_LABELS: Record<EffectTiming, string> = {
 const IMPLEMENTED_DEDICATED_RESOLVERS = new Set([
   "starter.gainFocusIfFastest",
   "attack.chooseAnyZone",
+  "attack.conditionalPower",
+  "attack.piercing",
+  "attack.targetNextAttackPenalty",
+  "attack.readyEquipmentOnHit",
+  "attack.optionalDiscardDraw",
 ]);
 
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;
