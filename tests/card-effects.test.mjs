@@ -42,6 +42,7 @@ test("structured effects take precedence over prose and map into the compatibili
     { timing: "onPlay", kind: "draw", amount: 1 },
     { timing: "onHit", kind: "nextAttackPower", amount: 2 },
   ]);
+  assert.deepEqual(plan.dedicated, []);
   assert.deepEqual(plan.unsupported, []);
 });
 
@@ -54,6 +55,7 @@ test("structured effects never fall back to prose when a dedicated resolver is s
   });
   assert.equal(plan.source, "structured");
   assert.deepEqual(plan.effects, []);
+  assert.deepEqual(plan.dedicated, []);
   assert.deepEqual(plan.unsupported, ["special"]);
 });
 
@@ -64,7 +66,7 @@ test("Starter cards resolve through the canonical structured-effect registry", a
   assert.equal(coverage.total, 589);
   assert.equal(coverage.structured, 11, "All eleven Starter card identities should be structurally migrated");
   assert.ok(coverage.full > 0, "Expected at least one completely resolved printed effect");
-  assert.ok(coverage.partial > 0, "Expected mixed clauses to remain visible as partial coverage");
+  assert.ok(coverage.partial > 0, "Expected mixed clauses to remain visible as partial coverage outside the Starter family");
   assert.equal(coverage.full + coverage.partial + coverage.queued, coverage.total);
 
   const breathing = cards.find((card) => card.catalogId === "DDB-STA-CORE-005");
@@ -73,22 +75,25 @@ test("Starter cards resolve through the canonical structured-effect registry", a
   assert.deepEqual(breathingPlan.effects, [
     { timing: "onPlay", kind: "nextAttackPower", amount: 1 },
   ]);
+  assert.deepEqual(breathingPlan.dedicated, []);
   assert.deepEqual(breathingPlan.unsupported, []);
 
-  // playtest.tsx still calls compileCardEffects(card.rulesText). The temporary bridge
-  // must therefore resolve the exact canonical Starter text through the generated
-  // card catalog + structured registry before the English parser gets a chance.
+  // playtest.tsx still calls compileCardEffects(card.rulesText) for the generic
+  // effect subset. The bridge resolves exact canonical Starter text through the
+  // generated registry before the English parser gets a chance.
   const bridgedBreathingPlan = compileCardEffects(breathing.rulesText);
   assert.equal(bridgedBreathingPlan.source, "structured");
   assert.deepEqual(bridgedBreathingPlan.effects, [
     { timing: "onPlay", kind: "nextAttackPower", amount: 1 },
   ]);
+  assert.deepEqual(bridgedBreathingPlan.dedicated, []);
   assert.deepEqual(bridgedBreathingPlan.unsupported, []);
 
   const badHabit = cards.find((card) => card.catalogId === "DDB-STA-CORE-001");
   const badHabitPlan = effectPlanForCard(badHabit, registry);
   assert.equal(badHabitPlan.source, "structured");
   assert.deepEqual(badHabitPlan.effects, []);
+  assert.deepEqual(badHabitPlan.dedicated, []);
   assert.deepEqual(badHabitPlan.unsupported, []);
 
   const footwork = cards.find((card) => card.catalogId === "DDB-STA-CORE-008");
@@ -97,19 +102,22 @@ test("Starter cards resolve through the canonical structured-effect registry", a
   assert.deepEqual(footworkPlan.effects, [
     { timing: "onPlay", kind: "speed", amount: 2 },
   ]);
-  assert.deepEqual(footworkPlan.unsupported, ["starter-footwork-fastest-focus"]);
+  assert.deepEqual(footworkPlan.dedicated, ["starter.gainFocusIfFastest"]);
+  assert.deepEqual(footworkPlan.unsupported, []);
   const bridgedFootworkPlan = compileCardEffects(footwork.rulesText);
   assert.equal(bridgedFootworkPlan.source, "structured");
   assert.deepEqual(bridgedFootworkPlan.effects, [
     { timing: "onPlay", kind: "speed", amount: 2 },
   ]);
-  assert.deepEqual(bridgedFootworkPlan.unsupported, ["starter-footwork-fastest-focus"]);
+  assert.deepEqual(bridgedFootworkPlan.dedicated, ["starter.gainFocusIfFastest"]);
+  assert.deepEqual(bridgedFootworkPlan.unsupported, []);
 
   const wildSwing = cards.find((card) => card.catalogId === "DDB-STA-CORE-011");
   const wildSwingPlan = effectPlanForCard(wildSwing, registry);
   assert.equal(wildSwingPlan.source, "structured");
   assert.deepEqual(wildSwingPlan.effects, []);
-  assert.deepEqual(wildSwingPlan.unsupported, ["starter-wild-swing-zone"]);
+  assert.deepEqual(wildSwingPlan.dedicated, ["attack.chooseAnyZone"]);
+  assert.deepEqual(wildSwingPlan.unsupported, []);
 });
 
 test("choice language is never auto-executed by the generic parser", () => {
