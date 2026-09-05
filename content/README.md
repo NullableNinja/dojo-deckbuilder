@@ -4,6 +4,7 @@ The `content/` directory is the canonical authoring layer for Dojo Deckbuilder. 
 
 - `content/dojo-game.json` — mechanical definition, revision metadata, source policy, mode/economy/combat/progression configuration.
 - `content/rules.json` — canonical human-facing rules content: chapters, glossary, rulings, house rules, belt table, and quick-reference prose.
+- `content/cards.json` — canonical card catalog: card identity, printed fields, rules/flavor text, stats, tags, image references, and all other current catalog fields.
 
 Everything under `app/data/` that is listed in `sourcePolicy.generatedFiles` is a generated runtime artifact and must not be hand-edited.
 
@@ -11,23 +12,28 @@ Everything under `app/data/` that is listed in `sourcePolicy.generatedFiles` is 
 
 1. Human-authored global mechanics belong in `content/dojo-game.json`.
 2. Human-authored rules prose belongs in `content/rules.json`.
-3. `app/data/game-definition.json` and `app/data/rules.json` are generated-only runtime files.
-4. `app/data/cards.json` remains the only legacy authoritative data source still pending migration.
-5. `npm run game:generate` regenerates derived runtime game data from `content/`.
-6. `npm run game:check` fails when generated data drifts from canonical source, when core catalog invariants break, or when retired r5 rules reappear.
+3. Human-authored card catalog data belongs in `content/cards.json`.
+4. `app/data/game-definition.json`, `app/data/rules.json`, and `app/data/cards.json` are generated-only runtime files.
+5. There are no remaining legacy authoritative JSON data sources after Stage 3A.
+6. `npm run game:generate` regenerates all three derived runtime data files from `content/`.
+7. `npm run game:check` fails when generated data drifts from canonical source, when core catalog invariants break, or when retired r5 rules reappear.
 
 ## Current enforcement
 
-The canonical-source checker now verifies:
+The canonical-source checker verifies:
 
 - exact equality between `content/dojo-game.json`'s `definition` and `app/data/game-definition.json`;
 - exact equality between `content/rules.json` and `app/data/rules.json`;
-- matching v2.3 versions across canonical rules, generated rules, definition, and card catalog;
-- unique card Catalog IDs and presence of every Starter Deck card;
+- exact equality between `content/cards.json` and `app/data/cards.json`;
+- matching v2.3 versions across canonical rules, card catalog, definition, and generated runtime data;
+- canonical card count integrity, unique Catalog IDs, unique internal IDs when present, named cards, and presence of every Starter Deck card;
+- the fixed Starter Deck still totals 15 cards;
 - unique rule chapter IDs, section IDs, glossary terms, ruling IDs, and house-rule names;
 - the full nine-rank Belt Table;
 - required r5 rules including seven-card hands, unlimited legal Attacks, Flow draw, Market Mercy, and the Bad Habit Focus action;
-- absence of retired two-Attack-limit and Controlled Refill rules.
+- absence of retired two-Attack-limit and Controlled Refill rules;
+- source-policy declarations for every canonical and generated data file;
+- absence of legacy authoritative data files.
 
 Because `npm test` begins with `npm run game:check`, these invariants also gate GitHub Pages deployment.
 
@@ -39,13 +45,17 @@ Because `npm test` begins with `npm run game:check`, these invariants also gate 
 
 ### Stage 2 — rules content — COMPLETE
 
-`content/rules.json` is authoritative for rule chapters, glossary entries, rulings, house rules, belt definitions, and quick-reference material. `app/data/rules.json` is generated-only. The website already renders the generated runtime rules file, so the online rulebook, glossary, rulings, and house-rule views now consume canonical rule content.
+`content/rules.json` is authoritative for rule chapters, glossary entries, rulings, house rules, belt definitions, and quick-reference material. `app/data/rules.json` is generated-only. The website renders the generated runtime rules file, so the online rulebook, glossary, rulings, and house-rule views consume canonical rule content.
 
-### Stage 3 — card catalog and executable effects — NEXT
+### Stage 3A — card catalog authority — COMPLETE
 
-Move card identity, printed fields, rules text inputs, flavor text, stats, tags, and structured executable effects into canonical source under `content/`. Generate `app/data/cards.json`. The playtest must execute structured effects rather than infer game behavior from English prose.
+`content/cards.json` is authoritative for the existing card catalog. `app/data/cards.json` is generated-only. This migration intentionally changes no card behavior, balance, printed text, IDs, field names, ordering, or runtime schema; it only eliminates the last independently maintained JSON source of truth.
 
-This stage should be incremental: first promote the existing catalog to canonical source without changing gameplay, then add structured effect definitions card family by card family while retaining compatibility until coverage reaches 100%.
+### Stage 3B — structured executable card effects — NEXT
+
+Add machine-readable effect definitions to canonical card records and migrate card families incrementally. The playtest and simulator should execute structured effects instead of inferring game behavior from English prose. Printed rules text and the Card Library should continue to expose the same canonical card identity while compatibility remains in place until executable-effect coverage reaches 100%.
+
+The migration should proceed family by family with explicit coverage reporting and tests. Do not remove the compatibility layer until every supported card has a structured resolver and semantic parity has been verified.
 
 ### Stage 4 — downloadable publications
 
@@ -64,11 +74,11 @@ CI must reject:
 
 ## Editing workflow
 
-For canonical rules changes:
+For canonical game-data changes:
 
-1. Edit `content/dojo-game.json` and/or `content/rules.json`.
+1. Edit the appropriate source under `content/`: `dojo-game.json`, `rules.json`, and/or `cards.json`.
 2. Run `npm run game:generate`.
 3. Run `npm test`.
 4. Commit both canonical source changes and regenerated runtime artifacts.
 
-Do not edit `app/data/game-definition.json` or `app/data/rules.json` directly.
+Do not edit `app/data/game-definition.json`, `app/data/rules.json`, or `app/data/cards.json` directly.

@@ -4,11 +4,12 @@ const root = new URL("../", import.meta.url);
 const readText = (path) => readFile(new URL(path, root), "utf8");
 const readJson = async (path) => JSON.parse(await readText(path));
 
-const [source, generated, canonicalRules, generatedRules, cards] = await Promise.all([
+const [source, generated, canonicalRules, generatedRules, canonicalCards, generatedCards] = await Promise.all([
   readJson("content/dojo-game.json"),
   readJson("app/data/game-definition.json"),
   readJson("content/rules.json"),
   readJson("app/data/rules.json"),
+  readJson("content/cards.json"),
   readJson("app/data/cards.json"),
 ]);
 
@@ -23,28 +24,45 @@ if (source.rulesRevision !== source.definition?.rulesRevision) fail("source rule
 if (source.definition?.source !== "content/rules.json") fail("definition.source must point to content/rules.json");
 if (!sameJson(generated, source.definition)) fail("app/data/game-definition.json has drifted from content/dojo-game.json; run npm run game:generate");
 if (!sameJson(generatedRules, canonicalRules)) fail("app/data/rules.json has drifted from content/rules.json; run npm run game:generate");
+if (!sameJson(generatedCards, canonicalCards)) fail("app/data/cards.json has drifted from content/cards.json; run npm run game:generate");
 if (!String(canonicalRules.version ?? "").startsWith(source.rulesVersion)) fail(`content/rules.json version '${canonicalRules.version ?? "missing"}' does not match ${source.rulesVersion}`);
-if (!String(cards.version ?? "").startsWith(source.rulesVersion)) fail(`app/data/cards.json version '${cards.version ?? "missing"}' does not match ${source.rulesVersion}`);
-if (cards.total !== cards.cards?.length) fail("app/data/cards.json total does not match cards.length");
+if (!String(canonicalCards.version ?? "").startsWith(source.rulesVersion)) fail(`content/cards.json version '${canonicalCards.version ?? "missing"}' does not match ${source.rulesVersion}`);
+if (!String(generatedCards.version ?? "").startsWith(source.rulesVersion)) fail(`app/data/cards.json version '${generatedCards.version ?? "missing"}' does not match ${source.rulesVersion}`);
+if (canonicalCards.total !== canonicalCards.cards?.length) fail("content/cards.json total does not match cards.length");
+if (generatedCards.total !== generatedCards.cards?.length) fail("app/data/cards.json total does not match cards.length");
 
-const expectedGenerated = new Set(["app/data/game-definition.json", "app/data/rules.json"]);
+const expectedAuthoritative = new Set(["content/dojo-game.json", "content/rules.json", "content/cards.json"]);
+for (const path of expectedAuthoritative) {
+  if (!source.sourcePolicy?.authoritativeFiles?.includes(path)) fail(`${path} is canonical but missing from sourcePolicy.authoritativeFiles`);
+}
+const expectedGenerated = new Set(["app/data/game-definition.json", "app/data/rules.json", "app/data/cards.json"]);
 for (const path of expectedGenerated) {
   if (!source.sourcePolicy?.generatedFiles?.includes(path)) fail(`${path} is generated but missing from sourcePolicy.generatedFiles`);
 }
-if (source.sourcePolicy?.legacySourcesPendingMigration?.includes("app/data/rules.json")) fail("app/data/rules.json is still marked legacy even though rules migration is complete");
+const legacySources = source.sourcePolicy?.legacySourcesPendingMigration ?? [];
+if (legacySources.length) fail(`Legacy authoritative sources remain after Stage 3A: ${legacySources.join(", ")}`);
 
 const catalogIds = new Set();
-for (const card of cards.cards ?? []) {
+const internalIds = new Set();
+for (const card of canonicalCards.cards ?? []) {
   if (!card.catalogId) {
     fail(`Card '${card.name ?? card.id ?? "unknown"}' has no catalogId`);
-    continue;
+  } else if (catalogIds.has(card.catalogId)) {
+    fail(`Duplicate catalogId ${card.catalogId}`);
+  } else {
+    catalogIds.add(card.catalogId);
   }
-  if (catalogIds.has(card.catalogId)) fail(`Duplicate catalogId ${card.catalogId}`);
-  catalogIds.add(card.catalogId);
+  if (card.id) {
+    if (internalIds.has(card.id)) fail(`Duplicate internal card id ${card.id}`);
+    internalIds.add(card.id);
+  }
+  if (!String(card.name ?? "").trim()) fail(`Card '${card.catalogId ?? card.id ?? "unknown"}' has no name`);
 }
 for (const entry of source.definition?.starterDeck ?? []) {
-  if (!catalogIds.has(entry.catalogId)) fail(`Starter card ${entry.catalogId} is missing from app/data/cards.json`);
+  if (!catalogIds.has(entry.catalogId)) fail(`Starter card ${entry.catalogId} is missing from content/cards.json`);
 }
+const starterDeckCount = (source.definition?.starterDeck ?? []).reduce((sum, entry) => sum + Number(entry.copies ?? 0), 0);
+if (starterDeckCount !== 15) fail(`Starter Deck should contain 15 cards; canonical definition contains ${starterDeckCount}`);
 
 const chapterIds = new Set();
 for (const chapter of canonicalRules.chapters ?? []) {
@@ -127,8 +145,7 @@ if (failures.length) {
   console.log(`Dojo canonical-source check PASS — ${source.rulesRevision}`);
   console.log("Canonical mechanical source: content/dojo-game.json");
   console.log("Canonical rules source: content/rules.json");
-  console.log("Generated rules output: app/data/rules.json");
-  if (source.sourcePolicy?.legacySourcesPendingMigration?.length) {
-    console.log(`Pending migration: ${source.sourcePolicy.legacySourcesPendingMigration.join(", ")}`);
-  }
+  console.log(`Canonical card source: content/cards.json (${canonicalCards.total} cards)`);
+  console.log("Generated runtime outputs: app/data/game-definition.json, app/data/rules.json, app/data/cards.json");
+  console.log("Legacy authoritative data sources: none");
 }
