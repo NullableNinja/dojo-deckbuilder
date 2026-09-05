@@ -63,13 +63,13 @@ The catalog currently contains some legacy internal `id` collisions that predate
 
 ### Stage 3B — structured executable card effects — IN PROGRESS
 
-The structured-effect contract exists in `content/card-effect.schema.json`. `content/card-effects.json` is now the canonical migration registry for executable behavior, keyed by Catalog ID, and `app/data/card-effects.json` is generated from it.
+The structured-effect contract exists in `content/card-effect.schema.json`. `content/card-effects.json` is the canonical migration registry for executable behavior, keyed by Catalog ID, and `app/data/card-effects.json` is generated from it.
 
-**Starter family migration is complete at the data-contract layer:** all eleven Starter identities have structured entries. No-effect Starter cards explicitly carry empty effect arrays; Breathing Drill carries an executable next-Attack modifier; Footwork Drill carries its Speed modifier plus a named pending resolver for the fastest-fighter Focus check; and Wild Swing carries a named zone-choice resolver.
+**Starter family migration is complete end-to-end:** all eleven Starter identities have structured entries. No-effect Starter cards explicitly carry empty effect arrays; Breathing Drill executes its next-Attack modifier through the structured compatibility plan; Footwork Drill executes both its +2 Speed and its dedicated fastest-fighter Focus check from canonical structured data; and Wild Swing's flexible zone declaration is resolved from the canonical `attack.chooseAnyZone` resolver rather than depending on its printed sentence.
 
-`app/card-effects.ts` can now resolve structured effects from either an inline card record or the generated registry. Structured data takes precedence over prose and unsupported structured clauses remain explicitly queued rather than silently falling back to regex interpretation.
+`app/card-effects.ts` distinguishes generic structured effects, implemented dedicated resolvers, and genuinely unsupported clauses. Structured data takes precedence over prose, and an unimplemented structured clause remains explicitly queued rather than silently falling back to regex interpretation. Quick Duel now invokes the Footwork Drill resolver for both the player and AI, while its existing attack-zone path routes Wild Swing through the structured-aware zone resolver.
 
-The next Stage 3B slice is to pass the generated registry through the live Quick Duel playtest so `applyCardEffects` and attack declaration use `effectPlanForCard(card, registry)`. Then finish the two Starter dedicated resolvers (Footwork Drill fastest-Focus and Wild Swing zone choice) and remove Starter dependence on prose parsing entirely. After that, migrate Attacks, Defenses, Katas, Items, Combos, Locations, and Characters family by family.
+The remaining compatibility parser is now for unmigrated card families. The next Stage 3B slice is the main Attack family: inventory its effect patterns, encode them in `content/card-effects.json`, add only the reusable structured/dedicated resolvers the family actually needs, and migrate cards in tested batches before moving on to Defenses, Katas, Items, Combos, Locations, and Characters.
 
 Do not remove the compatibility layer until every supported card has structured behavior and semantic parity has been verified.
 
