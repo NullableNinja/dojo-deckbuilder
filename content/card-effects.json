@@ -88,6 +88,40 @@
           "resolver": "attack.chooseAnyZone"
         }
       ]
+    },
+    "DDB-ATK-CORE-023": {
+      "name": "Flying Knee",
+      "effects": [
+        {
+          "id": "attack-flying-knee-hit-draw",
+          "trigger": "onHit",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-042": {
+      "name": "Pop-up Roundhouse Kick",
+      "effects": [
+        {
+          "id": "attack-popup-roundhouse-hit-draw",
+          "trigger": "onHit",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate"
+        },
+        {
+          "id": "attack-popup-roundhouse-hit-discard",
+          "trigger": "onHit",
+          "action": "discard",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate"
+        }
+      ]
     }
   }
 }
