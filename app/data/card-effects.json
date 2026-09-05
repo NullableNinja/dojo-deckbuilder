@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "rulesVersion": "v2.3",
+  "rulesRevision": "v2.3-r5",
+  "description": "Canonical structured-effect migration registry. Entries are keyed by Catalog ID so executable behavior can migrate independently of the large printed-card catalog without changing printed card identity.",
+  "cards": {
+    "DDB-STA-CORE-001": {
+      "name": "Bad Habit",
+      "effects": []
+    },
+    "DDB-STA-CORE-002": {
+      "name": "Basic Body Kick",
+      "effects": []
+    },
+    "DDB-STA-CORE-003": {
+      "name": "Basic Jab",
+      "effects": []
+    },
+    "DDB-STA-CORE-004": {
+      "name": "Basic Shin Kick",
+      "effects": []
+    },
+    "DDB-STA-CORE-005": {
+      "name": "Breathing Drill",
+      "effects": [
+        {
+          "id": "starter-breathing-drill-next-attack",
+          "trigger": "onPlay",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack"
+        }
+      ]
+    },
+    "DDB-STA-CORE-006": {
+      "name": "Center Guard",
+      "effects": []
+    },
+    "DDB-STA-CORE-007": {
+      "name": "Cover Up",
+      "effects": []
+    },
+    "DDB-STA-CORE-008": {
+      "name": "Footwork Drill",
+      "effects": [
+        {
+          "id": "starter-footwork-speed",
+          "trigger": "onPlay",
+          "action": "modifySpeed",
+          "target": "self",
+          "amount": 2,
+          "duration": "endOfRound"
+        },
+        {
+          "id": "starter-footwork-fastest-focus",
+          "trigger": "onPlay",
+          "action": "custom",
+          "target": "self",
+          "amount": 1,
+          "conditions": [
+            {
+              "kind": "isFastest",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "starter.gainFocusIfFastest"
+        }
+      ]
+    },
+    "DDB-STA-CORE-009": {
+      "name": "High Guard",
+      "effects": []
+    },
+    "DDB-STA-CORE-010": {
+      "name": "Low Guard",
+      "effects": []
+    },
+    "DDB-STA-CORE-011": {
+      "name": "Wild Swing",
+      "effects": [
+        {
+          "id": "starter-wild-swing-zone",
+          "trigger": "onAttackDeclared",
+          "action": "chooseZone",
+          "target": "self",
+          "resolver": "attack.chooseAnyZone"
+        }
+      ]
+    }
+  }
+}
