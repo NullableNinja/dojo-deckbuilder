@@ -3,21 +3,25 @@
   "rulesVersion": "v2.3",
   "rulesRevision": "v2.3-r5",
   "sourcePolicy": {
-    "authoritativeFile": "content/dojo-game.json",
+    "authoritativeDirectory": "content/",
+    "authoritativeFiles": [
+      "content/dojo-game.json",
+      "content/rules.json"
+    ],
     "generatedFiles": [
-      "app/data/game-definition.json"
+      "app/data/game-definition.json",
+      "app/data/rules.json"
     ],
     "legacySourcesPendingMigration": [
-      "app/data/rules.json",
       "app/data/cards.json"
     ],
-    "generatedFileRule": "Do not hand-edit generated game data. Change this source and regenerate instead."
+    "generatedFileRule": "Do not hand-edit generated game data. Change the canonical source under content/ and regenerate instead."
   },
   "definition": {
     "schemaVersion": 1,
     "rulesVersion": "v2.3",
     "rulesRevision": "v2.3-r5",
-    "source": "app/data/rules.json",
+    "source": "content/rules.json",
     "mode": {
       "id": "quick-duel",
       "players": 2,
