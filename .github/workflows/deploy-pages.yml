@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -20,8 +20,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -29,75 +27,43 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Restore installed dependencies
-        id: node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node22-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
 
-      - name: Apply queued maintenance patch
-        id: maintenance
-        shell: bash
-        run: |
-          if [ -f scripts/deploy_patch.py ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-            if [ -f scripts/deploy_patch_fix.py ]; then
-              python scripts/deploy_patch_fix.py
-            else
-              python scripts/deploy_patch.py
-            fi
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Run automated tests
+        env:
+          GITHUB_PAGES: true
+        run: npm test
 
-      - name: Commit queued maintenance patch
-        if: steps.maintenance.outputs.present == 'true'
-        shell: bash
-        run: |
-          message="Apply queued live site maintenance"
-          if [ -f scripts/deploy_patch_message.txt ]; then
-            message="$(cat scripts/deploy_patch_message.txt)"
-            rm scripts/deploy_patch_message.txt
-          fi
-          rm scripts/deploy_patch.py
-          git config user.name "NullableNinja Site Automation"
-          git config user.email "130773741+NullableNinja@users.noreply.github.com"
-          git add -A
-          git commit -m "$message"
-          git push origin HEAD:main
+      - name: Build production static site
+        env:
+          GITHUB_PAGES: true
+        run: npm run build
 
       - name: Set up GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit --no-fund
-
-      - name: Test and build static site
-        run: npm test
-
       - name: Stamp deployment and bust stale app-shell caches
+        env:
+          DDB_BUILD: ${{ github.sha }}
         run: |
-          export DDB_BUILD="$(git rev-parse HEAD)"
-          python - <<'PY'
-          import json
-          import os
-          import re
-          from pathlib import Path
+          node --input-type=module <<'NODE'
+          import { readFile, writeFile } from "node:fs/promises";
 
-          build = os.environ["DDB_BUILD"]
-          index = Path("dist/index.html")
-          html = index.read_text()
-          html = html.replace("__DDB_BUILD__", build)
-          html = re.sub(
-              r'((?:src|href)="/dojo-deckbuilder/assets/[^"?]+\.(?:js|css))"',
-              lambda match: f'{match.group(1)}?build={build[:12]}"',
-              html,
-          )
-          index.write_text(html)
-          Path("dist/build.json").write_text(json.dumps({"build": build}) + "\n")
-          PY
+          const build = process.env.DDB_BUILD;
+          if (!build) throw new Error("DDB_BUILD was not provided.");
+
+          const indexPath = "dist/index.html";
+          let html = await readFile(indexPath, "utf8");
+          html = html.replace("__DDB_BUILD__", build);
+          html = html.replace(
+            /((?:src|href)="\/dojo-deckbuilder\/assets\/[^"?]+\.(?:js|css))"/g,
+            (_, asset) => `${asset}?build=${build.slice(0, 12)}"`,
+          );
+
+          await writeFile(indexPath, html);
+          await writeFile("dist/build.json", `${JSON.stringify({ build })}\n`);
+          NODE
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3

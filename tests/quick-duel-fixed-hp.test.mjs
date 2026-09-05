@@ -8,7 +8,7 @@ const definition = JSON.parse(readFileSync(new URL("../app/data/game-definition.
 
 test("Quick Duel promotion keeps current and Max HP fixed", () => {
   assert.equal(definition.progression.quickDuelUsesFullBeltRewards, false);
-  assert.match(playtest, /schema: 7/);
+  assert.match(playtest, /schema: 8/);
   assert.match(playtest, /function applyBeltPromotion[\s\S]*return \{ \.\.\.board, belt: beltIndex \};/);
   assert.doesNotMatch(playtest.match(/function applyBeltPromotion[\s\S]*?\n\}/)?.[0] ?? "", /maxHpIncrease|board\.hp \+ 5/);
 });
