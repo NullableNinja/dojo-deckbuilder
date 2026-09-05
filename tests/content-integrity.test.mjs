@@ -62,6 +62,15 @@ test("deployment gates publication on the test suite", async () => {
   assert.match(workflow, /run: npm test/);
 });
 
+test("CI workflows never commit or push generated files to main", async () => {
+  const workflowNames = (await readdir(new URL("../.github/workflows/", import.meta.url))).filter((name) => name.endsWith(".yml"));
+  for (const name of workflowNames) {
+    const workflow = await readFile(new URL(`../.github/workflows/${name}`, import.meta.url), "utf8");
+    assert.doesNotMatch(workflow, /contents:\s*write/, `${name} must not request repository write access`);
+    assert.doesNotMatch(workflow, /\bgit (?:commit|push)\b/, `${name} must not write generated files back to main`);
+  }
+});
+
 test("every illustrated Core card family has a matching website card file", async () => {
   const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
   const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
