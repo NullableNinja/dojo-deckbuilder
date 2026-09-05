@@ -7,12 +7,15 @@
     "authoritativeFiles": [
       "content/dojo-game.json",
       "content/rules.json",
-      "content/cards.json"
+      "content/cards.json",
+      "content/card-effects.json",
+      "content/card-effect.schema.json"
     ],
     "generatedFiles": [
       "app/data/game-definition.json",
       "app/data/rules.json",
-      "app/data/cards.json"
+      "app/data/cards.json",
+      "app/data/card-effects.json"
     ],
     "legacySourcesPendingMigration": [],
     "generatedFileRule": "Do not hand-edit generated game data. Change the canonical source under content/ and regenerate instead."
