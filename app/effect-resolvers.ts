@@ -177,6 +177,23 @@ export function structuredFocusIfFastest(card: EffectCardLike, selfSpeed: number
   return Number(effect.amount ?? 0);
 }
 
+export function structuredNextAttackFlow(card: EffectCardLike, context: {
+  timing: "onPlay" | "onHit" | "onBlock" | "afterResolve";
+  differentZoneFromPreviousAttack?: boolean;
+  flowUsedThisTurn?: boolean;
+}) {
+  const effects = structuredResolvers(card, "attack.grantNextAttackFlow");
+  if (!effects.length) return { handled: false, grant: false };
+  const values = {
+    differentZoneFromPreviousAttack: Boolean(context.differentZoneFromPreviousAttack),
+    flowUnusedThisTurn: !context.flowUsedThisTurn,
+  };
+  return {
+    handled: true,
+    grant: effects.some((effect) => effect.trigger === context.timing && structuredConditionsMatch(effect, values)),
+  };
+}
+
 export function conditionalAttackPowerBonus(card: EffectCardLike, context: {
   playedKata: boolean;
   firstAttack: boolean;

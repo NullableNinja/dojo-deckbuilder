@@ -7,6 +7,7 @@ import {
   conditionalAttackPowerBonus,
   optionalDiscardDrawChoice,
   readyEquipmentOnHit,
+  structuredNextAttackFlow,
   targetNextAttackPenalty,
 } from "../app/effect-resolvers.ts";
 
@@ -54,7 +55,7 @@ const powerContext = (overrides = {}) => ({
 
 test("first Attack resolver batch remains structured with no queued clauses", () => {
   const attackIds = Object.keys(registry.cards).filter((catalogId) => catalogId.startsWith("DDB-ATK-CORE-"));
-  assert.ok(attackIds.length >= 31, "Attack migration should not regress below the completed structured batches");
+  assert.ok(attackIds.length >= 35, "Attack migration should not regress below the completed structured batches");
   for (const catalogId of FIRST_BATCH_IDS) {
     assert.ok(attackIds.includes(catalogId), `${catalogId} must remain in the structured registry`);
     const plan = effectPlanForCard(card(catalogId), registry);
@@ -129,4 +130,37 @@ test("Superman Punch keeps its generic structured Hit cycle alongside dedicated 
   ]);
   assert.deepEqual(plan.dedicated, ["attack.conditionalPower"]);
   assert.deepEqual(plan.unsupported, []);
+});
+
+const nextFlowContext = (overrides = {}) => ({
+  timing: "afterResolve",
+  differentZoneFromPreviousAttack: false,
+  flowUsedThisTurn: false,
+  ...overrides,
+});
+
+test("Flow-granting Attack batch is structured and executable", () => {
+  const ids = ["DDB-ATK-CORE-005", "DDB-ATK-CORE-053", "DDB-ATK-CORE-054", "DDB-ATK-CORE-061"];
+  for (const catalogId of ids) {
+    const plan = effectPlanForCard(card(catalogId), registry);
+    assert.equal(plan.source, "structured", catalogId + " should prefer structured behavior");
+    assert.deepEqual(plan.unsupported, [], catalogId + " should have no queued clauses");
+    assert.ok(plan.dedicated.includes("attack.grantNextAttackFlow"), catalogId + " should use the structured Flow resolver");
+  }
+
+  const backKick = card("DDB-ATK-CORE-005");
+  assert.equal(conditionalAttackPowerBonus(backKick, powerContext({ firstAttack: true })).amount, 2);
+  assert.equal(conditionalAttackPowerBonus(backKick, powerContext({ firstAttack: false })).amount, 0);
+  assert.deepEqual(structuredNextAttackFlow(backKick, nextFlowContext()), { handled: true, grant: true });
+
+  const snapFrontKick = card("DDB-ATK-CORE-053");
+  assert.deepEqual(structuredNextAttackFlow(snapFrontKick, nextFlowContext({ timing: "onHit" })), { handled: true, grant: true });
+  assert.deepEqual(structuredNextAttackFlow(snapFrontKick, nextFlowContext({ timing: "onHit", flowUsedThisTurn: true })), { handled: true, grant: false });
+
+  const spinningBackfist = card("DDB-ATK-CORE-054");
+  assert.deepEqual(structuredNextAttackFlow(spinningBackfist, nextFlowContext({ differentZoneFromPreviousAttack: false })), { handled: true, grant: false });
+  assert.deepEqual(structuredNextAttackFlow(spinningBackfist, nextFlowContext({ differentZoneFromPreviousAttack: true })), { handled: true, grant: true });
+
+  const blitz = card("DDB-ATK-CORE-061");
+  assert.deepEqual(structuredNextAttackFlow(blitz, nextFlowContext()), { handled: true, grant: true });
 });
