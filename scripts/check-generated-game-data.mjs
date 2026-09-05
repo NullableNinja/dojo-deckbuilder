@@ -112,12 +112,12 @@ const beltSection = (canonicalRules.chapters ?? [])
   .flatMap((chapter) => chapter.sections ?? [])
   .find((section) => section.id === "belt-table");
 const beltRows = beltSection?.content?.find((entry) => entry.kind === "table")?.rows ?? [];
-if (beltRows.length !== 9) fail(`Belt Table should contain one header plus eight belts; found ${beltRows.length}`);
+const expectedBelts = ["white", "yellow", "orange", "green", "purple", "blue", "red", "brown", "black"];
+if (beltRows.length !== expectedBelts.length + 1) fail(`Belt Table should contain one header plus nine belts; found ${beltRows.length}`);
 const beltNames = beltRows.slice(1).map((row) => normalized(row[0]));
-for (const belt of ["white", "yellow", "orange", "green", "purple", "blue", "red", "brown", "black"].slice(0, 8)) {
+for (const belt of expectedBelts) {
   if (!beltNames.includes(belt)) fail(`Belt Table is missing ${belt}`);
 }
-if (!beltNames.includes("black")) fail("Belt Table is missing black");
 
 if (failures.length) {
   console.error("Dojo canonical-source check FAILED:\n");
