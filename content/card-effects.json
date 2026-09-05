@@ -540,13 +540,6 @@
           "trigger": "onHit",
           "action": "custom",
           "target": "self",
-          "conditions": [
-            {
-              "kind": "flowUnusedThisTurn",
-              "operator": "eq",
-              "value": true
-            }
-          ],
           "resolver": "attack.grantNextAttackFlow"
         }
       ]

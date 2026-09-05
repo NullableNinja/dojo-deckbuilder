@@ -135,7 +135,6 @@ test("Superman Punch keeps its generic structured Hit cycle alongside dedicated 
 const nextFlowContext = (overrides = {}) => ({
   timing: "afterResolve",
   differentZoneFromPreviousAttack: false,
-  flowUsedThisTurn: false,
   ...overrides,
 });
 
@@ -155,7 +154,6 @@ test("Flow-granting Attack batch is structured and executable", () => {
 
   const snapFrontKick = card("DDB-ATK-CORE-053");
   assert.deepEqual(structuredNextAttackFlow(snapFrontKick, nextFlowContext({ timing: "onHit" })), { handled: true, grant: true });
-  assert.deepEqual(structuredNextAttackFlow(snapFrontKick, nextFlowContext({ timing: "onHit", flowUsedThisTurn: true })), { handled: true, grant: false });
 
   const spinningBackfist = card("DDB-ATK-CORE-054");
   assert.deepEqual(structuredNextAttackFlow(spinningBackfist, nextFlowContext({ differentZoneFromPreviousAttack: false })), { handled: true, grant: false });

@@ -180,13 +180,11 @@ export function structuredFocusIfFastest(card: EffectCardLike, selfSpeed: number
 export function structuredNextAttackFlow(card: EffectCardLike, context: {
   timing: "onPlay" | "onHit" | "onBlock" | "afterResolve";
   differentZoneFromPreviousAttack?: boolean;
-  flowUsedThisTurn?: boolean;
 }) {
   const effects = structuredResolvers(card, "attack.grantNextAttackFlow");
   if (!effects.length) return { handled: false, grant: false };
   const values = {
     differentZoneFromPreviousAttack: Boolean(context.differentZoneFromPreviousAttack),
-    flowUnusedThisTurn: !context.flowUsedThisTurn,
   };
   return {
     handled: true,

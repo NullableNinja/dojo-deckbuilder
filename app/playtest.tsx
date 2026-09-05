@@ -1010,7 +1010,6 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   const structuredFlow = structuredNextAttackFlow(card, {
     timing,
     differentZoneFromPreviousAttack: new Set(board.zonesPlayed.map((zone) => zone.toLocaleLowerCase())).size > 1,
-    flowUsedThisTurn: board.flowUsedThisTurn,
   });
   if (structuredFlow.handled) {
     if (structuredFlow.grant) next.nextAttackHasFlow = true;
