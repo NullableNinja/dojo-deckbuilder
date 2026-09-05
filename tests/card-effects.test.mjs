@@ -83,10 +83,12 @@ test("Starter cards resolve through the canonical structured-effect registry", a
   const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
   const registry = JSON.parse(await readFile(new URL("../app/data/card-effects.json", import.meta.url), "utf8"));
   const coverage = effectCoverage(cards, registry);
+  const structuredStarterIds = Object.keys(registry.cards).filter((catalogId) => catalogId.startsWith("DDB-STA-CORE-"));
   assert.equal(coverage.total, 589);
-  assert.equal(coverage.structured, 11, "All eleven Starter card identities should be structurally migrated");
+  assert.equal(structuredStarterIds.length, 11, "All eleven Starter card identities should remain structurally migrated");
+  assert.ok(coverage.structured >= 25, "Structured coverage should never regress below the completed Starter family plus the current Attack batch");
   assert.ok(coverage.full > 0, "Expected at least one completely resolved printed effect");
-  assert.ok(coverage.partial > 0, "Expected mixed clauses to remain visible as partial coverage outside the Starter family");
+  assert.ok(coverage.partial > 0, "Expected mixed clauses to remain visible as partial coverage outside completed migration slices");
   assert.equal(coverage.full + coverage.partial + coverage.queued, coverage.total);
 
   const breathing = cards.find((card) => card.catalogId === "DDB-STA-CORE-005");
@@ -141,8 +143,9 @@ test("Starter cards resolve through the canonical structured-effect registry", a
 });
 
 test("choice language is never auto-executed by the generic parser", () => {
-  const plan = compileCardEffects("After this Attack resolves, you may discard 1 card to draw 1 card.");
+  const plan = compileCardEffects("After this Attack resolves, you may discard 2 cards to draw 3 cards.");
   assert.deepEqual(plan.effects, []);
+  assert.equal(plan.source, "legacy-parser");
   assert.equal(plan.unsupported.length, 1);
   const choose = compileCardEffects("Choose one card. Draw 2 cards.");
   assert.deepEqual(choose.effects, [{ timing: "onPlay", kind: "draw", amount: 2 }]);
