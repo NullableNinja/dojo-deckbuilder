@@ -138,6 +138,11 @@ export function targetNextAttackPenalty(card: EffectCardLike) {
 }
 
 export function targetSpeedPenaltyUntilHonor(card: EffectCardLike) {
+  const entry = structuredEntry(card);
+  if (entry) {
+    return structuredResolvers(card, "attack.targetSpeedPenaltyUntilHonor")
+      .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
+  }
   const text = normalizedMinus(String(card.rulesText ?? ""));
   const match = text.match(/(?:target(?:[’']s active Character)?|opponent) gets? -(\d+) Speed until (?:the )?next Honor Phase/i);
   return match ? Number(match[1]) : 0;
@@ -172,7 +177,25 @@ export function structuredFocusIfFastest(card: EffectCardLike, selfSpeed: number
   return Number(effect.amount ?? 0);
 }
 
-export function conditionalAttackPowerBonus(card: EffectCardLike, context: { playedKata: boolean; firstAttack: boolean; matchingArmor?: boolean; targetEquipmentCount?: number }) {
+export function conditionalAttackPowerBonus(card: EffectCardLike, context: {
+  playedKata: boolean;
+  firstAttack: boolean;
+  matchingArmor?: boolean;
+  targetEquipmentCount?: number;
+  attackNumber?: number;
+  hasTempo?: boolean;
+  hasFewerCardsThanTarget?: boolean;
+  targetSpeedHigher?: boolean;
+  priorLowAttack?: boolean;
+  previousCardIsItemOrConsumable?: boolean;
+  hasImprovisedWeapon?: boolean;
+  wasHitSinceLastTurn?: boolean;
+  differentZoneFromPreviousAttack?: boolean;
+  previousAttackZoneMidOrHigh?: boolean;
+  priorDifferentZoneCount?: number;
+  priorPunchAttack?: boolean;
+  priorSpinAttack?: boolean;
+}) {
   let amount = 0;
   const notes: string[] = [];
   const entry = structuredEntry(card);
@@ -182,6 +205,19 @@ export function conditionalAttackPowerBonus(card: EffectCardLike, context: { pla
       firstAttackThisTurn: context.firstAttack,
       targetHasMatchingArmor: Boolean(context.matchingArmor),
       targetPermanentEquipmentCount: context.targetEquipmentCount ?? 0,
+      attackNumber: context.attackNumber ?? (context.firstAttack ? 1 : 0),
+      hasTempo: Boolean(context.hasTempo),
+      hasFewerCardsThanTarget: Boolean(context.hasFewerCardsThanTarget),
+      targetSpeedHigher: Boolean(context.targetSpeedHigher),
+      priorLowAttack: Boolean(context.priorLowAttack),
+      previousCardIsItemOrConsumable: Boolean(context.previousCardIsItemOrConsumable),
+      hasImprovisedWeapon: Boolean(context.hasImprovisedWeapon),
+      wasHitSinceLastTurn: Boolean(context.wasHitSinceLastTurn),
+      differentZoneFromPreviousAttack: Boolean(context.differentZoneFromPreviousAttack),
+      previousAttackZoneMidOrHigh: Boolean(context.previousAttackZoneMidOrHigh),
+      priorDifferentZoneCount: context.priorDifferentZoneCount ?? 0,
+      priorPunchAttack: Boolean(context.priorPunchAttack),
+      priorSpinAttack: Boolean(context.priorSpinAttack),
     };
     for (const effect of structuredResolvers(card, "attack.conditionalPower")) {
       if (!structuredConditionsMatch(effect, values)) continue;

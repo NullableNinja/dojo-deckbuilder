@@ -373,18 +373,37 @@ function locationFocusModifier(location: CardEntry | undefined, card: CardEntry,
 }
 
 function printedAttackRuleModifier(attacker: Board, defender: Board, card: CardEntry, zone: string): AttackModifier {
-  const playedKata = attacker.cardsThisTurn.some((id) => { const prior = cardFor(id); return Boolean(prior && isKata(prior)); });
+  const priorCards = attacker.cardsThisTurn.map(cardFor).filter((prior): prior is CardEntry => Boolean(prior));
+  const priorAttacks = priorCards.filter(isAttack);
+  const playedKata = priorCards.some(isKata);
+  const previousCard = priorCards.at(-1);
+  const previousZone = attacker.zonesPlayed.at(-1);
+  const equipped = attacker.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
+  const attackerSpeed = fighterStat(attacker, "Speed");
+  const defenderSpeed = fighterStat(defender, "Speed");
   const printed = conditionalAttackPowerBonus(card, {
     playedKata,
     firstAttack: attacker.attacksThisTurn === 0,
     matchingArmor: equipmentDefenseModifier(defender, zone).value > 0,
     targetEquipmentCount: defender.equipment.length,
+    attackNumber: attacker.attacksThisTurn + 1,
+    hasTempo: attacker.tempo,
+    hasFewerCardsThanTarget: attacker.hand.length < defender.hand.length,
+    targetSpeedHigher: defenderSpeed > attackerSpeed,
+    priorLowAttack: attacker.zonesPlayed.some((priorZone) => priorZone.toLocaleLowerCase() === "low"),
+    previousCardIsItemOrConsumable: Boolean(previousCard && (previousCard.cardType === "Item" || previousCard.subtype === "Consumable")),
+    hasImprovisedWeapon: equipped.some((item) => isWeapon(item) && hasTag(item, "Improvised")),
+    wasHitSinceLastTurn: attacker.wasHitSinceLastTurn,
+    differentZoneFromPreviousAttack: Boolean(previousZone && previousZone.toLocaleLowerCase() !== zone.toLocaleLowerCase()),
+    previousAttackZoneMidOrHigh: Boolean(previousZone && ["mid", "high"].includes(previousZone.toLocaleLowerCase())),
+    priorDifferentZoneCount: new Set(attacker.zonesPlayed.map((priorZone) => priorZone.toLocaleLowerCase())).size,
+    priorPunchAttack: priorAttacks.some((prior) => hasTag(prior, "Punch")),
+    priorSpinAttack: priorAttacks.some((prior) => hasTag(prior, "Spin")),
   });
-  const equipped = attacker.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
   const equipment = equipmentConditionalAttackPowerBonus(equipped, {
     firstAttack: attacker.attacksThisTurn === 0,
-    attackerSpeed: fighterStat(attacker, "Speed"),
-    defenderSpeed: fighterStat(defender, "Speed"),
+    attackerSpeed,
+    defenderSpeed,
   });
   return {
     power: printed.amount + equipment.amount,
