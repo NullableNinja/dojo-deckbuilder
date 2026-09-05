@@ -50,8 +50,13 @@ export type StructuredCardEffect = {
 };
 
 export type StructuredCardLike = {
+  catalogId?: string | null;
   rulesText?: string | null;
   effects?: StructuredCardEffect[] | null;
+};
+
+export type StructuredEffectRegistry = {
+  cards?: Record<string, { name?: string; effects: StructuredCardEffect[] }>;
 };
 
 const TIMING_LABELS: Record<EffectTiming, string> = {
@@ -123,11 +128,20 @@ function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | 
   return null;
 }
 
-export function effectPlanForCard(card: StructuredCardLike): CardEffectPlan {
-  if (Array.isArray(card.effects)) {
+export function structuredEffectsForCard(card: StructuredCardLike, registry?: StructuredEffectRegistry): StructuredCardEffect[] | null {
+  if (Array.isArray(card.effects)) return card.effects;
+  const catalogId = String(card.catalogId ?? "").trim();
+  if (!catalogId) return null;
+  const entry = registry?.cards?.[catalogId];
+  return entry && Array.isArray(entry.effects) ? entry.effects : null;
+}
+
+export function effectPlanForCard(card: StructuredCardLike, registry?: StructuredEffectRegistry): CardEffectPlan {
+  const structuredEffects = structuredEffectsForCard(card, registry);
+  if (structuredEffects) {
     const effects: CardEffect[] = [];
     const unsupported: string[] = [];
-    for (const effect of card.effects) {
+    for (const effect of structuredEffects) {
       const compatible = legacyEffectFromStructured(effect);
       if (compatible) effects.push(compatible);
       else unsupported.push(effect.id ?? `${effect.trigger}:${effect.action}`);
@@ -138,6 +152,7 @@ export function effectPlanForCard(card: StructuredCardLike): CardEffectPlan {
 }
 
 export function describeEffectPlan(plan: CardEffectPlan) {
+  if (!plan.effects.length && !plan.unsupported.length && plan.source === "structured") return "Structured resolver: no additional executable effect.";
   if (!plan.effects.length) return "Printed effect is queued for a dedicated resolver; its exact text is shown in the Card Inspector.";
   const kinds = [...new Set(plan.effects.map((effect) => `${TIMING_LABELS[effect.timing]} ${effect.kind}`))];
   const remaining = plan.unsupported.length ? ` ${plan.unsupported.length} conditional clause${plan.unsupported.length === 1 ? " remains" : "s remain"} queued.` : "";
@@ -145,15 +160,18 @@ export function describeEffectPlan(plan: CardEffectPlan) {
   return `${prefix}: ${kinds.join(", ")}.${remaining}`;
 }
 
-export function effectCoverage(cards: StructuredCardLike[]) {
-  const relevant = cards.filter((card) => (card.effects && card.effects.length) || (card.rulesText && !/no (additional )?effect/i.test(card.rulesText)));
-  const structured = relevant.filter((card) => Array.isArray(card.effects));
+export function effectCoverage(cards: StructuredCardLike[], registry?: StructuredEffectRegistry) {
+  const structured = cards.filter((card) => structuredEffectsForCard(card, registry) !== null);
+  const relevant = cards.filter((card) => {
+    const effects = structuredEffectsForCard(card, registry);
+    return Boolean((effects && effects.length) || (card.rulesText && !/no (additional )?effect/i.test(card.rulesText)));
+  });
   const full = relevant.filter((card) => {
-    const plan = effectPlanForCard(card);
+    const plan = effectPlanForCard(card, registry);
     return plan.effects.length > 0 && plan.unsupported.length === 0;
   });
   const partial = relevant.filter((card) => {
-    const plan = effectPlanForCard(card);
+    const plan = effectPlanForCard(card, registry);
     return plan.effects.length > 0 && plan.unsupported.length > 0;
   });
   return { total: relevant.length, structured: structured.length, full: full.length, partial: partial.length, queued: relevant.length - full.length - partial.length };
