@@ -26,6 +26,17 @@ compiled = compile(text, str(patch), "exec")
 # Execute the complete queued implementation. It owns all source/rules/test edits.
 exec(compiled, {"__file__": str(patch), "__name__": "__main__"})
 
+# The queued patch accidentally reverses the r5 hand-size expectation in the
+# fixed-HP regression test. Normalize any stale 5-card assertion to the new
+# 7-card base hand after the patch has generated/edited its tests.
+fixed_hp_path = root / "tests" / "quick-duel-fixed-hp.test.mjs"
+fixed_hp = fixed_hp_path.read_text(encoding="utf-8")
+fixed_hp = fixed_hp.replace(
+    'assert.equal(gameDefinition.turn.handSize, 5);',
+    'assert.equal(gameDefinition.turn.handSize, 7);',
+)
+fixed_hp_path.write_text(fixed_hp, encoding="utf-8")
+
 # The saved-match type is deliberately schema 8 after this rules change; update
 # the load guard too so TypeScript does not compare the new literal type to 7.
 play_path = root / "app" / "playtest.tsx"
@@ -36,7 +47,5 @@ if old not in play:
     raise RuntimeError("Expected saved-match schema guard was not found")
 play_path.write_text(play.replace(old, new), encoding="utf-8")
 
-# Do not touch generated test files here. They do not exist until later workflow
-# steps, which was the cause of the previous maintenance-step crash.
 Path(__file__).unlink()
 print("Repaired and executed queued Dojo economy/rules patch.")
