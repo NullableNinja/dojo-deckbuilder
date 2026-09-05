@@ -1,4 +1,4 @@
-import cardEffectsJson from "./data/card-effects.json";
+import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
 
 export type EffectCardLike = {
   catalogId?: string | null;
