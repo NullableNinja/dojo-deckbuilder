@@ -75,6 +75,16 @@ test("Starter cards resolve through the canonical structured-effect registry", a
   ]);
   assert.deepEqual(breathingPlan.unsupported, []);
 
+  // playtest.tsx still calls compileCardEffects(card.rulesText). The temporary bridge
+  // must therefore resolve the exact canonical Starter text through the generated
+  // card catalog + structured registry before the English parser gets a chance.
+  const bridgedBreathingPlan = compileCardEffects(breathing.rulesText);
+  assert.equal(bridgedBreathingPlan.source, "structured");
+  assert.deepEqual(bridgedBreathingPlan.effects, [
+    { timing: "onPlay", kind: "nextAttackPower", amount: 1 },
+  ]);
+  assert.deepEqual(bridgedBreathingPlan.unsupported, []);
+
   const badHabit = cards.find((card) => card.catalogId === "DDB-STA-CORE-001");
   const badHabitPlan = effectPlanForCard(badHabit, registry);
   assert.equal(badHabitPlan.source, "structured");
@@ -88,6 +98,12 @@ test("Starter cards resolve through the canonical structured-effect registry", a
     { timing: "onPlay", kind: "speed", amount: 2 },
   ]);
   assert.deepEqual(footworkPlan.unsupported, ["starter-footwork-fastest-focus"]);
+  const bridgedFootworkPlan = compileCardEffects(footwork.rulesText);
+  assert.equal(bridgedFootworkPlan.source, "structured");
+  assert.deepEqual(bridgedFootworkPlan.effects, [
+    { timing: "onPlay", kind: "speed", amount: 2 },
+  ]);
+  assert.deepEqual(bridgedFootworkPlan.unsupported, ["starter-footwork-fastest-focus"]);
 
   const wildSwing = cards.find((card) => card.catalogId === "DDB-STA-CORE-011");
   const wildSwingPlan = effectPlanForCard(wildSwing, registry);
