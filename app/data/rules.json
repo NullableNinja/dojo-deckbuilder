@@ -163,7 +163,7 @@
                 [
                   "Junk",
                   "Starter-deck baggage with no Technique effect.",
-                  "Played during Yell for its printed Focus Value; otherwise has no effect."
+                  "Bad Habit has printed Focus Value 0; once during your Yell each turn, you may discard one from hand to gain 1 Focus."
                 ],
                 [
                   "Boss Stage",
@@ -366,11 +366,11 @@
             },
             {
               "kind": "paragraph",
-              "text": "4. Take the fixed Standard Starter Deck. Every player uses the same named 15 cards listed below. Shuffle it and draw five cards."
+              "text": "4. Take the fixed Standard Starter Deck. Every player uses the same named 15 cards listed below. Shuffle it and draw seven cards."
             },
             {
               "kind": "paragraph",
-              "text": "5. Mulligan once if needed. If your opening hand contains no Attack and no Kata, reveal it, shuffle it back, and draw five new cards. The second hand stays, even if it is a small cardboard tragedy."
+              "text": "5. Mulligan once if needed. If your opening hand contains no Attack and no Kata, reveal it, shuffle it back, and draw seven new cards. The second hand stays, even if it is a small cardboard tragedy."
             },
             {
               "kind": "paragraph",
@@ -432,7 +432,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "1. Choose the mode and fighter roster. Take the identical 15-card Starter Deck, shuffle, and draw five. In Tag Team and Dojo Drama, choose one fighter to begin active."
+              "text": "1. Choose the mode and fighter roster. Take the identical 15-card Starter Deck, shuffle, and draw seven. In Tag Team and Dojo Drama, choose one fighter to begin active."
             },
             {
               "kind": "paragraph",
@@ -526,7 +526,7 @@
             },
             {
               "kind": "bullet",
-              "text": "You may not discard an arbitrary card for Focus. Bad Habit generates 0 Focus and has no effect."
+              "text": "You may not discard an arbitrary card for Focus. Once during your Yell each turn, you may discard one Bad Habit from your hand to gain 1 Focus. Bad Habit still has a printed Focus Value of 0."
             }
           ]
         },
@@ -624,7 +624,7 @@
             },
             {
               "kind": "bullet",
-              "text": "Hand: hidden from opponents; hand size is normally five."
+              "text": "Hand: hidden from opponents; hand size is normally seven."
             },
             {
               "kind": "bullet",
@@ -799,7 +799,7 @@
             },
             {
               "kind": "paragraph",
-              "text": "3. Draw your normal new hand of five cards, or six at Blue Belt, shuffling your discard pile only when needed. Then add the cards set aside by Step 1."
+              "text": "3. Draw your normal new hand of seven cards, or eight at Blue Belt, shuffling your discard pile only when needed. Then add the cards set aside by Step 1."
             },
             {
               "kind": "paragraph",
@@ -919,7 +919,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "Bad Habit may be legally played during Yell, but it has no effect and generates 0 Focus. It can still matter when another effect counts, reveals, discards, or destroys Junk."
+              "text": "Bad Habit has no printed effect and a printed Focus Value of 0. Once during your Yell each turn, you may discard one Bad Habit from your hand to gain 1 Focus. This is a special Bad Habit rule, not a general discard-for-Focus action. Bad Habit can still matter when another effect counts, reveals, discards, or destroys Junk."
             },
             {
               "kind": "paragraph",
@@ -2505,14 +2505,62 @@
     }
   ],
   "officialRulings": [
-    {"id":"DDB-RUL-001","filed":"Filed Aug 27, 2026","tag":"Boss Blitz","title":"Boss KO during your Yell Phase","ruling":"Finish only that player's Ascend and Hide Phases, then transition stages. Remaining players skip their turns for that round."},
-    {"id":"DDB-RUL-002","filed":"Filed Aug 27, 2026","tag":"Boss Blitz","title":"Boss KO outside your own Yell Phase","ruling":"If the KO occurs during a player turn, that player may complete Ascend and Hide. Otherwise, transition immediately."},
-    {"id":"DDB-RUL-003","filed":"Filed Aug 27, 2026","tag":"Tempo","title":"Speed comparisons use current Speed","ruling":"Tempo and other Speed comparisons use current Speed after active modifiers. Printed Speed is the base value."},
-    {"id":"DDB-RUL-004","filed":"Filed Aug 27, 2026","tag":"Timing","title":"Initiative is locked for the round","ruling":"Honor determines initiative. Later Speed changes and tagging do not reorder turns until the next Honor Phase."},
-    {"id":"DDB-RUL-005","filed":"Filed Aug 27, 2026","tag":"Boss Blitz","title":"Player wins a Speed tie with a Boss","ruling":"When a player and Boss have the same current Speed, the player acts before the Boss."},
-    {"id":"DDB-RUL-006","filed":"Filed Aug 27, 2026","tag":"Combos","title":"Multiple learned Combos may share a finisher","ruling":"Multiple eligible learned Combos may use the same final card or action. Resolve each payoff separately and obey every printed timing limit."},
-    {"id":"DDB-RUL-007","filed":"Filed Aug 27, 2026","tag":"Co-op","title":"Co-op stage victory healing","ruling":"After a Boss stage victory in two-player co-op, each player heals their active fighter 8 HP."},
-    {"id":"DDB-RUL-008","filed":"Filed Aug 27, 2026","tag":"Team Variant","title":"Shared Rank team variant","ruling":"Teammates share XP, Belt, promotion tasks, and rewards. Each player keeps normal individual initiative."}
+    {
+      "id": "DDB-RUL-001",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Boss Blitz",
+      "title": "Boss KO during your Yell Phase",
+      "ruling": "Finish only that player's Ascend and Hide Phases, then transition stages. Remaining players skip their turns for that round."
+    },
+    {
+      "id": "DDB-RUL-002",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Boss Blitz",
+      "title": "Boss KO outside your own Yell Phase",
+      "ruling": "If the KO occurs during a player turn, that player may complete Ascend and Hide. Otherwise, transition immediately."
+    },
+    {
+      "id": "DDB-RUL-003",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Tempo",
+      "title": "Speed comparisons use current Speed",
+      "ruling": "Tempo and other Speed comparisons use current Speed after active modifiers. Printed Speed is the base value."
+    },
+    {
+      "id": "DDB-RUL-004",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Timing",
+      "title": "Initiative is locked for the round",
+      "ruling": "Honor determines initiative. Later Speed changes and tagging do not reorder turns until the next Honor Phase."
+    },
+    {
+      "id": "DDB-RUL-005",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Boss Blitz",
+      "title": "Player wins a Speed tie with a Boss",
+      "ruling": "When a player and Boss have the same current Speed, the player acts before the Boss."
+    },
+    {
+      "id": "DDB-RUL-006",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Combos",
+      "title": "Multiple learned Combos may share a finisher",
+      "ruling": "Multiple eligible learned Combos may use the same final card or action. Resolve each payoff separately and obey every printed timing limit."
+    },
+    {
+      "id": "DDB-RUL-007",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Co-op",
+      "title": "Co-op stage victory healing",
+      "ruling": "After a Boss stage victory in two-player co-op, each player heals their active fighter 8 HP."
+    },
+    {
+      "id": "DDB-RUL-008",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Team Variant",
+      "title": "Shared Rank team variant",
+      "ruling": "Teammates share XP, Belt, promotion tasks, and rewards. Each player keeps normal individual initiative."
+    }
   ],
   "glossary": [
     {
@@ -2637,7 +2685,7 @@
     },
     {
       "term": "Hand Size",
-      "meaning": "The number of cards normally drawn during Hide: five, or six at Blue Belt. Retained or set-aside cards can make the resulting hand larger."
+      "meaning": "The number of cards normally drawn during Hide: seven, or eight at Blue Belt. Retained or set-aside cards can make the resulting hand larger."
     },
     {
       "term": "Hit",
@@ -2649,7 +2697,7 @@
     },
     {
       "term": "Junk",
-      "meaning": "Starter-deck baggage with no useful printed effect. Bad Habit is Junk, generates 0 Focus, and may still be counted, discarded, or Destroyed by specific effects."
+      "meaning": "Starter-deck baggage with no useful printed effect. Bad Habit is Junk with printed Focus Value 0; once during your Yell each turn, you may discard one from hand to gain 1 Focus. It may still be counted, discarded, or Destroyed by specific effects."
     },
     {
       "term": "Kata",

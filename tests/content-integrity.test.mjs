@@ -54,7 +54,7 @@ test("active rules and play surfaces use the persistent Market and fixed Quick D
   assert.match(playtest, /Bought \$\{card\.name\} for \$\{price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);
   assert.equal(JSON.parse(definition).economy.market.refill, "top-card-after-purchase");
   assert.equal(JSON.parse(definition).progression.quickDuelUsesFullBeltRewards, false);
-  assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r4");
+  assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r5");
 });
 
 test("deployment gates publication on the test suite", async () => {
@@ -238,7 +238,7 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.match(worker, /Math\.min\(1000/);
   assert.match(worker, /turn-snapshot/);
   assert.equal(JSON.parse(manifest).activeMatchPolicy, "pin-until-match-ends");
-  assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r4");
+  assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r5");
   assert.match(styles, /playtest-shell--live/);
   assert.match(styles, /\.market-row \{[^}]*overflow-x: auto/);
   assert.match(playtest, /type DeskView = "market" \| "combo" \| "belt"/);

@@ -8163,7 +8163,7 @@
       "focusValue": 1,
       "zone": "—",
       "timing": "Equip",
-    "rulesText": "The first time an Attack you make Hits each turn, deal 2 additional damage.",
+      "rulesText": "The first time an Attack you make Hits each turn, deal 2 additional damage.",
       "flavorText": "The dragon is decorative. The fire code is not.",
       "tags": [
         "Blade",
@@ -8186,7 +8186,7 @@
         "Hands": 2,
         "Attack Bonus": 3,
         "Timing": "Equip",
-      "Rules Text": "The first time an Attack you make Hits each turn, deal 2 additional damage.",
+        "Rules Text": "The first time an Attack you make Hits each turn, deal 2 additional damage.",
         "Tags": "Blade, Traditional",
         "Build Path": "Pressure",
         "Spotlight Tier (Flavor Only)": "Mythic",
@@ -8679,7 +8679,7 @@
       "focusValue": "—",
       "zone": "—",
       "timing": "—",
-    "rulesText": "If an opponent has more XP than you, the first time an Attack you make Hits them each turn, deal 1 additional damage.",
+      "rulesText": "If an opponent has more XP than you, the first time an Attack you make Hits them each turn, deal 1 additional damage.",
       "flavorText": "Fights in a chicken mask. Nobody’s asked why.",
       "tags": [],
       "buildPaths": [
@@ -8696,7 +8696,7 @@
       "sourceSheet": "Characters",
       "details": {
         "Card Name": "El Pollo Rojo",
-      "Rules Text": "If an opponent has more XP than you, the first time an Attack you make Hits them each turn, deal 1 additional damage.",
+        "Rules Text": "If an opponent has more XP than you, the first time an Attack you make Hits them each turn, deal 1 additional damage.",
         "Flavor Text": "Fights in a chicken mask. Nobody’s asked why.",
         "Rules Version": "v2.3"
       },
@@ -32809,7 +32809,7 @@
       "lineage": null,
       "fpCost": "—",
       "chiCost": null,
-      "focusValue": 1,
+      "focusValue": 2,
       "zone": "Any",
       "timing": "Turn",
       "rulesText": "Choose High, Mid, or Low when declared.",
