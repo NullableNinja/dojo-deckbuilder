@@ -89,6 +89,88 @@
         }
       ]
     },
+    "DDB-ATK-CORE-002": {
+      "name": "Aisle-Seven Sweep",
+      "effects": [
+        {
+          "id": "attack-aisle-seven-piercing",
+          "trigger": "onAttackDeclared",
+          "action": "piercing",
+          "target": "source",
+          "amount": 1,
+          "conditions": [
+            {
+              "kind": "targetHasExhaustedEquipment",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.piercing"
+        },
+        {
+          "id": "attack-aisle-seven-ready",
+          "trigger": "onHit",
+          "action": "ready",
+          "target": "chosen-equipment",
+          "amount": 1,
+          "resolver": "attack.readyEquipmentOnHit"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-007": {
+      "name": "Backleg Side, Turning Side",
+      "effects": [
+        {
+          "id": "attack-backleg-side-next-attack-penalty",
+          "trigger": "onHit",
+          "action": "modifyAttackPower",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "attack.targetNextAttackPenalty"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-009": {
+      "name": "Centerline Breaker",
+      "effects": [
+        {
+          "id": "attack-centerline-matching-armor-piercing",
+          "trigger": "onAttackDeclared",
+          "action": "piercing",
+          "target": "source",
+          "amount": 2,
+          "conditions": [
+            {
+              "kind": "targetHasMatchingArmor",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.piercing"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-019": {
+      "name": "Escalator Dropkick",
+      "effects": [
+        {
+          "id": "attack-escalator-speed-piercing",
+          "trigger": "onAttackDeclared",
+          "action": "piercing",
+          "target": "source",
+          "amount": 1,
+          "conditions": [
+            {
+              "kind": "selfSpeedChangedThisRound",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.piercing"
+        }
+      ]
+    },
     "DDB-ATK-CORE-023": {
       "name": "Flying Knee",
       "effects": [
@@ -99,6 +181,116 @@
           "target": "self",
           "amount": 1,
           "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-027": {
+      "name": "Hammerfist",
+      "effects": [
+        {
+          "id": "attack-hammerfist-matching-armor-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "targetHasMatchingArmor",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        },
+        {
+          "id": "attack-hammerfist-matching-armor-piercing",
+          "trigger": "onAttackDeclared",
+          "action": "piercing",
+          "target": "source",
+          "amount": 1,
+          "conditions": [
+            {
+              "kind": "targetHasMatchingArmor",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.piercing"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-032": {
+      "name": "Inside Crescent Kick",
+      "effects": [
+        {
+          "id": "attack-inside-crescent-cycle",
+          "trigger": "afterResolve",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "discardCost",
+              "operator": "eq",
+              "value": 1
+            },
+            {
+              "kind": "drawAfterCost",
+              "operator": "eq",
+              "value": 1
+            }
+          ],
+          "resolver": "attack.optionalDiscardDraw"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-033": {
+      "name": "Knee Strike",
+      "effects": [
+        {
+          "id": "attack-knee-strike-loaded-target-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "targetPermanentEquipmentCount",
+              "operator": "gte",
+              "value": 2
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        },
+        {
+          "id": "attack-knee-strike-loaded-target-piercing",
+          "trigger": "onAttackDeclared",
+          "action": "piercing",
+          "target": "source",
+          "amount": 1,
+          "conditions": [
+            {
+              "kind": "targetPermanentEquipmentCount",
+              "operator": "gte",
+              "value": 2
+            }
+          ],
+          "resolver": "attack.piercing"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-035": {
+      "name": "Liver Shot",
+      "effects": [
+        {
+          "id": "attack-liver-shot-next-attack-penalty",
+          "trigger": "onHit",
+          "action": "modifyAttackPower",
+          "target": "opponent",
+          "amount": -2,
+          "duration": "nextAttack",
+          "resolver": "attack.targetNextAttackPenalty"
         }
       ]
     },
@@ -120,6 +312,99 @@
           "target": "self",
           "amount": 1,
           "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-049": {
+      "name": "Reverse Punch",
+      "effects": [
+        {
+          "id": "attack-reverse-punch-kata-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "playedKataThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-057": {
+      "name": "Superman Punch",
+      "effects": [
+        {
+          "id": "attack-superman-kata-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "playedKataThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        },
+        {
+          "id": "attack-superman-hit-draw",
+          "trigger": "onHit",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate"
+        },
+        {
+          "id": "attack-superman-hit-discard",
+          "trigger": "onHit",
+          "action": "discard",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-060": {
+      "name": "Teep (Push Kick)",
+      "effects": [
+        {
+          "id": "attack-teep-next-attack-penalty",
+          "trigger": "onHit",
+          "action": "modifyAttackPower",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "attack.targetNextAttackPenalty"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-065": {
+      "name": "Tornado Round Kick",
+      "effects": [
+        {
+          "id": "attack-tornado-round-kata-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "playedKataThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
         }
       ]
     }
