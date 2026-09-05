@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import test from "node:test";
 
 test("glossary terms are unique", async () => {
@@ -88,6 +88,21 @@ test("every illustrated Core card family has a matching website card file", asyn
   assert.match(source, /Dojo_Deckbuilder_v2\.3_Consumable_Cards_Editable_ORA\.zip/);
 });
 
+test("Wild Swing publishes its r5 complete card art", async () => {
+  const [companion, playtest, websiteArtwork, downloadArtwork] = await Promise.all([
+    readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
+    stat(new URL("../app/assets/cards/starters/ddb-sta-core-011_wild-swing.webp", import.meta.url)),
+    stat(new URL("../public/downloads/Wild_Swing_DDB-STA-CORE-011_r5.png", import.meta.url)),
+  ]);
+  assert.ok(websiteArtwork.size > 30_000, "Wild Swing website art must be the finished card, not a placeholder");
+  assert.ok(downloadArtwork.size > 150_000, "Wild Swing download must retain print-friendly resolution");
+  assert.ok(companion.includes("...STARTER_CARD_URLS"), "Card Library must resolve starter art");
+  assert.ok(companion.includes("cmb|sta"), "Card Library catalog matcher must include starter IDs");
+  assert.ok(playtest.includes("characters,starters"), "Playtest must bundle starter art");
+  assert.ok(playtest.includes("cmb|sta"), "Playtest catalog matcher must include starter IDs");
+});
+
 test("editable card source pipeline emits GIMP-compatible OpenRaster deliverables", async () => {
   const source = await readFile(new URL("../scripts/build_editable_card_sources.py", import.meta.url), "utf8");
   assert.match(source, /image\/openraster/);
@@ -143,7 +158,7 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(companion, /PlaytestView/);
   assert.match(companion, /Play Quick Duel/);
   assert.match(playtest, /import cardsJson from "\.\/data\/cards\.json"/);
-  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,defense-equipment,gear,combos,characters\}/);
+  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,defense-equipment,gear,combos,characters,starters\}/);
   assert.match(playtest, /COMPLETE_CARD_ART_BY_CATALOG_ID\[card\.catalogId\]/);
   assert.match(playtest, /gameDefinition\.starterDeck\.flatMap/);
   assert.match(playtest, /const marketPool = cards\.filter/);
