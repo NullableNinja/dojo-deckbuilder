@@ -19,6 +19,23 @@ const card = (catalogId) => {
   return found;
 };
 
+const FIRST_BATCH_IDS = [
+  "DDB-ATK-CORE-002",
+  "DDB-ATK-CORE-007",
+  "DDB-ATK-CORE-009",
+  "DDB-ATK-CORE-019",
+  "DDB-ATK-CORE-023",
+  "DDB-ATK-CORE-027",
+  "DDB-ATK-CORE-032",
+  "DDB-ATK-CORE-033",
+  "DDB-ATK-CORE-035",
+  "DDB-ATK-CORE-042",
+  "DDB-ATK-CORE-049",
+  "DDB-ATK-CORE-057",
+  "DDB-ATK-CORE-060",
+  "DDB-ATK-CORE-065",
+];
+
 const piercingContext = (overrides = {}) => ({
   matchingArmor: false,
   targetEquipmentCount: 0,
@@ -35,10 +52,11 @@ const powerContext = (overrides = {}) => ({
   ...overrides,
 });
 
-test("Attack structured batch has fourteen migrated Attack identities with no queued clauses", () => {
+test("first Attack resolver batch remains structured with no queued clauses", () => {
   const attackIds = Object.keys(registry.cards).filter((catalogId) => catalogId.startsWith("DDB-ATK-CORE-"));
-  assert.equal(attackIds.length, 14);
-  for (const catalogId of attackIds) {
+  assert.ok(attackIds.length >= 30, "Attack migration should not regress below the first two completed batches");
+  for (const catalogId of FIRST_BATCH_IDS) {
+    assert.ok(attackIds.includes(catalogId), `${catalogId} must remain in the structured registry`);
     const plan = effectPlanForCard(card(catalogId), registry);
     assert.equal(plan.source, "structured", `${catalogId} should prefer structured behavior`);
     assert.deepEqual(plan.unsupported, [], `${catalogId} should not have queued structured clauses`);
