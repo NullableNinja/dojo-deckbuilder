@@ -32,6 +32,34 @@
         }
       ]
     },
+    "DDB-ATK-CORE-005": {
+      "name": "Back Kick",
+      "effects": [
+        {
+          "id": "attack-back-kick-first-attack-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        },
+        {
+          "id": "attack-back-kick-next-flow",
+          "trigger": "afterResolve",
+          "action": "custom",
+          "target": "self",
+          "resolver": "attack.grantNextAttackFlow"
+        }
+      ]
+    },
     "DDB-ATK-CORE-007": {
       "name": "Backleg Side, Turning Side",
       "effects": [
@@ -504,6 +532,37 @@
         }
       ]
     },
+    "DDB-ATK-CORE-053": {
+      "name": "Snap Front Kick",
+      "effects": [
+        {
+          "id": "attack-snap-front-kick-next-flow",
+          "trigger": "onHit",
+          "action": "custom",
+          "target": "self",
+          "resolver": "attack.grantNextAttackFlow"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-054": {
+      "name": "Spinning Backfist",
+      "effects": [
+        {
+          "id": "attack-spinning-backfist-next-flow",
+          "trigger": "afterResolve",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "differentZoneFromPreviousAttack",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.grantNextAttackFlow"
+        }
+      ]
+    },
     "DDB-ATK-CORE-056": {
       "name": "Spinning Hook Kick",
       "effects": [
@@ -573,6 +632,18 @@
           "amount": -1,
           "duration": "nextAttack",
           "resolver": "attack.targetNextAttackPenalty"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-061": {
+      "name": "The Blitz",
+      "effects": [
+        {
+          "id": "attack-the-blitz-next-flow",
+          "trigger": "afterResolve",
+          "action": "custom",
+          "target": "self",
+          "resolver": "attack.grantNextAttackFlow"
         }
       ]
     },
