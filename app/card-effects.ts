@@ -79,6 +79,7 @@ const IMPLEMENTED_DEDICATED_RESOLVERS = new Set([
   "attack.conditionalPower",
   "attack.piercing",
   "attack.targetNextAttackPenalty",
+  "attack.targetSpeedPenaltyUntilHonor",
   "attack.readyEquipmentOnHit",
   "attack.optionalDiscardDraw",
 ]);
