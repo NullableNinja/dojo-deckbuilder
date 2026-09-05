@@ -199,6 +199,26 @@
         }
       ]
     },
+    "DDB-ATK-CORE-028": {
+      "name": "Helmet Check",
+      "effects": [
+        {
+          "id": "attack-helmet-check-matching-armor-piercing",
+          "trigger": "onAttackDeclared",
+          "action": "piercing",
+          "target": "source",
+          "amount": 2,
+          "conditions": [
+            {
+              "kind": "targetHasMatchingArmor",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.piercing"
+        }
+      ]
+    },
     "DDB-ATK-CORE-029": {
       "name": "Hook Kick",
       "effects": [

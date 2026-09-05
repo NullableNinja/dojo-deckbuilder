@@ -54,7 +54,7 @@ const powerContext = (overrides = {}) => ({
 
 test("first Attack resolver batch remains structured with no queued clauses", () => {
   const attackIds = Object.keys(registry.cards).filter((catalogId) => catalogId.startsWith("DDB-ATK-CORE-"));
-  assert.ok(attackIds.length >= 30, "Attack migration should not regress below the first two completed batches");
+  assert.ok(attackIds.length >= 31, "Attack migration should not regress below the completed structured batches");
   for (const catalogId of FIRST_BATCH_IDS) {
     assert.ok(attackIds.includes(catalogId), `${catalogId} must remain in the structured registry`);
     const plan = effectPlanForCard(card(catalogId), registry);
@@ -68,6 +68,15 @@ test("Aisle-Seven Sweep uses structured exhausted-equipment Piercing and ready-o
   assert.equal(attackPiercing(aisle, piercingContext({ targetHasExhaustedEquipment: true })).amount, 1);
   assert.equal(attackPiercing(aisle, piercingContext({ targetHasExhaustedEquipment: false })).amount, 0);
   assert.equal(readyEquipmentOnHit(aisle), 1);
+});
+
+test("Helmet Check ignores up to 2 matching Armor DEF from structured data", () => {
+  const helmetCheck = card("DDB-ATK-CORE-028");
+  const plan = effectPlanForCard(helmetCheck, registry);
+  assert.equal(plan.source, "structured");
+  assert.deepEqual(plan.unsupported, []);
+  assert.equal(attackPiercing(helmetCheck, piercingContext({ matchingArmor: true })).amount, 2);
+  assert.equal(attackPiercing(helmetCheck, piercingContext()).amount, 0);
 });
 
 test("structured next-Attack penalties resolve with the canonical magnitudes", () => {
