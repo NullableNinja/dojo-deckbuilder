@@ -6,7 +6,7 @@ import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import rulesJson from "./data/rules.json";
 import { compileCardEffects, describeEffectPlan } from "./card-effects";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, type DeckLookPlan } from "./effect-resolvers";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, structuredFocusIfFastest, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import "./combo-rack.css";
 import "./playtest-board-v4.css";
@@ -1531,6 +1531,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!card || isAttack(card) || isDefense(card) || isPermanent(card)) return current;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, current.player);
     let nextPlayer = markCompletedTask(applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value, lastAttackHit: false }, card, "player"));
+    const playerFastestFocus = structuredFocusIfFastest(card, fighterStat(nextPlayer, "Speed"), fighterStat(current.ai, "Speed"));
+    if (playerFastestFocus) nextPlayer = { ...nextPlayer, focus: nextPlayer.focus + playerFastestFocus };
     const destroyedAfterUse = destroysAfterUse(card);
     if (destroyedAfterUse) nextPlayer = destroyResolvedConsumable(nextPlayer, card);
     const pendingDiscard = null;
@@ -2357,6 +2359,8 @@ function prepareAiTurn(current: Match) {
     if (!card) continue;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, nextAi);
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai");
+    const aiFastestFocus = structuredFocusIfFastest(card, fighterStat(nextAi, "Speed"), fighterStat(nextPlayer, "Speed"));
+    if (aiFastestFocus) nextAi = { ...nextAi, focus: nextAi.focus + aiFastestFocus };
     if (isKata(card)) {
       const kataEquipment = autoTriggerAiAfterKataEquipment(nextAi);
       nextAi = kataEquipment.board;
