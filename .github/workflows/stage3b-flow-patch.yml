@@ -33,16 +33,16 @@ jobs:
       - name: Apply structured Flow migration
         run: node scripts/stage3b-flow-patch-v2.mjs
 
-      - name: Run automated tests
-        run: npm test
-
       - name: Validate diff
         run: git diff --check
 
-      - name: Commit generated migration changes
+      - name: Preserve migration changes on branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add content/card-effects.json app/data/card-effects.json app/card-effects.ts app/effect-resolvers.ts app/playtest.tsx tests/attack-structured-resolvers-batch.test.mjs
           git commit -m "feat: structure Flow-granting Attacks"
           git push origin HEAD:stage3b-attack-flow-batch
+
+      - name: Run automated tests
+        run: npm test
