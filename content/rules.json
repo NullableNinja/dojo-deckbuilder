@@ -1,0 +1,2860 @@
+{
+  "version": "v2.3 — Official Rules",
+  "source": "Dojo Deckbuilder Paper-Fu field-test rules",
+  "chapters": [
+    {
+      "id": "1-welcome-to-paper-fu",
+      "number": 1,
+      "title": "Welcome to Paper-Fu",
+      "fullTitle": "1 Welcome to Paper-Fu",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "A government-approved martial-art system, publicly tested through card combat and an amount of paperwork nobody has successfully escaped."
+        },
+        {
+          "kind": "paragraph",
+          "text": "The Department of Competitive Safety has one straightforward job: make sure martial-arts schools do not injure the public, endanger property, or claim that a parking lot is a sacred training ground."
+        },
+        {
+          "kind": "paragraph",
+          "text": "For years, every dojo certified itself. That policy ended during the Municipal Demonstration Expo, when three judges accepted discount coupons as evidence, an emotional-support ferret interfered with the final two bouts, and the flaming monks spent six minutes arguing that the fountain was ‘part of the ceremony.’ They are now under restraining orders from the fountain, the fire marshal, and each other."
+        },
+        {
+          "kind": "paragraph",
+          "text": "Rather than decide who was to blame, the Department created a standardized system from techniques submitted by every participating school. A junior clerk filed thousands of entries in a rusty cabinet marked TAX RECEIPTS and went home early. When the cabinet collapsed, the Department named it the Archive of Practical Fighting Wisdom. The masters immediately declared it ancient."
+        },
+        {
+          "kind": "paragraph",
+          "text": "The result was Paper-Fu: a government-approved discipline built from registered techniques, defenses, equipment, drills, and wildly optimistic professional opinions. Every player leads a certified delegation—one competitor or a three-fighter demonstration team—for the annual Licensing Tournament. Every approved dojo keeps its license; the tournament tests whether Paper-Fu earns another year of funding and names a Provisional Model Dojo."
+        },
+        {
+          "kind": "table",
+          "rows": [
+            [
+              "THE GOLDEN RULE\nWhen a card directly contradicts this rulebook, the card wins. When two cards conflict, use the timing and priority rules in Section 15. When the table still cannot agree, the active player makes the temporary ruling, finishes the turn, and everyone may yell about it afterward."
+            ]
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "text": "What Kind of Game Is This?"
+        },
+        {
+          "kind": "paragraph",
+          "text": "Dojo Deckbuilder is a competitive martial-arts deckbuilding game. Each player leads a certified delegation, starts with the same awkward 15-card curriculum, plays cards to fight and generate Focus, acquires stronger registered techniques from a shared Market, learns Combos, completes Belt certification tasks, and climbs from White Belt to Black Belt."
+        },
+        {
+          "kind": "bullet",
+          "text": "Fixed packs, not randomized boosters. Every registered technique is in the field kit; the Department had enough trouble cataloging them once."
+        },
+        {
+          "kind": "bullet",
+          "text": "Deckbuilding happens during play. Purchased Techniques and Items enter your discard pile and cycle into future hands; learned Combos remain face up beside your fighter."
+        },
+        {
+          "kind": "bullet",
+          "text": "Combat is direct. Attacks target High, Mid, or Low zones; defenders answer with cards, armor, and panic."
+        },
+        {
+          "kind": "bullet",
+          "text": "Two routes to victory. Reach Black Belt or become the last fighter standing."
+        },
+        {
+          "kind": "bullet",
+          "text": "Expandable by design. New dojos can add Characters, Techniques, Items, Equipment, Locations, Combos, Bosses, and new varieties of deeply avoidable nonsense."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "id": "2-components-card-types",
+      "number": 2,
+      "title": "Components & Card Types",
+      "fullTitle": "2 Components & Card Types",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Sort the Department’s standardized field kit now. The filing cabinet has already had a difficult day."
+        }
+      ],
+      "sections": [
+        {
+          "id": "core-components",
+          "title": "Core Components",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Character Cards — three fighters per player in Tag Team and Dojo Drama; one per player in Standard Clash or Quick Duel."
+            },
+            {
+              "kind": "bullet",
+              "text": "Fixed Starter Decks — every player uses the same 15 cards: Basic Jab, Basic Body Kick, Basic Shin Kick, Wild Swing, High Guard, Center Guard, Low Guard, Cover Up, Breathing Drill, Footwork Drill, and Bad Habit ×5."
+            },
+            {
+              "kind": "bullet",
+              "text": "Market Deck — shuffle all purchasable Attacks, Defenses, Katas, Items, Weapons, Armor, Consumables, and utility cards together. Reveal seven random cards; no card type is guaranteed a slot."
+            },
+            {
+              "kind": "bullet",
+              "text": "Combo Deck — a separate face-down deck. Combos never occupy Market slots and never enter a player's draw deck."
+            },
+            {
+              "kind": "bullet",
+              "text": "Location Deck — global battlefield conditions. One Location is active at a time; the fight can Scene Change during a round."
+            },
+            {
+              "kind": "bullet",
+              "text": "Boss Materials — three Boss Stage cards, ten Boss Profile cards, and a dedicated 32-card Boss Arsenal Deck containing Boss Attacks, Boss Defenses, and Boss Techniques for Dojo Drama. The Department counted twice and has filed the first count as a training incident."
+            },
+            {
+              "kind": "bullet",
+              "text": "Trackers — tokens, cubes, dice, beads, tiny plastic fists, or suspiciously organized snacks for HP, XP, Focus, Tempo, promotion tasks, and temporary effects."
+            }
+          ]
+        },
+        {
+          "id": "card-types",
+          "title": "Card Types",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Type",
+                  "What It Does",
+                  "Where It Goes"
+                ],
+                [
+                  "Character",
+                  "Your fighter: HP, ATK, DEF, Speed, and unlockable abilities.",
+                  "Stays face up."
+                ],
+                [
+                  "Attack",
+                  "A strike aimed at High, Mid, Low, or Any zone.",
+                  "Played during your Yell Phase."
+                ],
+                [
+                  "Defense",
+                  "A reaction that adds Guard or changes an incoming strike. During your Yell, one Defense may instead be used for Defense Practice.",
+                  "Played as a Reaction when targeted."
+                ],
+                [
+                  "Kata",
+                  "Training, setup, card draw, Flow setup, or strategic weirdness.",
+                  "Usually played during your Yell Phase."
+                ],
+                [
+                  "Equipment",
+                  "The umbrella family for Weapons, Armor, Gear, Consumables, and Items.",
+                  "Permanent or one-use, depending on subtype."
+                ],
+                [
+                  "Combo",
+                  "A learned sequence of Technique tags or conditions that grants a payoff when completed.",
+                  "Drawn from the separate face-down Combo Deck when learned; stays face up beside your Character. Maximum 2 learned."
+                ],
+                [
+                  "Location",
+                  "A global battlefield with On Reveal, Ongoing, and sometimes Scene Change Trigger text.",
+                  "One Location is active for everyone until a Scene Change replaces it."
+                ],
+                [
+                  "Junk",
+                  "Starter-deck baggage with no Technique effect.",
+                  "Bad Habit has printed Focus Value 0; once during your Yell each turn, you may discard one from hand to gain 1 Focus."
+                ],
+                [
+                  "Boss Stage",
+                  "A Rival, Mini-Boss, or Final Boss overlay that supplies Boss HP, Attack bonus, and stage rules.",
+                  "Placed beside one unused Character card during Dojo Drama."
+                ],
+                [
+                  "Boss Profile",
+                  "A named opponent with printed ATK, DEF, Speed, stage fit, and one deterministic rule.",
+                  "Paired with the matching Boss Stage in Dojo Drama."
+                ],
+                [
+                  "Boss Arsenal",
+                  "Automated Boss Attacks, Boss Defenses, and Boss Techniques used only in Dojo Drama.",
+                  "Shuffled into the dedicated 32-card Boss Arsenal Deck."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "card-anatomy",
+          "title": "Card Anatomy",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Element",
+                  "Meaning"
+                ],
+                [
+                  "Focus Cost",
+                  "Focus required to buy a face-up Market card or learn a revealed Combo."
+                ],
+                [
+                  "Focus Value",
+                  "Focus generated when the card is legally played or Equipped from your hand during your own turn."
+                ],
+                [
+                  "Attack Power / Guard",
+                  "Attack Power added to an Attack or Guard added by a Defense card."
+                ],
+                [
+                  "Zone",
+                  "High, Mid, Low, Any, or the zones protected by Armor."
+                ],
+                [
+                  "Timing",
+                  "Turn, Reaction, Anytime, Ongoing, On Reveal, Scene Change, or another explicit window."
+                ],
+                [
+                  "Tags",
+                  "Rules labels such as Punch, Kick, Spin, Flow, Street, Improvised, High, or Low. Tags matter only when another rule references them."
+                ],
+                [
+                  "Flavor Text",
+                  "Emotionally necessary. Mechanically irrelevant unless your dojo is dangerously committed to improv."
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3-game-modes-victory",
+      "number": 3,
+      "title": "Game Modes & Victory",
+      "fullTitle": "3 Game Modes & Victory",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Choose a certified demonstration format. The Department considers all of these ‘controlled.’"
+        },
+        {
+          "kind": "table",
+          "rows": [
+            [
+              "Mode",
+              "Players",
+              "Characters Each",
+              "How to Win"
+            ],
+            [
+              "Standard Clash",
+              "2–6",
+              "1",
+              "Black Belt Victory or Last Fighter Standing"
+            ],
+            [
+              "Quick Duel",
+              "1v1",
+              "1",
+              "Last Fighter Standing only"
+            ],
+            [
+              "Tag Team: Swap-Fu",
+              "2–6",
+              "3",
+              "Black Belt Victory or Last Fighter Standing"
+            ],
+            [
+              "Dojo Drama: Boss Blitz",
+              "Solo or 2-player co-op",
+              "3",
+              "Defeat the Final Boss"
+            ]
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "id": "standard-clash",
+          "title": "Standard Clash — 2 to 6 Players",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Each player controls one Character and one Starter Deck. Players may attack any opposing active fighter unless a card says otherwise."
+            }
+          ]
+        },
+        {
+          "id": "quick-duel",
+          "title": "Quick Duel — Face-Punch Finals",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "A fast 1v1 variant with one Character per player. Last Fighter Standing wins; Black Belt Victory is not used. Belt Exams, abilities, ATK, DEF, Focus, and hand-size rewards still apply, but promotion never raises Max HP or heals a fighter. Quick Duel keeps the paperwork and removes the medical expansion plan."
+            }
+          ]
+        },
+        {
+          "id": "tag-team",
+          "title": "Tag Team: Swap-Fu — Recommended Core Format",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Each player brings three Characters but only one is active at a time. Fighters may tag during Initiate, protect injured teammates on the bench, and continue after a single KO. Full rules appear in Section 13."
+            }
+          ]
+        },
+        {
+          "id": "boss-blitz",
+          "title": "Dojo Drama: Boss Blitz",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "A solo or cooperative three-stage Boss Rush against a Rival, Mini-Boss, and Final Boss. Each player brings three Characters and uses Tag Team rules. Full rules appear in Section 14."
+            }
+          ]
+        },
+        {
+          "id": "victory-conditions",
+          "title": "Victory Conditions",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Black Belt Victory: Reach 55 XP, complete the Black Belt promotion task, and promote during Ascend. Quick Duel does not use this victory condition."
+            },
+            {
+              "kind": "bullet",
+              "text": "Last Fighter Standing: When every opposing player or team has no conscious fighters remaining, you win immediately."
+            },
+            {
+              "kind": "bullet",
+              "text": "Scenario Victory: Dojo Drama may replace the normal conditions with a Boss or mission objective."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4-setup-first-round",
+      "number": 4,
+      "title": "Setup & First Round",
+      "fullTitle": "4 Setup & First Round",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Register your delegation, unpack the approved curriculum, and give the safety cone the amount of respect it has earned."
+        }
+      ],
+      "sections": [
+        {
+          "id": "setup-steps",
+          "title": "Setup Steps",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Choose a mode. Tag Team is the recommended Core Format. Standard Clash, Quick Duel, and Dojo Drama are also supported."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Choose Characters. Use three per player in Tag Team and Dojo Drama, or one per player in Standard Clash or Quick Duel. Place each Character face up and set every fighter to 25 HP."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Take trackers. Set each player to White Belt, 0 XP, 0 Focus, and unused Tempo. Record printed ATK, DEF, and Speed."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Take the fixed Standard Starter Deck. Every player uses the same named 15 cards listed below. Shuffle it and draw seven cards."
+            },
+            {
+              "kind": "paragraph",
+              "text": "5. Mulligan once if needed. If your opening hand contains no Attack and no Kata, reveal it, shuffle it back, and draw seven new cards. The second hand stays, even if it is a small cardboard tragedy."
+            },
+            {
+              "kind": "paragraph",
+              "text": "6. Combine and shuffle all purchasable Techniques, Katas, Items, Weapons, Armor, Consumables, and utility cards into one shared Market Deck."
+            },
+            {
+              "kind": "paragraph",
+              "text": "7. Reveal seven random Market cards. Keep the Combo Deck separate and face-down beside the Market."
+            },
+            {
+              "kind": "paragraph",
+              "text": "8. Shuffle the Location Deck. Reveal the first Location during the first Honor Phase."
+            },
+            {
+              "kind": "paragraph",
+              "text": "9. Randomly choose the opening referee to break first-round Speed ties. Pass the marker clockwise after each round."
+            }
+          ]
+        },
+        {
+          "id": "standard-starter-deck",
+          "title": "Standard Starter Deck",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Card Group",
+                  "Count",
+                  "Fixed Contents"
+                ],
+                [
+                  "Attacks",
+                  4,
+                  "Basic Jab; Basic Body Kick; Basic Shin Kick; Wild Swing"
+                ],
+                [
+                  "Defenses",
+                  4,
+                  "High Guard; Center Guard; Low Guard; Cover Up"
+                ],
+                [
+                  "Katas",
+                  2,
+                  "Breathing Drill; Footwork Drill"
+                ],
+                [
+                  "Junk",
+                  5,
+                  "Bad Habit ×5"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "quickstart",
+          "title": "Quickstart",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Choose the mode and fighter roster. Take the identical 15-card Starter Deck, shuffle, and draw seven. In Tag Team and Dojo Drama, choose one fighter to begin active."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Shuffle the shared Market Deck, separate face-down Combo Deck, and Location Deck. Reveal seven random Market cards; Combos never occupy Market slots."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Begin Honor once for the whole round: Scene Change, give each surviving player +1 XP, refresh Tempo, and order turns by current Speed."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Each player then takes their own H.I.Y.A.H. turn after the global Honor Phase: Initiate, Yell, Ascend, Hide."
+            },
+            {
+              "kind": "paragraph",
+              "text": "5. During Yell, play cards one at a time. You may play any number of legal Attacks from your hand, resolving each separately. After your first Attack with Flow each turn resolves, draw one card. Once during Yell, you may use one Defense from hand for Defense Practice instead of playing it normally."
+            },
+            {
+              "kind": "paragraph",
+              "text": "6. Cards legally played or Equipped from hand during your own turn generate printed Focus before their effects resolve. Defense Practice generates only the practiced card's printed Focus. During Ascend, spend Focus on Market cards or one Combo attempt."
+            },
+            {
+              "kind": "paragraph",
+              "text": "7. Promote one Belt if you have the required XP and completed its task."
+            },
+            {
+              "kind": "paragraph",
+              "text": "8. During Hide, resolve end effects, discard your hand and play area as required, draw a new hand, and lose unspent Focus."
+            },
+            {
+              "kind": "paragraph",
+              "text": "9. After each Market purchase, reveal the top Market card to refill the empty slot. After everyone acts, resolve end-of-round effects. If nobody bought a Market card during the round, use Market Mercy to replace all seven cards; otherwise keep the row. Pass the referee marker and begin the next round."
+            },
+            {
+              "kind": "paragraph",
+              "text": "The whole game in one sentence: Play cards to fight and generate Focus, buy a better deck, complete Belt challenges, and reach Black Belt before everyone else—or simply knock them all out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "5-core-resources-player-areas",
+      "number": 5,
+      "title": "Core Resources & Player Areas",
+      "fullTitle": "5 Core Resources & Player Areas",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Focus buys registered equipment. XP certifies advancement. HP keeps the demonstration from becoming paperwork."
+        }
+      ],
+      "sections": [
+        {
+          "id": "hp-health-points",
+          "title": "HP — Health Points",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards increase maximum HP except in Quick Duel, where Max HP remains 25 unless a card or scenario explicitly changes it."
+            }
+          ]
+        },
+        {
+          "id": "focus-purchasing-power",
+          "title": "Focus — Purchasing Power",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Focus is the game's only spendable currency. It buys face-up Market cards and revealed Combos during Ascend."
+            },
+            {
+              "kind": "bullet",
+              "text": "When you legally play or Equip a card from your hand during your own turn, gain its printed Focus Value. Gain it after all costs are paid and before resolving the card's effect."
+            },
+            {
+              "kind": "bullet",
+              "text": "Cards played outside your own turn do not generate their printed Focus Value unless their rules text explicitly grants Focus. Explicit Focus gained outside your turn remains until your next Hide unless that effect gives it another duration."
+            },
+            {
+              "kind": "bullet",
+              "text": "Defense Practice is the one core exception: once during your Yell, reveal one Defense from hand and place it in your play area to gain its printed Focus. It is not played, provides no Guard, resolves no rules text, grants no XP, and cannot satisfy a card, Combo, or Belt Exam requirement. Discard it during Hide. The Department calls this studying because 'discarding your guard to buy a helmet' tested poorly."
+            },
+            {
+              "kind": "bullet",
+              "text": "Focus printed on a card is not a victory value. It is the card's contribution to that turn's purchasing power."
+            },
+            {
+              "kind": "bullet",
+              "text": "Unspent Focus is lost during Hide. Focus does not bank between turns unless a specific effect explicitly says it does."
+            },
+            {
+              "kind": "bullet",
+              "text": "You may not discard an arbitrary card for Focus. Once during your Yell each turn, you may discard one Bad Habit from your hand to gain 1 Focus. Bad Habit still has a printed Focus Value of 0."
+            }
+          ]
+        },
+        {
+          "id": "xp-experience-points",
+          "title": "XP — Experience Points",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "XP is permanent and player-wide. It unlocks Belt promotions and does not decrease unless a card explicitly says so. In Tag Team, all three Characters share the player's XP and Belt."
+            }
+          ]
+        },
+        {
+          "id": "atk-def-and-speed",
+          "title": "ATK, DEF, and Speed",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Stat",
+                  "Function"
+                ],
+                [
+                  "ATK",
+                  "Added to each legal Attack you make, along with the Attack card and eligible Weapon bonuses."
+                ],
+                [
+                  "DEF",
+                  "Added to every incoming Attack against your active fighter, along with matching Armor and any Defense card."
+                ],
+                [
+                  "Speed",
+                  "Determines turn order at the start of each round. It also enables Tempo Advantage against slower opponents (see below). Speed does not alter card timing unless an effect says so."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tempo-advantage",
+          "title": "Tempo Advantage",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Once per round, when your active fighter is faster than the opposing active fighter involved in a combat, you may use Tempo for one of these benefits:"
+            },
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Timing",
+                  "Tempo benefit"
+                ],
+                [
+                  "Your Attack",
+                  "+1 Attack Power to that Attack."
+                ],
+                [
+                  "Your Defense",
+                  "+1 Guard to that Defense card."
+                ]
+              ]
+            },
+            {
+              "kind": "bullet",
+              "text": "Check current Speed when the Attack or Defense is legally played. A tie grants no Tempo Advantage."
+            },
+            {
+              "kind": "bullet",
+              "text": "Tempo belongs to the player, refreshes during Honor, and does not refresh when tagging."
+            },
+            {
+              "kind": "bullet",
+              "text": "Using Tempo is optional. Place or flip a token to show it has been used for the round."
+            },
+            {
+              "kind": "bullet",
+              "text": "If the card is later canceled or prevented, Tempo remains used."
+            },
+            {
+              "kind": "bullet",
+              "text": "Bosses do not use Tempo, but a faster player may use Tempo against a Boss."
+            }
+          ]
+        },
+        {
+          "id": "your-personal-play-area",
+          "title": "Your Personal Play Area",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Draw Deck: face down; you may count it but never inspect or reorder it."
+            },
+            {
+              "kind": "bullet",
+              "text": "Hand: hidden from opponents; hand size is normally seven."
+            },
+            {
+              "kind": "bullet",
+              "text": "Play Area: face-up cards played this turn."
+            },
+            {
+              "kind": "bullet",
+              "text": "Discard Pile: face up; the top card is public, but players may not search it without permission from an effect."
+            },
+            {
+              "kind": "bullet",
+              "text": "Equipped Area: permanent Equipment attached to specific Characters."
+            },
+            {
+              "kind": "bullet",
+              "text": "Destroyed Pile: cards removed from the game. Keep it face up and separate from every discard pile."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "6-the-h-i-y-a-h-round",
+      "number": 6,
+      "title": "The H.I.Y.A.H. Round",
+      "fullTitle": "6 The H.I.Y.A.H. Round",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Honor • Initiate • Yell • Ascend • Hide — the Department’s five-stage Demonstration Safety Protocol. It has never been shortened."
+        },
+        {
+          "kind": "paragraph",
+          "text": "A round begins with one global Honor Phase. Then, in Speed order, each player takes one complete turn consisting of Initiate, Yell, Ascend, and Hide. After the slowest fighter finishes, the round ends."
+        },
+        {
+          "kind": "table",
+          "rows": [
+            [
+              "Phase",
+              "When",
+              "What Happens"
+            ],
+            [
+              "H — Honor",
+              "Once per round",
+              "Scene Change, On Reveal, survival XP, refresh Tempo, determine initiative."
+            ],
+            [
+              "I — Initiate",
+              "Start of each turn",
+              "Ready cards, optional tag, Equip permanents, start effects."
+            ],
+            [
+              "Y — Yell",
+              "Main phase",
+              "Play cards, play any number of legal Attacks from hand, trigger learned Combos, use abilities."
+            ],
+            [
+              "A — Ascend",
+              "Buy and promote",
+              "Spend Focus, attempt one Combo, promote one Belt."
+            ],
+            [
+              "H — Hide",
+              "Cleanup",
+              "End effects, discard, draw the new hand, lose unspent Focus."
+            ]
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "id": "honor-phase-global-round-start",
+          "title": "Honor Phase — Global Round Start",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Scene Change. Reveal the top card of the Location Deck and make it the new current Location. On the first round, there is no current Location to discard — simply reveal the first one. On later rounds, discard the current Location first, then reveal the next."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Resolve the new Location's On Reveal text. Its Ongoing text becomes active immediately and remains active until the Location leaves play."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Each non-eliminated player gains +1 XP for surviving long enough to learn something."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Refresh each player's Tempo (see Section 5)."
+            },
+            {
+              "kind": "paragraph",
+              "text": "5. Determine turn order from highest Speed to lowest. Break ties with the referee marker, then clockwise from that player."
+            }
+          ]
+        },
+        {
+          "id": "initiate-phase-start-of-your-turn",
+          "title": "Initiate Phase — Start of Your Turn",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Ready exhausted or once-per-turn cards."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. In Tag Team, you may tag once now. Tagging does not refresh Tempo."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Equip any number of permanent Equipment cards from your hand. Respect all slots and Hand limits. Each legally Equipped card generates its printed Focus Value."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Resolve start-of-turn effects in the order you choose."
+            }
+          ]
+        },
+        {
+          "id": "yell-phase-play-cards",
+          "title": "Yell Phase — Play Cards",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Play one card at a time and resolve it completely before playing another, unless a Reaction interrupts it. You may play Katas, use Items, activate Equipment, play any number of legal Attacks from your hand, and trigger learned Combos as long as every action is legal."
+            },
+            {
+              "kind": "paragraph",
+              "text": "Once during your Yell, you may use one Defense from your hand for Defense Practice. Reveal it, place it in your play area, and gain its printed Focus. It is not played and does nothing else. Apparently the safest block is the one performed against an imaginary purchasing decision."
+            },
+            {
+              "kind": "paragraph",
+              "text": "After your first Attack with Flow each turn resolves, draw one card. See Sections 7 and 8."
+            }
+          ]
+        },
+        {
+          "id": "ascend-phase-buy-and-belt-up",
+          "title": "Ascend Phase — Buy and Belt Up",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Spend Focus on any number of face-up Market cards. Put each purchase in your discard pile, then immediately reveal the top card of the Market Deck to fill the empty slot. Keep any unspent Focus until Hide."
+            },
+            {
+              "kind": "bullet",
+              "text": "Once per turn, reveal the top card of the separate Combo Deck. Pay its Focus Cost to learn it, or return it face-down to the bottom. Either choice uses your Combo attempt."
+            },
+            {
+              "kind": "bullet",
+              "text": "A learned Combo stays face up beside your fighter and never enters your hand, draw deck, or discard pile."
+            },
+            {
+              "kind": "bullet",
+              "text": "Promote up to one Belt if you meet its XP threshold and completed its promotion task."
+            }
+          ]
+        },
+        {
+          "id": "hide-phase-cleanup",
+          "title": "Hide Phase — Cleanup",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Resolve end-of-turn effects. Set aside cards drawn or added to your hand by this step until cleanup is complete."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Discard all cards in your play area and hand except Equipped, Ongoing, otherwise retained cards, and cards set aside by Step 1."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Draw your normal new hand of seven cards, or eight at Blue Belt, shuffling your discard pile only when needed. Then add the cards set aside by Step 1."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Set Focus to 0."
+            }
+          ]
+        },
+        {
+          "id": "end-of-the-round",
+          "title": "End of the Round",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Resolve Location and card effects that occur at end of round."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. In Tag Team, benched fighters do not recover HP automatically."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Keep the current Market row if at least one card was purchased this round. If nobody purchased a Market card, use Market Mercy: discard all seven cards and reveal seven replacements from the mixed Market Deck."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Pass the referee marker clockwise and begin the next Honor Phase."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "7-playing-cards",
+      "number": 7,
+      "title": "Playing Cards",
+      "fullTitle": "7 Playing Cards",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Announce it, check it, resolve it, and only then discover why the inspector wrote another note."
+        }
+      ],
+      "sections": [
+        {
+          "id": "the-four-steps-of-playing-a-card",
+          "title": "The Four Steps of Playing a Card",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Announce the card and all required choices: target, zone, mode, or affected Equipment."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Check legality. Satisfy timing, target, prerequisite, slot, and other printed requirements."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Pay any specific printed costs, such as discarding a card, exhausting Equipment, losing HP, or performing text before a colon. Paid costs are not refunded if the effect is later prevented."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. If this card was legally played or Equipped from your hand during your own turn, gain its printed Focus Value. Then resolve the text from top to bottom and place the card in its proper area."
+            },
+            {
+              "kind": "paragraph",
+              "text": "Cards have no general play cost. A printed Focus Cost is paid only when buying the card from the Market or learning it from the Combo Deck."
+            }
+          ]
+        },
+        {
+          "id": "defense-practice",
+          "title": "Defense Practice",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Once during your Yell, you may Practice one Defense from your hand. Reveal it and place it face up in your play area. Gain its printed Focus Value."
+            },
+            {
+              "kind": "bullet",
+              "text": "A practiced Defense is not played. It provides no Guard, resolves no rules text, and opens no Reaction Window."
+            },
+            {
+              "kind": "bullet",
+              "text": "It grants no Defense XP and cannot satisfy a card condition, learned Combo, Green Belt Exam, Brown Belt Exam, or other requirement that counts a played card or Defense."
+            },
+            {
+              "kind": "bullet",
+              "text": "Leave it in your play area and discard it during Hide. You cannot later use it to defend before then."
+            },
+            {
+              "kind": "paragraph",
+              "text": "Defense Practice is not a general discard-for-Focus action. It is a certified drill with exactly one participant and no attacker willing to admit they were there."
+            }
+          ]
+        },
+        {
+          "id": "flow",
+          "title": "Flow",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "FLOW\nAfter the first Attack you play with Flow each turn resolves, draw one card. Later Attacks with Flow that turn do not draw a card. Flow does not make an illegal target, timing, zone, or Combo step legal."
+                ]
+              ]
+            },
+            {
+              "kind": "paragraph",
+              "text": "An effect that says your next Attack gains Flow lasts until that Attack is played or the turn ends. If multiple effects grant Flow to the same Attack, they do not create multiple draws."
+            }
+          ]
+        },
+        {
+          "id": "junk-and-bad-habits",
+          "title": "Junk & Bad Habits",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Bad Habit has no printed effect and a printed Focus Value of 0. Once during your Yell each turn, you may discard one Bad Habit from your hand to gain 1 Focus. This is a special Bad Habit rule, not a general discard-for-Focus action. Bad Habit can still matter when another effect counts, reveals, discards, or destroys Junk."
+            },
+            {
+              "kind": "paragraph",
+              "text": "There is no universal discard-for-Focus action. A discard produces Focus only when a specific card or rule says it does."
+            }
+          ]
+        },
+        {
+          "id": "drawing-and-reshuffling",
+          "title": "Drawing and Reshuffling",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "When you must draw more cards than remain in your deck, draw what is available, shuffle your discard pile to create a new deck, then continue drawing. Do not shuffle early. If both piles are empty, draw as many as possible."
+            }
+          ]
+        },
+        {
+          "id": "gaining-discarding-destroying-and-returning",
+          "title": "Gaining, Discarding, Destroying, and Returning",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Term",
+                  "Destination",
+                  "Notes"
+                ],
+                [
+                  "Gain / Buy Technique or Item",
+                  "Your discard pile",
+                  "The card is yours immediately but normally cannot be used until drawn later."
+                ],
+                [
+                  "Discard",
+                  "Appropriate discard pile",
+                  "Your cards go to your discard; unpurchased Market cards and Locations go to their matching shared-deck discards."
+                ],
+                [
+                  "Destroy",
+                  "Public Destroyed pile",
+                  "Removed from the game unless an effect specifically retrieves Destroyed cards."
+                ],
+                [
+                  "Return to Box",
+                  "The game box",
+                  "Used for one-use Consumables or scenario components that should not re-enter this game."
+                ],
+                [
+                  "Set Aside",
+                  "A clearly marked temporary area",
+                  "The effect that set it aside explains when it returns."
+                ],
+                [
+                  "Buy Combo",
+                  "Learned Combo area",
+                  "Place it face up beside your Character. It does not enter your personal deck."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ongoing-cards",
+          "title": "Ongoing Cards",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "An Ongoing card remains active in play until its text ends or removes it. It is not discarded during Hide unless its text says so. Equipped cards are permanent but are not considered Ongoing unless they also have that keyword."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "8-combat",
+      "number": 8,
+      "title": "Combat",
+      "fullTitle": "8 Combat",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Declare a zone. The Department requires it after the incident involving a left shin, three witnesses, and a zoning dispute."
+        }
+      ],
+      "sections": [
+        {
+          "id": "the-three-zones",
+          "title": "The Three Zones",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Zone",
+                  "Japanese Label",
+                  "Body Area",
+                  "Common Armor Slots"
+                ],
+                [
+                  "High",
+                  "Jōdan",
+                  "Head and upper line",
+                  "Head"
+                ],
+                [
+                  "Mid",
+                  "Chūdan",
+                  "Torso and arms",
+                  "Chest, Arms"
+                ],
+                [
+                  "Low",
+                  "Gedan",
+                  "Legs and lower line",
+                  "Legs, Feet"
+                ],
+                [
+                  "Any",
+                  "Choose when declared",
+                  "Whichever zone the attacker names",
+                  "The chosen zone"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "attack-sequence",
+          "title": "Attack Sequence",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Declare the strike. Play one Attack card, name one opposing active Character, and declare its zone. \"Any\" attacks choose a zone now."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Identify combat values. Identify the Attack card's Attack Power, Character ATK, eligible Weapon bonuses, defender DEF, matching Armor, and other currently applicable modifiers. Do not calculate or lock final totals yet."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Open the Reaction Window. The defender may play one Defense card by default and activate legal Reactions. Bystanders may interfere if their cards allow it."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Resolve the Reaction Stack. Resolve Reactions in reverse order. Any Attack, ATK, DEF, Guard, Armor, zone, or other modifiers they create remain in effect for the final calculation."
+            },
+            {
+              "kind": "paragraph",
+              "text": "5. Calculate final combat values. After the Reaction Stack is empty, calculate Attack Power and Defense using all applicable values and modifiers, including Modifier Combos and resolved Reactions. Combat totals are not locked before this step."
+            },
+            {
+              "kind": "paragraph",
+              "text": "6. Deal damage. Damage equals final Attack Power minus final Defense, minimum 0."
+            },
+            {
+              "kind": "paragraph",
+              "text": "7. Resolve the result. If damage is at least 1, the strike Hits. If damage is 0, it is Blocked. Resolve hit, block, and after-attack effects."
+            },
+            {
+              "kind": "paragraph",
+              "text": "8. Award XP. The attacker gains +1 XP for the legal Attack card. The defender gains +1 XP for a legal Defense card, whether the Defense succeeded or not."
+            }
+          ]
+        },
+        {
+          "id": "final-combat-formula",
+          "title": "Final Combat Formula",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "FINAL COMBAT FORMULA\nAttack Power = printed Attack Power + Character ATK + eligible Weapons + modifiers. Defense = Character DEF + matching Armor + one Defense card's Guard + modifiers. Damage = max(0, Attack Power − Defense)."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tempo-in-combat",
+          "title": "Tempo in Combat",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "When your active fighter is faster than the opposing active fighter involved in a combat, you may spend your once-per-round Tempo for +1 Attack Power on your Attack or +1 Guard on your Defense card. Check current Speed when the card is legally played. See Section 5 for edge cases."
+            }
+          ]
+        },
+        {
+          "id": "multiple-attacks",
+          "title": "Multiple Attacks & Flow",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "You may play any number of legal Attack cards from your hand during your turn. Each Attack resolves as a separate strike."
+            },
+            {
+              "kind": "bullet",
+              "text": "After the first Attack you play with Flow each turn resolves, draw one card. Later Flow Attacks that turn resolve normally without that draw."
+            },
+            {
+              "kind": "bullet",
+              "text": "Bonuses that say ‘your next Attack’ expire after one strike, even if it is Blocked."
+            }
+          ]
+        },
+        {
+          "id": "defense-limits",
+          "title": "Defense Limits",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "The targeted player may play one Defense card per strike unless a card explicitly allows an additional Defense."
+            },
+            {
+              "kind": "bullet",
+              "text": "Static Character DEF and matching Armor apply even if no Defense card is played."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Defense card must protect the attacked zone or say Any / Universal."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Defense card is discarded after the strike resolves unless it says Ongoing, Equip, or Return."
+            },
+            {
+              "kind": "bullet",
+              "text": "Playing a Defense consumes the card from your current hand; you do not refill your hand until your own Hide Phase."
+            }
+          ]
+        },
+        {
+          "id": "reversal",
+          "title": "Reversal",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Once per round, after a Defense card you played Blocks an Attack, you may immediately play one Attack from your hand against that attacker. This is a Reversal. Resolve that Attack normally."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Reversal happens outside your turn. The original attacker may defend normally."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Reversal Attack cannot trigger another Reversal. There is no automatic draw, and it does not generate Focus because it was not played during your turn."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Reversal earns the normal Attack XP if eligible. Specific card text may improve a Reversal only as written."
+            }
+          ]
+        },
+        {
+          "id": "critical-terms",
+          "title": "Critical Terms",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Term",
+                  "Meaning"
+                ],
+                [
+                  "Hit",
+                  "The strike deals at least 1 damage after Defense."
+                ],
+                [
+                  "Blocked",
+                  "The strike deals 0 damage."
+                ],
+                [
+                  "KO",
+                  "Damage or an effect reduces a Character to 0 HP."
+                ],
+                [
+                  "Unblockable",
+                  "Defense cards cannot be played; Character DEF and Armor still apply unless the card says \"ignore DEF and Armor.\""
+                ],
+                [
+                  "Piercing X",
+                  "Ignore X points of Armor Defense. It does not ignore Character DEF or Defense cards."
+                ],
+                [
+                  "Direct Damage",
+                  "Lose HP without an Attack. It does not open a normal Defense window unless an effect says it can be prevented."
+                ],
+                [
+                  "Counter",
+                  "A Defense or Reaction creates an effect after the Attack resolves, usually only if the strike is Blocked."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "combat-example",
+          "title": "Combat Example",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Rita plays Wild Swing for 1 Damage, adds 2 ATK, and uses a +1 Weapon: Attack Power 4. Devin has 1 DEF and Mid Armor worth 1, then plays Desperate Cover for +2 Guard: Defense 4. The strike deals 0 and is Blocked. Rita still gains 1 XP for attacking; Devin gains 1 XP for defending and may trigger any \"when you Block\" effects."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9-equipment",
+      "number": 9,
+      "title": "Equipment",
+      "fullTitle": "9 Equipment",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Equipment is a family of permanent and one-use cards. The Department has official slot paperwork for helmets, weapons, and several objects that should not have been approved. There is no general cost to Equip or use them; follow timing, slots, Hand limits, and any specific printed cost."
+        }
+      ],
+      "sections": [
+        {
+          "id": "equipping-permanent-equipment",
+          "title": "Equipping Permanent Equipment",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Equip permanent Equipment only during Initiate unless a card says otherwise."
+            },
+            {
+              "kind": "bullet",
+              "text": "The card must be in your hand. Place it beside the Character receiving it and gain its printed Focus Value."
+            },
+            {
+              "kind": "bullet",
+              "text": "Newly purchased Equipment goes to your discard pile and cannot be equipped immediately."
+            },
+            {
+              "kind": "bullet",
+              "text": "You may Equip multiple cards if you have legal slots. Replacing an occupied slot discards the old Equipment first."
+            }
+          ]
+        },
+        {
+          "id": "weapons",
+          "title": "Weapons",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "A Character has two Hands."
+            },
+            {
+              "kind": "bullet",
+              "text": "A two-handed Weapon occupies both Hands."
+            },
+            {
+              "kind": "bullet",
+              "text": "A one-handed Weapon occupies one Hand; two one-handed Weapons may be dual-wielded."
+            },
+            {
+              "kind": "bullet",
+              "text": "Unless a card says otherwise, all equipped Weapon bonuses apply to each Attack made by that Character."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Disarm effect discards equipped Weapons to their owner's discard pile. If the effect says Destroy, place them in the Destroyed pile instead."
+            }
+          ]
+        },
+        {
+          "id": "armor-and-gear",
+          "title": "Armor and Gear",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Slot",
+                  "Limit",
+                  "Default Zone"
+                ],
+                [
+                  "Head",
+                  "1",
+                  "High"
+                ],
+                [
+                  "Chest",
+                  "1",
+                  "Mid"
+                ],
+                [
+                  "Arms",
+                  "1",
+                  "Mid"
+                ],
+                [
+                  "Legs",
+                  "1",
+                  "Low"
+                ],
+                [
+                  "Feet",
+                  "1",
+                  "Low"
+                ],
+                [
+                  "Accessory",
+                  "1",
+                  "As printed"
+                ]
+              ]
+            },
+            {
+              "kind": "bullet",
+              "text": "Armor adds DEF only when its protected zone matches the incoming Attack, unless it says Universal."
+            },
+            {
+              "kind": "bullet",
+              "text": "Gear is permanent Equipment that does something other than—or in addition to—Armor. Gear uses the slot printed on the card."
+            },
+            {
+              "kind": "bullet",
+              "text": "Equipment enters play ready. To exhaust it, turn it sideways and pay that card's exhaust cost. All of your exhausted Equipment readies at your Initiate Phase. Exhausting never turns off printed passive stats such as Guard or Attack Bonus; it only prevents another exhaust ability until the card readies."
+            }
+          ]
+        },
+        {
+          "id": "consumables",
+          "title": "Consumables",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Consumables are one-use Equipment. Play them during their printed timing, resolve the effect, then return the card to the box or Consumable supply. Consumables do not enter the Destroyed pile unless the card says Destroy."
+            },
+            {
+              "kind": "paragraph",
+              "text": "In Tag Team, a healing Consumable without a named target may heal your active Character or one conscious benched Character. A KO'd Character requires Revive."
+            }
+          ]
+        },
+        {
+          "id": "items-and-tools",
+          "title": "Items and Tools",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Items are utility Equipment. Most are played during your Yell Phase and discarded after resolving. Items marked Ongoing, Equip, or with a slot remain in play according to their text."
+            },
+            {
+              "kind": "paragraph",
+              "text": "Reaction Items are one-use Items played during a Reaction Window. They do not occupy a permanent Equipment slot; resolve their printed effect, then destroy or discard them exactly as the card says."
+            }
+          ]
+        },
+        {
+          "id": "equipment-and-characters",
+          "title": "Equipment and Characters",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Equipment belongs to the specific Character it is attached to, not to the active slot."
+            },
+            {
+              "kind": "bullet",
+              "text": "In Tag Team, Equipment stays with a Character when that fighter tags out."
+            },
+            {
+              "kind": "bullet",
+              "text": "When a Character is KO'd, discard all permanent Equipment attached to that Character. Any Ongoing cards attached to that fighter are discarded unless stated otherwise."
+            },
+            {
+              "kind": "bullet",
+              "text": "Cards still in the player's deck, hand, or discard pile are not lost when a Character is KO'd."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10-deckbuilding-market-combos-locations",
+      "number": 10,
+      "title": "Deckbuilding, Market, Combos & Locations",
+      "fullTitle": "10 Deckbuilding, Market, Combos & Locations",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Begin with the basic curriculum. Acquire approved techniques, document a sequence, and relocate when an inspector closes the venue."
+        }
+      ],
+      "sections": [
+        {
+          "id": "the-shared-market",
+          "title": "The Shared Market",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "The Market is one seven-card face-up row drawn from a single shuffled Market Deck containing purchasable Attacks, Defenses, Katas, Items, Weapons, Armor, Consumables, and utility cards."
+            },
+            {
+              "kind": "bullet",
+              "text": "The available mix is random. No card type is guaranteed a slot; apparently curriculum planning was assigned to a raffle drum."
+            },
+            {
+              "kind": "bullet",
+              "text": "During Ascend, buy cards one at a time by paying printed Focus Costs. Put each purchase in your discard pile."
+            },
+            {
+              "kind": "bullet",
+              "text": "After each purchase, immediately reveal the top card of the Market Deck to fill the empty slot. The buyer may continue purchasing as long as they can pay each printed Focus Cost. Unspent Focus remains available until Hide."
+            },
+            {
+              "kind": "bullet",
+              "text": "The Combo Deck is separate, face-down, and never contributes cards to the Market."
+            },
+            {
+              "kind": "bullet",
+              "text": "Unpurchased Market cards remain in the row between rounds. If a complete round ends with no Market purchase, discard all seven cards and reveal a fresh seven-card row. This Market Mercy refresh prevents a stalled row."
+            }
+          ]
+        },
+        {
+          "id": "technique-and-item-decks",
+          "title": "The Mixed Market Deck",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "The Market Deck combines purchasable Attacks, Defenses, Katas, Weapons, Armor, Consumables, and utility Items. Tags printed on cards—such as Punch, Kick, Hand, Spin, Sweep, Street, Improvised, Traditional, High, or Low—are rules labels with no effect by themselves but may be referenced by Combos, Locations, Characters, and other cards."
+            }
+          ]
+        },
+        {
+          "id": "building-a-curriculum",
+          "title": "Building a Curriculum",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "You never declare a required deck identity. Your curriculum emerges from the cards you acquire: you may improve your offense, protection, hand flow, equipment, Combos, Focus generation, or a mix of all of them. Let the cards define the plan at the table."
+            }
+          ]
+        },
+        {
+          "id": "learning-combos",
+          "title": "Learning Combos",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "The face-down Combo Deck is separate from the Market. Each Combo shows a Focus Cost, Sequence or Requirement, Effect, Timing Type / Limit, and relevant Tags."
+            },
+            {
+              "kind": "bullet",
+              "text": "Once during Ascend, reveal the top Combo. Pay its Focus Cost to learn it; if you decline or cannot pay, return it face-down to the bottom. You may know a maximum of two Combos."
+            },
+            {
+              "kind": "bullet",
+              "text": "Complete a Combo's printed sequence in order. Unless stated otherwise, all listed actions occur during the same turn and must use the same named opponent."
+            },
+            {
+              "kind": "bullet",
+              "text": "Other legal actions may occur between steps unless the Combo says Consecutive."
+            }
+          ]
+        },
+        {
+          "id": "combo-timing-modifier-vs-aftermath",
+          "title": "Combo Timing — Modifier vs. Aftermath",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Modifier Combo: after all earlier steps, announce the final required step and choices, then apply the Combo's modifier before calculating that step. The final step must still be legal."
+            },
+            {
+              "kind": "bullet",
+              "text": "Aftermath Combo: after the entire printed sequence resolves, resolve the Combo's payoff."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Combo's Finishing Technique is played normally as the actual next required step. It must still satisfy every printed requirement."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Combo marked Once per turn or Once per round cannot trigger again until its printed limit refreshes. Flip it face down as a reminder."
+            },
+            {
+              "kind": "bullet",
+              "text": "Learned Combos are not cards in hand, do not generate Focus, are not discarded during Hide, and do not count as cards played."
+            },
+            {
+              "kind": "paragraph",
+              "text": "Combo Example — Swan Song: a Low or Mid Kick must Hit. When you later announce a High Kick against the same opponent, apply Swan Song's modifier to that High Kick, then resolve it normally. If the opening Kick did not Hit, the Combo is not ready."
+            }
+          ]
+        },
+        {
+          "id": "locations-and-scene-changes",
+          "title": "Locations and Scene Changes",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "The current Location is a global battlefield. Its Ongoing text affects every player unless it names a specific player, fighter, tag, or card type. Location cards never enter a player deck or hand."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Location may contain On Reveal text, an Ongoing Effect, and a Scene Change Trigger. Resolve On Reveal immediately when the Location enters play. Ongoing text applies while it remains current. A Scene Change Trigger tells you when the fight spills somewhere else."
+            },
+            {
+              "kind": "bullet",
+              "text": "Scene Change: Finish the effect that caused the Scene Change. Discard the current Location, reveal the top Location card, resolve its On Reveal text, and make its Ongoing text active. A Scene Change does not restart the round, award survival XP, refresh Focus or Tempo, or change turn order."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Scene Change happens automatically at the start of every round during Honor. It also happens after a fighter is KO'd if the game continues, when the current Location's Scene Change Trigger fires, or when a card or scenario explicitly says Scene Change."
+            },
+            {
+              "kind": "bullet",
+              "text": "If one effect KOs multiple fighters at the same time, resolve every KO from that effect first, then perform only one Scene Change. If a Scene Change itself causes another immediate Scene Change, finish each reveal completely before changing again."
+            },
+            {
+              "kind": "bullet",
+              "text": "If the Location Deck empties, shuffle the Location discard pile to form a new deck. If no cards remain, keep the current Location until a Location becomes available or the game ends."
+            },
+            {
+              "kind": "paragraph",
+              "text": "Location Example — Parking Lot Behind the Dojo: Makes Katas harder while rewarding Street and Improvised Weapons. The Location does not choose a winner; it changes which cards are efficient for everyone until the scene moves again."
+            }
+          ]
+        },
+        {
+          "id": "when-a-shared-deck-empties",
+          "title": "When a Shared Deck Empties",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "When the Market Deck empties, shuffle its discard pile to form a new deck. When the Combo Deck empties, shuffle its discard pile. If a deck and its discard are both empty, leave the affected slot or action unavailable until cards return. The game does not end because a shared deck is exhausted."
+            }
+          ]
+        },
+        {
+          "id": "deck-knowledge",
+          "title": "Deck Knowledge",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "You may count your own draw deck without looking at card faces. The number of cards in every hand is public; the cards are private. The top card of each discard pile and all face-up cards are public. No player may search, reorder, or inspect any deck or discard pile without an effect that explicitly allows it. \"I was just checking something\" is not a card effect. Put the discard pile down, Sensei Spreadsheet."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "11-xp-belt-progression",
+      "number": 11,
+      "title": "XP & Belt Progression",
+      "fullTitle": "11 XP & Belt Progression",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Belts are public certification milestones. Every requirement survived a committee meeting, which explains why some are oddly specific."
+        }
+      ],
+      "sections": [
+        {
+          "id": "how-to-earn-xp",
+          "title": "How to Earn XP",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Source",
+                  "XP",
+                  "Limits"
+                ],
+                [
+                  "Survive the round",
+                  "+1 XP",
+                  "Awarded during Honor to each non-eliminated player."
+                ],
+                [
+                  "Play a legal Attack",
+                  "+1 XP",
+                  "Whether it Hits or is Blocked."
+                ],
+                [
+                  "Play a legal Defense",
+                  "+1 XP",
+                  "Whether it Blocks or fails spectacularly."
+                ],
+                [
+                  "KO an opposing Character",
+                  "+2 XP",
+                  "Awarded to the player who caused the final loss of HP."
+                ],
+                [
+                  "Card or scenario effect",
+                  "As printed",
+                  "Follow the effect."
+                ]
+              ]
+            },
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "ANTI-LOOP RULE\nEach physical Attack or Defense card can award its normal \"card played\" XP only once per round, even if an effect returns or replays it. Extra XP printed by card effects follows the card normally."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "promotion-rules",
+          "title": "Promotion Rules",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "The task shown on a Belt is the challenge required to enter that Belt."
+            },
+            {
+              "kind": "bullet",
+              "text": "Keep your current Belt Exam visible. When you complete it, mark it PASSED immediately; it remains public until you promote during Ascend."
+            },
+            {
+              "kind": "bullet",
+              "text": "A challenge begins when you enter the previous Belt. Earlier accomplishments are not retroactive."
+            },
+            {
+              "kind": "bullet",
+              "text": "Mark a completed challenge even if you have not yet reached the required XP."
+            },
+            {
+              "kind": "bullet",
+              "text": "During Ascend, if you have enough XP and the challenge is complete, promote exactly one Belt."
+            },
+            {
+              "kind": "bullet",
+              "text": "Surplus XP is retained. You may not skip Belts or promote twice in one turn."
+            },
+            {
+              "kind": "bullet",
+              "text": "When a promotion grants +10 Max HP, every Character on that player's roster increases Max HP by 10. Then only the active Character heals 5 HP, up to its new maximum. KO'd Characters remain KO'd and never heal from promotion. Quick Duel ignores every promotion's Max HP increase and healing; all other printed Belt rewards still apply."
+            }
+          ]
+        },
+        {
+          "id": "belt-table",
+          "title": "Belt Table",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Belt",
+                  "XP",
+                  "Promotion Task",
+                  "Reward"
+                ],
+                [
+                  "White",
+                  0,
+                  "Exist. Try not to sprain anything while shuffling.",
+                  "None"
+                ],
+                [
+                  "Yellow",
+                  5,
+                  "While White, play at least one legal High, Mid, and Low Attack across one or more turns.",
+                  "+10 Max HP; active heals 5"
+                ],
+                [
+                  "Orange",
+                  10,
+                  "During one turn, play at least 2 legal Attacks and Hit with at least 1.",
+                  "+1 ATK; +10 Max HP; active heals 5"
+                ],
+                [
+                  "Green",
+                  15,
+                  "During one round, play a legal Attack on your turn and a legal Defense outside your turn.",
+                  "Unlock Green Ability; +10 Max HP; active heals 5"
+                ],
+                [
+                  "Purple",
+                  21,
+                  "While Green, buy at least one Market card from two different card types across one or more Ascend Phases.",
+                  "Once per turn, your second card played or Equipped from hand generates +1 Focus; +10 Max HP; active heals 5"
+                ],
+                [
+                  "Blue",
+                  28,
+                  "Have at least 2 permanent Equipment cards Equipped at the same time.",
+                  "+1 Hand Size; +10 Max HP; active heals 5"
+                ],
+                [
+                  "Red",
+                  36,
+                  "Trigger a learned Combo.",
+                  "First 3+ damage Hit each turn: +1 Focus; +10 Max HP; active heals 5"
+                ],
+                [
+                  "Brown",
+                  45,
+                  "During one turn, play at least 4 cards including an Attack, a Kata, and an Equipment or Consumable.",
+                  "+1 DEF; +10 Max HP; active heals 5"
+                ],
+                [
+                  "Black",
+                  55,
+                  "While Brown Belt, KO an opposing fighter.",
+                  "+10 Max HP; win"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "task-clarifications",
+          "title": "Task Clarifications",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Three Zones (Yellow): Track High, Mid, and Low separately. An Any Attack counts as the declared zone."
+            },
+            {
+              "kind": "bullet",
+              "text": "Two-Attack Test (Orange): Both Attacks must be legal and played during the same turn. At least one must Hit."
+            },
+            {
+              "kind": "bullet",
+              "text": "Attack and Defend (Green): Both cards must be legal and played in the same round. The Defense must be played outside your own turn."
+            },
+            {
+              "kind": "bullet",
+              "text": "Two Market Types (Purple): Track distinct purchased types among Attack, Defense, Kata, and Item. Purchases need not occur during the same Ascend."
+            },
+            {
+              "kind": "bullet",
+              "text": "Equip Two (Blue): Any two permanent Equipment cards attached at the same time."
+            },
+            {
+              "kind": "bullet",
+              "text": "Four-Card Mastery (Brown): At least four cards legally played or Equipped from hand during one turn, including the listed types."
+            },
+            {
+              "kind": "bullet",
+              "text": "Black Belt Target: While Brown Belt, KO any opposing fighter. Bosses count. Complete the task immediately, but promote during your Ascend unless a scenario says otherwise."
+            }
+          ]
+        },
+        {
+          "id": "belt-licensed-equipment",
+          "title": "Belt-Licensed Equipment",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Some Equipment has a base function for every fighter and a stronger line that begins ‘At [Color] Belt or higher.’ You may buy and equip that card at any Belt; only the stronger line waits for the printed rank. This is a reward for promotion, not a Market lockout."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "12-characters-abilities",
+      "number": 12,
+      "title": "Characters & Abilities",
+      "fullTitle": "12 Characters & Abilities",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "Every fighter begins with 25 HP, a certified role in the delegation, and an unhealthy amount of professional confidence."
+        }
+      ],
+      "sections": [
+        {
+          "id": "character-card-information",
+          "title": "Character Card Information",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Field",
+                  "Rule"
+                ],
+                [
+                  "Name / Dojo",
+                  "Identity, faction, and future source of expansion arguments."
+                ],
+                [
+                  "Starting HP",
+                  "25 unless a mode or card explicitly changes it."
+                ],
+                [
+                  "ATK / DEF / Speed",
+                  "Base statistics used throughout the game. Core characters use a normalized stat budget rather than rarity-based power."
+                ],
+                [
+                  "White Ability",
+                  "Available from the beginning if printed; may be Activated, Triggered, or Passive as written."
+                ],
+                [
+                  "Green Ability",
+                  "Unlocks immediately upon reaching Green Belt; follow its printed ability type and timing."
+                ],
+                [
+                  "Training Note",
+                  "A nonbinding note about a fighter’s strengths. It has no rules effect and never restricts deckbuilding."
+                ],
+                [
+                  "Tags / Traits",
+                  "Keywords such as Animal, Master, Improvised, or Definitely Three Squirrels."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "active-vs-benched",
+          "title": "Active vs. Benched",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Only an active Character can attack, be targeted, use ordinary abilities, or contribute printed stats."
+            },
+            {
+              "kind": "bullet",
+              "text": "Benched abilities function only when they explicitly say Bench or Team."
+            },
+            {
+              "kind": "bullet",
+              "text": "A player's deck, hand, Focus, XP, and Belt belong to the player, not to an individual Character."
+            },
+            {
+              "kind": "bullet",
+              "text": "Damage, current HP, status effects, and equipped cards belong to the specific Character."
+            }
+          ]
+        },
+        {
+          "id": "ability-types-limits",
+          "title": "Ability Types & Limits",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Activated Ability — An ability you deliberately choose to use, usually with a cost before a colon or an instruction such as \"Exhaust:\" or \"Discard 1 card:\". Stunned prevents Activated Abilities."
+            },
+            {
+              "kind": "bullet",
+              "text": "Triggered Ability — An ability that becomes eligible when its stated event occurs, usually beginning with \"when,\" \"whenever,\" \"after,\" \"at,\" or \"the first time.\" Stunned does not stop Triggered Abilities unless an effect says otherwise."
+            },
+            {
+              "kind": "bullet",
+              "text": "Passive Ability — A continuous rule that applies while its condition is true and requires no activation. Stunned does not stop Passive Abilities unless an effect says otherwise."
+            },
+            {
+              "kind": "bullet",
+              "text": "Limits — Once-per-turn abilities refresh at that controller's Initiate Phase; once-per-round abilities refresh during Honor; once-per-game abilities never refresh. An ability with no stated limit follows its printed trigger, subject to the anti-loop rule."
+            }
+          ]
+        },
+        {
+          "id": "status-effects",
+          "title": "Status Effects",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Place a token on the affected Character or card. Unless the effect gives another duration, a status that says \"until your next turn\" ends at the beginning of that Character controller's Initiate Phase. A status that says \"this round\" ends after End-of-Round effects."
+            },
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Common Status",
+                  "Default Meaning"
+                ],
+                [
+                  "Stunned",
+                  "The Character cannot use Activated Abilities until the status ends. Triggered and Passive Abilities still function unless an effect says otherwise. Printed stats still apply."
+                ],
+                [
+                  "Disarmed",
+                  "Discard all equipped Weapons. The status itself then ends."
+                ],
+                [
+                  "Exhausted",
+                  "Turn the card sideways; it cannot use exhaust abilities until readied."
+                ],
+                [
+                  "Untargetable",
+                  "Cannot be chosen as a target. Global effects that do not choose targets still apply."
+                ],
+                [
+                  "Silenced",
+                  "Cannot play Katas or trigger learned Combos while active."
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "13-tag-team-swap-fu",
+      "number": 13,
+      "title": "Tag Team: Swap-Fu",
+      "fullTitle": "13 Tag Team: Swap-Fu",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "The Department’s officially sanctioned team demonstration: three fighters, one shared curriculum, and a bench full of unsolicited advice."
+        }
+      ],
+      "sections": [
+        {
+          "id": "team-setup",
+          "title": "Team Setup",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Each player chooses three Characters and places one active and two benched."
+            },
+            {
+              "kind": "bullet",
+              "text": "All three begin at 25 HP and share one Standard Starter Deck, one hand, one Focus total, one XP total, and one Belt."
+            },
+            {
+              "kind": "bullet",
+              "text": "Choose the starting active Character before drawing the opening hand."
+            }
+          ]
+        },
+        {
+          "id": "tagging",
+          "title": "Tagging",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Once during your Initiate Phase, before equipping cards, you may swap your active Character with one conscious benched Character."
+            },
+            {
+              "kind": "bullet",
+              "text": "Tagging is free unless a card or Location says otherwise."
+            },
+            {
+              "kind": "bullet",
+              "text": "Statuses and Equipment stay with their Characters. The incoming fighter uses their own stats and attached Equipment immediately."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Character that tags in may attack and use abilities normally that turn."
+            },
+            {
+              "kind": "bullet",
+              "text": "You cannot voluntarily tag while resolving an Attack or Reaction."
+            },
+            {
+              "kind": "bullet",
+              "text": "Tempo belongs to the player, not to an individual Character. Tagging does not refresh Tempo, and the incoming fighter may use the player's Tempo if it is still available this round."
+            }
+          ]
+        },
+        {
+          "id": "bench-care",
+          "title": "Bench Care",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Benched Characters do not recover HP automatically. Tagging protects an injured fighter but does not erase damage. A healing Consumable you play may target one conscious benched Character you control as described in Section 9. KO'd Characters still require an effect that specifically says Revive."
+            }
+          ]
+        },
+        {
+          "id": "knockouts-in-tag-team",
+          "title": "Knockouts in Tag Team",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "When the active Character reaches 0 HP, follow the full Knockout Procedure in Section 16, then apply these Tag Team specifics:"
+            },
+            {
+              "kind": "paragraph",
+              "text": "1. Resolve the KO completely and discard that Character's permanent Equipment."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. If the player has a conscious benched Character, choose one and make it active immediately after the current effect finishes."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. The replacement does not trigger an Initiate Phase and cannot equip cards until the player's next turn."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. When all three Characters are KO'd, the player or team is eliminated."
+            }
+          ]
+        },
+        {
+          "id": "team-variants",
+          "title": "Team Variants",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Individual Tag Team: Every player has three Characters and attacks any opponent."
+            },
+            {
+              "kind": "bullet",
+              "text": "2v2 Dojo War: Teammates sit opposite each other, share victory, and may not target one another. XP and Belts remain individual unless the scenario says Shared Rank."
+            },
+            {
+              "kind": "bullet",
+              "text": "Shared Rank: Optional faster team rule. Teammates share one XP track and Belt; use the higher teammate Speed only for the first round, then each active fighter acts separately."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "14-dojo-drama-boss-blitz",
+      "number": 14,
+      "title": "Dojo Drama: Boss Blitz",
+      "fullTitle": "14 Dojo Drama: Boss Blitz",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "You are attending the Department’s wildly underfunded viability stress test. Budget your confidence accordingly."
+        },
+        {
+          "kind": "paragraph",
+          "text": "You fight exactly three opponents: Rival → Mini-Boss → Final Boss. Each stage pairs a Boss Profile with a Boss Stage card. The Profile supplies identity, printed stats, and one rule; the Stage supplies HP and attack count."
+        }
+      ],
+      "sections": [
+        {
+          "id": "boss-rush-setup",
+          "title": "Boss Rush Setup",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Choose three Characters for yourself. Your roster uses normal Tag Team rules (Section 13)."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Choose one Boss Profile for each stage. In Quick Boss Blitz, reveal a random Profile whose printed Stage Fit includes Rival, Mini-Boss, or Final Boss as needed. In Challenge Boss Blitz, deliberately choose the three Profiles before setup."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Pair each Profile with the matching Boss Stage card. A Boss Profile contributes only its printed ATK, DEF, Speed, and one Boss Rule. Ignore anything that would require a Boss hand, deck, Focus, Equipment, or choice."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Shuffle the dedicated 32-card Boss Arsenal Deck. It contains the twelve original Boss Attacks, eight additional Boss Attacks, six Boss Defenses, and six Boss Techniques. This deck is separate from the normal Technique Deck and does not remove cards from the Market."
+            },
+            {
+              "kind": "paragraph",
+              "text": "5. Prepare your fixed Starter Deck, shared Market Deck, separate face-down Combo Deck, Market row, and Location Deck normally. At the beginning of each Boss stage, shuffle all 32 Boss Arsenal cards to form a fresh Boss Arsenal Deck."
+            }
+          ]
+        },
+        {
+          "id": "boss-stages",
+          "title": "Boss Stages",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "Stage",
+                  "HP",
+                  "Boss Attack Bonus",
+                  "Attacks per Turn"
+                ],
+                [
+                  "Rival",
+                  "30",
+                  "+0",
+                  "1"
+                ],
+                [
+                  "Mini-Boss",
+                  "45",
+                  "+1",
+                  "1"
+                ],
+                [
+                  "Final Boss",
+                  "60",
+                  "+2",
+                  "1 (2 if Enraged)"
+                ]
+              ]
+            },
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "ENRAGED\nWhile the solo Final Boss has 30 HP or less, it makes two Boss Attacks during each Boss Turn instead of one. Resolve the first Attack completely before revealing the second. In Cooperative Dojo Drama, the Enraged rule does not apply — the co-op Final Boss already makes two attacks per round."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "boss-turn",
+          "title": "Boss Turn",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "The Boss acts once per round according to Speed. It does not buy cards, earn XP, hold a hand, spend Focus, learn Combos, Equip cards, tag, or use Tempo. However, a player may use Tempo Advantage against a Boss if the player's active Character has higher current Speed than the Boss's printed Speed."
+            },
+            {
+              "kind": "paragraph",
+              "text": "1. Reveal Boss Arsenal cards until an Attack is revealed. Resolve each Boss Technique immediately, then continue revealing. Place each revealed Boss Defense face up in the Boss Guard area. If another Boss Defense is already there, discard the old one before placing the new Guard."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. The Boss targets the instructed active Character and attacks the printed zone. Boss Guard never adds to a Boss Attack; it protects the Boss from a later player Attack."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Boss Attack Power = printed Boss Attack Power + printed Boss ATK + the current Boss Stage Attack Bonus."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Open and resolve the normal Reaction Window. Then calculate final Attack Power and Defense using the normal combat rules. Resolve any printed Boss Technique effect after the Attack resolves."
+            },
+            {
+              "kind": "paragraph",
+              "text": "5. Discard the Boss Attack after the Attack resolves. If the Boss Arsenal Deck empties, shuffle its discard pile."
+            },
+            {
+              "kind": "paragraph",
+              "text": "6. If the Boss is entitled to another Attack this Boss Turn, repeat Steps 1–5 after the previous Attack has fully resolved."
+            }
+          ]
+        },
+        {
+          "id": "fighting-a-boss",
+          "title": "Fighting a Boss",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Attack a Boss like an active opposing fighter. It always applies printed DEF but has no Armor or Defense hand unless a scenario explicitly gives it one."
+            },
+            {
+              "kind": "bullet",
+              "text": "Boss Guard: when a player declares an Attack whose zone matches the face-up Boss Defense, add that card's Guard to the Boss's Defense for that Attack, then discard the Boss Defense after the Attack resolves. An unmatched player Attack leaves Boss Guard in place. A newly revealed Boss Defense replaces the old one."
+            },
+            {
+              "kind": "bullet",
+              "text": "Damage modifiers, Hit/Block effects, Speed modifiers, and effects that directly change combat values work normally when they have a legal Boss target."
+            },
+            {
+              "kind": "bullet",
+              "text": "Effects that require the Boss to discard, draw, gain cards, lose or spend Focus, Equip, tag, or make a player-only choice do nothing to a Boss. Resolve any remaining legal part of the effect."
+            },
+            {
+              "kind": "bullet",
+              "text": "A Boss cannot be removed by Destroy, instant-KO, alternate-win, or similar shortcut effects unless a scenario explicitly permits it."
+            }
+          ]
+        },
+        {
+          "id": "advancing-the-ladder",
+          "title": "Advancing the Ladder",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. When the Rival or Mini-Boss is KO'd, gain 5 XP. This replaces the normal +2 XP award for causing that Boss KO. When the Final Boss is KO'd, gain 5 XP as well, then check for Scenario Victory."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Heal your active Character 8 HP. Benched Characters receive no automatic healing."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Resolve the normal KO Scene Change. If this is the Final Boss, the game is over — do not refresh the Market or reveal the next Boss."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. If the game continues, discard all remaining Market cards to the Market discard and reveal seven fresh random Market cards, reveal the next Boss at the beginning of the next Honor Phase, and shuffle all 32 Boss Arsenal cards for the new stage. This Boss-transition Market refresh replaces the normal end-of-round Market refresh for the round in which a Boss is KO'd — do not refresh twice."
+            }
+          ]
+        },
+        {
+          "id": "winning-and-losing",
+          "title": "Winning and Losing",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "Win: KO the Final Boss. If that KO completes your Black Belt task and you already have at least 55 XP, promote to Black Belt immediately before Scenario Victory is checked."
+            },
+            {
+              "kind": "bullet",
+              "text": "Lose: All of your Characters are KO'd."
+            },
+            {
+              "kind": "bullet",
+              "text": "Style Victory: Enter the Final Boss stage already at Black Belt, then defeat the Final Boss because leaving during the climax is rude."
+            }
+          ]
+        },
+        {
+          "id": "cooperative-dojo-drama",
+          "title": "Cooperative Dojo Drama",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "For two players, each brings three Characters and uses Tag Team rules. Set Boss HP to 45 / 65 / 85. Each Boss makes two Boss Attacks per round, targeting different players when possible; otherwise target the active fighter with the lowest current HP and break ties randomly. The solo Final Boss Enraged rule does not apply in cooperative play — the co-op Final Boss already makes two attacks per round. Players win or lose together."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "15-timing-reactions-rule-conflicts",
+      "number": 15,
+      "title": "Timing, Reactions & Rule Conflicts",
+      "fullTitle": "15 Timing, Reactions & Rule Conflicts",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "The Department’s Field Dispute Protocol, consulted only after a ferret discovers priority."
+        }
+      ],
+      "sections": [
+        {
+          "id": "the-reaction-window",
+          "title": "The Reaction Window",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "When an Attack or effect opens a Reaction Window, begin with the affected player, then proceed clockwise. Each eligible player may play one Reaction or pass. Continue around the table until every player passes consecutively."
+            }
+          ]
+        },
+        {
+          "id": "the-dojo-stack",
+          "title": "The Dojo Stack",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Reaction cards and abilities form the Dojo Stack. Resolve the most recently played Reaction first, then work backward. After the Stack empties, continue resolving the original card. New Reactions may be played only when an effect creates another window."
+            },
+            {
+              "kind": "bullet",
+              "text": "The defender may play one Defense card per Attack by default. That Defense is part of the Stack."
+            },
+            {
+              "kind": "bullet",
+              "text": "Each bystander may play at most one card with the Interfere keyword during a single Attack."
+            },
+            {
+              "kind": "bullet",
+              "text": "The attacker may respond with legal Reactions but cannot play a second ordinary Attack until the first has fully resolved."
+            },
+            {
+              "kind": "bullet",
+              "text": "A player may always decline to React. Silence is treated as a pass, not as a legally binding vow of nonviolence."
+            }
+          ]
+        },
+        {
+          "id": "simultaneous-effects",
+          "title": "Simultaneous Effects",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "One player controls all simultaneous choices: that player chooses their order."
+            },
+            {
+              "kind": "bullet",
+              "text": "Multiple players control effects: the active player resolves theirs first, then continue clockwise."
+            },
+            {
+              "kind": "bullet",
+              "text": "Multiple Characters are KO'd simultaneously: resolve all KOs before checking victory."
+            },
+            {
+              "kind": "bullet",
+              "text": "Damage and healing occur simultaneously only when one effect explicitly applies them together."
+            }
+          ]
+        },
+        {
+          "id": "repeating-loops",
+          "title": "Repeating Loops",
+          "content": [
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "REPEATING LOOPS\nIf the same optional sequence can repeat indefinitely without a new card, resource, random result, or meaningful change in game state, that exact loop may resolve at most three times during the turn. After the third repetition, no part of that exact loop may start it again that turn. If a mandatory sequence would repeat forever and no player can legally stop it, resolve it three times, then end the loop."
+                ]
+              ]
+            },
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "RULE PRIORITY\n1. Scenario or mode rules override the core rules for that scenario. 2. Specific card text overrides general rules. 3. \"Cannot\" beats \"can\" — a permission does not bypass an explicit prohibition unless it names that prohibition. 4. Later effects override earlier effects when both modify the same value for the same duration. 5. Active-player ruling settles unresolved ambiguity for the current turn; record the question and decide a permanent interpretation after the game."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "targets-and-choices",
+          "title": "Targets and Choices",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "A card requiring a target cannot be played without a legal target."
+            },
+            {
+              "kind": "bullet",
+              "text": "A card saying \"choose up to\" may choose zero."
+            },
+            {
+              "kind": "bullet",
+              "text": "A random choice must use a die, shuffled tokens, or another method no player controls."
+            },
+            {
+              "kind": "bullet",
+              "text": "You may not choose a KO'd, benched, Untargetable, or otherwise illegal Character unless the card explicitly allows it."
+            }
+          ]
+        },
+        {
+          "id": "negotiation-assistance-and-betrayal",
+          "title": "Negotiation, Assistance, and Betrayal",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "Players may negotiate attacks, promises, and temporary alliances. Verbal deals are not binding unless a card or scenario creates a Binding Deal. Players may not trade cards, Focus, XP, Equipment, or trackers unless an effect specifically allows it. Betrayal is permitted; whining about betrayal is also permitted but has no timing priority."
+            },
+            {
+              "kind": "table",
+              "rows": [
+                [
+                  "TABLE JUDGE PROCEDURE\nPause the game for no more than two minutes. Read the exact card text aloud, apply Rule Priority, and make a temporary ruling. Do not rewrite the entire game mid-turn. If someone throws a rice cracker, traditional law applies: they lose the argument."
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "16-knockouts-elimination-ties",
+      "number": 16,
+      "title": "Knockouts, Elimination & Ties",
+      "fullTitle": "16 Knockouts, Elimination & Ties",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "At 0 HP, your stance becomes extremely horizontal."
+        }
+      ],
+      "sections": [
+        {
+          "id": "knockout-procedure",
+          "title": "Knockout Procedure",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "1. Reduce the Character to 0 HP. HP cannot become negative."
+            },
+            {
+              "kind": "paragraph",
+              "text": "2. Finish resolving the effect that caused the KO, including simultaneous damage and after-hit text."
+            },
+            {
+              "kind": "paragraph",
+              "text": "3. Award +2 XP to the player responsible for the final loss of HP. If no player caused it—such as a Location—the KO awards no bonus XP."
+            },
+            {
+              "kind": "paragraph",
+              "text": "4. Discard all permanent Equipment attached to the KO'd Character and clear its temporary statuses."
+            },
+            {
+              "kind": "paragraph",
+              "text": "5. Resolve \"when KO'd\" and \"when you KO\" effects using the normal timing rules."
+            },
+            {
+              "kind": "paragraph",
+              "text": "6. Replace the fighter in Tag Team or eliminate the player if no conscious fighter remains."
+            },
+            {
+              "kind": "paragraph",
+              "text": "7. Check victory after all KOs from the current effect are complete."
+            },
+            {
+              "kind": "paragraph",
+              "text": "8. If the game continues, perform one Scene Change for all KOs caused by that effect."
+            }
+          ]
+        },
+        {
+          "id": "healing-at-0-hp",
+          "title": "Healing at 0 HP",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "A KO'd Character cannot be healed unless an effect explicitly says Revive. Reviving sets the Character to the amount of HP printed by the effect; it does not restore discarded Equipment."
+            }
+          ]
+        },
+        {
+          "id": "leaving-the-game",
+          "title": "Leaving the Game",
+          "content": [
+            {
+              "kind": "bullet",
+              "text": "An eliminated player's hand, deck, discard pile, and Equipped cards leave the game."
+            },
+            {
+              "kind": "bullet",
+              "text": "Cards that player owns but another player controls return to the box unless a card gives another instruction."
+            },
+            {
+              "kind": "bullet",
+              "text": "Ongoing effects created by the eliminated player end unless they belong to a Location or scenario."
+            },
+            {
+              "kind": "bullet",
+              "text": "In team play, eliminated teammates may advise only if the table allows ghost coaching. They may not reveal hidden cards they saw."
+            }
+          ]
+        },
+        {
+          "id": "sudden-death-tiebreaker",
+          "title": "Sudden-Death Tiebreaker",
+          "content": [
+            {
+              "kind": "paragraph",
+              "text": "If the normal tiebreakers still produce a tie, tied players each reveal the top card of their deck. Highest Focus Cost wins. Repeat as needed; reshuffle when necessary. A Junk card has a cost of 0. If the universe produces an eternal tie, use Rock-Paper-Scissors and accept that destiny has spoken."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "17-house-rules",
+      "number": 17,
+      "title": "House Rules",
+      "fullTitle": "17 House Rules",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "House rules live in the dedicated House Rules section of the companion site: approved deviations the Department wishes it had not initialed."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "id": "18-glossary",
+      "number": 18,
+      "title": "Glossary",
+      "fullTitle": "18 Glossary",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "The glossary lives in the dedicated Glossary section of the companion site: the Department’s attempt to define its own vocabulary before someone gives it a Combo tag."
+        }
+      ],
+      "sections": []
+    },
+    {
+      "id": "19-quick-reference",
+      "number": 19,
+      "title": "Quick Reference",
+      "fullTitle": "19 Quick Reference",
+      "intro": [
+        {
+          "kind": "paragraph",
+          "text": "The Quick Start lives in the dedicated Quick Start section of the companion site: the field-reference version for delegations that would like to begin before the next inspection."
+        }
+      ],
+      "sections": []
+    }
+  ],
+  "officialRulings": [
+    {
+      "id": "DDB-RUL-001",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Boss Blitz",
+      "title": "Boss KO during your Yell Phase",
+      "ruling": "Finish only that player's Ascend and Hide Phases, then transition stages. Remaining players skip their turns for that round."
+    },
+    {
+      "id": "DDB-RUL-002",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Boss Blitz",
+      "title": "Boss KO outside your own Yell Phase",
+      "ruling": "If the KO occurs during a player turn, that player may complete Ascend and Hide. Otherwise, transition immediately."
+    },
+    {
+      "id": "DDB-RUL-003",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Tempo",
+      "title": "Speed comparisons use current Speed",
+      "ruling": "Tempo and other Speed comparisons use current Speed after active modifiers. Printed Speed is the base value."
+    },
+    {
+      "id": "DDB-RUL-004",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Timing",
+      "title": "Initiative is locked for the round",
+      "ruling": "Honor determines initiative. Later Speed changes and tagging do not reorder turns until the next Honor Phase."
+    },
+    {
+      "id": "DDB-RUL-005",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Boss Blitz",
+      "title": "Player wins a Speed tie with a Boss",
+      "ruling": "When a player and Boss have the same current Speed, the player acts before the Boss."
+    },
+    {
+      "id": "DDB-RUL-006",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Combos",
+      "title": "Multiple learned Combos may share a finisher",
+      "ruling": "Multiple eligible learned Combos may use the same final card or action. Resolve each payoff separately and obey every printed timing limit."
+    },
+    {
+      "id": "DDB-RUL-007",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Co-op",
+      "title": "Co-op stage victory healing",
+      "ruling": "After a Boss stage victory in two-player co-op, each player heals their active fighter 8 HP."
+    },
+    {
+      "id": "DDB-RUL-008",
+      "filed": "Filed Aug 27, 2026",
+      "tag": "Team Variant",
+      "title": "Shared Rank team variant",
+      "ruling": "Teammates share XP, Belt, promotion tasks, and rewards. Each player keeps normal individual initiative."
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Aftermath Combo",
+      "meaning": "A learned Combo whose payoff resolves after its entire printed sequence resolves."
+    },
+    {
+      "term": "Anytime",
+      "meaning": "Timing that permits play between actions or in a Reaction Window when you have priority; never during another effect's resolution."
+    },
+    {
+      "term": "Armor",
+      "meaning": "Permanent Equipment that adds DEF only against its printed zone or zones. Armor is ignored by Piercing but not by effects that ignore only a Defense card."
+    },
+    {
+      "term": "Attack",
+      "meaning": "A legal strike played from hand with a target and declared zone. It contributes printed Attack Power and normally earns 1 XP after resolving."
+    },
+    {
+      "term": "Attack Power",
+      "meaning": "The attack-side combat total before Defense is subtracted: printed Attack Power, Character ATK, eligible Weapon bonuses, and modifiers."
+    },
+    {
+      "term": "Belt Exam",
+      "meaning": "The public certification task for your next Belt. Mark it PASSED when complete, then promote during Ascend after reaching the required XP."
+    },
+    {
+      "term": "Blocked",
+      "meaning": "An Attack that deals 0 damage after final Attack Power and Defense are compared."
+    },
+    {
+      "term": "Boss Profile",
+      "meaning": "A named Boss card that supplies ATK, DEF, Speed, stage fit, and one deterministic Boss Rule. It pairs with a Boss Stage; it does not use a hand, Focus, Equipment, or choices."
+    },
+    {
+      "term": "Boss Stage",
+      "meaning": "A Rival, Mini-Boss, or Final Boss overlay supplying HP, Attack Bonus, attack count, and stage rules."
+    },
+    {
+      "term": "Combo",
+      "meaning": "A learned sequence from the separate face-down Combo Deck. Complete its requirement and resolve its payoff."
+    },
+    {
+      "term": "Consumable",
+      "meaning": "One-use Equipment returned to the box or supply after resolving."
+    },
+    {
+      "term": "Current Speed",
+      "meaning": "Printed Speed plus active modifiers. Used for initiative, Tempo, Boss comparisons, and card effects unless text says printed Speed."
+    },
+    {
+      "term": "Damage",
+      "meaning": "HP lost after final Attack Power is reduced by final Defense, minimum 0. Damage prevention applies to this result unless an effect says otherwise."
+    },
+    {
+      "term": "Defense",
+      "meaning": "A Reaction card played against an incoming Attack. It must protect the declared zone and adds its printed Guard to the defender's combat total."
+    },
+    {
+      "term": "Defense Practice",
+      "meaning": "Once during your Yell, reveal one Defense from hand, place it in your play area, and gain its printed Focus. It is not played, resolves no text, grants no XP, satisfies no requirements, and is discarded during Hide."
+    },
+    {
+      "term": "Destroy",
+      "meaning": "Remove a card from the game to the public Destroyed pile."
+    },
+    {
+      "term": "Direct Damage",
+      "meaning": "HP loss that is not an Attack; it normally uses no ATK, Weapons, Tempo, Combo steps, Attack XP, or Defense window."
+    },
+    {
+      "term": "Discard",
+      "meaning": "Move a card to its appropriate face-up discard pile. Discarding is not Destroying and grants nothing unless an effect says so."
+    },
+    {
+      "term": "Draw",
+      "meaning": "Move the top card of your draw deck into your hand. If the deck empties during a draw, shuffle the discard pile only then and continue."
+    },
+    {
+      "term": "Enraged",
+      "meaning": "Solo Final Boss state at 30 HP or less; it makes two Boss Attacks during its Boss Turn."
+    },
+    {
+      "term": "Equip",
+      "meaning": "Place permanent Equipment from hand beside the active Character during Initiate, obeying every slot and Hand limit. A legal on-turn Equip generates printed Focus."
+    },
+    {
+      "term": "Equipment",
+      "meaning": "The umbrella card family containing permanent Weapons, Armor, and Gear plus one-use Consumables and Items. A card's subtype and timing determine how it is used."
+    },
+    {
+      "term": "Exhaust",
+      "meaning": "Turn a ready permanent Equipment card sideways to pay an exhaust cost. Passive text remains active unless the card says otherwise."
+    },
+    {
+      "term": "Finishing Technique",
+      "meaning": "The final required card or action in a Combo sequence."
+    },
+    {
+      "term": "Flow",
+      "meaning": "After the first Attack you play with Flow each turn resolves, draw one card. Later Flow Attacks that turn do not draw a card."
+    },
+    {
+      "term": "Focus",
+      "meaning": "Temporary purchasing power. Cards played or Equipped from hand during your own turn—and one Defense used for Defense Practice—generate Focus; spend it during Ascend and lose the remainder during Hide."
+    },
+    {
+      "term": "Focus Cost",
+      "meaning": "The amount of Focus required to buy a Market card or learn a revealed Combo. It is not a play cost or victory value."
+    },
+    {
+      "term": "Focus Value",
+      "meaning": "The Focus a card generates when legally played or Equipped from hand during your own turn, or when a Defense is used for Defense Practice."
+    },
+    {
+      "term": "Golden Rule",
+      "meaning": "When a card directly contradicts the rulebook, the card wins. If ambiguity remains after timing and priority, the active player makes a temporary ruling."
+    },
+    {
+      "term": "Guard",
+      "meaning": "The value a Defense card adds to final Defense against one Attack. Guard is not Character DEF or Armor DEF."
+    },
+    {
+      "term": "Hand Size",
+      "meaning": "The number of cards normally drawn during Hide: seven, or eight at Blue Belt. Retained or set-aside cards can make the resulting hand larger."
+    },
+    {
+      "term": "Hit",
+      "meaning": "An Attack that deals at least 1 damage after final Attack Power and Defense are compared."
+    },
+    {
+      "term": "Interfere",
+      "meaning": "A Reaction played by a bystander during another player's conflict."
+    },
+    {
+      "term": "Junk",
+      "meaning": "Starter-deck baggage with no useful printed effect. Bad Habit is Junk with printed Focus Value 0; once during your Yell each turn, you may discard one from hand to gain 1 Focus. It may still be counted, discarded, or Destroyed by specific effects."
+    },
+    {
+      "term": "Kata",
+      "meaning": "An on-turn Technique used for training, setup, card flow, Focus, Speed, or Flow. It is not an Attack or Defense unless an effect explicitly treats it as one."
+    },
+    {
+      "term": "KO",
+      "meaning": "A Character reaches 0 HP."
+    },
+    {
+      "term": "Market",
+      "meaning": "The persistent seven-card shared purchase area filled from one mixed deck. Replace each purchase immediately with the top Market card. If nobody buys during a complete round, Market Mercy refreshes all seven cards. Combos are separate."
+    },
+    {
+      "term": "Market Mercy",
+      "meaning": "The automatic full-row refresh after a complete round with no Market purchase. Discard all seven unpurchased cards and reveal seven replacements."
+    },
+    {
+      "term": "Max HP",
+      "meaning": "The highest current HP a Character may have. Promotions normally raise it, but Quick Duel ignores promotion Max-HP increases and promotion healing."
+    },
+    {
+      "term": "Modifier Combo",
+      "meaning": "A learned Combo that changes its final required step before that step resolves."
+    },
+    {
+      "term": "On Reveal",
+      "meaning": "Text resolved immediately when a card enters play by being revealed, before its Ongoing text is used."
+    },
+    {
+      "term": "Ongoing",
+      "meaning": "A card or effect that remains active in play."
+    },
+    {
+      "term": "Piercing X",
+      "meaning": "Ignore X Armor DEF for an Attack; do not ignore Character DEF or a Defense card."
+    },
+    {
+      "term": "Printed",
+      "meaning": "The value or wording physically recorded on a card before modifiers. A copied or modified value is not printed unless an effect says it is."
+    },
+    {
+      "term": "Reaction",
+      "meaning": "A card or ability played during a specific response window."
+    },
+    {
+      "term": "Ready",
+      "meaning": "An Equipment card is ready when it is upright and may pay an exhaust cost. All of a player's exhausted Equipment becomes ready at that player's Initiate Phase."
+    },
+    {
+      "term": "Reversal",
+      "meaning": "Once per round, after a Defense you played Blocks an Attack, immediately play one Attack from hand against that attacker. It resolves normally outside your turn, cannot make another Reversal, and grants no Focus."
+    },
+    {
+      "term": "Revive",
+      "meaning": "Restore a KO'd Character to the printed HP amount without restoring discarded Equipment."
+    },
+    {
+      "term": "Round",
+      "meaning": "One Honor Phase plus every eligible player and Boss turn in the initiative order locked during Honor."
+    },
+    {
+      "term": "Scene Change",
+      "meaning": "After its triggering effect finishes, replace the current Location and resolve On Reveal."
+    },
+    {
+      "term": "Slot",
+      "meaning": "The Equipment position a permanent occupies, such as Head, Chest, Arms, Legs, Feet, Accessory, or one or two Hands. A Character cannot occupy the same limited slot twice unless an effect allows it."
+    },
+    {
+      "term": "Status Effect",
+      "meaning": "A named temporary condition created by a card or scenario, such as Disarmed or Untargetable. Its creating text supplies its duration and exact effect."
+    },
+    {
+      "term": "Tag",
+      "meaning": "During Initiate in a roster mode, replace the active Character with a conscious benched Character. Tagging does not change the locked initiative order or refresh Tempo."
+    },
+    {
+      "term": "Tempo Advantage",
+      "meaning": "Once per round, a faster active fighter may give their Attack +1 Attack Power or their Defense card +1 Guard against a slower opposing active fighter."
+    },
+    {
+      "term": "Unblockable",
+      "meaning": "Defense cards cannot be played; Character DEF and Armor still apply unless text says otherwise."
+    },
+    {
+      "term": "XP",
+      "meaning": "Permanent Experience used for Belt promotion and Black Belt Victory. XP is not spent."
+    },
+    {
+      "term": "Zone",
+      "meaning": "High, Mid, or Low. An Any Attack chooses one zone when declared; a Defense or Armor must match that declared zone unless text says otherwise."
+    }
+  ],
+  "houseRules": [
+    {
+      "name": "Steal the Belt",
+      "category": "Promotion",
+      "summary": "KO a peer and finish the task—not the XP.",
+      "rule": "When you KO an opposing non-Boss fighter at your Belt or higher, mark your current promotion task complete. You still need the required XP and must promote during Ascend.",
+      "notes": "Accelerates task completion without bypassing the XP race."
+    },
+    {
+      "name": "Corner Advice",
+      "category": "Comeback",
+      "summary": "Once per game, your bench calls the play.",
+      "rule": "Once per game during Initiate, draw 2 cards, then discard 2 cards. In a one-Character mode, you may still use this rule; imagine a very loud folding chair.",
+      "notes": "Replaces the old resource-banking variant with bounded hand selection that cannot compound into permanent currency."
+    },
+    {
+      "name": "Secret Kata Night",
+      "category": "Market Chaos",
+      "summary": "Buy the cost; discover the Kata afterward.",
+      "rule": "When a Kata enters the Market, cover its name, rules text, tags, and Focus Value while leaving its Focus Cost visible. Reveal it only after purchase.",
+      "notes": "Use sleeves or blank cards as covers so no card is marked or damaged."
+    },
+    {
+      "name": "Crowd Favorite",
+      "category": "Catch-Up",
+      "summary": "The trailing fighter gets one dramatic save per round.",
+      "rule": "At Honor, the sole player or team with the lowest XP takes the Crowd token. Once that round after their active fighter is Hit, they may spend it to draw 1 card, then discard 1 card; their next Defense card that round gets +1 Guard. Tied-lowest players receive no token.",
+      "notes": "A bounded defensive nudge with no currency farming."
+    },
+    {
+      "name": "Training Montage",
+      "category": "Deck Control",
+      "summary": "Lose one action phase to clean up your act.",
+      "rule": "Once per game at the start of Yell, skip the rest of that Yell. Heal your active fighter 4 HP and Destroy one Junk card from your hand or discard pile.",
+      "notes": "The immediate lost phase pays for bounded healing and thinning."
+    },
+    {
+      "name": "Friendly Fire",
+      "category": "Team Chaos",
+      "summary": "Teammates may attack each other—without farming rewards.",
+      "rule": "In team play, active fighters may target allied active fighters. The first allied Attack each round resolves normally but grants no XP, promotion-task credit, KO reward, Tempo, or learned Combo trigger to either teammate.",
+      "notes": "The once-per-round limit keeps the joke tactical instead of becoming an engine."
+    },
+    {
+      "name": "Market Scramble",
+      "category": "Market",
+      "summary": "Replace the entire Market every round.",
+      "rule": "At the end of every round, discard every unpurchased Market card and reveal seven fresh cards. Purchases still receive an immediate one-card refill from the top of the Market Deck.",
+      "notes": "Use this optional rule when the table prefers faster churn over a persistent shared row."
+    },
+    {
+      "name": "Fast Belts",
+      "category": "Short Game",
+      "summary": "Later promotions arrive three XP sooner.",
+      "rule": "Use the normal Yellow threshold. Reduce every later Belt threshold by 3, to a minimum of 1 XP above the previous Belt. Tasks and the one-promotion-per-turn limit remain unchanged.",
+      "notes": "Best for demos and weeknight games."
+    },
+    {
+      "name": "Scroll Shopping",
+      "category": "Combo Control",
+      "summary": "Pay extra to browse three future mistakes.",
+      "rule": "For your Combo attempt, reveal the top three Combo cards instead of one. Choose one to learn by paying its Focus Cost plus 1 Focus, then shuffle the others back. If you learn none, return all three and shuffle.",
+      "notes": "Preserves the separate face-down deck and one-attempt limit while adding choice."
+    }
+  ]
+}
