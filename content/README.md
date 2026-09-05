@@ -4,7 +4,8 @@ The `content/` directory is the canonical authoring layer for Dojo Deckbuilder. 
 
 - `content/dojo-game.json` — mechanical definition, revision metadata, source policy, mode/economy/combat/progression configuration.
 - `content/rules.json` — canonical human-facing rules content: chapters, glossary, rulings, house rules, belt table, and quick-reference prose.
-- `content/cards.json` — canonical card catalog: card identity, printed fields, rules/flavor text, stats, tags, image references, and all other current catalog fields.
+- `content/cards.json` — canonical card catalog: card identity, printed fields, rules/flavor text, stats, tags, image references, and executable `effects` as cards are migrated.
+- `content/card-effect.schema.json` — the Stage 3B machine-readable effect contract.
 
 Everything under `app/data/` that is listed in `sourcePolicy.generatedFiles` is a generated runtime artifact and must not be hand-edited.
 
@@ -13,10 +14,11 @@ Everything under `app/data/` that is listed in `sourcePolicy.generatedFiles` is 
 1. Human-authored global mechanics belong in `content/dojo-game.json`.
 2. Human-authored rules prose belongs in `content/rules.json`.
 3. Human-authored card catalog data belongs in `content/cards.json`.
-4. `app/data/game-definition.json`, `app/data/rules.json`, and `app/data/cards.json` are generated-only runtime files.
-5. There are no remaining legacy authoritative JSON data sources after Stage 3A.
-6. `npm run game:generate` regenerates all three derived runtime data files from `content/`.
-7. `npm run game:check` fails when generated data drifts from canonical source, when core catalog invariants break, or when retired r5 rules reappear.
+4. Machine-readable card behavior belongs on each canonical card record as `effects`; English `rulesText` is presentation text, not executable source code.
+5. `app/data/game-definition.json`, `app/data/rules.json`, and `app/data/cards.json` are generated-only runtime files.
+6. There are no remaining legacy authoritative JSON data sources after Stage 3A.
+7. `npm run game:generate` regenerates all three derived runtime data files from `content/`.
+8. `npm run game:check` fails when generated data drifts from canonical source, when core catalog invariants break, or when retired r5 rules reappear.
 
 ## Current enforcement
 
@@ -53,11 +55,13 @@ Because `npm test` begins with `npm run game:check`, these invariants also gate 
 
 The catalog currently contains some legacy internal `id` collisions that predate this migration. Catalog IDs remain the enforced unique public/game identity. Stage 3A deliberately does not rewrite those existing internal IDs because this stage is source canonicalization, not schema cleanup.
 
-### Stage 3B — structured executable card effects — NEXT
+### Stage 3B — structured executable card effects — IN PROGRESS
 
-Add machine-readable effect definitions to canonical card records and migrate card families incrementally. The playtest and simulator should execute structured effects instead of inferring game behavior from English prose. Printed rules text and the Card Library should continue to expose the same canonical card identity while compatibility remains in place until executable-effect coverage reaches 100%.
+The structured-effect contract now exists in `content/card-effect.schema.json`, and `app/card-effects.ts` has a compatibility adapter that prefers canonical structured `effects` whenever they are present. If a card has structured effects, the legacy English parser is not allowed to silently take over for unsupported clauses; unresolved structured behavior remains explicitly queued instead.
 
-The migration should proceed family by family with explicit coverage reporting and tests. Do not remove the compatibility layer until every supported card has a structured resolver and semantic parity has been verified.
+The initial effect vocabulary covers common triggers, actions, targets, durations, conditions, and named dedicated resolvers for effects too complex for the generic executor. The compatibility layer maps the simple structured subset into the playtest's existing draw/discard/heal/Focus/Speed/next-Attack behavior without changing current gameplay.
+
+Next, migrate canonical cards family by family. Start with Starter cards, wire the playtest to call `effectPlanForCard(card)` instead of parsing `rulesText`, then expand structured resolver coverage through Attacks, Defenses, Katas, Items, Combos, Locations, and Characters. Do not remove the compatibility layer until every supported card has a structured resolver and semantic parity has been verified.
 
 ### Stage 4 — downloadable publications
 
@@ -82,5 +86,7 @@ For canonical game-data changes:
 2. Run `npm run game:generate`.
 3. Run `npm test`.
 4. Commit both canonical source changes and regenerated runtime artifacts.
+
+For card behavior changes, update the canonical card's structured `effects` alongside its printed rules text whenever the printed wording changes. Do not add new regex parsing rules as the long-term implementation for new card mechanics.
 
 Do not edit `app/data/game-definition.json`, `app/data/rules.json`, or `app/data/cards.json` directly.

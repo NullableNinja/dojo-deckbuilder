@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nullableninja.github.io/dojo-deckbuilder/schema/card-effect.schema.json",
+  "title": "Dojo Deckbuilder Structured Card Effect",
+  "description": "Machine-readable executable card effect. Printed rules text remains presentation text; the engine should execute this structure instead of parsing English.",
+  "type": "object",
+  "required": ["trigger", "action"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable effect identifier unique within the card."
+    },
+    "trigger": {
+      "enum": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onEquip",
+        "onPurchase",
+        "onInitiate",
+        "onHide",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "passive"
+      ]
+    },
+    "action": {
+      "enum": [
+        "draw",
+        "discard",
+        "heal",
+        "gainFocus",
+        "modifySpeed",
+        "modifyAttackPower",
+        "modifyGuard",
+        "dealDamage",
+        "piercing",
+        "destroy",
+        "ready",
+        "exhaust",
+        "preventDamage",
+        "chooseZone",
+        "custom"
+      ]
+    },
+    "target": {
+      "enum": ["self", "opponent", "source", "chosen-card", "chosen-equipment"],
+      "default": "self"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "duration": {
+      "enum": ["immediate", "nextAttack", "nextDefense", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"]
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "type": "string", "minLength": 1 },
+          "operator": {
+            "enum": ["eq", "neq", "gt", "gte", "lt", "lte", "includes", "notIncludes"]
+          },
+          "value": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "array", "items": { "type": "string" } },
+              { "type": "array", "items": { "type": "number" } }
+            ]
+          }
+        }
+      },
+      "default": []
+    },
+    "resolver": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Named dedicated resolver for complex effects. Required when action is custom."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "const": "custom" } }, "required": ["action"] },
+      "then": { "required": ["resolver"] }
+    }
+  ]
+}
