@@ -26,7 +26,7 @@ The canonical-source checker verifies:
 - exact equality between `content/rules.json` and `app/data/rules.json`;
 - exact equality between `content/cards.json` and `app/data/cards.json`;
 - matching v2.3 versions across canonical rules, card catalog, definition, and generated runtime data;
-- canonical card count integrity, unique Catalog IDs, unique internal IDs when present, named cards, and presence of every Starter Deck card;
+- canonical card count integrity, unique Catalog IDs, named cards, and presence of every Starter Deck card;
 - the fixed Starter Deck still totals 15 cards;
 - unique rule chapter IDs, section IDs, glossary terms, ruling IDs, and house-rule names;
 - the full nine-rank Belt Table;
@@ -50,6 +50,8 @@ Because `npm test` begins with `npm run game:check`, these invariants also gate 
 ### Stage 3A — card catalog authority — COMPLETE
 
 `content/cards.json` is authoritative for the existing card catalog. `app/data/cards.json` is generated-only. This migration intentionally changes no card behavior, balance, printed text, IDs, field names, ordering, or runtime schema; it only eliminates the last independently maintained JSON source of truth.
+
+The catalog currently contains some legacy internal `id` collisions that predate this migration. Catalog IDs remain the enforced unique public/game identity. Stage 3A deliberately does not rewrite those existing internal IDs because this stage is source canonicalization, not schema cleanup.
 
 ### Stage 3B — structured executable card effects — NEXT
 

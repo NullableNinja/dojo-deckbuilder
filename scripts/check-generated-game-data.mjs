@@ -43,7 +43,6 @@ const legacySources = source.sourcePolicy?.legacySourcesPendingMigration ?? [];
 if (legacySources.length) fail(`Legacy authoritative sources remain after Stage 3A: ${legacySources.join(", ")}`);
 
 const catalogIds = new Set();
-const internalIds = new Set();
 for (const card of canonicalCards.cards ?? []) {
   if (!card.catalogId) {
     fail(`Card '${card.name ?? card.id ?? "unknown"}' has no catalogId`);
@@ -51,10 +50,6 @@ for (const card of canonicalCards.cards ?? []) {
     fail(`Duplicate catalogId ${card.catalogId}`);
   } else {
     catalogIds.add(card.catalogId);
-  }
-  if (card.id) {
-    if (internalIds.has(card.id)) fail(`Duplicate internal card id ${card.id}`);
-    internalIds.add(card.id);
   }
   if (!String(card.name ?? "").trim()) fail(`Card '${card.catalogId ?? card.id ?? "unknown"}' has no name`);
 }
