@@ -51,21 +51,11 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set up GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit --no-fund
-
-      - name: Test and build static site
-        run: npm test
-
-      - name: Commit validated maintenance patch
+      - name: Commit queued maintenance patch
         if: steps.maintenance.outputs.present == 'true'
         shell: bash
         run: |
-          message="Apply validated live site maintenance"
+          message="Apply queued live site maintenance"
           if [ -f scripts/deploy_patch_message.txt ]; then
             message="$(cat scripts/deploy_patch_message.txt)"
             rm scripts/deploy_patch_message.txt
@@ -76,6 +66,16 @@ jobs:
           git add -A
           git commit -m "$message"
           git push origin HEAD:main
+
+      - name: Set up GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Test and build static site
+        run: npm test
 
       - name: Stamp deployment and bust stale app-shell caches
         run: |
