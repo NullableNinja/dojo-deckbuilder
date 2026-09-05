@@ -27,13 +27,21 @@ type StructuredEffectRegistry = {
 
 const structuredEffectRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;
 
-function structuredEffects(card: EffectCardLike) {
+function structuredEntry(card: EffectCardLike) {
   const catalogId = String(card.catalogId ?? "").trim();
-  return catalogId ? structuredEffectRegistry.cards?.[catalogId]?.effects ?? [] : [];
+  return catalogId ? structuredEffectRegistry.cards?.[catalogId] ?? null : null;
+}
+
+function structuredEffects(card: EffectCardLike) {
+  return structuredEntry(card)?.effects ?? [];
+}
+
+function structuredResolvers(card: EffectCardLike, resolver: string) {
+  return structuredEffects(card).filter((effect) => effect.resolver === resolver);
 }
 
 function structuredResolver(card: EffectCardLike, resolver: string) {
-  return structuredEffects(card).find((effect) => effect.resolver === resolver) ?? null;
+  return structuredResolvers(card, resolver)[0] ?? null;
 }
 
 function numberValue(value: unknown) {
@@ -43,6 +51,28 @@ function numberValue(value: unknown) {
 
 function normalizedMinus(text: string) {
   return text.replace(/[−–—]/g, "-");
+}
+
+function structuredConditionsMatch(effect: RegistryEffect, values: Record<string, unknown>) {
+  return (effect.conditions ?? []).every((condition) => {
+    const actual = values[String(condition.kind ?? "")];
+    const expected = condition.value;
+    switch (condition.operator ?? "eq") {
+      case "eq": return actual === expected;
+      case "neq": return actual !== expected;
+      case "gt": return Number(actual) > Number(expected);
+      case "gte": return Number(actual) >= Number(expected);
+      case "lt": return Number(actual) < Number(expected);
+      case "lte": return Number(actual) <= Number(expected);
+      case "includes": return Array.isArray(actual) ? actual.includes(expected) : String(actual ?? "").includes(String(expected ?? ""));
+      case "notIncludes": return Array.isArray(actual) ? !actual.includes(expected) : !String(actual ?? "").includes(String(expected ?? ""));
+      default: return false;
+    }
+  });
+}
+
+function structuredConditionValue(effect: RegistryEffect, kind: string) {
+  return effect.conditions?.find((condition) => condition.kind === kind)?.value;
 }
 
 export function isDefenseEquipment(card: EffectCardLike) {
@@ -97,6 +127,11 @@ export function targetDiscardOnHitCount(card: EffectCardLike) {
 }
 
 export function targetNextAttackPenalty(card: EffectCardLike) {
+  const entry = structuredEntry(card);
+  if (entry) {
+    return structuredResolvers(card, "attack.targetNextAttackPenalty")
+      .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
+  }
   const text = normalizedMinus(String(card.rulesText ?? ""));
   const match = text.match(/(?:target|opponent)[’']s next Attack(?: this round)? (?:gets|has) -(\d+) Attack Power/i);
   return match ? Number(match[1]) : 0;
@@ -120,9 +155,11 @@ export function equipmentSpeedModifier(card: EffectCardLike) {
 
 export function attackCanChooseAnyZone(card: EffectCardLike, firstAttack: boolean, equipment: EffectCardLike[] = []) {
   if (structuredResolver(card, "attack.chooseAnyZone")) return true;
-  const text = String(card.rulesText ?? "");
-  if (/Choose High, Mid, or Low when declared/i.test(text)) return true;
-  if (/may be declared as Any zone/i.test(text)) return true;
+  if (!structuredEntry(card)) {
+    const text = String(card.rulesText ?? "");
+    if (/Choose High, Mid, or Low when declared/i.test(text)) return true;
+    if (/may be declared as Any zone/i.test(text)) return true;
+  }
   if (firstAttack && equipment.some((item) => /Your first Attack each turn may be declared as Any zone/i.test(String(item.rulesText ?? "")))) return true;
   return false;
 }
@@ -136,9 +173,25 @@ export function structuredFocusIfFastest(card: EffectCardLike, selfSpeed: number
 }
 
 export function conditionalAttackPowerBonus(card: EffectCardLike, context: { playedKata: boolean; firstAttack: boolean; matchingArmor?: boolean; targetEquipmentCount?: number }) {
-  const text = normalizedMinus(String(card.rulesText ?? ""));
   let amount = 0;
   const notes: string[] = [];
+  const entry = structuredEntry(card);
+  if (entry) {
+    const values = {
+      playedKataThisTurn: context.playedKata,
+      firstAttackThisTurn: context.firstAttack,
+      targetHasMatchingArmor: Boolean(context.matchingArmor),
+      targetPermanentEquipmentCount: context.targetEquipmentCount ?? 0,
+    };
+    for (const effect of structuredResolvers(card, "attack.conditionalPower")) {
+      if (!structuredConditionsMatch(effect, values)) continue;
+      const value = Number(effect.amount ?? 0);
+      amount += value;
+      notes.push(`structured condition ${value >= 0 ? "+" : ""}${value} Attack Power`);
+    }
+    return { amount, notes };
+  }
+  const text = normalizedMinus(String(card.rulesText ?? ""));
   const kata = text.match(/If you played a Kata this turn, this Attack gets \+(\d+) Attack Power/i);
   if (kata && context.playedKata) { amount += Number(kata[1]); notes.push(`Kata setup +${kata[1]} Attack Power`); }
   const armor = text.match(/If the target has matching Armor, this Attack gets \+(\d+) Attack Power/i);
@@ -232,6 +285,15 @@ export function destroyJunkChoiceCount(card: EffectCardLike) {
 }
 
 export function optionalDiscardDrawChoice(card: EffectCardLike) {
+  const entry = structuredEntry(card);
+  if (entry) {
+    const effect = structuredResolver(card, "attack.optionalDiscardDraw");
+    if (!effect) return null;
+    return {
+      discard: Number(structuredConditionValue(effect, "discardCost") ?? 0),
+      draw: Number(structuredConditionValue(effect, "drawAfterCost") ?? 0),
+    };
+  }
   const text = String(card.rulesText ?? "");
   const match = text.match(/After (?:this Attack|this|it|that Attack) resolves, you may discard (\d+) cards? to draw (\d+) cards?/i);
   return match ? { discard: Number(match[1]), draw: Number(match[2]) } : null;
@@ -263,11 +325,26 @@ export function attackPiercing(card: EffectCardLike, context: {
   targetHasExhaustedEquipment?: boolean;
   speedChangedThisRound?: boolean;
 }) {
-  const text = normalizedMinus(String(card.rulesText ?? ""));
   let amount = 0;
   const notes: string[] = [];
   const add = (value: number, note: string) => { amount += value; notes.push(note); };
+  const entry = structuredEntry(card);
+  if (entry) {
+    const values = {
+      targetHasMatchingArmor: context.matchingArmor,
+      targetPermanentEquipmentCount: context.targetEquipmentCount,
+      targetHasExhaustedEquipment: Boolean(context.targetHasExhaustedEquipment),
+      selfSpeedChangedThisRound: Boolean(context.speedChangedThisRound),
+    };
+    for (const effect of structuredResolvers(card, "attack.piercing")) {
+      if (!structuredConditionsMatch(effect, values)) continue;
+      const value = Number(effect.amount ?? 0);
+      add(value, `structured Piercing ${value}`);
+    }
+    return { amount, notes };
+  }
 
+  const text = normalizedMinus(String(card.rulesText ?? ""));
   const armor = text.match(/If the target has matching Armor, this Attack(?: gets \+\d+ Attack Power and)? gains Piercing (\d+)/i);
   if (armor && context.matchingArmor) add(Number(armor[1]), `matching Armor grants Piercing ${armor[1]}`);
 
@@ -429,6 +506,11 @@ export function equipmentActivationPlan(card: EffectCardLike): EquipmentActivati
 }
 
 export function readyEquipmentOnHit(card: EffectCardLike) {
+  const entry = structuredEntry(card);
+  if (entry) {
+    return structuredResolvers(card, "attack.readyEquipmentOnHit")
+      .reduce((total, effect) => total + Number(effect.amount ?? 0), 0);
+  }
   const text = String(card.rulesText ?? "");
   const match = text.match(/If (?:it|this Attack) Hits, you may ready one Equipment card you control/i);
   return match ? 1 : 0;
