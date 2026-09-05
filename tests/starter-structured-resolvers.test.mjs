@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { attackCanChooseAnyZone, structuredFocusIfFastest } from "../app/effect-resolvers.ts";
 
@@ -39,4 +40,11 @@ test("unmigrated cards do not accidentally inherit Starter resolvers", () => {
   };
   assert.equal(attackCanChooseAnyZone(card, false, []), false);
   assert.equal(structuredFocusIfFastest(card, 99, 1), 0);
+});
+
+test("Quick Duel invokes the Starter dedicated resolvers for both player and AI", async () => {
+  const playtest = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(playtest, /structuredFocusIfFastest\(card, fighterStat\(nextPlayer, "Speed"\), fighterStat\(current\.ai, "Speed"\)\)/);
+  assert.match(playtest, /structuredFocusIfFastest\(card, fighterStat\(nextAi, "Speed"\), fighterStat\(nextPlayer, "Speed"\)\)/);
+  assert.match(playtest, /attackCanChooseAnyZone\(/, "Quick Duel should continue routing flexible Attack zones through the structured-aware resolver");
 });
