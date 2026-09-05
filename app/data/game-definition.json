@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "rulesVersion": "v2.3",
   "rulesRevision": "v2.3-r5",
-  "source": "app/data/rules.json",
+  "source": "content/rules.json",
   "mode": {
     "id": "quick-duel",
     "players": 2,
