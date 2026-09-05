@@ -1,4 +1,7 @@
+import cardEffectsJson from "./data/card-effects.json";
+
 export type EffectCardLike = {
+  catalogId?: string | null;
   name?: string;
   cardType?: string;
   subtype?: string;
@@ -9,6 +12,29 @@ export type EffectCardLike = {
   stats?: Record<string, string | number | null | undefined>;
   details?: Record<string, string | number | null | undefined>;
 };
+
+type RegistryEffect = {
+  trigger?: string;
+  action?: string;
+  amount?: number;
+  resolver?: string;
+  conditions?: { kind?: string; operator?: string; value?: unknown }[];
+};
+
+type StructuredEffectRegistry = {
+  cards?: Record<string, { name?: string; effects?: RegistryEffect[] }>;
+};
+
+const structuredEffectRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;
+
+function structuredEffects(card: EffectCardLike) {
+  const catalogId = String(card.catalogId ?? "").trim();
+  return catalogId ? structuredEffectRegistry.cards?.[catalogId]?.effects ?? [] : [];
+}
+
+function structuredResolver(card: EffectCardLike, resolver: string) {
+  return structuredEffects(card).find((effect) => effect.resolver === resolver) ?? null;
+}
 
 function numberValue(value: unknown) {
   const match = String(value ?? "").match(/-?\d+/);
@@ -86,7 +112,6 @@ export function destroysAfterUse(card: EffectCardLike) {
   return /Destroy this after use\.?/i.test(String(card.rulesText ?? ""));
 }
 
-
 export function equipmentSpeedModifier(card: EffectCardLike) {
   const text = normalizedMinus(String(card.rulesText ?? ""));
   const match = text.match(/(?:and\s+)?-(\d+)\s+Speed\b/i);
@@ -94,11 +119,20 @@ export function equipmentSpeedModifier(card: EffectCardLike) {
 }
 
 export function attackCanChooseAnyZone(card: EffectCardLike, firstAttack: boolean, equipment: EffectCardLike[] = []) {
+  if (structuredResolver(card, "attack.chooseAnyZone")) return true;
   const text = String(card.rulesText ?? "");
   if (/Choose High, Mid, or Low when declared/i.test(text)) return true;
   if (/may be declared as Any zone/i.test(text)) return true;
   if (firstAttack && equipment.some((item) => /Your first Attack each turn may be declared as Any zone/i.test(String(item.rulesText ?? "")))) return true;
   return false;
+}
+
+export function structuredFocusIfFastest(card: EffectCardLike, selfSpeed: number, opponentSpeed: number) {
+  const effect = structuredResolver(card, "starter.gainFocusIfFastest");
+  if (!effect) return 0;
+  const hasFastestCondition = (effect.conditions ?? []).some((condition) => condition.kind === "isFastest" && condition.value === true);
+  if (!hasFastestCondition || selfSpeed <= opponentSpeed) return 0;
+  return Number(effect.amount ?? 0);
 }
 
 export function conditionalAttackPowerBonus(card: EffectCardLike, context: { playedKata: boolean; firstAttack: boolean; matchingArmor?: boolean; targetEquipmentCount?: number }) {
@@ -156,7 +190,6 @@ export function locationAttackRuleModifiers(location: EffectCardLike, context: {
   const notes: string[] = [];
 
   const conditionMatches = (sentence: string) => {
-    const lower = sentence.toLocaleLowerCase();
     if (/\bfirst Attack\b/i.test(sentence) && !context.firstAttack) return false;
     if (/\bfirst Low Attack\b/i.test(sentence) && (!context.firstAttack || context.zone.toLocaleLowerCase() !== "low")) return false;
     const zoneMatch = sentence.match(/\b(High|Mid|Low) Attacks?\b/i);
@@ -193,7 +226,6 @@ export function locationAttackRuleModifiers(location: EffectCardLike, context: {
   return { power, damage, notes, matched };
 }
 
-
 export function destroyJunkChoiceCount(card: EffectCardLike) {
   const match = String(card.rulesText ?? "").match(/Destroy (\d+) Junk cards? from your hand or discard pile/i);
   return match ? Number(match[1]) : 0;
@@ -204,7 +236,6 @@ export function optionalDiscardDrawChoice(card: EffectCardLike) {
   const match = text.match(/After (?:this Attack|this|it|that Attack) resolves, you may discard (\d+) cards? to draw (\d+) cards?/i);
   return match ? { discard: Number(match[1]), draw: Number(match[2]) } : null;
 }
-
 
 export function firstIncomingAttackPowerPenalty(cards: EffectCardLike[], isFirstIncomingAttack: boolean) {
   if (!isFirstIncomingAttack) return { amount: 0, sources: [] as string[] };
@@ -225,7 +256,6 @@ export function targetNextDefensePenalty(card: EffectCardLike) {
   const match = text.match(/(?:Their|target[’']s|opponent[’']s) next Defense card(?: this round)? (?:gets|has|provides) -(\d+) (?:Guard|Defense)/i);
   return match ? Number(match[1]) : 0;
 }
-
 
 export function attackPiercing(card: EffectCardLike, context: {
   matchingArmor: boolean;
@@ -277,7 +307,6 @@ export function equipmentPiercing(cards: EffectCardLike[], context: {
   }
   return { amount, sources };
 }
-
 
 export function mandatoryDiscardChoiceCount(card: EffectCardLike) {
   const text = String(card.rulesText ?? "");
