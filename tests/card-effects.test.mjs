@@ -57,14 +57,43 @@ test("structured effects never fall back to prose when a dedicated resolver is s
   assert.deepEqual(plan.unsupported, ["special"]);
 });
 
-test("effect coverage reports the current v2.3 catalog without pretending unsupported clauses work", async () => {
+test("Starter cards resolve through the canonical structured-effect registry", async () => {
   const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
-  const coverage = effectCoverage(cards);
+  const registry = JSON.parse(await readFile(new URL("../app/data/card-effects.json", import.meta.url), "utf8"));
+  const coverage = effectCoverage(cards, registry);
   assert.equal(coverage.total, 589);
-  assert.equal(coverage.structured, 0, "Stage 3B starts with zero migrated cards until canonical records are explicitly converted");
+  assert.equal(coverage.structured, 11, "All eleven Starter card identities should be structurally migrated");
   assert.ok(coverage.full > 0, "Expected at least one completely resolved printed effect");
   assert.ok(coverage.partial > 0, "Expected mixed clauses to remain visible as partial coverage");
   assert.equal(coverage.full + coverage.partial + coverage.queued, coverage.total);
+
+  const breathing = cards.find((card) => card.catalogId === "DDB-STA-CORE-005");
+  const breathingPlan = effectPlanForCard(breathing, registry);
+  assert.equal(breathingPlan.source, "structured");
+  assert.deepEqual(breathingPlan.effects, [
+    { timing: "onPlay", kind: "nextAttackPower", amount: 1 },
+  ]);
+  assert.deepEqual(breathingPlan.unsupported, []);
+
+  const badHabit = cards.find((card) => card.catalogId === "DDB-STA-CORE-001");
+  const badHabitPlan = effectPlanForCard(badHabit, registry);
+  assert.equal(badHabitPlan.source, "structured");
+  assert.deepEqual(badHabitPlan.effects, []);
+  assert.deepEqual(badHabitPlan.unsupported, []);
+
+  const footwork = cards.find((card) => card.catalogId === "DDB-STA-CORE-008");
+  const footworkPlan = effectPlanForCard(footwork, registry);
+  assert.equal(footworkPlan.source, "structured");
+  assert.deepEqual(footworkPlan.effects, [
+    { timing: "onPlay", kind: "speed", amount: 2 },
+  ]);
+  assert.deepEqual(footworkPlan.unsupported, ["starter-footwork-fastest-focus"]);
+
+  const wildSwing = cards.find((card) => card.catalogId === "DDB-STA-CORE-011");
+  const wildSwingPlan = effectPlanForCard(wildSwing, registry);
+  assert.equal(wildSwingPlan.source, "structured");
+  assert.deepEqual(wildSwingPlan.effects, []);
+  assert.deepEqual(wildSwingPlan.unsupported, ["starter-wild-swing-zone"]);
 });
 
 test("choice language is never auto-executed by the generic parser", () => {
