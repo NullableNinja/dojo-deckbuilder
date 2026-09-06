@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Add Equipment runtime state types
+        run: node scripts/stage3b-equipment-type-fix.mjs
+
       - name: Apply Equipment runtime wiring once
         run: node scripts/stage3b-equipment-runtime-wire.mjs
 
