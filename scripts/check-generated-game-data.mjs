@@ -1,24 +1,34 @@
 import { readFile } from "node:fs/promises";
+import { expectedCardEffectAggregate } from "./card-effect-registry.mjs";
 
 const root = new URL("../", import.meta.url);
 const readText = (path) => readFile(new URL(path, root), "utf8");
 const readJson = async (path) => JSON.parse(await readText(path));
 
-const [source, generated, canonicalRules, generatedRules, canonicalCards, generatedCards, canonicalEffects, generatedEffects] = await Promise.all([
+const failures = [];
+const fail = (message) => failures.push(message);
+const normalized = (value) => String(value ?? "").normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+
+let effectArchitecture = null;
+try {
+  effectArchitecture = await expectedCardEffectAggregate();
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
+const [source, generated, canonicalRules, generatedRules, canonicalCards, generatedCards, canonicalVocabulary, generatedVocabulary, canonicalCardEffects, generatedCardEffects] = await Promise.all([
   readJson("content/dojo-game.json"),
   readJson("app/data/game-definition.json"),
   readJson("content/rules.json"),
   readJson("app/data/rules.json"),
   readJson("content/cards.json"),
   readJson("app/data/cards.json"),
+  readJson("content/effects.json"),
+  readJson("app/data/effects.json"),
   readJson("content/card-effects.json"),
   readJson("app/data/card-effects.json"),
 ]);
-
-const failures = [];
-const fail = (message) => failures.push(message);
-const normalized = (value) => String(value ?? "").normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
-const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 
 if (!source?.definition) fail("content/dojo-game.json is missing definition");
 if (source.rulesVersion !== source.definition?.rulesVersion) fail("source rulesVersion does not match definition.rulesVersion");
@@ -27,11 +37,15 @@ if (source.definition?.source !== "content/rules.json") fail("definition.source 
 if (!sameJson(generated, source.definition)) fail("app/data/game-definition.json has drifted from content/dojo-game.json; run npm run game:generate");
 if (!sameJson(generatedRules, canonicalRules)) fail("app/data/rules.json has drifted from content/rules.json; run npm run game:generate");
 if (!sameJson(generatedCards, canonicalCards)) fail("app/data/cards.json has drifted from content/cards.json; run npm run game:generate");
-if (!sameJson(generatedEffects, canonicalEffects)) fail("app/data/card-effects.json has drifted from content/card-effects.json; run npm run game:generate");
+if (!sameJson(generatedVocabulary, canonicalVocabulary)) fail("app/data/effects.json has drifted from content/effects.json; run npm run game:generate");
+if (effectArchitecture && !sameJson(canonicalCardEffects, effectArchitecture.aggregate)) fail("content/card-effects.json has drifted from the effect seed/family sources; run npm run game:generate");
+if (!sameJson(generatedCardEffects, canonicalCardEffects)) fail("app/data/card-effects.json has drifted from content/card-effects.json; run npm run game:generate");
 if (!String(canonicalRules.version ?? "").startsWith(source.rulesVersion)) fail(`content/rules.json version '${canonicalRules.version ?? "missing"}' does not match ${source.rulesVersion}`);
 if (!String(canonicalCards.version ?? "").startsWith(source.rulesVersion)) fail(`content/cards.json version '${canonicalCards.version ?? "missing"}' does not match ${source.rulesVersion}`);
-if (canonicalEffects.rulesVersion !== source.rulesVersion) fail(`content/card-effects.json rulesVersion '${canonicalEffects.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
-if (canonicalEffects.rulesRevision !== source.rulesRevision) fail(`content/card-effects.json rulesRevision '${canonicalEffects.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
+if (canonicalVocabulary.rulesVersion !== source.rulesVersion) fail(`content/effects.json rulesVersion '${canonicalVocabulary.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
+if (canonicalVocabulary.rulesRevision !== source.rulesRevision) fail(`content/effects.json rulesRevision '${canonicalVocabulary.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
+if (canonicalCardEffects.rulesVersion !== source.rulesVersion) fail(`content/card-effects.json rulesVersion '${canonicalCardEffects.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
+if (canonicalCardEffects.rulesRevision !== source.rulesRevision) fail(`content/card-effects.json rulesRevision '${canonicalCardEffects.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
 if (canonicalCards.total !== canonicalCards.cards?.length) fail("content/cards.json total does not match cards.length");
 if (generatedCards.total !== generatedCards.cards?.length) fail("app/data/cards.json total does not match cards.length");
 
@@ -39,16 +53,22 @@ const expectedAuthoritative = new Set([
   "content/dojo-game.json",
   "content/rules.json",
   "content/cards.json",
-  "content/card-effects.json",
+  "content/effects.json",
   "content/card-effect.schema.json",
+  "content/card-effect-family.schema.json",
 ]);
 for (const path of expectedAuthoritative) {
   if (!source.sourcePolicy?.authoritativeFiles?.includes(path)) fail(`${path} is canonical but missing from sourcePolicy.authoritativeFiles`);
 }
+if (!source.sourcePolicy?.authoritativeGlobs?.includes("content/card-effects/*.json")) fail("content/card-effects/*.json is canonical but missing from sourcePolicy.authoritativeGlobs");
+if (!source.sourcePolicy?.temporaryMigrationSeeds?.includes("content/card-effects-seed.json")) fail("content/card-effects-seed.json must be declared as a temporary Stage 3B migration seed until the split is complete");
+
 const expectedGenerated = new Set([
+  "content/card-effects.json",
   "app/data/game-definition.json",
   "app/data/rules.json",
   "app/data/cards.json",
+  "app/data/effects.json",
   "app/data/card-effects.json",
 ]);
 for (const path of expectedGenerated) {
@@ -71,6 +91,18 @@ for (const card of canonicalCards.cards ?? []) {
   if (!String(card.name ?? "").trim()) fail(`Card '${card.catalogId ?? card.id ?? "unknown"}' has no name`);
 }
 
+const vocabularyEffects = canonicalVocabulary.effects ?? {};
+const canonicalConditions = canonicalVocabulary.conditions ?? {};
+const canonicalOperators = canonicalVocabulary.conditionOperators ?? {};
+if (!Object.keys(vocabularyEffects).length) fail("content/effects.json contains no canonical effects");
+for (const [effectId, definition] of Object.entries(vocabularyEffects)) {
+  if (!/^[a-z][a-z0-9-]*\.[A-Za-z][A-Za-z0-9]*$/.test(effectId)) fail(`Canonical effect ID '${effectId}' does not use namespace.camelCase format`);
+  if (!String(definition.description ?? "").trim()) fail(`Canonical effect '${effectId}' has no description`);
+  if (!String(definition.action ?? "").trim()) fail(`Canonical effect '${effectId}' has no runtime action`);
+  if (!Array.isArray(definition.allowedTriggers) || !definition.allowedTriggers.length) fail(`Canonical effect '${effectId}' has no allowedTriggers`);
+  if (!Array.isArray(definition.allowedTargets) || !definition.allowedTargets.length) fail(`Canonical effect '${effectId}' has no allowedTargets`);
+}
+
 const starterEntries = source.definition?.starterDeck ?? [];
 for (const entry of starterEntries) {
   if (!catalogIds.has(entry.catalogId)) fail(`Starter card ${entry.catalogId} is missing from content/cards.json`);
@@ -80,7 +112,7 @@ if (starterDeckCount !== 15) fail(`Starter Deck should contain 15 cards; canonic
 
 const validTriggers = new Set(["onPlay", "onHit", "onBlock", "afterResolve", "onEquip", "onPurchase", "onInitiate", "onHide", "onAttackDeclared", "onDefenseDeclared", "passive"]);
 const validActions = new Set(["draw", "discard", "heal", "gainFocus", "modifySpeed", "modifyAttackPower", "modifyGuard", "dealDamage", "piercing", "destroy", "ready", "exhaust", "preventDamage", "chooseZone", "custom"]);
-const structuredEntries = Object.entries(canonicalEffects.cards ?? {});
+const structuredEntries = Object.entries(canonicalCardEffects.cards ?? {});
 if (structuredEntries.length < 11) fail(`Structured effect migration must contain at least the 11 Starter card identities; found ${structuredEntries.length}`);
 for (const [catalogId, entry] of structuredEntries) {
   const card = cardsByCatalogId.get(catalogId);
@@ -97,6 +129,15 @@ for (const [catalogId, entry] of structuredEntries) {
   for (const effect of entry.effects) {
     if (!validTriggers.has(effect.trigger)) fail(`${catalogId} uses unsupported trigger '${effect.trigger}'`);
     if (!validActions.has(effect.action)) fail(`${catalogId} uses unsupported action '${effect.action}'`);
+    if (effect.effect) {
+      const definition = vocabularyEffects[effect.effect];
+      if (!definition) fail(`${catalogId} references unknown canonical effect '${effect.effect}'`);
+      else if (effect.action !== definition.action) fail(`${catalogId} canonical effect '${effect.effect}' should hydrate to action '${definition.action}', found '${effect.action}'`);
+      for (const condition of effect.conditions ?? []) {
+        if (!canonicalConditions[condition.kind]) fail(`${catalogId} uses unknown canonical condition '${condition.kind}'`);
+        if (condition.operator && !canonicalOperators[condition.operator]) fail(`${catalogId} uses unknown condition operator '${condition.operator}'`);
+      }
+    }
     if (effect.action === "custom" && !String(effect.resolver ?? "").trim()) fail(`${catalogId} custom effect '${effect.id ?? "unnamed"}' requires resolver`);
     if (effect.id) {
       if (effectIds.has(effect.id)) fail(`${catalogId} has duplicate effect id '${effect.id}'`);
@@ -105,7 +146,7 @@ for (const [catalogId, entry] of structuredEntries) {
   }
 }
 for (const entry of starterEntries) {
-  if (!canonicalEffects.cards?.[entry.catalogId]) fail(`Starter card ${entry.catalogId} has not been migrated into content/card-effects.json`);
+  if (!canonicalCardEffects.cards?.[entry.catalogId]) fail(`Starter card ${entry.catalogId} has not been migrated into the unified card-effect registry`);
 }
 
 const chapterIds = new Set();
@@ -190,7 +231,10 @@ if (failures.length) {
   console.log("Canonical mechanical source: content/dojo-game.json");
   console.log("Canonical rules source: content/rules.json");
   console.log(`Canonical card source: content/cards.json (${canonicalCards.total} cards)`);
-  console.log(`Structured effect registry: content/card-effects.json (${structuredEntries.length} migrated cards)`);
-  console.log("Generated runtime outputs: app/data/game-definition.json, app/data/rules.json, app/data/cards.json, app/data/card-effects.json");
+  console.log(`Canonical effect vocabulary: content/effects.json (${Object.keys(vocabularyEffects).length} reusable effects)`);
+  console.log(`Card-effect family sources: ${effectArchitecture?.families.length ?? 0} active family file(s)`);
+  console.log(`Unified structured effect registry: content/card-effects.json (${structuredEntries.length} migrated cards)`);
+  console.log("Generated runtime outputs: app/data/game-definition.json, app/data/rules.json, app/data/cards.json, app/data/effects.json, app/data/card-effects.json");
+  console.log("Temporary Stage 3B effect seed: content/card-effects-seed.json (remove after seeded families are fully split)");
   console.log("Legacy authoritative data sources: none");
 }
