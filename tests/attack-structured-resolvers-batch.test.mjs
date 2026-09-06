@@ -276,3 +276,32 @@ test("Block memory includes zero-damage strikes stopped by standing DEF or Armor
   assert.ok(aiBlockMemory.length >= 2, "normal Attacks and Reversals must both remember standing-DEF Blocks");
   assert.doesNotMatch(source, /if \(!hit && defenseCard\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
 });
+
+
+test("Front Jab and Turning Side Kick use live turn context for their cycles", () => {
+  const frontJab = card("DDB-ATK-CORE-025");
+  const turningSide = card("DDB-ATK-CORE-067");
+
+  for (const attack of [frontJab, turningSide]) {
+    const plan = effectPlanForCard(attack, registry);
+    assert.equal(plan.source, "structured");
+    assert.deepEqual(plan.unsupported, []);
+  }
+
+  assert.deepEqual(
+    structuredConditionalCycle(frontJab, { timing: "afterResolve", firstAttackThisTurn: true }),
+    { handled: true, draw: 1, discard: 1 },
+  );
+  assert.deepEqual(
+    structuredConditionalCycle(frontJab, { timing: "afterResolve", firstAttackThisTurn: false }),
+    { handled: true, draw: 0, discard: 0 },
+  );
+  assert.deepEqual(
+    structuredConditionalCycle(turningSide, { timing: "afterResolve", differentZoneFromPreviousAttack: true }),
+    { handled: true, draw: 1, discard: 1 },
+  );
+  assert.deepEqual(
+    structuredConditionalCycle(turningSide, { timing: "afterResolve", differentZoneFromPreviousAttack: false }),
+    { handled: true, draw: 0, discard: 0 },
+  );
+});
