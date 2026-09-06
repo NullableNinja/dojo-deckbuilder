@@ -296,6 +296,43 @@
         }
       ]
     },
+    "DDB-ATK-CORE-025": {
+      "name": "Front Jab",
+      "effects": [
+        {
+          "id": "attack-front-jab-first-cycle-draw",
+          "trigger": "afterResolve",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalCycle"
+        },
+        {
+          "id": "attack-front-jab-first-cycle-discard",
+          "trigger": "afterResolve",
+          "action": "discard",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalCycle"
+        }
+      ]
+    },
     "DDB-ATK-CORE-026": {
       "name": "Front Ridgehand",
       "effects": [
@@ -1025,6 +1062,43 @@
             }
           ],
           "resolver": "attack.conditionalPower"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-067": {
+      "name": "Turning Side Kick",
+      "effects": [
+        {
+          "id": "attack-turning-side-zone-cycle-draw",
+          "trigger": "afterResolve",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "differentZoneFromPreviousAttack",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalCycle"
+        },
+        {
+          "id": "attack-turning-side-zone-cycle-discard",
+          "trigger": "afterResolve",
+          "action": "discard",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "differentZoneFromPreviousAttack",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalCycle"
         }
       ]
     },
