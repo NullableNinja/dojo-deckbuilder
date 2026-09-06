@@ -32,7 +32,7 @@ function vfxMode(): VfxMode {
 }
 
 function fighterElement(side: FighterSide) {
-  return document.querySelector<HTMLElement>(side === "player" ? ".playtest-shell--live .versus-player" : ".playtest-shell--live .versus-enemy");
+  return document.querySelector<HTMLElement>(`.playtest-shell--live .living-fighter-card[data-side="${side}"]`);
 }
 
 function shellElement() {

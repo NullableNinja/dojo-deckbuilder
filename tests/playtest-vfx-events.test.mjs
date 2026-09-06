@@ -65,6 +65,95 @@ test("final combat log damage is authoritative and suppresses duplicate aggregat
   ]);
 });
 
+test("typed combat exchange is authoritative and suppresses duplicate HP-delta Hits", () => {
+  const previous = match({ lastExchange: null });
+  const next = match({
+    ai: board({ hp: 20 }),
+    lastExchange: {
+      id: "1:0:player:attack-a:1",
+      actor: "player",
+      target: "ai",
+      attackCardId: "attack-a",
+      defenseCardId: "defense-a",
+      zone: "Mid",
+      attackPower: 9,
+      defensePower: 4,
+      damage: 5,
+      outcome: "hit",
+    },
+  });
+
+  assert.deepEqual(derivePlaytestEvents(previous, next).filter((event) => event.type === "combat.hit"), [
+    { type: "combat.hit", actor: "player", target: "ai", amount: 5 },
+  ]);
+});
+
+test("typed Block exchange emits one semantic Block without parsing prose", () => {
+  const previous = match({ lastExchange: null });
+  const next = match({
+    lastExchange: {
+      id: "1:0:ai:attack-b:1",
+      actor: "ai",
+      target: "player",
+      attackCardId: "attack-b",
+      defenseCardId: null,
+      zone: "High",
+      attackPower: 3,
+      defensePower: 5,
+      damage: 0,
+      outcome: "block",
+    },
+  });
+
+  assert.deepEqual(derivePlaytestEvents(previous, next).filter((event) => event.type === "combat.block"), [
+    { type: "combat.block", actor: "ai", target: "player" },
+  ]);
+});
+
+test("typed Reversal exchange preserves declaration before resolution", () => {
+  const previous = match({ lastExchange: null });
+  const next = match({
+    ai: board({ hp: 22 }),
+    lastExchange: {
+      id: "1:0:player:attack-c:1",
+      actor: "player",
+      target: "ai",
+      attackCardId: "attack-c",
+      defenseCardId: null,
+      zone: "Low",
+      attackPower: 7,
+      defensePower: 4,
+      damage: 3,
+      outcome: "hit",
+      isReversal: true,
+    },
+  });
+
+  assert.deepEqual(derivePlaytestEvents(previous, next).filter((event) => event.type.startsWith("combat.")), [
+    { type: "combat.attack", actor: "player", target: "ai", zone: "Low" },
+    { type: "combat.hit", actor: "player", target: "ai", amount: 3 },
+  ]);
+});
+
+test("an unchanged typed exchange is not announced twice", () => {
+  const lastExchange = {
+    id: "1:0:player:attack-d:1",
+    actor: "player",
+    target: "ai",
+    attackCardId: "attack-d",
+    defenseCardId: null,
+    zone: "High",
+    attackPower: 4,
+    defensePower: 4,
+    damage: 0,
+    outcome: "block",
+  };
+  const previous = match({ lastExchange });
+  const next = match({ lastExchange, player: board({ focus: 1, focusGeneratedThisTurn: 1 }) });
+
+  assert.deepEqual(derivePlaytestEvents(previous, next).filter((event) => event.type === "combat.hit" || event.type === "combat.block"), []);
+});
+
 test("multiple combat resolutions persisted together still derive distinct chronological Hit events", () => {
   const previous = match();
   const next = match({

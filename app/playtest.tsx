@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type DragEvent } from "react";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
@@ -9,8 +9,9 @@ import { compileCardEffects, describeEffectPlan, effectPlanForCard } from "./car
 import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
+import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
-import "./playtest-board-v4.css";
+import "./playtest-production-mat.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 
 type CardEntry = {
@@ -173,12 +174,15 @@ type Match = {
   reversalIncomingZone?: string | null;
   attackCostDecisionCardId?: string | null;
   nonHonorSceneChangedThisRound?: boolean;
+  exchangeSequence?: number;
+  lastExchange?: PlaytestCombatExchange | null;
   log: string[];
   winner: "player" | "ai" | null;
 };
 
 type Difficulty = "student" | "certified" | "master";
-type HouseSettings = { tempo: boolean; locations: boolean; openMarket: boolean; guided: boolean; autoAi: boolean; balancedMarket: boolean; difficulty: Difficulty };
+type MotionMode = "full" | "reduced" | "off";
+type HouseSettings = { tempo: boolean; locations: boolean; openMarket: boolean; guided: boolean; autoAi: boolean; balancedMarket: boolean; difficulty: Difficulty; motion: MotionMode };
 type DeskView = "market" | "combo" | "belt";
 
 const cards = (cardsJson as unknown as { cards: CardEntry[] }).cards;
@@ -228,12 +232,16 @@ const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail:
 };
 
 const cardArtModules = import.meta.glob<string>("./assets/cards/{attacks,defenses,katas,consumables,defense-equipment,gear,combos,characters,starters}/*.webp", { eager: true, query: "?url", import: "default" });
+const fighterIllustrationModules = import.meta.glob<string>("./assets/fighters/*.webp", { eager: true, query: "?url", import: "default" });
 const CARD_ART = Object.fromEntries(Object.entries(cardArtModules).map(([path, url]) => [`/cards/${path.split("/cards/")[1]}`, url]));
 const COMPLETE_CARD_ART_BY_CATALOG_ID = Object.fromEntries(
   Object.entries(cardArtModules).flatMap(([path, url]) => {
     const match = path.match(/\/(ddb-(?:atk|def|kat|con|deq|gea|cmb|sta)-core-\d{3})_/i);
     return match ? [[match[1].toUpperCase(), url]] : [];
   }),
+);
+const FIGHTER_ILLUSTRATION_BY_SLUG = Object.fromEntries(
+  Object.entries(fighterIllustrationModules).map(([path, url]) => [path.split("/").at(-1)?.replace(/\.webp$/i, ""), url]),
 );
 
 function shuffle<T>(items: T[]) {
@@ -1076,6 +1084,48 @@ function artistUrl(card: CardEntry) {
   return undefined;
 }
 
+function fighterIllustrationUrl(card: CardEntry) {
+  const slug = card.name.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return FIGHTER_ILLUSTRATION_BY_SLUG[slug];
+}
+
+function locationTheme(card: CardEntry | undefined) {
+  const name = card?.name.toLocaleLowerCase() ?? "";
+  if (/rink|rain|river/.test(name)) return "cool";
+  if (/garage|stairwell|bus/.test(name)) return "concrete";
+  if (/library|school|studio/.test(name)) return "civic";
+  if (/strip-mall/.test(name)) return "retail";
+  return "dojo";
+}
+
+function exchangeId(current: Match, actor: "player" | "ai", cardId: string) {
+  return `${current.round}:${current.turnIndex}:${actor}:${cardId}:${(current.exchangeSequence ?? 0) + 1}`;
+}
+
+function boardStatusLabels(board: Board) {
+  const labels: string[] = [];
+  if (board.tempo) labels.push("Tempo ready");
+  if (board.nextAttackHasFlow) labels.push("Flow armed");
+  if (board.nextAttackBonus > 0) labels.push(`Attack +${board.nextAttackBonus}`);
+  if ((board.nextDefenseCardBonus ?? 0) !== 0) labels.push(`Defense ${(board.nextDefenseCardBonus ?? 0) > 0 ? "+" : ""}${board.nextDefenseCardBonus}`);
+  if (board.attackLockedThisTurn) labels.push("Attack filed");
+  if ((board.exhaustedEquipment ?? []).length) labels.push(`${board.exhaustedEquipment?.length} exhausted`);
+  return labels.slice(0, 4);
+}
+
+function groupedFightLog(lines: string[]) {
+  const groups: { label: string; lines: string[] }[] = [];
+  let currentLabel = "Current round";
+  for (const line of lines) {
+    const honor = line.match(/^Honor\s+(\d+)/i);
+    if (honor) currentLabel = `Honor ${honor[1]}`;
+    const group = groups.at(-1);
+    if (!group || group.label !== currentLabel) groups.push({ label: currentLabel, lines: [line] });
+    else group.lines.push(line);
+  }
+  return groups;
+}
+
 function cardEffectNote(card: CardEntry) {
   const text = card.rulesText ?? "";
   if (!text || /no (additional )?effect/i.test(text)) return "No extra printed effect.";
@@ -1227,13 +1277,24 @@ function NativeCardArt({ card }: { card: CardEntry }) {
 function PlayCard({ card, selected, disabled, onClick, onInspect }: { card: CardEntry; selected?: boolean; disabled?: boolean; onClick?: () => void; onInspect: () => void }) {
   const art = artistUrl(card);
   const kind = isAttack(card) ? "attack" : isDefense(card) ? "defense" : isKata(card) ? "kata" : card.cardType.toLocaleLowerCase();
-  return <article className={`play-card play-card--${kind} ${selected ? "is-selected" : ""} ${disabled ? "is-disabled" : ""}`}>
+  const canDrag = !disabled && Boolean(onClick);
+  const beginDrag = (event: DragEvent<HTMLElement>) => {
+    if (!canDrag) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-dojo-card", card.id);
+    event.dataTransfer.setData("text/plain", card.id);
+  };
+  return <article className={`play-card play-card--${kind} ${selected ? "is-selected" : ""} ${disabled ? "is-disabled" : ""}`} draggable={canDrag} onDragStart={beginDrag} data-card-id={card.id}>
     <button className="play-card-main" disabled={disabled || !onClick} onClick={onClick} aria-label={`Use ${card.name}`}>
-      {art ? <img src={art} alt="" loading="lazy" decoding="async" /> : <NativeCardArt card={card} />}
-      {art && <span className="play-card-fallback"><b>{card.name}</b><small>{card.catalogId}</small><em>{card.subtype}</em></span>}
+      <span className="play-card-art-window">{art ? <img src={art} alt="" loading="lazy" decoding="async" /> : <NativeCardArt card={card} />}</span>
+      <span className="play-card-kind">{card.subtype || card.cardType}</span>
+      <span className="play-card-fallback"><b>{card.name}</b><small>{(card.rulesText ?? "No additional effect.").slice(0, 88)}</small><em>{card.catalogId}</em></span>
       <span className="play-card-meta"><b>{card.fpCost ?? "—"}<small> COST</small></b><strong>{card.focusValue ?? "—"}<small> FOCUS</small></strong><em>{card.zone ?? "—"} · {card.timing ?? "—"}</em></span>
     </button>
-    <button className="play-card-inspect" onClick={onInspect} aria-label={`Inspect ${card.name}`}>⌕</button>
+    <button className="play-card-inspect" onClick={onInspect} aria-label={`Inspect ${card.name}`}>Inspect</button>
   </article>;
 }
 
@@ -1264,36 +1325,56 @@ function equipmentSlotLabel(card: CardEntry) {
   return "Accessory";
 }
 
+function FighterEquipmentTabs({ board, enemy, onInspect }: { board: Board; enemy?: boolean; onInspect: (card: CardEntry) => void }) {
+  const equipment = board.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card));
+  return <section className={`fighter-equipment-tabs ${enemy ? "is-enemy" : ""}`} aria-label={`${enemy ? "Opponent" : "Your"} attached Equipment`}>
+    <button type="button" className="fighter-loadout-launch" onClick={() => onInspect(cardFor(board.fighterId)!)}><span>Loadout</span><b>{equipment.length}</b><small>{(board.exhaustedEquipment ?? []).length} exhausted</small></button>
+    <div>{equipment.slice(0, 6).map((item, index) => {
+      const exhausted = isEquipmentExhausted(board, item.id);
+      return <button type="button" className={`fighter-equipment-tab ${exhausted ? "is-exhausted" : "is-ready"}`} onClick={() => onInspect(item)} title={`${item.name} · ${exhausted ? "Exhausted" : "Ready"}`} key={`${item.id}-${index}`}>
+        <span>{equipmentSlotLabel(item).slice(0, 1)}</span><b>{item.name}</b><small>{exhausted ? "EXHAUSTED" : "READY"}</small>
+      </button>;
+    })}{equipment.length > 6 && <button type="button" className="fighter-equipment-overflow" onClick={() => onInspect(cardFor(board.fighterId)!)}>+{equipment.length - 6}<span className="sr-only"> more Equipment cards</span></button>}</div>
+  </section>;
+}
+
 function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void }) {
   const fighter = cardFor(board.fighterId)!;
-  const art = artistUrl(fighter);
-  const combatStats: { stat: "ATK" | "DEF" | "SPD"; label: "ATK" | "DEF" | "SPD"; value: number }[] = enemy
-    ? [
-        { stat: "SPD", label: "SPD", value: fighterStat(board, "Speed") },
-        { stat: "DEF", label: "DEF", value: fighterStat(board, "DEF") },
-        { stat: "ATK", label: "ATK", value: fighterStat(board, "ATK") },
-      ]
-    : [
-        { stat: "ATK", label: "ATK", value: fighterStat(board, "ATK") },
-        { stat: "DEF", label: "DEF", value: fighterStat(board, "DEF") },
-        { stat: "SPD", label: "SPD", value: fighterStat(board, "Speed") },
-      ];
-  const portrait = <button type="button" className="fighter-panel-art" onClick={() => onInspect(fighter)} aria-label={`Open ${fighter.name} fighter dossier`}>
-    {art ? <img src={art} alt={fighter.name} /> : <img src={cardPlaceholderUrl} alt="" />}
-    <span>Inspect</span>
-  </button>;
-  const identity = <div className="fighter-panel-copy">
-    <span>{label} · {belts[board.belt].name} Belt</span>
-    <button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button>
-    <p>{fighter.rulesText}</p>
-    <div className="fighter-resource-strip"><b>{board.xp}<small>XP</small></b><b>{board.focus}<small>FP</small></b></div>
-  </div>;
-  return <section className={`fighter-panel fighter-dossier paper-stack ${enemy ? "is-enemy" : ""}`}>
-    {enemy ? <>{identity}{portrait}</> : <>{portrait}{identity}</>}
+  const art = fighterIllustrationUrl(fighter) ?? artistUrl(fighter) ?? cardPlaceholderUrl;
+  const nextBelt = belts[board.belt + 1];
+  const currentBeltXp = belts[board.belt]?.xp ?? 0;
+  const xpSpan = Math.max(1, (nextBelt?.xp ?? currentBeltXp) - currentBeltXp);
+  const xpProgress = nextBelt ? Math.max(0, Math.min(100, (board.xp - currentBeltXp) / xpSpan * 100)) : 100;
+  const hpProgress = Math.max(0, Math.min(100, board.hp / board.maxHp * 100));
+  const statuses = boardStatusLabels(board);
+  const combatStats: { stat: "ATK" | "DEF" | "SPD"; label: "ATK" | "DEF" | "SPD"; value: number }[] = [
+    { stat: "ATK", label: "ATK", value: fighterStat(board, "ATK") },
+    { stat: "DEF", label: "DEF", value: fighterStat(board, "DEF") },
+    { stat: "SPD", label: "SPD", value: fighterStat(board, "Speed") },
+  ];
+
+  return <section className={`fighter-panel fighter-dossier living-fighter-card paper-stack ${enemy ? "is-enemy" : ""}`} data-side={enemy ? "ai" : "player"}>
+    <i className="fighter-paperclip" aria-hidden="true" />
+    <header className="fighter-card-heading"><div><span>{label}</span><button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button></div><b className="fighter-belt-badge">{belts[board.belt].name}<small>BELT</small></b></header>
+    <div className="fighter-vitality" aria-label={`${fighter.name} has ${board.hp} of ${board.maxHp} HP`}>
+      <div><StatGlyph stat="HP" /><b>{board.hp}</b><span>/ {board.maxHp} HP</span></div>
+      <span className="fighter-hp-track" role="progressbar" aria-valuemin={0} aria-valuemax={board.maxHp} aria-valuenow={board.hp}><i style={{ width: `${hpProgress}%` }} /></span>
+    </div>
+    <button type="button" className="fighter-panel-art fighter-card-illustration" onClick={() => onInspect(fighter)} aria-label={`Inspect ${fighter.name}`}>
+      <span className="fighter-art-halo" aria-hidden="true" />
+      <img src={art} alt={fighter.name} decoding="async" />
+      <span>Inspect fighter</span>
+    </button>
     <div className="fighter-stats fighter-stats--combat" aria-label={`${fighter.name} combat statistics`}>
       {combatStats.map((entry) => <b key={entry.stat}><StatGlyph stat={entry.stat} /><small>{entry.label}</small><span>{entry.value}</span></b>)}
     </div>
-    <button type="button" className="fighter-loadout-launch" onClick={() => onInspect(fighter)}>{enemy ? <><small>equipped</small><b>{board.equipment.length}</b><span>Fighter & loadout</span></> : <><span>Fighter & loadout</span><b>{board.equipment.length}</b><small>equipped</small></>}</button>
+    <div className="fighter-resource-strip">
+      <div className="fighter-xp-meter"><span><b>{board.xp} XP</b><small>{nextBelt ? `${nextBelt.xp} for ${nextBelt.name}` : "Final certification"}</small></span><i role="progressbar" aria-label={`${fighter.name} Belt progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(xpProgress)}><em style={{ width: `${xpProgress}%` }} /></i></div>
+      <b className="fighter-focus-seal"><StatGlyph stat="FP" /><span>{board.focus}</span><small>FOCUS</small></b>
+    </div>
+    <div className="fighter-status-tray" aria-label={`${fighter.name} current statuses`}>{statuses.length ? statuses.map((status) => <span key={status}>{status}</span>) : <span>Standing ready</span>}</div>
+    <p className="fighter-ability"><b>Registered ability</b><span>{fighter.rulesText ?? "No additional ability."}</span></p>
+    <FighterEquipmentTabs board={board} enemy={enemy} onInspect={onInspect} />
   </section>;
 }
 
@@ -1309,7 +1390,28 @@ function LearnedComboRack({ states, onInspect }: { states: { combo: CardEntry; e
   </section>;
 }
 
-function ImpactReadout({ line }: { line: string }) {
+function StageCard({ cardId, side, label, onInspect }: { cardId?: string | null; side: "player" | "ai"; label: string; onInspect: (card: CardEntry) => void }) {
+  const card = cardId ? cardFor(cardId) : null;
+  return <div className={`clash-card-slot clash-card-slot--${side} ${card ? "is-occupied" : ""}`}>
+    <span>{label}</span>
+    {card ? <button type="button" onClick={() => onInspect(card)} aria-label={`Inspect ${card.name}`} key={card.id}>
+      <span className="clash-card-art">{artistUrl(card) ? <img src={artistUrl(card)} alt="" /> : <NativeCardArt card={card} />}</span>
+      <span className="clash-card-copy"><b>{card.name}</b><small>{card.subtype || card.cardType}{card.zone ? ` · ${card.zone}` : ""}</small></span>
+    </button> : <div className="clash-card-empty"><i aria-hidden="true" /><small>Waiting</small></div>}
+  </div>;
+}
+
+function ImpactReadout({ exchange, line }: { exchange?: PlaytestCombatExchange | null; line: string }) {
+  if (exchange) {
+    const attack = cardFor(exchange.attackCardId);
+    const defense = exchange.defenseCardId ? cardFor(exchange.defenseCardId) : null;
+    return <blockquote className={`impact-readout exchange-receipt is-${exchange.outcome}`} key={exchange.id}>
+      <header><span>{exchange.outcome === "hit" ? "Impact certified" : "Block certified"}</span><b>{exchange.zone} · {exchange.isReversal ? "REVERSAL" : "STRIKE"}</b></header>
+      <p><strong>{attack?.name ?? "Attack"}</strong>{defense ? <> met <strong>{defense.name}</strong></> : <> met standing defense</>}</p>
+      <div><b>{exchange.attackPower}<small>ATK</small></b><i>−</i><b>{exchange.defensePower}<small>DEF</small></b><i>=</i><strong>{exchange.damage}<small>HP</small></strong></div>
+      {exchange.notes?.length ? <small>{exchange.notes.slice(0, 2).join(" · ")}</small> : null}
+    </blockquote>;
+  }
   const math = line.match(/Attack (\d+) vs Defense (\d+)/i);
   const hit = math ? Number(math[1]) > Number(math[2]) : false;
   const finalDamage = line.match(/hits(?: [^.]*?)? for (\d+)/i)?.[1];
@@ -1318,6 +1420,54 @@ function ImpactReadout({ line }: { line: string }) {
     {math && <div><b>{math[1]}<small>ATK</small></b><i>−</i><b>{math[2]}<small>DEF</small></b><i>=</i><strong>{finalDamage ?? Math.max(0, Number(math[1]) - Number(math[2]))}<small>HP</small></strong></div>}
     {!math && <p>{line}</p>}
   </blockquote>;
+}
+
+function CombatStage({ match, currentLocation, selectedAttack, turnCoach, guided, playerCards, aiCards, onInspect, onDropCard, onOpenCoach }: { match: Match; currentLocation?: CardEntry; selectedAttack?: CardEntry | null; turnCoach: string; guided: boolean; playerCards: string[]; aiCards: string[]; onInspect: (card: CardEntry) => void; onDropCard: (id: string) => void; onOpenCoach: () => void }) {
+  const exchange = match.lastExchange;
+  const pendingAiAttack = match.pendingStrike?.cardId ?? null;
+  const playerStageCard = selectedAttack?.id
+    ?? (pendingAiAttack ? exchange?.target === "player" ? exchange.defenseCardId : null : exchange?.actor === "player" ? exchange.attackCardId : exchange?.target === "player" ? exchange.defenseCardId : null);
+  const aiStageCard = pendingAiAttack
+    ?? (exchange?.actor === "ai" ? exchange.attackCardId : exchange?.target === "ai" ? exchange.defenseCardId : null);
+  const hotZone = match.pendingStrike?.zone ?? (selectedAttack ? match.selectedZone : exchange?.zone);
+  const phaseLabel = match.phase === "player-initiate" ? "INITIATE"
+    : match.phase === "player-yell" ? "YELL"
+      : match.phase === "player-ascend" ? "ASCEND"
+        : match.phase === "defense-window" ? "REACTION"
+          : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT";
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("application/x-dojo-card") || event.dataTransfer.getData("text/plain");
+    if (id) onDropCard(id);
+  };
+
+  return <section className={`playtest-combat-desk combat-stage paper-stack state-${match.phase}`}>
+    <header className="combat-stage-heading"><button type="button" onClick={() => currentLocation && onInspect(currentLocation)}><span>Current Location</span><b>{currentLocation?.name ?? "Tournament Mat"}</b><small>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</small></button><div><span>ROUND</span><b>{match.round}</b><small>{phaseLabel}</small></div></header>
+    <div className="clash-field" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop} aria-label="Combat stage. Drag a playable card here or use its button.">
+      <StageCard cardId={playerStageCard} side="player" label={pendingAiAttack ? "Your response" : "Your declaration"} onInspect={onInspect} />
+      <div className="clash-seal" aria-label={`${hotZone ?? "No"} combat zone`}><span>{exchange?.outcome === "hit" && !pendingAiAttack && !selectedAttack ? "HIT" : exchange?.outcome === "block" && !pendingAiAttack && !selectedAttack ? "BLOCK" : phaseLabel}</span><b>{(hotZone ?? "—").slice(0, 1)}</b><small>{hotZone ?? "Choose a card"}</small></div>
+      <StageCard cardId={aiStageCard} side="ai" label={pendingAiAttack ? "Incoming strike" : "Opponent filing"} onInspect={onInspect} />
+    </div>
+    <div className="combat-zone-board" aria-label="Combat zones">{["High", "Mid", "Low"].map((zone) => <span className={hotZone === zone ? "is-hot" : ""} key={zone}><b>{zone.slice(0, 1)}</b>{zone}</span>)}</div>
+    <div className="live-mat-play live-mat-play--stage">
+      <MatLane label="Your filed cards" cards={playerCards} activeId={match.selectedAttackId} onInspect={onInspect} />
+      <MatLane label="Opponent filings" cards={aiCards} activeId={match.pendingStrike?.cardId} onInspect={onInspect} />
+    </div>
+    <ImpactReadout exchange={exchange} line={match.log[0]} />
+    {guided && <button type="button" className="contextual-coach-slip" onClick={onOpenCoach}><span>Decision Coach</span><b>{turnCoach}</b><small>Open coach →</small></button>}
+  </section>;
+}
+
+function AcquisitionRail({ match, focus, beltName, xp, onOpen }: { match: Match; focus: number; beltName: string; xp: number; onOpen: (view: DeskView) => void }) {
+  return <section className={`acquisition-rail paper-stack ${match.phase === "player-ascend" ? "is-open" : ""}`} aria-label="Shared acquisition board">
+    <header><div><span>Shared Market</span><b>Seven live cards</b></div><button type="button" onClick={() => onOpen("market")}>{match.phase === "player-ascend" ? "Shop now" : "Inspect Market"} →</button></header>
+    <div className="market-rail-cards">{match.market.map((id, index) => {
+      const card = cardFor(id); if (!card) return null;
+      const art = artistUrl(card);
+      return <button type="button" className={cardCost(card) <= focus ? "is-affordable" : ""} onClick={() => onOpen("market")} aria-label={`Inspect Market slot ${index + 1}: ${card.name}, cost ${cardCost(card)}`} key={`${id}-${index}`}><span>{art ? <img src={art} alt="" loading="lazy" /> : <NativeCardArt card={card} />}</span><b>{card.name}</b><small>{cardCost(card)} Focus</small></button>;
+    })}</div>
+    <div className="acquisition-dockets"><button type="button" onClick={() => onOpen("combo")}><span>∞ Combo docket</span><b>{cardFor(match.comboOfferId ?? "")?.name ?? "No offer"}</b><small>Learned {match.player.learnedCombos.length}/2</small></button><button type="button" onClick={() => onOpen("belt")}><span>Belt ledger</span><b>{beltName}</b><small>{xp} XP filed</small></button></div>
+  </section>;
 }
 
 function MatLane({ label, cards: cardIds, activeId, onInspect }: { label: string; cards: string[]; activeId?: string | null; onInspect: (card: CardEntry) => void }) {
@@ -1333,18 +1483,6 @@ function MatLane({ label, cards: cardIds, activeId, onInspect }: { label: string
   </section>;
 }
 
-function BattleCallout({ line }: { line: string }) {
-  const damage = line.match(/hits(?: [^.]*?)? for (\d+)/i)?.[1];
-  const block = /\bblocks?\b|is blocked/i.test(line);
-  const purchase = /\bBought\b|\bbuys\b/i.test(line);
-  const promote = /Certification approved/i.test(line);
-  if (!damage && !block && !purchase && !promote) return null;
-  return <div className={`battle-callout ${damage ? "is-hit" : block ? "is-block" : "is-paperwork"}`} key={line} aria-hidden="true">
-    <b>{damage ? `${damage} DAMAGE` : block ? "BLOCK!" : promote ? "BELT UP!" : "ACQUIRED!"}</b>
-    <span>{damage ? "impact filing accepted" : block ? "denied by the defense desk" : "stamp applied with unreasonable force"}</span>
-  </div>;
-}
-
 function SetupView({ selectedId, setSelectedId, settings, setSettings, begin }: { selectedId: string; setSelectedId: (id: string) => void; settings: HouseSettings; setSettings: (settings: HouseSettings) => void; begin: () => void }) {
   const [query, setQuery] = useState("");
   const selected = cardFor(selectedId) ?? characters[0];
@@ -1354,11 +1492,11 @@ function SetupView({ selectedId, setSelectedId, settings, setSettings, begin }: 
     const next = choices[Math.floor(Math.random() * choices.length)] ?? filteredCharacters[0] ?? characters[0];
     setSelectedId(next.id);
   };
-  return <main className="playtest-shell shell"><MobilePlaytestNotice />
+  return <main className="playtest-shell playtest-shell--setup shell"><MobilePlaytestNotice />
     <section className="playtest-hero paper-stack"><span className="eyebrow">Department-certified digital field test</span><h1>Shuffle. Strike. Ascend.</h1><p>This is the actual Quick Duel loop: the fixed {starterIds.length}-card curriculum, all approved Market records, live fighter data, automated Locations, Reversals, Belt Exams, and a separate Combo docket.</p><div className="playtest-stamps"><span>{cards.length} approved records</span><span>Quick Duel vs. tactical AI</span><span>Progress saved on this device</span></div></section>
     <section className="playtest-setup-grid">
-      <div className="playtest-roster paper-stack"><div className="roster-toolbar"><div><span className="eyebrow">1 · Choose a fighter</span><h2>Who signs the waiver?</h2></div><div><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a fighter" aria-label="Search fighters" /></label><button onClick={randomize}>Random draw</button></div></div><article className="selected-fighter-dossier"><img src={artistUrl(selected) ?? cardPlaceholderUrl} alt={selected.name} /><div><span>Selected delegation</span><h3>{selected.name}</h3><p>{selected.rulesText ?? "Ability pending an inspector with a functioning pen."}</p><div><b>{numberValue(selected.stats.ATK)}<small>ATK</small></b><b>{numberValue(selected.stats.DEF)}<small>DEF</small></b><b>{numberValue(selected.stats.Speed)}<small>SPD</small></b></div></div></article><div className="playtest-character-grid">{filteredCharacters.map((character) => <button key={character.id} className={selectedId === character.id ? "is-selected" : ""} onClick={() => setSelectedId(character.id)} aria-pressed={selectedId === character.id}><img src={artistUrl(character) ?? cardPlaceholderUrl} alt="" loading="lazy" /><span>{character.name}</span><small>{numberValue(character.stats.ATK)} ATK · {numberValue(character.stats.DEF)} DEF · {numberValue(character.stats.Speed)} SPD</small></button>)}</div></div>
-      <aside className="playtest-rules-panel quick-duel-brief paper-stack"><span className="eyebrow">2 · One official teaser</span><h2>Certified Quick Duel</h2><p>One fighter. One tactical opponent. Fixed 25 Max HP, non-HP Belt rewards, the persistent Market, Locations, Reversals, Combos, and Belt progression. No mode selection and no setup maze—the Department has already made the questionable decisions.</p><ul><li>Desktop playtest</li><li>Guided tactical opponent</li><li>Real Core card catalog</li></ul><button className="button primary field-test-launch" onClick={() => begin()}>Begin Quick Duel as {selected.name} <span>→</span></button></aside>
+      <div className="playtest-roster paper-stack"><div className="roster-toolbar"><div><span className="eyebrow">1 · Choose a fighter</span><h2>Who signs the waiver?</h2></div><div><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a fighter" aria-label="Search fighters" /></label><button onClick={randomize}>Random draw</button></div></div><article className="selected-fighter-dossier"><img src={fighterIllustrationUrl(selected) ?? artistUrl(selected) ?? cardPlaceholderUrl} alt={selected.name} /><div><span>Selected delegation</span><h3>{selected.name}</h3><p>{selected.rulesText ?? "Ability pending an inspector with a functioning pen."}</p><div><b>{numberValue(selected.stats.ATK)}<small>ATK</small></b><b>{numberValue(selected.stats.DEF)}<small>DEF</small></b><b>{numberValue(selected.stats.Speed)}<small>SPD</small></b></div></div></article><div className="playtest-character-grid">{filteredCharacters.map((character) => <button key={character.id} className={selectedId === character.id ? "is-selected" : ""} onClick={() => setSelectedId(character.id)} aria-pressed={selectedId === character.id}><img src={fighterIllustrationUrl(character) ?? artistUrl(character) ?? cardPlaceholderUrl} alt="" loading="lazy" /><span>{character.name}</span><small>{numberValue(character.stats.ATK)} ATK · {numberValue(character.stats.DEF)} DEF · {numberValue(character.stats.Speed)} SPD</small></button>)}</div></div>
+      <aside className="playtest-rules-panel quick-duel-brief paper-stack"><span className="eyebrow">2 · One official teaser</span><h2>Certified Quick Duel</h2><p>One fighter. One tactical opponent. Fixed 25 Max HP, non-HP Belt rewards, the persistent Market, Locations, Reversals, Combos, and Belt progression. No mode selection and no setup maze—the Department has already made the questionable decisions.</p><div className="playtest-setup-options"><label><span>Opponent</span><select value={settings.difficulty} onChange={(event) => setSettings({ ...settings, difficulty: event.target.value as Difficulty })}>{Object.entries(DIFFICULTIES).map(([value, option]) => <option value={value} key={value}>{option.label}</option>)}</select></label><label><span>Combat motion</span><select value={settings.motion} onChange={(event) => setSettings({ ...settings, motion: event.target.value as MotionMode })}><option value="full">Full</option><option value="reduced">Reduced</option><option value="off">Off</option></select></label><label className="playtest-setup-check"><input type="checkbox" checked={settings.guided} onChange={(event) => setSettings({ ...settings, guided: event.target.checked })} /><span>Start with Decision Coach</span></label></div><ul><li>Desktop playtest</li><li>{DIFFICULTIES[settings.difficulty].detail}</li><li>Progress saved on this device</li></ul><button className="button primary field-test-launch" onClick={() => begin()}>Begin Quick Duel as {selected.name} <span>→</span></button></aside>
     </section>
   </main>;
 }
@@ -1372,8 +1510,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const [settings, setSettings] = useState<HouseSettings>(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-settings") ?? "null") as Partial<HouseSettings> | null;
-      return { tempo: saved?.tempo ?? true, locations: saved?.locations ?? true, openMarket: saved?.openMarket ?? true, guided: saved?.guided ?? true, autoAi: saved?.autoAi ?? true, balancedMarket: saved?.balancedMarket ?? true, difficulty: saved?.difficulty && DIFFICULTIES[saved.difficulty] ? saved.difficulty : "certified" };
-    } catch { return { tempo: true, locations: true, openMarket: true, guided: true, autoAi: true, balancedMarket: true, difficulty: "certified" }; }
+      const storedMotion = window.localStorage.getItem("ddb-vfx-mode");
+      const motion = saved?.motion ?? (storedMotion === "reduced" || storedMotion === "off" ? storedMotion : "full");
+      return { tempo: saved?.tempo ?? true, locations: saved?.locations ?? true, openMarket: saved?.openMarket ?? true, guided: saved?.guided ?? true, autoAi: saved?.autoAi ?? true, balancedMarket: saved?.balancedMarket ?? true, difficulty: saved?.difficulty && DIFFICULTIES[saved.difficulty] ? saved.difficulty : "certified", motion };
+    } catch { return { tempo: true, locations: true, openMarket: true, guided: true, autoAi: true, balancedMarket: true, difficulty: "certified", motion: "full" }; }
   });
   const [match, setMatch] = useState<Match | null>(() => {
     try {
@@ -1394,7 +1534,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const [rulesSync, setRulesSync] = useState<RulesSyncState>({ status: "checking", currentVersion: activeRulesRevision, latestVersion: activeRulesRevision, checkedAt: 0 });
   const inspected = inspectedId ? cardFor(inspectedId) : null;
 
-  useEffect(() => { window.localStorage.setItem("ddb-field-settings", JSON.stringify(settings)); }, [settings]);
+  useEffect(() => {
+    window.localStorage.setItem("ddb-field-settings", JSON.stringify(settings));
+    window.localStorage.setItem("ddb-vfx-mode", settings.motion);
+  }, [settings]);
   useEffect(() => {
     try {
       if (match) window.localStorage.setItem("ddb-field-match", JSON.stringify(match));
@@ -1441,7 +1584,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
     const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
     setDeskView(null);
-    setMatch({ schema: 8, rulesVersion: activeRulesRevision, player, ai, market: openingMarket.market, marketDeck: openingMarket.marketDeck, marketDiscard: [], marketPurchasedThisRound: false, comboDeck: comboDeck.slice(1), comboOfferId: comboDeck[0] ?? null, locations: locations.slice(1), locationId: currentLocation, round: 1, phase: playerFirst ? "player-initiate" : "ai-ready", turnOrder, turnIndex: 0, selectedAttackId: null, selectedZone: "High", pendingStrike: null, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, reversalRemainingAiAttacks: [], reversalReason: null, reversalIncomingZone: null, attackCostDecisionCardId: null, nonHonorSceneChangedThisRound: false, winner: null, log: [`${challenge.label} field test opened under rules ${activeRulesRevision}. The waiver is legally adjacent to complete.`, `Honor 1: ${cardFor(currentLocation)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo.`, `${playerFirst ? "You" : "Computer"} win initiative on current Speed.`] });
+    setMatch({ schema: 8, rulesVersion: activeRulesRevision, player, ai, market: openingMarket.market, marketDeck: openingMarket.marketDeck, marketDiscard: [], marketPurchasedThisRound: false, comboDeck: comboDeck.slice(1), comboOfferId: comboDeck[0] ?? null, locations: locations.slice(1), locationId: currentLocation, round: 1, phase: playerFirst ? "player-initiate" : "ai-ready", turnOrder, turnIndex: 0, selectedAttackId: null, selectedZone: "High", pendingStrike: null, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, reversalRemainingAiAttacks: [], reversalReason: null, reversalIncomingZone: null, attackCostDecisionCardId: null, nonHonorSceneChangedThisRound: false, exchangeSequence: 0, lastExchange: null, winner: null, log: [`${challenge.label} field test opened under rules ${activeRulesRevision}. The waiver is legally adjacent to complete.`, `Honor 1: ${cardFor(currentLocation)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo.`, `${playerFirst ? "You" : "Computer"} win initiative on current Speed.`] });
   };
 
   const write = (current: Match, line: string, changes: Partial<Match> = {}) => ({ ...current, ...changes, log: [line, ...current.log].slice(0, 32) });
@@ -1715,7 +1858,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : cycleDiscardCount ? { kind: "discard-hand", sourceCardId: card.id, remaining: cycleDiscardCount, sourceFollowup: false }
       : optionalCycle && nextPlayer.hand.length ? { kind: "discard-draw", sourceCardId: card.id, remaining: optionalCycle.discard, draw: optionalCycle.draw } : null;
     const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...(reduced.note ? [reduced.note] : [])];
-    return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, winner: nextAi.hp ? null : "player" });
+    const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
+    return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: nextAi.hp ? null : "player" });
   });
 
   const playSupport = (id: string) => setMatch((current) => {
@@ -2035,6 +2179,20 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       }
       nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve");
     }
+    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
+    const lastExchange: PlaytestCombatExchange = {
+      id: exchangeId(current, "ai", aiCard.id),
+      actor: "ai",
+      target: "player",
+      attackCardId: aiCard.id,
+      defenseCardId: defenseCard?.id ?? null,
+      zone: pending.zone,
+      attackPower: finalAttackPower,
+      defensePower,
+      damage,
+      outcome: hit ? "hit" : "block",
+      notes: modifiers,
+    };
     if (blockDiscardChoice && nextPlayer.hand.length) {
       const discardCount = Math.min(blockDiscardChoice, nextPlayer.hand.length);
       const reversalEligible = !nextPlayer.reversalUsedRound;
@@ -2044,6 +2202,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         pendingStrike: null,
         pendingChoice: { kind: "discard-hand", sourceCardId: defenseCard!.id, remaining: discardCount, afterChoice: "resume-defense", sourceFollowup: false },
         pendingCombatContinuation: { remainingAiAttacks: pending.remainingAiAttacks, reversalEligible },
+        exchangeSequence: (current.exchangeSequence ?? 0) + 1,
+        lastExchange,
         winner: null,
       });
     }
@@ -2056,6 +2216,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         pendingStrike: null,
         pendingChoice: { kind: "post-block-cycle", sourceCardId: postBlockCycle.card.id, draw: postBlockCycle.plan.draw, discard: postBlockCycle.plan.discard },
         pendingCombatContinuation: { remainingAiAttacks: pending.remainingAiAttacks, reversalEligible },
+        exchangeSequence: (current.exchangeSequence ?? 0) + 1,
+        lastExchange,
         winner: null,
       });
       return paused;
@@ -2066,8 +2228,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : defenseCard
         ? `${defenseCard.name} blocks ${aiCard.name} and is discarded. Attack ${finalAttackPower} vs Defense ${defensePower}.`
         : `No Defense card was played; your standing DEF/Equipment blocks ${aiCard.name}. Attack ${finalAttackPower} vs Defense ${defensePower}.`;
-    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
-    const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " : ""}${message}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingStrike: null, pendingCombatContinuation: null, winner: nextPlayer.hp ? null : "ai" });
+    const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " : ""}${message}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingStrike: null, pendingCombatContinuation: null, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: nextPlayer.hp ? null : "ai" });
     if (!nextPlayer.hp) return resolved;
     const forcedTargetDiscard = hit ? targetDiscardOnHitCount(aiCard) : 0;
     if (forcedTargetDiscard && nextPlayer.hand.length) {
@@ -2148,12 +2309,52 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     nextAi = aiPostBlock.board;
     nextPlayer = markCompletedTask(nextPlayer);
     const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...(reduced.note ? [reduced.note] : [])];
+    const lastExchange: PlaytestCombatExchange = {
+      id: exchangeId(current, "player", card.id),
+      actor: "player",
+      target: "ai",
+      attackCardId: card.id,
+      defenseCardId: defenseCard?.id ?? null,
+      zone,
+      attackPower,
+      defensePower,
+      damage,
+      outcome: hit ? "hit" : "block",
+      isReversal: true,
+      notes: modifiers,
+    };
     const result = hit ? `Reversal! ${card.name} hits ${cardFor(current.ai.fighterId)?.name ?? "the computer"} for ${damage}.` : `Reversal! ${card.name} is blocked${defenseCard ? ` by ${defenseCard.name}` : " by base DEF"}.`;
-    const resolved = write(current, `${result} Attack ${attackPower} vs Defense ${defensePower}.${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, winner: nextAi.hp ? null : "player" });
+    const resolved = write(current, `${result} Attack ${attackPower} vs Defense ${defensePower}.${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: nextAi.hp ? null : "player" });
     if (!nextAi.hp) return resolved;
     if (current.reversalRemainingAiAttacks.length) return openAiStrike(resolved, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo);
     return finishAiTurn(resolved, "Computer finishes its Yell after surviving the Reversal paperwork.", settings.locations);
   });
+
+  const useHandCard = (id: string) => {
+    const card = cardFor(id);
+    if (!match || !card || match.winner || match.pendingChoice || !match.player.hand.includes(id)) return;
+    if (match.pendingDiscard) {
+      choosePendingDiscard(id);
+      return;
+    }
+    if (match.phase === "defense-window") {
+      if (match.pendingStrike && legalDefenseIds(match.player, match.pendingStrike.zone).includes(id)) resolveDefense(id);
+      return;
+    }
+    if (match.phase === "reversal-window") {
+      if (isAttack(card)) chooseAttack(card);
+      return;
+    }
+    if (match.phase === "player-initiate") {
+      if (isPermanent(card)) equipPermanent(id);
+      return;
+    }
+    if (match.phase !== "player-yell") return;
+    if (card.catalogId === gameDefinition.economy.badHabitFocus.catalogId && !match.player.badHabitFocusUsed) discardBadHabitForFocus(id);
+    else if (isAttack(card)) chooseAttack(card);
+    else if (isDefense(card) && !match.player.defensePracticeUsed) practiceDefense(id);
+    else if (!isPermanent(card)) playSupport(id);
+  };
 
   if (!match || !player || !ai || !playerFighter || !aiFighter) return <SetupView selectedId={selectedId} setSelectedId={setSelectedId} settings={settings} setSettings={setSettings} begin={begin} />;
   const pendingAttack = match.selectedAttackId ? cardFor(match.selectedAttackId) : null;
@@ -2226,23 +2427,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }) : null;
     return { combo, evaluation, triggered: player.triggeredCombos.includes(id) };
   }).filter(Boolean) as { combo: CardEntry; evaluation: ReturnType<typeof evaluateCombo> | null; triggered: boolean }[];
-  const practiceFocus = player.defensePracticeUsed ? 0 : Math.max(0, ...player.hand.map((id) => {
-    const card = cardFor(id);
-    return card && isDefense(card) ? cardFocus(card) : 0;
-  }));
-  const attackFocus = player.hand.filter((id) => {
-    const card = cardFor(id);
-    return Boolean(card && isAttack(card));
-  }).map((id) => cardFocus(cardFor(id))).sort((left, right) => right - left)
-    .reduce((total, value) => total + value, 0);
-  const supportFocus = player.hand.reduce((total, id) => {
-    const card = cardFor(id);
-    const playable = card && !isAttack(card) && !isDefense(card) && !isPermanent(card);
-    return total + (playable ? cardFocus(card) : 0);
-  }, 0);
-  const playableFocus = player.focus + practiceFocus + attackFocus + supportFocus;
   const affordableNow = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= player.focus).length;
-  const affordableForecast = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= playableFocus).length;
   const ascendStepIndex = deskView === "combo" ? 1 : deskView === "belt" ? 2 : 0;
   const ascendStepTitle = deskView === "combo" ? "Combo Docket" : deskView === "belt" ? "Belt Check" : "Shared Market";
   const ascendStepHelp = deskView === "combo"
@@ -2268,11 +2453,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const winnerFighter = match.winner === "ai" ? aiFighter : playerFighter;
   const winnerArt = artistUrl(winnerFighter);
 
-  return <main className={`playtest-shell playtest-shell--live ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}><MobilePlaytestNotice />
+  return <main className={`playtest-shell playtest-shell--live location-${locationTheme(currentLocation)} motion-${settings.motion} ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}><MobilePlaytestNotice />
     <header className="playtest-topbar battle-versus-hud">
-      <section className="versus-fighter versus-player"><div><b>{playerFighter.name}</b><span>{belts[player.belt].name} Belt · {player.hp}/{player.maxHp} HP</span></div><div className="versus-health"><span style={{ width: `${Math.max(0, Math.min(100, player.hp / player.maxHp * 100))}%` }} /></div></section>
       <div className="versus-center" aria-label={`Round ${match.round}`}><span>ROUND</span><b>{match.round}</b></div>
-      <section className="versus-fighter versus-enemy"><div><b>{aiFighter.name}</b><span>{belts[ai.belt].name} Belt · {ai.hp}/{ai.maxHp} HP</span></div><div className="versus-health"><span style={{ width: `${Math.max(0, Math.min(100, ai.hp / ai.maxHp * 100))}%` }} /></div></section>
     </header>
     {match.winner && <section className={`match-result paper-stack ${match.winner === "player" ? "is-victory" : "is-defeat"}`}>
       {match.winner === "player" && <div className="victory-confetti" aria-hidden="true">{Array.from({ length: 28 }, (_, index) => <i style={{ left: `${(index * 37) % 100}%`, animationDelay: `${(index % 8) * .11}s`, animationDuration: `${2.45 + (index % 5) * .2}s` }} key={index} />)}</div>}
@@ -2287,39 +2470,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       </div>
     </section>}
     <section className="playtest-arena">
-    <section className="playtest-table">
-      <BattleCallout line={match.log[0]} />
-      <div className="fighter-column fighter-column--player"><FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} /><LearnedComboRack states={learnedComboStates} onInspect={(card) => setInspectedId(card.id)} /></div>
-      <section className={`playtest-combat-desk paper-stack state-${match.phase}`}>
-        <div className="live-mat-heading"><span className="eyebrow">Live mat · cards in play</span><small>Click any filed card to inspect it</small></div>
-        <div className="live-mat-play">
-          <MatLane label="Your side" cards={player.playArea} activeId={match.selectedAttackId} onInspect={(card) => setInspectedId(card.id)} />
-          <MatLane label="Opponent side" cards={ai.playArea} activeId={match.pendingStrike?.cardId} onInspect={(card) => setInspectedId(card.id)} />
+      <section className="playtest-table">
+        <div className="fighter-column fighter-column--player"><FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} /><LearnedComboRack states={learnedComboStates} onInspect={(card) => setInspectedId(card.id)} /></div>
+        <div className="combat-stage-column">
+          <CombatStage match={match} currentLocation={currentLocation} selectedAttack={pendingAttack} turnCoach={turnCoach} guided={settings.guided} playerCards={player.playArea} aiCards={ai.playArea} onInspect={(card) => setInspectedId(card.id)} onDropCard={useHandCard} onOpenCoach={() => setCoachOpen(true)} />
+          {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary run-opponent-turn" onClick={runAiTurn}>Run computer turn →</button>}
+          {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}
         </div>
-        <div className="combat-meters">
-          <b><small>FOCUS / POTENTIAL</small>{player.focus}<em>/{playableFocus}</em></b>
-          <button type="button" onClick={() => setDeskView("belt")}><small>BELT / XP</small><strong>{belts[player.belt].name}</strong><em>{player.xp} XP</em></button>
-          <b className={player.tempo ? "tempo-ready" : ""}><small>TEMPO</small>{player.tempo ? "READY" : "USED"}</b>
-        </div>
-        <div className="combat-desk-links" aria-label="Open acquisition records">
-          <button type="button" onClick={() => setDeskView("market")}><span>Open Market</span><b>{affordableNow}/{match.market.length}</b><small>browse seven cards</small></button>
-          <button type="button" onClick={() => setDeskView("combo")}><span>Open Combos</span><b>{player.learnedCombos.length}/2</b><small>inspect the offer</small></button>
-        </div>
-        <div className="combat-zone-board" aria-label="Combat zones">{["High", "Mid", "Low"].map((zone) => <span className={(match.pendingStrike?.zone === zone || (pendingAttack && match.selectedZone === zone)) ? "is-hot" : ""} key={zone}><b>{zone.slice(0, 1)}</b>{zone}</span>)}</div>
-        <p>{match.phase === "player-initiate" ? "Initiate: equip permanent Equipment, then move to Yell." : match.phase === "player-yell" ? "Yell: play any number of legal Attacks from your hand." : match.phase === "player-ascend" ? "Ascend: the acquisition desk is open for Market, Combo, and Belt actions." : match.phase === "defense-window" ? "Reaction Window: play one matching Defense or pass." : match.phase === "reversal-window" ? "Reversal Window: counterattack with one Attack from hand or decline." : settings.autoAi ? "Computer is reviewing several bad ideas…" : "Computer turn: let it make its choices."}</p>
-        <ImpactReadout line={match.log[0]} />
-        {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary" onClick={runAiTurn}>Run computer turn →</button>}
-        {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}
+        <div className="fighter-column fighter-column--enemy"><FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} /></div>
       </section>
-      <div className="fighter-column fighter-column--enemy">
-        <FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} />
-        <section className="playtest-stage-rail paper-stack" aria-label="Current stage">
-          <header><span>Current stage</span><b>Honor {match.round}</b></header>
-          <button type="button" onClick={() => currentLocation && setInspectedId(currentLocation.id)}><strong>{currentLocation?.name ?? "Tournament Mat"}</strong><small>Inspect stage rules →</small></button>
-          <p>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</p>
-        </section>
-      </div>
-    </section>
+      <AcquisitionRail match={match} focus={player.focus} beltName={belts[player.belt].name} xp={player.xp} onOpen={setDeskView} />
     </section>
     <section className="playtest-workspace playtest-workspace--hand">
       <section className="hand-panel paper-stack">
@@ -2336,7 +2496,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const canUse = match.phase === "player-yell" && (attack || (defense ? !player.defensePracticeUsed : !permanent));
           const canDefend = match.phase === "defense-window" && defenseOptions.includes(id);
           const canReverse = match.phase === "reversal-window" && attack;
-          return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !canDefend : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={choosingDiscard ? () => choosePendingDiscard(id) : match.phase === "defense-window" ? () => resolveDefense(id) : match.phase === "reversal-window" ? () => chooseAttack(card) : match.phase === "player-initiate" ? () => equipPermanent(id) : badHabit && !player.badHabitFocusUsed ? () => discardBadHabitForFocus(id) : attack ? () => chooseAttack(card) : defense ? () => practiceDefense(id) : () => playSupport(id)} onInspect={() => setInspectedId(id)} />;
+          return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !canDefend : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={() => useHandCard(id)} onInspect={() => setInspectedId(id)} />;
         })}</div>
         {match.phase === "player-initiate" && playerFighter.name === "Sensei Ducktape" && !player.abilityUsedRound && player.discard.some((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }) && <div className="ducktape-tray"><span>Sensei Ducktape · emergency repair</span>{player.discard.filter((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }).slice(0, 3).map((id) => <button onClick={() => borrowEquipment(id)} key={id}>Jury-rig {cardFor(id)?.name}</button>)}</div>}
         {match.phase === "reversal-window" && pendingAttack?.zone?.includes("Any") && <div className="hand-context-strip"><span>Choose reversal zone</span><fieldset className="zone-picker"><legend className="sr-only">Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
@@ -2356,7 +2516,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       {match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}
     </nav>}
     <footer className="playtest-utility-dock" aria-label="Quick Duel utilities">
-      <div className="playtest-utility-group"><button type="button" className={`utility-coach ${settings.guided ? "" : "is-off"}`} onClick={() => { if (!settings.guided) setSettings({ ...settings, guided: true }); setCoachOpen(true); }}>{settings.guided ? "Decision Coach" : "Coach Off · Re-enable"}</button><button type="button" onClick={() => setLogOpen(true)}>Fight Log <b>{match.log.length}</b></button></div>
+      <div className="playtest-utility-group"><button type="button" className={`utility-coach ${settings.guided ? "" : "is-off"}`} onClick={() => { if (!settings.guided) setSettings({ ...settings, guided: true }); setCoachOpen(true); }}>{settings.guided ? "Decision Coach" : "Coach Off · Re-enable"}</button><button type="button" onClick={() => setLogOpen(true)}>Fight Log <b>{match.log.length}</b></button><label className="utility-motion"><span>Motion</span><select value={settings.motion} onChange={(event) => setSettings({ ...settings, motion: event.target.value as MotionMode })}><option value="full">Full</option><option value="reduced">Reduced</option><option value="off">Off</option></select></label></div>
       <div className="playtest-utility-group playtest-utility-group--nav"><span className={`rules-sync rules-sync--${rulesSync.status}`}>{rulesSync.status === "update-available" ? `Rules ${rulesSync.latestVersion} ready` : rulesSync.status === "offline" ? "Rules offline" : "Rules synced"}</span>{rulesSync.status === "update-available" && <button onClick={() => window.location.reload()}>Reload</button>}<button onClick={() => setMatch(null)}>New Duel</button><button onClick={() => goTo("rules")}>Rules</button><button onClick={() => goTo("cards")}>Cards</button></div>
     </footer>
     {deskView && <div className="ascend-desk-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDeskView(null)}>
@@ -2403,7 +2563,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     </div>}
     {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
     {coachOpen && !match.winner && <div className="playtest-inspector-backdrop coach-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setCoachOpen(false)}><section className="coach-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="coach-dialog-title"><button className="modal-close" onClick={() => setCoachOpen(false)} aria-label="Close Decision Coach">×</button><span className="eyebrow">Decision coach · optional guidance</span><h2 id="coach-dialog-title">What should I do now?</h2><div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Recommended next step</span><p>{turnCoach}</p></div><div className="coach-dialog-actions"><button className="button primary" onClick={() => setCoachOpen(false)}>Back to the mat →</button><button className="button ghost" onClick={() => { setSettings({ ...settings, guided: false }); setCoachOpen(false); }}>Turn coach off</button></div><small>You can re-enable the Coach from the utility bar at any time.</small></section></div>}
-    {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><ol>{match.log.map((line, index) => <li key={`${line}-${index}`}><b>{match.log.length - index}</b><span>{line}</span></li>)}</ol></section></div>}
+    {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><div className="fight-log-groups">{groupedFightLog(match.log).map((group, groupIndex) => <section key={`${group.label}-${groupIndex}`}><h3>{group.label}</h3><ol>{group.lines.map((line, index) => <li key={`${line}-${index}`}><b>{group.lines.length - index}</b><span>{line}</span></li>)}</ol></section>)}</div></section></div>}
     {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
       <article className={`playtest-inspector paper-stack ${inspectorZoomed ? "is-zoomed" : ""} ${inspectedBoard ? "is-fighter-dossier" : ""}`} role="dialog" aria-modal="true" aria-labelledby="playtest-inspector-title">
         <button className="modal-close" onClick={() => setInspectedId(null)} aria-label="Close Card Inspector">×</button>

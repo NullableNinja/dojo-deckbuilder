@@ -11,10 +11,9 @@ test("Quick Duel retires the HIYAH phase rail and uses a round-only center HUD",
 });
 
 test("removing HIYAH also reclaims its legacy board column", async () => {
-  const css = await readFile(new URL("../app/playtest-board-v4.css", import.meta.url), "utf8");
-  assert.match(css, /Round HUD cleanup v9/);
-  assert.match(css, /\.playtest-shell--live \.game-phase-rail[\s\S]*?display:\s*none\s*!important/);
-  assert.match(css, /\.playtest-shell--live \.playtest-topbar,[\s\S]*?grid-column:\s*auto\s*!important/);
-  assert.match(css, /\.versus-center > span[\s\S]*?color:\s*#fff\s*!important[\s\S]*?font-size:\s*9px\s*!important/);
-  assert.match(css, /\.versus-center > small[\s\S]*?display:\s*none\s*!important/);
+  const css = await readFile(new URL("../app/playtest-production-mat.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css, /\.game-phase-rail/);
+  assert.match(css, /\.playtest-shell--live \.playtest-topbar,[\s\S]*?grid-template-columns:\s*1fr 76px 1fr/);
+  assert.match(css, /\.playtest-shell--live \.versus-center > span \{[^}]*color:\s*#fff7da[^}]*font-size:\s*7px/);
+  assert.doesNotMatch(css, /\.versus-center > small/);
 });

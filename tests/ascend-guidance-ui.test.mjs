@@ -19,8 +19,8 @@ test("the persistent action dock cannot prematurely Hide during Ascend", async (
 });
 
 test("visual overhaul keeps every major Quick Duel surface represented", async () => {
-  const css = await readFile(new URL("../app/playtest-board-v4.css", import.meta.url), "utf8");
-  for (const selector of [".battle-versus-hud", ".playtest-location", ".fighter-dossier", ".playtest-combat-desk", ".hand-panel", ".ascend-guide", ".ascend-step-coach"]) {
+  const css = await readFile(new URL("../app/playtest-production-mat.css", import.meta.url), "utf8");
+  for (const selector of [".battle-versus-hud", ".combat-stage-heading", ".living-fighter-card", ".combat-stage", ".hand-panel", ".acquisition-rail", ".ascend-guide", ".ascend-step-coach"]) {
     assert.match(css, new RegExp(selector.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")));
   }
 });

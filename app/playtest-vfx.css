@@ -98,26 +98,26 @@
 .playtest-vfx-banner--combo { background: #d7cbff; }
 .playtest-vfx-banner--scene { background: #d7ecd6; font-size: clamp(1rem, 2.6vw, 2rem); }
 
-.versus-fighter.ddb-vfx-attack,
-.versus-fighter.ddb-vfx-brace,
-.versus-fighter.ddb-vfx-hit,
-.versus-fighter.ddb-vfx-block,
-.versus-fighter.ddb-vfx-certified,
-.versus-fighter.ddb-vfx-combo,
-.versus-fighter.ddb-vfx-ko {
+.living-fighter-card.ddb-vfx-attack,
+.living-fighter-card.ddb-vfx-brace,
+.living-fighter-card.ddb-vfx-hit,
+.living-fighter-card.ddb-vfx-block,
+.living-fighter-card.ddb-vfx-certified,
+.living-fighter-card.ddb-vfx-combo,
+.living-fighter-card.ddb-vfx-ko {
   position: relative;
   z-index: 3;
   will-change: transform, filter, box-shadow;
 }
 
-.versus-player.ddb-vfx-attack { animation: ddb-vfx-lunge-right 470ms cubic-bezier(.18,.86,.24,1); }
-.versus-enemy.ddb-vfx-attack { animation: ddb-vfx-lunge-left 470ms cubic-bezier(.18,.86,.24,1); }
-.versus-fighter.ddb-vfx-brace { animation: ddb-vfx-brace 430ms ease-out; }
-.versus-fighter.ddb-vfx-hit { animation: ddb-vfx-hit 650ms cubic-bezier(.18,.75,.28,1); }
-.versus-fighter.ddb-vfx-block { animation: ddb-vfx-block 720ms ease-out; }
-.versus-fighter.ddb-vfx-certified { animation: ddb-vfx-certified 760ms cubic-bezier(.18,.84,.28,1); }
-.versus-fighter.ddb-vfx-combo { animation: ddb-vfx-combo 720ms ease-out; }
-.versus-fighter.ddb-vfx-ko { animation: ddb-vfx-ko 1.25s ease-out both; }
+.living-fighter-card[data-side="player"].ddb-vfx-attack { animation: ddb-vfx-lunge-right 470ms cubic-bezier(.18,.86,.24,1); }
+.living-fighter-card[data-side="ai"].ddb-vfx-attack { animation: ddb-vfx-lunge-left 470ms cubic-bezier(.18,.86,.24,1); }
+.living-fighter-card.ddb-vfx-brace { animation: ddb-vfx-brace 430ms ease-out; }
+.living-fighter-card.ddb-vfx-hit { animation: ddb-vfx-hit 650ms cubic-bezier(.18,.75,.28,1); }
+.living-fighter-card.ddb-vfx-block { animation: ddb-vfx-block 720ms ease-out; }
+.living-fighter-card.ddb-vfx-certified { animation: ddb-vfx-certified 760ms cubic-bezier(.18,.84,.28,1); }
+.living-fighter-card.ddb-vfx-combo { animation: ddb-vfx-combo 720ms ease-out; }
+.living-fighter-card.ddb-vfx-ko { animation: ddb-vfx-ko 1.25s ease-out both; }
 
 .playtest-shell--live.ddb-vfx-screen-impact {
   animation: ddb-vfx-screen-impact 520ms ease-out;
@@ -202,13 +202,13 @@
 @media (prefers-reduced-motion: reduce) {
   .playtest-vfx-cue,
   .playtest-vfx-banner,
-  .versus-fighter.ddb-vfx-attack,
-  .versus-fighter.ddb-vfx-brace,
-  .versus-fighter.ddb-vfx-hit,
-  .versus-fighter.ddb-vfx-block,
-  .versus-fighter.ddb-vfx-certified,
-  .versus-fighter.ddb-vfx-combo,
-  .versus-fighter.ddb-vfx-ko,
+  .living-fighter-card.ddb-vfx-attack,
+  .living-fighter-card.ddb-vfx-brace,
+  .living-fighter-card.ddb-vfx-hit,
+  .living-fighter-card.ddb-vfx-block,
+  .living-fighter-card.ddb-vfx-certified,
+  .living-fighter-card.ddb-vfx-combo,
+  .living-fighter-card.ddb-vfx-ko,
   .playtest-shell--live.ddb-vfx-screen-impact,
   .playtest-shell--live.ddb-vfx-scene {
     animation-duration: 180ms !important;
