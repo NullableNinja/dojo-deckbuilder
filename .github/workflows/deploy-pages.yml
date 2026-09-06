@@ -59,6 +59,11 @@ jobs:
             fi
           done
 
+      - name: Run full repository test gate
+        env:
+          GITHUB_PAGES: true
+        run: npm test
+
       - name: Set up GitHub Pages
         uses: actions/configure-pages@v5
 
