@@ -1,5 +1,6 @@
 import cardsJson from "./data/cards.json" with { type: "json" };
 import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
+import { SUPPORTED_KATA_RESOLVERS } from "./kata-effect-resolvers";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
 export type EffectKind = "draw" | "discard" | "heal" | "focus" | "speed" | "nextAttackPower";
@@ -172,6 +173,10 @@ function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | 
   return null;
 }
 
+function isImplementedDedicatedResolver(resolver: string) {
+  return IMPLEMENTED_DEDICATED_RESOLVERS.has(resolver) || SUPPORTED_KATA_RESOLVERS.has(resolver);
+}
+
 function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): CardEffectPlan {
   const effects: CardEffect[] = [];
   const dedicated: string[] = [];
@@ -182,7 +187,7 @@ function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): C
       effects.push(compatible);
       continue;
     }
-    if (effect.resolver && IMPLEMENTED_DEDICATED_RESOLVERS.has(effect.resolver)) {
+    if (effect.resolver && isImplementedDedicatedResolver(effect.resolver)) {
       dedicated.push(effect.resolver);
       continue;
     }
@@ -213,7 +218,8 @@ export function structuredEffectsForCard(card: StructuredCardLike, registry?: St
   if (Array.isArray(card.effects)) return card.effects;
   const catalogId = String(card.catalogId ?? "").trim();
   if (!catalogId) return null;
-  const entry = registry?.cards?.[catalogId];
+  const activeRegistry = registry ?? runtimeRegistry;
+  const entry = activeRegistry.cards?.[catalogId];
   return entry && Array.isArray(entry.effects) ? entry.effects : null;
 }
 
