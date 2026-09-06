@@ -6,7 +6,7 @@ import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import rulesJson from "./data/rules.json";
 import { compileCardEffects, describeEffectPlan } from "./card-effects";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, structuredFocusIfFastest, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import "./combo-rack.css";
 import "./playtest-board-v4.css";
@@ -372,7 +372,7 @@ function locationFocusModifier(location: CardEntry | undefined, card: CardEntry,
   return { value: 0, notes: [] };
 }
 
-function printedAttackRuleModifier(attacker: Board, defender: Board, card: CardEntry, zone: string): AttackModifier {
+function printedAttackRuleModifier(attacker: Board, defender: Board, card: CardEntry, zone: string, isReversal = false): AttackModifier {
   const priorCards = attacker.cardsThisTurn.map(cardFor).filter((prior): prior is CardEntry => Boolean(prior));
   const priorAttacks = priorCards.filter(isAttack);
   const playedKata = priorCards.some(isKata);
@@ -388,6 +388,8 @@ function printedAttackRuleModifier(attacker: Board, defender: Board, card: CardE
     targetEquipmentCount: defender.equipment.length,
     attackNumber: attacker.attacksThisTurn + 1,
     hasTempo: attacker.tempo,
+    targetTempoUsed: !defender.tempo,
+    playedAsReversal: isReversal,
     hasFewerCardsThanTarget: attacker.hand.length < defender.hand.length,
     targetSpeedHigher: defenderSpeed > attackerSpeed,
     priorLowAttack: attacker.zonesPlayed.some((priorZone) => priorZone.toLocaleLowerCase() === "low"),
@@ -1032,8 +1034,11 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
 
 function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier) {
   if (board.nextAttackHasFlow || combo.grantsFlow) return true;
+  const hasWeaponEquipped = board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
+  const structuredFlow = structuredCurrentAttackFlow(card, { hasWeaponEquipped });
+  if (structuredFlow.handled) return structuredFlow.hasFlow;
   if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {
-    return !/Weapon equipped/i.test(card.rulesText ?? "") || board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
+    return !/Weapon equipped/i.test(card.rulesText ?? "") || hasWeaponEquipped;
   }
   const pairedWeapons = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item && isWeapon(item) && hasTag(item, "Paired")));
   if (board.attacksThisTurn === 1 && pairedWeapons.length >= 2 && board.equipment.some((id) => cardFor(id)?.name === "Escrima Sticks")) return true;
@@ -1932,7 +1937,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const location = cardFor(current.locationId);
     const locationModifier = locationAttackModifier(location, card, current.player, zone);
     const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
-    const printedModifier = printedAttackRuleModifier(current.player, current.ai, card, zone);
+    const printedModifier = printedAttackRuleModifier(current.player, current.ai, card, zone, true);
     const incomingModifier = incomingAttackEquipmentModifier(current.ai);
     const comboModifier = comboAttackModifier(current.player, card, zone, true);
     const rawArmorModifier = equipmentDefenseModifier(current.ai, zone);

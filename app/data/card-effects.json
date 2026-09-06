@@ -363,6 +363,25 @@
         }
       ]
     },
+    "DDB-ATK-CORE-036": {
+      "name": "Loading-Dock Lunge",
+      "effects": [
+        {
+          "id": "attack-loading-dock-weapon-flow",
+          "trigger": "onAttackDeclared",
+          "action": "custom",
+          "target": "source",
+          "conditions": [
+            {
+              "kind": "hasWeaponEquipped",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.currentAttackFlow"
+        }
+      ]
+    },
     "DDB-ATK-CORE-037": {
       "name": "Mall Ninja Flying Side Kick",
       "effects": [
@@ -458,6 +477,36 @@
             }
           ],
           "resolver": "attack.conditionalPower"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-048": {
+      "name": "Refundable Elbow",
+      "effects": [
+        {
+          "id": "attack-refundable-elbow-reversal-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "playedAsReversal",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        },
+        {
+          "id": "attack-refundable-elbow-next-attack-penalty",
+          "trigger": "onHit",
+          "action": "modifyAttackPower",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "attack.targetNextAttackPenalty"
         }
       ]
     },
@@ -702,6 +751,27 @@
           "conditions": [
             {
               "kind": "hasTempo",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-069": {
+      "name": "Uppercut",
+      "effects": [
+        {
+          "id": "attack-uppercut-spent-tempo-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "targetTempoUsed",
               "operator": "eq",
               "value": true
             }

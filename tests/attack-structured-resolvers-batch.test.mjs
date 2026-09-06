@@ -7,6 +7,7 @@ import {
   conditionalAttackPowerBonus,
   optionalDiscardDrawChoice,
   readyEquipmentOnHit,
+  structuredCurrentAttackFlow,
   structuredNextAttackFlow,
   targetNextAttackPenalty,
 } from "../app/effect-resolvers.ts";
@@ -55,7 +56,7 @@ const powerContext = (overrides = {}) => ({
 
 test("first Attack resolver batch remains structured with no queued clauses", () => {
   const attackIds = Object.keys(registry.cards).filter((catalogId) => catalogId.startsWith("DDB-ATK-CORE-"));
-  assert.ok(attackIds.length >= 35, "Attack migration should not regress below the completed structured batches");
+  assert.ok(attackIds.length >= 38, "Attack migration should not regress below the completed structured batches");
   for (const catalogId of FIRST_BATCH_IDS) {
     assert.ok(attackIds.includes(catalogId), `${catalogId} must remain in the structured registry`);
     const plan = effectPlanForCard(card(catalogId), registry);
@@ -161,4 +162,27 @@ test("Flow-granting Attack batch is structured and executable", () => {
 
   const blitz = card("DDB-ATK-CORE-061");
   assert.deepEqual(structuredNextAttackFlow(blitz, nextFlowContext()), { handled: true, grant: true });
+});
+
+
+test("state-backed Attack batch is structured and executable", () => {
+  const ids = ["DDB-ATK-CORE-036", "DDB-ATK-CORE-048", "DDB-ATK-CORE-069"];
+  for (const catalogId of ids) {
+    const plan = effectPlanForCard(card(catalogId), registry);
+    assert.equal(plan.source, "structured", catalogId + " should prefer structured behavior");
+    assert.deepEqual(plan.unsupported, [], catalogId + " should have no queued clauses");
+  }
+
+  const loadingDock = card("DDB-ATK-CORE-036");
+  assert.deepEqual(structuredCurrentAttackFlow(loadingDock, { hasWeaponEquipped: false }), { handled: true, hasFlow: false });
+  assert.deepEqual(structuredCurrentAttackFlow(loadingDock, { hasWeaponEquipped: true }), { handled: true, hasFlow: true });
+
+  const refundable = card("DDB-ATK-CORE-048");
+  assert.equal(conditionalAttackPowerBonus(refundable, powerContext({ playedAsReversal: true })).amount, 2);
+  assert.equal(conditionalAttackPowerBonus(refundable, powerContext({ playedAsReversal: false })).amount, 0);
+  assert.equal(targetNextAttackPenalty(refundable), 1);
+
+  const uppercut = card("DDB-ATK-CORE-069");
+  assert.equal(conditionalAttackPowerBonus(uppercut, powerContext({ targetTempoUsed: true })).amount, 2);
+  assert.equal(conditionalAttackPowerBonus(uppercut, powerContext({ targetTempoUsed: false })).amount, 0);
 });

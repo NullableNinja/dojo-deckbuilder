@@ -83,6 +83,7 @@ const IMPLEMENTED_DEDICATED_RESOLVERS = new Set([
   "attack.readyEquipmentOnHit",
   "attack.optionalDiscardDraw",
   "attack.grantNextAttackFlow",
+  "attack.currentAttackFlow",
 ]);
 
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;

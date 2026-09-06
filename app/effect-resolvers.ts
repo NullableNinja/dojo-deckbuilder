@@ -192,6 +192,16 @@ export function structuredNextAttackFlow(card: EffectCardLike, context: {
   };
 }
 
+export function structuredCurrentAttackFlow(card: EffectCardLike, context: { hasWeaponEquipped: boolean }) {
+  const effects = structuredResolvers(card, "attack.currentAttackFlow");
+  if (!effects.length) return { handled: false, hasFlow: false };
+  const values = { hasWeaponEquipped: context.hasWeaponEquipped };
+  return {
+    handled: true,
+    hasFlow: effects.some((effect) => effect.trigger === "onAttackDeclared" && structuredConditionsMatch(effect, values)),
+  };
+}
+
 export function conditionalAttackPowerBonus(card: EffectCardLike, context: {
   playedKata: boolean;
   firstAttack: boolean;
@@ -210,6 +220,8 @@ export function conditionalAttackPowerBonus(card: EffectCardLike, context: {
   priorDifferentZoneCount?: number;
   priorPunchAttack?: boolean;
   priorSpinAttack?: boolean;
+  targetTempoUsed?: boolean;
+  playedAsReversal?: boolean;
 }) {
   let amount = 0;
   const notes: string[] = [];
@@ -233,6 +245,8 @@ export function conditionalAttackPowerBonus(card: EffectCardLike, context: {
       priorDifferentZoneCount: context.priorDifferentZoneCount ?? 0,
       priorPunchAttack: Boolean(context.priorPunchAttack),
       priorSpinAttack: Boolean(context.priorSpinAttack),
+      targetTempoUsed: Boolean(context.targetTempoUsed),
+      playedAsReversal: Boolean(context.playedAsReversal),
     };
     for (const effect of structuredResolvers(card, "attack.conditionalPower")) {
       if (!structuredConditionsMatch(effect, values)) continue;
