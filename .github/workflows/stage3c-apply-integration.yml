@@ -28,51 +28,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Apply Stage 3C test and compiler corrections
-        run: |
-          python <<'PY'
-          from pathlib import Path
-
-          test_path = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
-          source = test_path.read_text()
-          before = '''test("family source registries and generated runtime registry are synchronized", () => {
-            const failures = [];
-            for (const [catalogId, entry] of [...Object.entries(defenses), ...Object.entries(consumables)]) {
-              const generated = generatedRegistry.cards?.[catalogId];
-              if (!generated) failures.push(`${catalogId}:missing-generated-entry`);
-              else if (JSON.stringify(generated.effects) !== JSON.stringify(entry.effects)) failures.push(`${catalogId}:generated-effects-drift`);
-            }
-            assert.deepEqual(failures, []);
-          });'''
-          after = '''test("family source registries and generated runtime registry are synchronized", () => {
-            const failures = [];
-            for (const [catalogId, entry] of [...Object.entries(defenses), ...Object.entries(consumables)]) {
-              const generated = generatedRegistry.cards?.[catalogId];
-              if (!generated) {
-                failures.push(`${catalogId}:missing-generated-entry`);
-                continue;
-              }
-              const sourceIds = (entry.effects ?? []).map((effect) => effect.id);
-              const generatedIds = (generated.effects ?? []).map((effect) => effect.id);
-              if (JSON.stringify(generatedIds) !== JSON.stringify(sourceIds)) failures.push(`${catalogId}:generated-effect-identity-drift`);
-            }
-            assert.deepEqual(failures, []);
-          });'''
-          if after not in source:
-              if before not in source:
-                  raise SystemExit('Stage 3C generated-registry test marker not found')
-              test_path.write_text(source.replace(before, after))
-
-          compiler_path = Path('app/card-effects.ts')
-          compiler = compiler_path.read_text()
-          old = 'if (!effect.resolver && GENERIC_CANONICAL_EFFECTS.has(canonical)) {'
-          new = 'if (!effect.resolver && !effect.conditions?.length && GENERIC_CANONICAL_EFFECTS.has(canonical)) {'
-          if new not in compiler:
-              if old not in compiler:
-                  raise SystemExit('Stage 3C compiler condition marker not found')
-              compiler_path.write_text(compiler.replace(old, new))
-          PY
-
       - name: Apply Stage 3C playtest semantics
         run: |
           node scripts/stage3c-integrate-playtest.mjs
@@ -88,6 +43,20 @@ jobs:
               raise SystemExit('Stage 3C Defense context type marker not found')
           PY
 
+      - name: Apply Stage 3C combat timing semantics
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          path = Path('scripts/stage3c-integrate-playtest-v2.mjs')
+          source = path.read_text()
+          start = source.find('replaceOnce(\n  "player Attack one-shot consumption",')
+          stop = source.find('// The marker above intentionally', start)
+          if start >= 0 and stop >= 0:
+              source = source[:start] + source[stop:]
+              path.write_text(source)
+          PY
+          node scripts/stage3c-integrate-playtest-v2.mjs
+
       - name: Generate canonical runtime data
         run: npm run game:generate
 
@@ -100,12 +69,12 @@ jobs:
       - name: Production build
         run: npm run build
 
-      - name: Commit semantic integration
+      - name: Commit combat integration
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/playtest.tsx app/card-effects.ts tests/stage3c-defense-consumable-runtime.test.mjs
+          git add app/playtest.tsx
           if ! git diff --cached --quiet; then
-            git commit -m "Stage 3C: wire Defense and Consumable runtime into playtest"
+            git commit -m "Stage 3C: connect delayed Defense and Consumable combat hooks"
             git push
           fi
