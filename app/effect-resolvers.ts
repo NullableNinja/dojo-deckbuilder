@@ -703,17 +703,17 @@ function legacyPostBlockEquipmentCycle(card: EffectCardLike) {
 // Stage 3B Equipment structured wrappers. Migrated Equipment is resolved from
 // generated structured data first; prose parsing is only retained for cards with
 // no structured Equipment entry (legacy/unmigrated fixtures and content).
-export function passiveEquipmentGuard(card: EffectCardLike) {
+function legacyPassiveEquipmentGuard(card: EffectCardLike) {
   const value = structuredPassiveEquipmentGuard(card as EquipmentCardLike);
   return value == null ? legacyPassiveEquipmentGuard(card) : value;
 }
 
-export function defenseEquipmentBonus(card: EffectCardLike, zone: string, context: EquipmentDefenseContext = {}) {
+function legacyDefenseEquipmentBonus(card: EffectCardLike, zone: string, context: EquipmentDefenseContext = {}) {
   const value = structuredDefenseEquipmentBonus(card as EquipmentCardLike, zone, context);
   return value == null ? legacyDefenseEquipmentBonus(card, zone) : value;
 }
 
-export function afterDefenseNextAttackBonus(cards: EffectCardLike[]) {
+function legacyAfterDefenseNextAttackBonus(cards: EffectCardLike[]) {
   const structuredCards = cards.filter((card) => isStructuredEquipment(card as EquipmentCardLike));
   const legacyCards = cards.filter((card) => !isStructuredEquipment(card as EquipmentCardLike));
   const structured = structuredAfterDefenseNextAttackBonus(structuredCards as EquipmentCardLike[]);
@@ -721,12 +721,12 @@ export function afterDefenseNextAttackBonus(cards: EffectCardLike[]) {
   return { amount: structured.amount + legacy.amount, sources: [...structured.sources, ...legacy.sources] };
 }
 
-export function equipmentSpeedModifier(card: EffectCardLike) {
+function legacyEquipmentSpeedModifier(card: EffectCardLike) {
   const value = structuredEquipmentSpeedModifier(card as EquipmentCardLike);
   return value == null ? legacyEquipmentSpeedModifier(card) : value;
 }
 
-export function attackCanChooseAnyZone(card: EffectCardLike, firstAttack: boolean, equipment: EffectCardLike[] = []) {
+function legacyAttackCanChooseAnyZone(card: EffectCardLike, firstAttack: boolean, equipment: EffectCardLike[] = []) {
   const structuredCards = equipment.filter((item) => isStructuredEquipment(item as EquipmentCardLike));
   const legacyCards = equipment.filter((item) => !isStructuredEquipment(item as EquipmentCardLike));
   const structured = structuredEquipmentCanChooseAnyZone(structuredCards as EquipmentCardLike[], firstAttack);
@@ -734,7 +734,7 @@ export function attackCanChooseAnyZone(card: EffectCardLike, firstAttack: boolea
   return legacyAttackCanChooseAnyZone(card, firstAttack, legacyCards);
 }
 
-export function equipmentConditionalAttackPowerBonus(cards: EffectCardLike[], context: { firstAttack: boolean; attackerSpeed: number; defenderSpeed: number } & Partial<EquipmentAttackContext>) {
+function legacyEquipmentConditionalAttackPowerBonus(cards: EffectCardLike[], context: { firstAttack: boolean; attackerSpeed: number; defenderSpeed: number } & Partial<EquipmentAttackContext>) {
   const structuredCards = cards.filter((item) => isStructuredEquipment(item as EquipmentCardLike));
   const legacyCards = cards.filter((item) => !isStructuredEquipment(item as EquipmentCardLike));
   const structured = structuredEquipmentAttackPowerBonus(structuredCards as EquipmentCardLike[], context);
@@ -742,7 +742,7 @@ export function equipmentConditionalAttackPowerBonus(cards: EffectCardLike[], co
   return { amount: structured.amount + legacy.amount, sources: [...structured.sources, ...legacy.sources], unsupported: structured.unsupported };
 }
 
-export function firstIncomingAttackPowerPenalty(cards: EffectCardLike[], isFirstIncomingAttack: boolean) {
+function legacyFirstIncomingAttackPowerPenalty(cards: EffectCardLike[], isFirstIncomingAttack: boolean) {
   const structuredCards = cards.filter((item) => isStructuredEquipment(item as EquipmentCardLike));
   const legacyCards = cards.filter((item) => !isStructuredEquipment(item as EquipmentCardLike));
   const structured = structuredEquipmentFirstIncomingPenalty(structuredCards as EquipmentCardLike[], isFirstIncomingAttack);
@@ -750,7 +750,7 @@ export function firstIncomingAttackPowerPenalty(cards: EffectCardLike[], isFirst
   return { amount: structured.amount + legacy.amount, sources: [...structured.sources, ...legacy.sources] };
 }
 
-export function equipmentPiercing(cards: EffectCardLike[], context: { firstAttack: boolean; zone: string; matchingArmor: boolean; attackTags?: string[] }) {
+function legacyEquipmentPiercing(cards: EffectCardLike[], context: { firstAttack: boolean; zone: string; matchingArmor: boolean; attackTags?: string[] }) {
   const structuredCards = cards.filter((item) => isStructuredEquipment(item as EquipmentCardLike));
   const legacyCards = cards.filter((item) => !isStructuredEquipment(item as EquipmentCardLike));
   const structured = structuredEquipmentPiercing(structuredCards as EquipmentCardLike[], context);
@@ -758,23 +758,23 @@ export function equipmentPiercing(cards: EffectCardLike[], context: { firstAttac
   return { amount: structured.amount + legacy.amount, sources: [...structured.sources, ...legacy.sources] };
 }
 
-export function equipmentActivationPlan(card: EffectCardLike): EquipmentActivationPlan | null {
+function legacyEquipmentActivationPlan(card: EffectCardLike): EquipmentActivationPlan | null {
   const structured = structuredEquipmentActivationPlan(card as EquipmentCardLike);
   if (structured !== undefined) return structured as EquipmentActivationPlan | null;
   return legacyEquipmentActivationPlan(card);
 }
 
-export function mandatoryDamageReductionEquipment(card: EffectCardLike) {
+function legacyMandatoryDamageReductionEquipment(card: EffectCardLike) {
   const structured = structuredMandatoryDamageReduction(card as EquipmentCardLike);
   return structured === undefined ? legacyMandatoryDamageReductionEquipment(card) : structured;
 }
 
-export function optionalCombatDamageReductionEquipment(card: EffectCardLike) {
+function legacyOptionalCombatDamageReductionEquipment(card: EffectCardLike) {
   const structured = structuredOptionalDamageReduction(card as EquipmentCardLike);
   return structured === undefined ? legacyOptionalCombatDamageReductionEquipment(card) : structured;
 }
 
-export function postBlockEquipmentCycle(card: EffectCardLike) {
+function legacyPostBlockEquipmentCycle(card: EffectCardLike) {
   const structured = structuredPostBlockCycle(card as EquipmentCardLike);
   return structured === undefined ? legacyPostBlockEquipmentCycle(card) : structured;
 }

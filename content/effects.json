@@ -1025,6 +1025,7 @@
     "nextQualifyingAttackOnly": "The pending effect is consumed by the next Attack satisfying its other source/qualifier conditions.",
     "reactionPlayedAgainstSelf": "A Reaction was just played against the source Equipment's controller.",
     "sameTurnOnly": "The pending effect expires at the end of the current turn if it has not been consumed.",
-    "sameRoundOnly": "The pending effect expires at the end of the current round if it has not been consumed."
+    "sameRoundOnly": "The pending effect expires at the end of the current round if it has not been consumed.",
+    "consumableUsedThisRound": "The controller has resolved at least one Consumable during the current round; used by persistent round-scoped Equipment bonuses created by that use."
   }
 }
