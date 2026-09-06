@@ -44,7 +44,20 @@ jobs:
       - name: Run behavioral tests
         env:
           GITHUB_PAGES: true
-        run: node --experimental-strip-types --test tests/*.test.mjs
+        shell: bash
+        run: |
+          set -uo pipefail
+          for test_file in tests/*.test.mjs; do
+            echo "::group::${test_file}"
+            if node --experimental-strip-types --test "${test_file}"; then
+              echo "::endgroup::"
+            else
+              status=$?
+              echo "::endgroup::"
+              echo "::error file=${test_file},title=Behavioral test failed::${test_file} failed with exit code ${status}"
+              exit "${status}"
+            fi
+          done
 
       - name: Set up GitHub Pages
         uses: actions/configure-pages@v5
