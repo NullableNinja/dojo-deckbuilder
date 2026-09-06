@@ -86,6 +86,9 @@ const IMPLEMENTED_DEDICATED_RESOLVERS = new Set([
   "attack.currentAttackFlow",
   "attack.conditionalFocus",
   "attack.grantNextAttackAnyZone",
+  "attack.afterDefensePower",
+  "attack.conditionalCycle",
+  "attack.nextAttackArmorPenalty",
 ]);
 
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;

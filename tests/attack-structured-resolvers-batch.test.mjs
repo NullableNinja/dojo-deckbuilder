@@ -3,16 +3,20 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { effectPlanForCard } from "../app/card-effects.ts";
 import {
+  afterDefenseAttackPowerBonus,
   attackCanChooseAnyZone,
   attackPiercing,
   conditionalAttackPowerBonus,
+  nextAttackArmorPenalty,
   optionalDiscardDrawChoice,
   readyEquipmentOnHit,
+  structuredConditionalCycle,
   structuredConditionalFocus,
   structuredCurrentAttackFlow,
   structuredNextAttackAnyZone,
   structuredNextAttackFlow,
   targetNextAttackPenalty,
+  targetSpeedPenaltyUntilHonor,
 } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
@@ -59,7 +63,7 @@ const powerContext = (overrides = {}) => ({
 
 test("first Attack resolver batch remains structured with no queued clauses", () => {
   const attackIds = Object.keys(registry.cards).filter((catalogId) => catalogId.startsWith("DDB-ATK-CORE-"));
-  assert.ok(attackIds.length >= 40, "Attack migration should not regress below the completed structured batches");
+  assert.ok(attackIds.length >= 51, "Attack migration should not regress below the completed structured batches");
   for (const catalogId of FIRST_BATCH_IDS) {
     assert.ok(attackIds.includes(catalogId), `${catalogId} must remain in the structured registry`);
     const plan = effectPlanForCard(card(catalogId), registry);
@@ -208,4 +212,67 @@ test("first-Hit Focus and next-Any-zone Attack effects are structured", () => {
   assert.deepEqual(structuredNextAttackAnyZone(swan, { timing: "onHit", attackNumber: 1 }), { handled: true, grant: true });
   assert.deepEqual(structuredNextAttackAnyZone(swan, { timing: "afterResolve", attackNumber: 1 }), { handled: true, grant: false });
   assert.deepEqual(structuredNextAttackAnyZone(swan, { timing: "onHit", attackNumber: 0 }), { handled: true, grant: false });
+});
+
+
+test("eleven-card state and response Attack batch is structured and executable", () => {
+  const ids = [
+    "DDB-ATK-CORE-004", "DDB-ATK-CORE-006", "DDB-ATK-CORE-011", "DDB-ATK-CORE-014",
+    "DDB-ATK-CORE-024", "DDB-ATK-CORE-026", "DDB-ATK-CORE-030", "DDB-ATK-CORE-039",
+    "DDB-ATK-CORE-041", "DDB-ATK-CORE-043", "DDB-ATK-CORE-055",
+  ];
+  for (const catalogId of ids) {
+    const plan = effectPlanForCard(card(catalogId), registry);
+    assert.equal(plan.source, "structured", catalogId + " should prefer structured behavior");
+    assert.deepEqual(plan.unsupported, [], catalogId + " should have no queued clauses");
+  }
+
+  assert.equal(afterDefenseAttackPowerBonus(card("DDB-ATK-CORE-004"), true).amount, 1);
+  assert.equal(afterDefenseAttackPowerBonus(card("DDB-ATK-CORE-004"), false).amount, 0);
+  assert.equal(afterDefenseAttackPowerBonus(card("DDB-ATK-CORE-039"), true).amount, 0);
+  assert.equal(afterDefenseAttackPowerBonus(card("DDB-ATK-CORE-039"), false).amount, 2);
+
+  assert.equal(conditionalAttackPowerBonus(card("DDB-ATK-CORE-006"), powerContext({ playedDefenseSinceLastTurn: true })).amount, 1);
+  assert.equal(conditionalAttackPowerBonus(card("DDB-ATK-CORE-006"), powerContext({ playedDefenseSinceLastTurn: false })).amount, 0);
+  assert.equal(conditionalAttackPowerBonus(card("DDB-ATK-CORE-011"), powerContext({ blockedSinceLastTurn: true })).amount, 1);
+  assert.equal(conditionalAttackPowerBonus(card("DDB-ATK-CORE-014"), powerContext({ blockedThisRound: true })).amount, 2);
+  assert.equal(conditionalAttackPowerBonus(card("DDB-ATK-CORE-030"), powerContext({ previousAttackBlocked: true })).amount, 2);
+  assert.equal(conditionalAttackPowerBonus(card("DDB-ATK-CORE-030"), powerContext({ previousAttackBlocked: false })).amount, 0);
+
+  const flyingSpin = card("DDB-ATK-CORE-024");
+  assert.equal(flyingSpin.zone, "Any");
+  assert.deepEqual(structuredConditionalCycle(flyingSpin, { timing: "afterResolve", priorJumpOrSpinAttack: true }), { handled: true, draw: 1, discard: 0 });
+  assert.deepEqual(structuredConditionalCycle(flyingSpin, { timing: "afterResolve", priorJumpOrSpinAttack: false }), { handled: true, draw: 0, discard: 0 });
+
+  const spinningElbow = card("DDB-ATK-CORE-055");
+  assert.deepEqual(structuredConditionalCycle(spinningElbow, { timing: "afterResolve", previousAttackHit: true }), { handled: true, draw: 1, discard: 1 });
+  assert.deepEqual(structuredConditionalCycle(spinningElbow, { timing: "afterResolve", previousAttackHit: false }), { handled: true, draw: 0, discard: 0 });
+
+  assert.equal(nextAttackArmorPenalty(card("DDB-ATK-CORE-026")), 1);
+
+  const palm = card("DDB-ATK-CORE-041");
+  assert.deepEqual(structuredConditionalFocus(palm, { timing: "onHit", attackNumber: 1, usedEffectIds: [] }), { handled: true, amount: 1, effectIds: ["attack-palm-heel-once-hit-focus"] });
+  assert.deepEqual(structuredConditionalFocus(palm, { timing: "onHit", attackNumber: 2, usedEffectIds: ["attack-palm-heel-once-hit-focus"] }), { handled: true, amount: 0 });
+
+  const punchClock = card("DDB-ATK-CORE-043");
+  assert.equal(conditionalAttackPowerBonus(punchClock, powerContext({ previousCardIsKataOrItem: true })).amount, 1);
+  assert.equal(conditionalAttackPowerBonus(punchClock, powerContext({ previousCardIsKataOrItem: false })).amount, 0);
+  assert.equal(targetSpeedPenaltyUntilHonor(punchClock, { previousCardIsItem: true }), 1);
+  assert.equal(targetSpeedPenaltyUntilHonor(punchClock, { previousCardIsItem: false }), 0);
+});
+
+
+test("post-Defense Attack modifiers feed final power into AI damage math", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /const finalAttackPower = Math\.max\(0, pending\.attackPower \+ postDefensePower\.amount\);/);
+  assert.match(source, /const rawDamage = hit \? Math\.max\(0, finalAttackPower - defensePower \+ \(pending\.damageModifier \?\? 0\)\) : 0;/);
+  assert.doesNotMatch(source, /const rawDamage = hit \? Math\.max\(0, pending\.attackPower - defensePower \+ \(pending\.damageModifier \?\? 0\)\) : 0;/);
+});
+
+test("Block memory includes zero-damage strikes stopped by standing DEF or Armor", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /if \(!hit\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
+  const aiBlockMemory = source.match(/if \(!hit\) nextAi = \{ \.\.\.nextAi, blockedSinceLastTurn: true, blockedThisRound: true \};/g) ?? [];
+  assert.ok(aiBlockMemory.length >= 2, "normal Attacks and Reversals must both remember standing-DEF Blocks");
+  assert.doesNotMatch(source, /if \(!hit && defenseCard\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
 });

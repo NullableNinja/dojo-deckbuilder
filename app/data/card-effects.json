@@ -32,6 +32,27 @@
         }
       ]
     },
+    "DDB-ATK-CORE-004": {
+      "name": "Axe Kick",
+      "effects": [
+        {
+          "id": "attack-axe-kick-defense-card-power",
+          "trigger": "onDefenseDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "defenderPlayedDefense",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.afterDefensePower"
+        }
+      ]
+    },
     "DDB-ATK-CORE-005": {
       "name": "Back Kick",
       "effects": [
@@ -57,6 +78,27 @@
           "action": "custom",
           "target": "self",
           "resolver": "attack.grantNextAttackFlow"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-006": {
+      "name": "Backfist",
+      "effects": [
+        {
+          "id": "attack-backfist-defense-memory-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "playedDefenseSinceLastTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
         }
       ]
     },
@@ -91,6 +133,48 @@
             }
           ],
           "resolver": "attack.piercing"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-011": {
+      "name": "Courtesy-Counter Knee",
+      "effects": [
+        {
+          "id": "attack-courtesy-counter-block-memory-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "blockedSinceLastTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-014": {
+      "name": "Defensive Side Kick",
+      "effects": [
+        {
+          "id": "attack-defensive-side-block-round-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "blockedThisRound",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
         }
       ]
     },
@@ -191,6 +275,41 @@
         }
       ]
     },
+    "DDB-ATK-CORE-024": {
+      "name": "Flying Spin Crescent Kick",
+      "effects": [
+        {
+          "id": "attack-flying-spin-cycle-draw",
+          "trigger": "afterResolve",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "priorJumpOrSpinAttack",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalCycle"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-026": {
+      "name": "Front Ridgehand",
+      "effects": [
+        {
+          "id": "attack-front-ridgehand-next-armor-penalty",
+          "trigger": "onHit",
+          "action": "modifyGuard",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "attack.nextAttackArmorPenalty"
+        }
+      ]
+    },
     "DDB-ATK-CORE-027": {
       "name": "Hammerfist",
       "effects": [
@@ -260,6 +379,27 @@
           "conditions": [
             {
               "kind": "priorLowAttack",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-030": {
+      "name": "Hook Punch",
+      "effects": [
+        {
+          "id": "attack-hook-punch-previous-block-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "previousAttackBlocked",
               "operator": "eq",
               "value": true
             }
@@ -417,6 +557,48 @@
         }
       ]
     },
+    "DDB-ATK-CORE-039": {
+      "name": "Overhand Right",
+      "effects": [
+        {
+          "id": "attack-overhand-right-no-defense-power",
+          "trigger": "onDefenseDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "defenderPlayedDefense",
+              "operator": "eq",
+              "value": false
+            }
+          ],
+          "resolver": "attack.afterDefensePower"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-041": {
+      "name": "Palm Heel Strike",
+      "effects": [
+        {
+          "id": "attack-palm-heel-once-hit-focus",
+          "trigger": "onHit",
+          "action": "gainFocus",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "oncePerTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalFocus"
+        }
+      ]
+    },
     "DDB-ATK-CORE-042": {
       "name": "Pop-up Roundhouse Kick",
       "effects": [
@@ -435,6 +617,43 @@
           "target": "self",
           "amount": 1,
           "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-043": {
+      "name": "Punch-Clock Uppercut",
+      "effects": [
+        {
+          "id": "attack-punch-clock-previous-kata-item-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "previousCardIsKataOrItem",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalPower"
+        },
+        {
+          "id": "attack-punch-clock-item-hit-speed",
+          "trigger": "onHit",
+          "action": "modifySpeed",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextHonor",
+          "conditions": [
+            {
+              "kind": "previousCardIsItem",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.targetSpeedPenaltyUntilHonor"
         }
       ]
     },
@@ -630,6 +849,43 @@
             }
           ],
           "resolver": "attack.grantNextAttackFlow"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-055": {
+      "name": "Spinning Elbow",
+      "effects": [
+        {
+          "id": "attack-spinning-elbow-cycle-draw",
+          "trigger": "afterResolve",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "previousAttackHit",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalCycle"
+        },
+        {
+          "id": "attack-spinning-elbow-cycle-discard",
+          "trigger": "afterResolve",
+          "action": "discard",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "previousAttackHit",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalCycle"
         }
       ]
     },

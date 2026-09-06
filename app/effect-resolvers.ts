@@ -14,6 +14,7 @@ export type EffectCardLike = {
 };
 
 type RegistryEffect = {
+  id?: string;
   trigger?: string;
   action?: string;
   amount?: number;
@@ -137,10 +138,12 @@ export function targetNextAttackPenalty(card: EffectCardLike) {
   return match ? Number(match[1]) : 0;
 }
 
-export function targetSpeedPenaltyUntilHonor(card: EffectCardLike) {
+export function targetSpeedPenaltyUntilHonor(card: EffectCardLike, context: { previousCardIsItem?: boolean } = {}) {
   const entry = structuredEntry(card);
   if (entry) {
+    const values = { previousCardIsItem: Boolean(context.previousCardIsItem) };
     return structuredResolvers(card, "attack.targetSpeedPenaltyUntilHonor")
+      .filter((effect) => structuredConditionsMatch(effect, values))
       .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
   }
   const text = normalizedMinus(String(card.rulesText ?? ""));
@@ -195,16 +198,70 @@ export function structuredNextAttackFlow(card: EffectCardLike, context: {
 export function structuredConditionalFocus(card: EffectCardLike, context: {
   timing: "onPlay" | "onHit" | "onBlock" | "afterResolve";
   attackNumber: number;
+  usedEffectIds?: string[];
 }) {
   const effects = structuredResolvers(card, "attack.conditionalFocus");
   if (!effects.length) return { handled: false, amount: 0 };
-  const values = { firstAttackThisTurn: context.attackNumber === 1, attackNumber: context.attackNumber };
-  return {
+  const values = { firstAttackThisTurn: context.attackNumber === 1, attackNumber: context.attackNumber, oncePerTurn: true };
+  const used = new Set(context.usedEffectIds ?? []);
+  const consumed: string[] = [];
+  const matched = effects.filter((effect) => {
+    if (effect.trigger !== context.timing || !structuredConditionsMatch(effect, values)) return false;
+    const oncePerTurn = (effect.conditions ?? []).some((condition) => condition.kind === "oncePerTurn" && condition.value === true);
+    if (oncePerTurn && effect.id && used.has(effect.id)) return false;
+    if (oncePerTurn && effect.id) consumed.push(effect.id);
+    return true;
+  });
+  const result = {
     handled: true,
-    amount: effects
-      .filter((effect) => effect.trigger === context.timing && structuredConditionsMatch(effect, values))
-      .reduce((total, effect) => total + Number(effect.amount ?? 0), 0),
+    amount: matched.reduce((total, effect) => total + Number(effect.amount ?? 0), 0),
   };
+  return consumed.length ? { ...result, effectIds: consumed } : result;
+}
+
+export function structuredConditionalCycle(card: EffectCardLike, context: {
+  timing: "onPlay" | "onHit" | "onBlock" | "afterResolve";
+  firstAttackThisTurn?: boolean;
+  priorJumpOrSpinAttack?: boolean;
+  previousAttackHit?: boolean;
+  differentZoneFromPreviousAttack?: boolean;
+}) {
+  const effects = structuredResolvers(card, "attack.conditionalCycle");
+  if (!effects.length) return { handled: false, draw: 0, discard: 0 };
+  const values = {
+    firstAttackThisTurn: Boolean(context.firstAttackThisTurn),
+    priorJumpOrSpinAttack: Boolean(context.priorJumpOrSpinAttack),
+    previousAttackHit: Boolean(context.previousAttackHit),
+    differentZoneFromPreviousAttack: Boolean(context.differentZoneFromPreviousAttack),
+  };
+  let draw = 0;
+  let discard = 0;
+  for (const effect of effects) {
+    if (effect.trigger !== context.timing || !structuredConditionsMatch(effect, values)) continue;
+    if (effect.action === "draw") draw += Number(effect.amount ?? 0);
+    if (effect.action === "discard") discard += Number(effect.amount ?? 0);
+  }
+  return { handled: true, draw, discard };
+}
+
+export function afterDefenseAttackPowerBonus(card: EffectCardLike, defenderPlayedDefense: boolean) {
+  const effects = structuredResolvers(card, "attack.afterDefensePower");
+  if (!effects.length) return { amount: 0, notes: [] as string[] };
+  const values = { defenderPlayedDefense };
+  let amount = 0;
+  const notes: string[] = [];
+  for (const effect of effects) {
+    if (effect.trigger !== "onDefenseDeclared" || !structuredConditionsMatch(effect, values)) continue;
+    const value = Number(effect.amount ?? 0);
+    amount += value;
+    notes.push(`Defense response ${value >= 0 ? "+" : ""}${value} Attack Power`);
+  }
+  return { amount, notes };
+}
+
+export function nextAttackArmorPenalty(card: EffectCardLike) {
+  return structuredResolvers(card, "attack.nextAttackArmorPenalty")
+    .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
 }
 
 export function structuredNextAttackAnyZone(card: EffectCardLike, context: {
@@ -249,6 +306,11 @@ export function conditionalAttackPowerBonus(card: EffectCardLike, context: {
   priorSpinAttack?: boolean;
   targetTempoUsed?: boolean;
   playedAsReversal?: boolean;
+  playedDefenseSinceLastTurn?: boolean;
+  blockedSinceLastTurn?: boolean;
+  blockedThisRound?: boolean;
+  previousAttackBlocked?: boolean;
+  previousCardIsKataOrItem?: boolean;
 }) {
   let amount = 0;
   const notes: string[] = [];
@@ -274,6 +336,11 @@ export function conditionalAttackPowerBonus(card: EffectCardLike, context: {
       priorSpinAttack: Boolean(context.priorSpinAttack),
       targetTempoUsed: Boolean(context.targetTempoUsed),
       playedAsReversal: Boolean(context.playedAsReversal),
+      playedDefenseSinceLastTurn: Boolean(context.playedDefenseSinceLastTurn),
+      blockedSinceLastTurn: Boolean(context.blockedSinceLastTurn),
+      blockedThisRound: Boolean(context.blockedThisRound),
+      previousAttackBlocked: Boolean(context.previousAttackBlocked),
+      previousCardIsKataOrItem: Boolean(context.previousCardIsKataOrItem),
     };
     for (const effect of structuredResolvers(card, "attack.conditionalPower")) {
       if (!structuredConditionsMatch(effect, values)) continue;
