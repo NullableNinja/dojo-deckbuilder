@@ -5,13 +5,14 @@ on:
     branches:
       - stage3b-attack-followup-state
     paths:
+      - scripts/stage3b-followup-state-patch-v2.mjs
       - .github/workflows/stage3b-followup-state-patch.yml
 
 permissions:
   contents: write
 
 jobs:
-  diagnose:
+  patch:
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
@@ -24,25 +25,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
-      - name: Capture patch diagnostic
-        shell: bash
-        run: |
-          set +e
-          node scripts/stage3b-followup-state-patch.mjs > stage3b-followup-diagnostic.txt 2>&1
-          code=$?
-          echo "exit=$code" >> stage3b-followup-diagnostic.txt
-          cat stage3b-followup-diagnostic.txt
-          git reset --hard HEAD
-          exit 0
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Preserve diagnostic
+      - name: Apply structured follow-up migration
+        run: node scripts/stage3b-followup-state-patch-v2.mjs
+
+      - name: Regenerate runtime data
+        run: npm run game:generate
+
+      - name: Validate canonical data
+        run: npm run game:check
+
+      - name: Run focused Attack regression tests
+        run: node --experimental-strip-types --test tests/attack-structured-resolvers-batch.test.mjs
+
+      - name: Build production site
+        run: npm run build
+
+      - name: Validate diff
+        run: git diff --check
+
+      - name: Commit migration
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          node scripts/stage3b-followup-state-patch.mjs > /tmp/followup.txt 2>&1 || true
-          git reset --hard HEAD
-          cp /tmp/followup.txt stage3b-followup-diagnostic.txt
-          git add stage3b-followup-diagnostic.txt
-          git commit -m "chore: capture follow-up Attack diagnostic"
+          git add content/card-effects.json app/data/card-effects.json app/card-effects.ts app/effect-resolvers.ts app/playtest.tsx tests/attack-structured-resolvers-batch.test.mjs
+          git commit -m "feat: structure Attack follow-up effects"
           git push origin HEAD:stage3b-attack-followup-state
