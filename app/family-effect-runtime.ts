@@ -65,6 +65,7 @@ export type RuntimeStatus = {
   duration: RuntimeDuration;
   resolver?: string;
   qualifier?: Record<string, unknown>;
+  appliedImmediately?: boolean;
 };
 
 export type RuntimeChoice = {
@@ -217,8 +218,8 @@ export function createFamilyRuntimeState(overrides: Partial<FamilyRuntimeState> 
     flow: false,
   });
   return {
-    self: overrides.self ?? side(),
-    opponent: overrides.opponent ?? side(),
+    self: overrides.self ? { ...side(), ...overrides.self } : side(),
+    opponent: overrides.opponent ? { ...side(), ...overrides.opponent } : side(),
     statuses: overrides.statuses ?? [],
     pendingChoices: overrides.pendingChoices ?? [],
     restrictions: overrides.restrictions ?? [],
@@ -230,17 +231,56 @@ function targetSide(state: FamilyRuntimeState, target: RuntimeTarget) {
   return target === "opponent" ? state.opponent : state.self;
 }
 
+function applySideOperation(side: RuntimeSideState, command: RuntimeCommand, direction = 1) {
+  const amount = command.amount * direction;
+  switch (command.effect) {
+    case "core.draw": if (direction > 0) side.draw += Math.max(0, command.amount); break;
+    case "core.discard": if (direction > 0) side.discard += Math.max(0, command.amount); break;
+    case "core.heal": if (direction > 0) side.hp = Math.min(side.maxHp, side.hp + Math.max(0, command.amount)); break;
+    case "core.gainFocus": if (direction > 0) side.focus = Math.max(0, side.focus + command.amount); break;
+    case "core.gainXP": if (direction > 0) side.xp = Math.max(0, side.xp + command.amount); break;
+    case "core.destroy": if (direction > 0) side.destroyed += Math.max(0, command.amount || 1); break;
+    case "core.reveal": if (direction > 0) side.reveal += Math.max(0, command.amount); break;
+    case "combat.modifySpeed": side.speed += amount; break;
+    case "combat.modifyAttackPower": side.attack += amount; break;
+    case "combat.modifyDefense": side.defense += amount; break;
+    case "combat.modifyGuard": side.guard += amount; break;
+    case "combat.preventDamage": if (direction > 0) side.damagePrevention += Math.max(0, command.amount); break;
+    case "combat.dealDamage": if (direction > 0) side.hp = Math.max(0, side.hp - Math.max(0, command.amount)); break;
+    case "combat.grantFlow": if (direction > 0) side.flow = true; break;
+    case "economy.modifyCost": side.purchaseCostModifier += amount; break;
+    case "equipment.ready": if (direction > 0) side.equipmentReady += Math.max(0, command.amount || 1); break;
+    case "equipment.exhaust": if (direction > 0) side.equipmentExhausted += Math.max(0, command.amount || 1); break;
+  }
+}
+
+function persistentEffectAppliesImmediately(command: RuntimeCommand) {
+  if (command.qualifier?.nextAttack || command.qualifier?.nextAttackTag || command.qualifier?.nextAttackZone || command.qualifier?.nextIncomingAttack || command.qualifier?.nextDamageEvent || command.qualifier?.nextReversal || command.qualifier?.nextKata || command.qualifier?.activateAt) return false;
+  if (["nextAttack", "nextDefense", "nextDamage", "nextIncomingAttack", "nextInitiate", "nextPurchase", "nextKata", "nextRound"].includes(command.duration)) return false;
+  if (command.effect === "core.gainFocus" && command.qualifier?.spendOnlyOn) return true;
+  if (command.effect === "core.custom" && command.qualifier?.stat) return true;
+  return ["combat.modifySpeed", "combat.modifyDefense", "combat.modifyGuard"].includes(command.effect);
+}
+
+function applyCustomImmediate(next: FamilyRuntimeState, command: RuntimeCommand, direction = 1) {
+  const side = targetSide(next, command.target);
+  if (command.qualifier?.setValue !== undefined && command.resolver?.includes("setSpeedToValue")) {
+    if (direction > 0) side.speed = Number(command.qualifier.setValue);
+    return true;
+  }
+  if (command.qualifier?.stat === "ATK") {
+    side.attack += command.amount * direction;
+    return true;
+  }
+  if (command.qualifier?.stat === "DEF") {
+    side.defense += command.amount * direction;
+    return true;
+  }
+  return false;
+}
+
 function shouldPersist(command: RuntimeCommand) {
-  return command.duration !== "immediate" || [
-    "combat.modifyAttackPower",
-    "combat.modifyDefense",
-    "combat.modifyGuard",
-    "combat.modifySpeed",
-    "combat.preventDamage",
-    "combat.grantFlow",
-    "combat.chooseZone",
-    "economy.modifyCost",
-  ].includes(command.effect) && ["nextAttack", "nextDefense", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"].includes(command.duration);
+  return command.duration !== "immediate";
 }
 
 export function applyRuntimeCommand(state: FamilyRuntimeState, command: RuntimeCommand): FamilyRuntimeState {
@@ -265,6 +305,18 @@ export function applyRuntimeCommand(state: FamilyRuntimeState, command: RuntimeC
   }
 
   if (shouldPersist(command)) {
+    let appliedImmediately = false;
+    if (persistentEffectAppliesImmediately(command)) {
+      if (command.effect === "core.custom") appliedImmediately = applyCustomImmediate(next, command);
+      else {
+        applySideOperation(targetSide(next, command.target), command);
+        appliedImmediately = true;
+      }
+    }
+    if (command.effect === "core.gainFocus" && command.qualifier?.spendOnlyOn && !appliedImmediately) {
+      applySideOperation(targetSide(next, command.target), command);
+      appliedImmediately = true;
+    }
     next.statuses.push({
       sourceEffectId: command.sourceEffectId,
       effect: command.effect,
@@ -273,35 +325,22 @@ export function applyRuntimeCommand(state: FamilyRuntimeState, command: RuntimeC
       duration: command.duration,
       resolver: command.resolver,
       qualifier: command.qualifier,
+      appliedImmediately,
     });
+    if (command.qualifier?.restriction && !next.restrictions.includes(String(command.qualifier.restriction))) {
+      next.restrictions.push(String(command.qualifier.restriction));
+    }
     return next;
   }
 
   const side = targetSide(next, command.target);
-  switch (command.effect) {
-    case "core.draw": side.draw += Math.max(0, command.amount); break;
-    case "core.discard": side.discard += Math.max(0, command.amount); break;
-    case "core.heal": side.hp = Math.min(side.maxHp, side.hp + Math.max(0, command.amount)); break;
-    case "core.gainFocus": side.focus = Math.max(0, side.focus + command.amount); break;
-    case "core.gainXP": side.xp = Math.max(0, side.xp + command.amount); break;
-    case "core.destroy": side.destroyed += Math.max(0, command.amount || 1); break;
-    case "core.reveal": side.reveal += Math.max(0, command.amount); break;
-    case "combat.modifySpeed": side.speed += command.amount; break;
-    case "combat.modifyAttackPower": side.attack += command.amount; break;
-    case "combat.modifyDefense": side.defense += command.amount; break;
-    case "combat.modifyGuard": side.guard += command.amount; break;
-    case "combat.preventDamage": side.damagePrevention += Math.max(0, command.amount); break;
-    case "combat.dealDamage": side.hp = Math.max(0, side.hp - Math.max(0, command.amount)); break;
-    case "combat.grantFlow": side.flow = true; break;
-    case "economy.modifyCost": side.purchaseCostModifier += command.amount; break;
-    case "equipment.ready": side.equipmentReady += Math.max(0, command.amount || 1); break;
-    case "equipment.exhaust": side.equipmentExhausted += Math.max(0, command.amount || 1); break;
-    case "core.custom":
-      if (command.resolver) next.restrictions.push(command.resolver);
-      break;
-    default:
-      next.notes.push(`Unhandled canonical effect ${command.effect} from ${command.sourceEffectId}`);
-      break;
+  if (command.effect === "core.custom") {
+    if (!applyCustomImmediate(next, command) && command.resolver) next.restrictions.push(command.resolver);
+  } else {
+    applySideOperation(side, command);
+  }
+  if (command.qualifier?.restriction && !next.restrictions.includes(String(command.qualifier.restriction))) {
+    next.restrictions.push(String(command.qualifier.restriction));
   }
   return next;
 }
@@ -310,6 +349,48 @@ export function applyRuntimeCommands(state: FamilyRuntimeState, commands: Runtim
   return commands.reduce(applyRuntimeCommand, state);
 }
 
+function revertStatus(next: FamilyRuntimeState, status: RuntimeStatus) {
+  if (!status.appliedImmediately) return;
+  const command: RuntimeCommand = {
+    sourceEffectId: status.sourceEffectId,
+    effect: status.effect,
+    trigger: "passive",
+    target: status.target,
+    amount: status.amount,
+    duration: status.duration,
+    resolver: status.resolver,
+    conditions: [],
+    qualifier: status.qualifier,
+  };
+  if (command.effect === "core.custom") applyCustomImmediate(next, command, -1);
+  else if (["combat.modifySpeed", "combat.modifyAttackPower", "combat.modifyDefense", "combat.modifyGuard", "economy.modifyCost"].includes(command.effect)) {
+    applySideOperation(targetSide(next, command.target), command, -1);
+  }
+}
+
 export function expireRuntimeStatuses(state: FamilyRuntimeState, duration: RuntimeDuration) {
-  return { ...state, statuses: state.statuses.filter((status) => status.duration !== duration) };
+  const next: FamilyRuntimeState = {
+    ...state,
+    self: { ...state.self },
+    opponent: { ...state.opponent },
+    statuses: [...state.statuses],
+    pendingChoices: [...state.pendingChoices],
+    restrictions: [...state.restrictions],
+    notes: [...state.notes],
+  };
+  const expiring = next.statuses.filter((status) => status.duration === duration);
+  for (const status of expiring) revertStatus(next, status);
+  next.statuses = next.statuses.filter((status) => status.duration !== duration);
+  const activeRestrictions = new Set(next.statuses.map((status) => String(status.qualifier?.restriction ?? "")).filter(Boolean));
+  next.restrictions = next.restrictions.filter((restriction) => activeRestrictions.has(restriction) || restriction.includes("."));
+  return next;
+}
+
+export function consumeRuntimeStatus(state: FamilyRuntimeState, sourceEffectId: string) {
+  const status = state.statuses.find((candidate) => candidate.sourceEffectId === sourceEffectId);
+  if (!status) return state;
+  const next = { ...state, self: { ...state.self }, opponent: { ...state.opponent }, statuses: [...state.statuses], restrictions: [...state.restrictions] };
+  revertStatus(next as FamilyRuntimeState, status);
+  next.statuses = next.statuses.filter((candidate) => candidate.sourceEffectId !== sourceEffectId);
+  return next as FamilyRuntimeState;
 }
