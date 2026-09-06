@@ -38,7 +38,19 @@ export type StructuredEffectAction =
   | "custom";
 
 export type StructuredEffectTarget = "self" | "opponent" | "source" | "chosen-card" | "chosen-equipment";
-export type StructuredEffectDuration = "immediate" | "nextAttack" | "nextDefense" | "endOfTurn" | "endOfRound" | "nextHonor" | "whileEquipped";
+export type StructuredEffectDuration =
+  | "immediate"
+  | "nextAttack"
+  | "nextDefense"
+  | "nextDamage"
+  | "nextTurn"
+  | "nextInitiate"
+  | "nextPurchase"
+  | "nextKata"
+  | "endOfTurn"
+  | "endOfRound"
+  | "nextHonor"
+  | "whileEquipped";
 export type StructuredEffectCondition = {
   kind: string;
   value?: string | number | boolean | string[] | number[];
@@ -49,7 +61,7 @@ export type StructuredCardEffect = {
   id?: string;
   effect?: string;
   trigger: StructuredEffectTrigger;
-  action: StructuredEffectAction;
+  action?: StructuredEffectAction;
   target?: StructuredEffectTarget;
   amount?: number;
   duration?: StructuredEffectDuration;
@@ -164,18 +176,33 @@ function operationsForSentence(sentence: string, timing: EffectTiming): CardEffe
   return effects;
 }
 
+function canonicalEffectName(effect: StructuredCardEffect) {
+  if (effect.effect) return effect.effect;
+  const action = effect.action;
+  return action === "draw" ? "core.draw"
+    : action === "discard" ? "core.discard"
+      : action === "heal" ? "core.heal"
+        : action === "gainFocus" ? "core.gainFocus"
+          : action === "modifySpeed" ? "combat.modifySpeed"
+            : action === "modifyAttackPower" ? "combat.modifyAttackPower"
+              : action ?? "";
+}
+
 function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | null {
-  if (effect.conditions?.length) return null;
+  // Resolver-bearing effects are owned by their dedicated structured runtime. Never
+  // flatten them into a generic operation first; doing so loses conditions/choices.
+  if (effect.resolver || effect.conditions?.length) return null;
   if (!["onPlay", "onHit", "onBlock", "afterResolve"].includes(effect.trigger)) return null;
   const timing = effect.trigger as EffectTiming;
   const effectAmount = Number(effect.amount ?? 0);
   if (!Number.isFinite(effectAmount)) return null;
-  if (effect.action === "draw") return { timing, kind: "draw", amount: effectAmount };
-  if (effect.action === "discard" && (effect.target ?? "self") === "self") return { timing, kind: "discard", amount: effectAmount };
-  if (effect.action === "heal" && (effect.target ?? "self") === "self") return { timing, kind: "heal", amount: effectAmount };
-  if (effect.action === "gainFocus" && (effect.target ?? "self") === "self") return { timing, kind: "focus", amount: effectAmount };
-  if (effect.action === "modifySpeed" && (effect.target ?? "self") === "self") return { timing, kind: "speed", amount: effectAmount };
-  if (effect.action === "modifyAttackPower" && effect.duration === "nextAttack" && (effect.target ?? "self") === "self") return { timing, kind: "nextAttackPower", amount: effectAmount };
+  const canonical = canonicalEffectName(effect);
+  if (canonical === "core.draw") return { timing, kind: "draw", amount: effectAmount };
+  if (canonical === "core.discard" && (effect.target ?? "self") === "self") return { timing, kind: "discard", amount: effectAmount };
+  if (canonical === "core.heal" && (effect.target ?? "self") === "self") return { timing, kind: "heal", amount: effectAmount };
+  if (canonical === "core.gainFocus" && (effect.target ?? "self") === "self") return { timing, kind: "focus", amount: effectAmount };
+  if (canonical === "combat.modifySpeed" && (effect.target ?? "self") === "self") return { timing, kind: "speed", amount: effectAmount };
+  if (canonical === "combat.modifyAttackPower" && effect.duration === "nextAttack" && (effect.target ?? "self") === "self") return { timing, kind: "nextAttackPower", amount: effectAmount };
   return null;
 }
 
@@ -201,7 +228,7 @@ function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): C
       dedicated.push(effect.resolver);
       continue;
     }
-    unsupported.push(effect.id ?? `${effect.trigger}:${effect.action}`);
+    unsupported.push(effect.id ?? `${effect.trigger}:${canonicalEffectName(effect) || "unknown"}`);
   }
   return { effects, dedicated, unsupported, source: "structured" };
 }
