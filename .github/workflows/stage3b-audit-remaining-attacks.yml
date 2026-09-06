@@ -1,0 +1,38 @@
+name: Stage 3B remaining Attack audit
+
+on:
+  push:
+    branches:
+      - stage3b-attack-eleven
+    paths:
+      - scripts/stage3b-audit-remaining-attacks.mjs
+      - .github/workflows/stage3b-audit-remaining-attacks.yml
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3b-attack-eleven
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate remaining Attack audit
+        run: node scripts/stage3b-audit-remaining-attacks.mjs
+
+      - name: Commit audit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stage3b-remaining-attacks.json
+          git commit -m "chore: capture remaining Attack audit"
+          git push origin HEAD:stage3b-attack-eleven
