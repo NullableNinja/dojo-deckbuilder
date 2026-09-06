@@ -36,7 +36,7 @@ await Promise.all([
   writeJson("app/data/card-effects.json", cardEffects),
 ]);
 
-console.log(`Generated content/card-effects.json from the Stage 3B seed + ${families.length} active family source file${families.length === 1 ? "" : "s"}.`);
+console.log(`Generated content/card-effects.json from ${families.length} active family source file${families.length === 1 ? "" : "s"}.`);
 console.log(`Validated and copied content/effects.json (${Object.keys(effects.effects ?? {}).length} canonical reusable effects).`);
 console.log(`Generated app/data/game-definition.json from content/dojo-game.json (${source.rulesRevision}).`);
 console.log("Generated app/data/rules.json from content/rules.json.");
