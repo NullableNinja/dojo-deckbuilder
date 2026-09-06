@@ -1,0 +1,9 @@
+file:///home/runner/work/dojo-deckbuilder/dojo-deckbuilder/scripts/stage3b-followup-state-patch.mjs:8
+  if (source.indexOf(before, at + before.length) >= 0) throw new Error(`Ambiguous patch target: ${label}`);
+                                                             ^
+
+Error: Ambiguous patch target: emptyBoard next Attack zone state
+    at replaceOnce (file:///home/runner/work/dojo-deckbuilder/dojo-deckbuilder/scripts/stage3b-followup-state-patch.mjs:8:62)
+    at file:///home/runner/work/dojo-deckbuilder/dojo-deckbuilder/scripts/stage3b-followup-state-patch.mjs:98:12
+
+Node.js v22.23.2
