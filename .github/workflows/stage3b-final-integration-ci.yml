@@ -39,6 +39,9 @@ jobs:
       - name: Materialize Location family
         run: node scripts/stage3b-materialize-locations.mjs
 
+      - name: Audit temporary Stage 3B seed ownership
+        run: node scripts/stage3b-seed-audit.mjs
+
       - name: Generate canonical game data
         run: npm run game:generate
 
@@ -71,6 +74,7 @@ jobs:
           name: stage3b-integration-diagnostics
           path: |
             stage3b-test.log
+            stage3b-seed-audit.json
             app/card-effects.ts
             app/effect-resolvers.ts
             app/equipment-structured.ts
