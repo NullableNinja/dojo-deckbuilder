@@ -5,7 +5,7 @@ import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import rulesJson from "./data/rules.json";
-import { compileCardEffects, describeEffectPlan } from "./card-effects";
+import { compileCardEffects, describeEffectPlan, effectPlanForCard } from "./card-effects";
 import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
@@ -1067,11 +1067,11 @@ function cardEffectNote(card: CardEntry) {
   const text = card.rulesText ?? "";
   if (!text || /no (additional )?effect/i.test(text)) return "No extra printed effect.";
   if (isPermanent(card)) return "Equipped permanently; its printed stats apply now."
-  return describeEffectPlan(compileCardEffects(text));
+  return describeEffectPlan(effectPlanForCard(card));
 }
 
 function playerDiscardChoiceCount(card: CardEntry, timing: "onPlay" | "onHit" | "onBlock" | "afterResolve") {
-  return compileCardEffects(card.rulesText ?? "").effects
+  return effectPlanForCard(card).effects
     .filter((effect) => effect.timing === timing && effect.kind === "discard")
     .reduce((total, effect) => total + effect.amount, 0);
 }
@@ -1085,7 +1085,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
       if (equipmentSpeedModifier(card)) next.speedChangedThisRound = true;
     }
   }
-  for (const effect of compileCardEffects(card.rulesText ?? "").effects.filter((entry) => entry.timing === timing)) {
+  for (const effect of effectPlanForCard(card).effects.filter((entry) => entry.timing === timing)) {
     if (effect.kind === "draw") next = drawCards(next, effect.amount);
     if (effect.kind === "discard" && next.hand.length) {
       if (owner === "player" && (timing === "onPlay" || timing === "onBlock")) continue;
