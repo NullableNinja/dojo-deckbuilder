@@ -26,4 +26,9 @@ jobs:
       - run: npm ci
       - run: npm run game:generate
       - run: npm run game:check
-      - run: npm test
+      - name: TypeScript and Vite build
+        run: npm run build
+      - name: Character family tests
+        run: node --experimental-strip-types --test tests/character-family-registry.test.mjs
+      - name: Full node test suite
+        run: node --experimental-strip-types --test tests/*.test.mjs
