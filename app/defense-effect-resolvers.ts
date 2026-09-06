@@ -13,6 +13,7 @@ import {
 } from "./family-effect-runtime.ts";
 
 export type DefenseRuntimeContext = {
+  [key: string]: unknown;
   hasTempo?: boolean;
   weaponAttack?: boolean;
   defenderAttackedThisRound?: boolean;
@@ -75,21 +76,37 @@ function isKick(context: DefenseRuntimeContext) {
   return normalizedTags(context).some((tag) => tag.includes("kick"));
 }
 
-function isHand(context: DefenseRuntimeContext) {
-  return normalizedTags(context).some((tag) => tag.includes("hand") || tag.includes("punch"));
-}
-
 function isGrapple(context: DefenseRuntimeContext) {
   return normalizedTags(context).some((tag) => tag.includes("grapple"));
 }
 
 function baseConditionValues(context: DefenseRuntimeContext) {
+  const tags = context.incomingTags ?? [];
+  const incomingZone = String(context.incomingZone ?? "");
+  const defensesPlayed = context.defensesPlayedThisRound ?? 0;
   return {
+    ...context,
     hasTempo: Boolean(context.hasTempo),
+    weaponAttack: Boolean(context.weaponAttack),
+    defenderAttackedThisRound: Boolean(context.defenderAttackedThisRound),
     targetPermanentEquipmentCount: context.targetPermanentEquipmentCount ?? 0,
+    incomingAttackPower: context.incomingAttackPower ?? 0,
+    incomingDamage: context.incomingDamage ?? 0,
+    incomingAttackZone: incomingZone,
+    incomingZone,
+    incomingAttackTags: tags,
+    incomingTags: tags,
+    incomingAttackHasTag: tags,
+    usedConsumableThisRound: Boolean(context.usedConsumableThisRound),
+    defensesPlayedThisRound: defensesPlayed,
+    firstDefenseThisRound: defensesPlayed === 0,
+    attacksReceivedThisRound: context.attacksReceivedThisRound ?? 0,
+    wasHitThisRound: Boolean(context.wasHitThisRound),
+    blockSucceeded: context.blockSucceeded,
     completesActiveBeltExam: Boolean(context.completesActiveBeltExam),
     isFastest: Boolean(context.isFastest),
     targetHasMatchingArmor: Boolean(context.targetHasMatchingArmor),
+    selectedEquipmentSubtype: context.selectedEquipmentSubtype ?? "",
   };
 }
 
@@ -122,7 +139,7 @@ function resolverConditionMatches(catalogId: string, effect: StructuredRuntimeEf
     case "defense.blockCounterDamage":
       return context.blockSucceeded === true && isKick(context);
     case "defense.blockBranch":
-      return conditionsMatch(effect, { isFastest: Boolean(context.isFastest) });
+      return conditionsMatch(effect, { ...baseConditionValues(context), isFastest: Boolean(context.isFastest) });
     case "defense.armorDefenseBonus":
       return Boolean(context.targetHasMatchingArmor);
     case "defense.beltExamCycle":
@@ -160,15 +177,20 @@ function qualifyDefenseCommand(catalogId: string, effect: StructuredRuntimeEffec
 
   switch (resolver) {
     case "defense.delayedAttackModifier":
+      command.duration = "nextAttack";
       if (catalogId === "DDB-DEF-CORE-008") command.qualifier = { nextAttackZone: "Low", opponent: true };
       else if (catalogId === "DDB-DEF-CORE-031") command.qualifier = { nextAttackTag: "Hand", opponent: true };
       else command.qualifier = { nextAttack: true, opponent: true };
       break;
     case "defense.targetNextAttackModifier":
+      command.duration = "nextAttack";
       command.qualifier = catalogId === "DDB-DEF-CORE-023" ? { nextAttackTag: "Kick" } : { nextAttack: true };
       break;
     case "defense.nextRoundSpeedModifier":
-      command.duration = command.duration === "nextHonor" ? "nextHonor" : "endOfRound";
+      // This is deliberately not an end-of-current-round modifier. It arms now,
+      // becomes active at the next Honor boundary, and is consumed by that round.
+      command.duration = "nextRound";
+      command.qualifier = { activateAt: "nextHonor", expires: "followingHonor" };
       break;
     case "defense.nextInitiateFocus":
       command.duration = "nextInitiate";
@@ -183,6 +205,7 @@ function qualifyDefenseCommand(catalogId: string, effect: StructuredRuntimeEffec
       command.duration = "nextKata";
       break;
     case "defense.reversalBonus":
+      command.duration = "nextAttack";
       command.qualifier = { nextReversal: true, opponent: true };
       break;
     case "defense.alternateDefenseZone":
@@ -225,10 +248,6 @@ export function classifyDefenseEffect(effect: StructuredRuntimeEffect) {
   return "unsupported" as const;
 }
 
-/**
- * Compatibility adapter for the current playtest guard calculation. It is structured-data-only;
- * callers may progressively provide the richer optional context without changing the public result.
- */
 export function structuredDefenseGuardBonus(defense: RuntimeCardLike, context: DefenseRuntimeContext) {
   const commands = defenseRuntimeCommands(defense, "onDefenseDeclared", context)
     .filter((command) => command.effect === "combat.modifyGuard");
@@ -239,7 +258,8 @@ export function structuredDefenseGuardBonus(defense: RuntimeCardLike, context: D
 }
 
 export function structuredDefenseDamagePrevention(defense: RuntimeCardLike, context: DefenseRuntimeContext) {
-  return defenseRuntimeCommands(defense, "onDefenseDeclared", context)
+  return ["onDefenseDeclared", "afterResolve"]
+    .flatMap((trigger) => defenseRuntimeCommands(defense, trigger as RuntimeTrigger, context))
     .filter((command) => command.effect === "combat.preventDamage")
     .reduce((total, command) => total + Math.max(0, command.amount), 0);
 }
@@ -251,7 +271,8 @@ export function structuredDefenseBlockDamage(defense: RuntimeCardLike, context: 
 }
 
 export function structuredDefenseNextAttackModifier(defense: RuntimeCardLike, context: DefenseRuntimeContext) {
-  return defenseRuntimeCommands(defense, "onBlock", context)
-    .filter((command) => command.effect === "combat.modifyAttackPower")
+  return ["onBlock", "afterResolve"]
+    .flatMap((trigger) => defenseRuntimeCommands(defense, trigger as RuntimeTrigger, context))
+    .filter((command) => command.effect === "combat.modifyAttackPower" && command.duration === "nextAttack")
     .map((command) => ({ amount: command.amount, target: command.target, duration: command.duration, qualifier: command.qualifier }));
 }
