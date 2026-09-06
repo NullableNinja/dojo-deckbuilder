@@ -1,0 +1,79 @@
+name: Stage 3B Attack Finalize
+
+on:
+  push:
+    branches: [stage3b-attacks-effect-vocabulary]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Convert final Attack vocabulary references
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("content/card-effects/attacks.json")
+          text = path.read_text()
+          replacements = [
+              (
+                  '"trigger":"onHit","action":"modifyGuard","target":"opponent","amount":-1,"duration":"nextAttack","resolver":"attack.nextAttackArmorPenalty"',
+                  '"trigger":"onHit","target":"opponent","amount":-1,"duration":"nextAttack","resolver":"attack.nextAttackArmorPenalty","effect":"equipment.modifyDefenseContribution"',
+              ),
+              (
+                  '"trigger":"afterResolve","action":"custom","target":"self","conditions":[{"kind":"discardCost","operator":"eq","value":1},{"kind":"drawAfterCost","operator":"eq","value":1}],"resolver":"attack.optionalDiscardDraw"',
+                  '"trigger":"afterResolve","target":"self","conditions":[{"kind":"discardCost","operator":"eq","value":1},{"kind":"drawAfterCost","operator":"eq","value":1}],"resolver":"attack.optionalDiscardDraw","effect":"core.choice"',
+              ),
+              (
+                  '"trigger":"onHit","action":"chooseZone","target":"self","duration":"nextAttack","resolver":"attack.grantNextAttackAnyZone"',
+                  '"trigger":"onHit","target":"self","duration":"nextAttack","resolver":"attack.grantNextAttackAnyZone","effect":"combat.chooseZone"',
+              ),
+          ]
+
+          changed = False
+          for old, new in replacements:
+              count = text.count(old)
+              if count == 1:
+                  text = text.replace(old, new)
+                  changed = True
+              elif count == 0 and new in text:
+                  continue
+              else:
+                  raise SystemExit(f"expected exactly one Attack vocabulary replacement, found {count}: {old}")
+
+          if changed:
+              path.write_text(text)
+          PY
+
+          if ! git diff --quiet -- content/card-effects/attacks.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add content/card-effects/attacks.json
+            git commit -m "Stage 3B: finalize Attack canonical effect references"
+            git push
+          fi
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate canonical registries
+        run: npm run game:generate
+
+      - name: Run full automated suite
+        run: npm test
+
+      - name: Build production site
+        run: npm run build
