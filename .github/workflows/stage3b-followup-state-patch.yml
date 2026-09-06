@@ -5,7 +5,7 @@ on:
     branches:
       - stage3b-attack-followup-state
     paths:
-      - scripts/stage3b-followup-state-patch-v2.mjs
+      - scripts/stage3b-followup-state-patch-v3.mjs
       - .github/workflows/stage3b-followup-state-patch.yml
 
 permissions:
@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Apply structured follow-up migration
-        run: node scripts/stage3b-followup-state-patch-v2.mjs
+        run: node scripts/stage3b-followup-state-patch-v3.mjs
 
       - name: Regenerate runtime data
         run: npm run game:generate
