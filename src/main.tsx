@@ -1,7 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import CompanionApp from "../app/companion-app";
 import "../app/globals.css";
+import CompanionApp from "../app/companion-app";
+import "../app/playtest-production-layout.css";
+import "../app/playtest-polish.css";
+import "../app/playtest-readability.css";
+import "../app/playtest-acquisition-desk.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
