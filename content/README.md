@@ -36,6 +36,7 @@ The canonical-source checker verifies:
 - every structured-effect entry resolves to a real Catalog ID and matching card name;
 - valid structured triggers/actions, unique effect IDs within each card, and named resolvers for custom effects;
 - all eleven Starter card identities have structured migration entries;
+- all 71 Core Attack identities have structured migration entries, enforced by the permanent Attack coverage regression test;
 - unique rule chapter IDs, section IDs, glossary terms, ruling IDs, and house-rule names;
 - the full nine-rank Belt Table;
 - required r5 rules including seven-card hands, unlimited legal Attacks, Flow draw, Market Mercy, and the Bad Habit Focus action;
@@ -43,7 +44,7 @@ The canonical-source checker verifies:
 - source-policy declarations for every canonical and generated data file;
 - absence of legacy authoritative data files.
 
-Because `npm test` begins with `npm run game:check`, these invariants also gate GitHub Pages deployment.
+Because `npm test` begins with `npm run game:check` and also runs the structured Attack coverage regression, these invariants gate integration and GitHub Pages deployment.
 
 ## Migration plan
 
@@ -67,9 +68,11 @@ The structured-effect contract exists in `content/card-effect.schema.json`. `con
 
 **Starter family migration is complete end-to-end:** all eleven Starter identities have structured entries. No-effect Starter cards explicitly carry empty effect arrays; Breathing Drill executes its next-Attack modifier through the structured compatibility plan; Footwork Drill executes both its +2 Speed and its dedicated fastest-fighter Focus check from canonical structured data; and Wild Swing's flexible zone declaration is resolved from the canonical `attack.chooseAnyZone` resolver rather than depending on its printed sentence.
 
-`app/card-effects.ts` distinguishes generic structured effects, implemented dedicated resolvers, and genuinely unsupported clauses. Structured data takes precedence over prose, and an unimplemented structured clause remains explicitly queued rather than silently falling back to regex interpretation. Quick Duel now invokes the Footwork Drill resolver for both the player and AI, while its existing attack-zone path routes Wild Swing through the structured-aware zone resolver.
+**Core Attack family migration is complete:** all 71 Core Attacks now have canonical structured registry entries. Their remaining special cases are routed through explicit structured-aware resolver functions and tracked combat state instead of being left as unregistered prose-only behavior. Attack-specific migration/audit helpers and temporary workflows used to build the family have been removed, and permanent tests now fail if any Core Attack loses its structured registry entry or its canonical name drifts.
 
-The remaining compatibility parser is now for unmigrated card families. The next Stage 3B slice is the main Attack family: inventory its effect patterns, encode them in `content/card-effects.json`, add only the reusable structured/dedicated resolvers the family actually needs, and migrate cards in tested batches before moving on to Defenses, Katas, Items, Combos, Locations, and Characters.
+`app/card-effects.ts` distinguishes generic structured effects, implemented dedicated resolvers, and genuinely unsupported clauses. Structured data takes precedence over prose, and an unimplemented structured clause remains explicitly queued rather than silently falling back to regex interpretation. Quick Duel routes migrated Attack mechanics through structured-aware effect/resolver paths while the compatibility parser remains available for card families that have not completed Stage 3B.
+
+The remaining compatibility parser is for unmigrated card families. The next Stage 3B work is being split into merge-safe family migrations for Defenses, Katas, Consumables, Equipment/Items, Combinations, Locations, Characters, and other effect-bearing content. Shared schema/resolver changes should be integrated centrally so parallel family migrations do not independently mutate the same canonical registry.
 
 Do not remove the compatibility layer until every supported card has structured behavior and semantic parity has been verified.
 
