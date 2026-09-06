@@ -31,8 +31,8 @@ jobs:
         run: npm ci
 
       - name: Apply verified combat corrections
-        shell: python
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           playtest_path = Path("app/playtest.tsx")
@@ -60,32 +60,15 @@ jobs:
           if source.count(reversal_defense) != 1:
               raise SystemExit(f"expected one Reversal AI Defense target, found {source.count(reversal_defense)}")
           source = source.replace(reversal_defense, reversal_defense + "\n" + normal_memory, 1)
-
           playtest_path.write_text(source)
 
           test_path = Path("tests/attack-structured-resolvers-batch.test.mjs")
           tests = test_path.read_text()
           marker = 'test("post-Defense Attack modifiers feed final power into AI damage math"'
           if marker not in tests:
-              tests += r'''
-
-
-test("post-Defense Attack modifiers feed final power into AI damage math", async () => {
-  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
-  assert.match(source, /const finalAttackPower = Math\.max\(0, pending\.attackPower \+ postDefensePower\.amount\);/);
-  assert.match(source, /const rawDamage = hit \? Math\.max\(0, finalAttackPower - defensePower \+ \(pending\.damageModifier \?\? 0\)\) : 0;/);
-  assert.doesNotMatch(source, /const rawDamage = hit \? Math\.max\(0, pending\.attackPower - defensePower \+ \(pending\.damageModifier \?\? 0\)\) : 0;/);
-});
-
-test("Block memory includes zero-damage strikes stopped by standing DEF or Armor", async () => {
-  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
-  assert.match(source, /if \(!hit\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
-  const aiBlockMemory = source.match(/if \(!hit\) nextAi = \{ \.\.\.nextAi, blockedSinceLastTurn: true, blockedThisRound: true \};/g) ?? [];
-  assert.ok(aiBlockMemory.length >= 2, "normal Attacks and Reversals must both remember standing-DEF Blocks");
-  assert.doesNotMatch(source, /if \(!hit && defenseCard\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
-});
-'''
+              tests += '''\n\ntest("post-Defense Attack modifiers feed final power into AI damage math", async () => {\n  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");\n  assert.match(source, /const finalAttackPower = Math\\.max\\(0, pending\\.attackPower \\+ postDefensePower\\.amount\\);/);\n  assert.match(source, /const rawDamage = hit \\? Math\\.max\\(0, finalAttackPower - defensePower \\+ \\(pending\\.damageModifier \\?\\? 0\\)\\) : 0;/);\n  assert.doesNotMatch(source, /const rawDamage = hit \\? Math\\.max\\(0, pending\\.attackPower - defensePower \\+ \\(pending\\.damageModifier \\?\\? 0\\)\\) : 0;/);\n});\n\ntest("Block memory includes zero-damage strikes stopped by standing DEF or Armor", async () => {\n  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");\n  assert.match(source, /if \\(!hit\\) nextPlayer = \\{ \\.\\.\\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \\};/);\n  const aiBlockMemory = source.match(/if \\(!hit\\) nextAi = \\{ \\.\\.\\.nextAi, blockedSinceLastTurn: true, blockedThisRound: true \\};/g) ?? [];\n  assert.ok(aiBlockMemory.length >= 2, "normal Attacks and Reversals must both remember standing-DEF Blocks");\n  assert.doesNotMatch(source, /if \\(!hit && defenseCard\\) nextPlayer = \\{ \\.\\.\\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \\};/);\n});\n'''
           test_path.write_text(tests)
+          PY
 
       - name: Verify focused regressions
         run: node --experimental-strip-types --test tests/attack-structured-resolvers-batch.test.mjs
