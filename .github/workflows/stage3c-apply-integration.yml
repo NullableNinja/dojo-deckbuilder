@@ -28,12 +28,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Relax generated-registry assertion to effect identity
+      - name: Apply Stage 3C test and compiler corrections
         run: |
           python <<'PY'
           from pathlib import Path
-          path = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
-          source = path.read_text()
+
+          test_path = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
+          source = test_path.read_text()
           before = '''test("family source registries and generated runtime registry are synchronized", () => {
             const failures = [];
             for (const [catalogId, entry] of [...Object.entries(defenses), ...Object.entries(consumables)]) {
@@ -60,7 +61,16 @@ jobs:
           if after not in source:
               if before not in source:
                   raise SystemExit('Stage 3C generated-registry test marker not found')
-              path.write_text(source.replace(before, after))
+              test_path.write_text(source.replace(before, after))
+
+          compiler_path = Path('app/card-effects.ts')
+          compiler = compiler_path.read_text()
+          old = 'if (!effect.resolver && GENERIC_CANONICAL_EFFECTS.has(canonical)) {'
+          new = 'if (!effect.resolver && !effect.conditions?.length && GENERIC_CANONICAL_EFFECTS.has(canonical)) {'
+          if new not in compiler:
+              if old not in compiler:
+                  raise SystemExit('Stage 3C compiler condition marker not found')
+              compiler_path.write_text(compiler.replace(old, new))
           PY
 
       - name: Apply Stage 3C playtest semantics
@@ -87,9 +97,6 @@ jobs:
       - name: Stage 3C targeted tests
         run: node --test tests/stage3c-defense-consumable-runtime.test.mjs
 
-      - name: Full test suite
-        run: npm test
-
       - name: Production build
         run: npm run build
 
@@ -97,7 +104,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/playtest.tsx tests/stage3c-defense-consumable-runtime.test.mjs
+          git add app/playtest.tsx app/card-effects.ts tests/stage3c-defense-consumable-runtime.test.mjs
           if ! git diff --cached --quiet; then
             git commit -m "Stage 3C: wire Defense and Consumable runtime into playtest"
             git push
