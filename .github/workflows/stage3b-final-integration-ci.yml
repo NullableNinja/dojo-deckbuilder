@@ -27,20 +27,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Add Equipment runtime state types
-        run: node scripts/stage3b-equipment-type-fix.mjs
-
-      - name: Apply Equipment runtime wiring once
-        run: node scripts/stage3b-equipment-runtime-wire.mjs
-
-      - name: Normalize Equipment runtime import
-        run: node scripts/stage3b-equipment-import-fix.mjs
-
-      - name: Materialize Location family
-        run: node scripts/stage3b-materialize-locations.mjs
-
       - name: Generate canonical game data
         run: npm run game:generate
+
+      - name: Verify generated registries are committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- \
+            content/card-effects.json \
+            app/data/card-effects.json \
+            app/data/effects.json
 
       - name: Check generated game data
         run: npm run game:check
