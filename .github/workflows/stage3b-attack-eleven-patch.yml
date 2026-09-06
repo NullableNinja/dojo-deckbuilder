@@ -5,7 +5,7 @@ on:
     branches:
       - stage3b-attack-eleven
     paths:
-      - scripts/stage3b-attack-eleven-patch.mjs
+      - scripts/stage3b-attack-eleven-patch-v2.mjs
       - .github/workflows/stage3b-attack-eleven-patch.yml
 
 permissions:
@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Apply eleven-card structured Attack migration
-        run: node scripts/stage3b-attack-eleven-patch.mjs
+        run: node scripts/stage3b-attack-eleven-patch-v2.mjs
 
       - name: Regenerate runtime data
         run: npm run game:generate
