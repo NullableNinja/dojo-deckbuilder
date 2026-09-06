@@ -147,6 +147,8 @@ export async function loadCardEffectArchitecture() {
 }
 
 export function buildCardEffectAggregate({ source, cards, vocabulary, seed, families }) {
+  if (!families.length) return structuredClone(seed);
+
   const cardsByCatalogId = new Map((cards.cards ?? []).map((card) => [card.catalogId, card]));
   const mergedCards = structuredClone(seed.cards ?? {});
   const authoredIds = new Map();
