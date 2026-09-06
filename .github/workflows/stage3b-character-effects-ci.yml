@@ -41,10 +41,10 @@ jobs:
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
             {
-              echo '### Character branch full-suite failure'
+              echo '### Character branch exact full-suite failures'
               echo
               echo '```text'
-              tail -n 160 /tmp/full-tests.log
+              grep -n -B 10 -A 28 '^not ok' /tmp/full-tests.log || true
               echo '```'
             } > /tmp/failure-comment.md
             gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/failure-comment.md
