@@ -29,5 +29,11 @@ const payload = {
 };
 
 await writeFile("stage3b-remaining-attacks.json", JSON.stringify(payload, null, 2) + "\n", "utf8");
+const compact = [
+  `STRUCTURED\t${payload.structuredAttackCount}`,
+  `REMAINING\t${payload.remainingAttackCount}`,
+  ...remaining.map((card) => [card.catalogId, card.name, `ZONE=${card.zone ?? ""}`, `TAGS=${(card.tags ?? []).join(",")}`, `RULES=${String(card.rulesText ?? "").replace(/\s+/g, " ").trim()}`].join("\t")),
+].join("\n") + "\n";
+await writeFile("stage3b-remaining-attacks.tsv", compact, "utf8");
 console.log(`Structured Core Attacks: ${payload.structuredAttackCount}`);
 console.log(`Remaining Core Attacks: ${payload.remainingAttackCount}`);
