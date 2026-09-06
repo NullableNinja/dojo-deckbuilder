@@ -30,39 +30,38 @@ jobs:
 
       - name: Relax generated-registry assertion to effect identity
         run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = 'tests/stage3c-defense-consumable-runtime.test.mjs';
-          let source = fs.readFileSync(path, 'utf8');
-          const before = `test("family source registries and generated runtime registry are synchronized", () => {
+          python <<'PY'
+          from pathlib import Path
+          path = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
+          source = path.read_text()
+          before = '''test("family source registries and generated runtime registry are synchronized", () => {
             const failures = [];
             for (const [catalogId, entry] of [...Object.entries(defenses), ...Object.entries(consumables)]) {
               const generated = generatedRegistry.cards?.[catalogId];
-              if (!generated) failures.push(\`${catalogId}:missing-generated-entry\`);
-              else if (JSON.stringify(generated.effects) !== JSON.stringify(entry.effects)) failures.push(\`${catalogId}:generated-effects-drift\`);
+              if (!generated) failures.push(`${catalogId}:missing-generated-entry`);
+              else if (JSON.stringify(generated.effects) !== JSON.stringify(entry.effects)) failures.push(`${catalogId}:generated-effects-drift`);
             }
             assert.deepEqual(failures, []);
-          });`;
-          const after = `test("family source registries and generated runtime registry are synchronized", () => {
+          });'''
+          after = '''test("family source registries and generated runtime registry are synchronized", () => {
             const failures = [];
             for (const [catalogId, entry] of [...Object.entries(defenses), ...Object.entries(consumables)]) {
               const generated = generatedRegistry.cards?.[catalogId];
               if (!generated) {
-                failures.push(\`${catalogId}:missing-generated-entry\`);
+                failures.push(`${catalogId}:missing-generated-entry`);
                 continue;
               }
               const sourceIds = (entry.effects ?? []).map((effect) => effect.id);
               const generatedIds = (generated.effects ?? []).map((effect) => effect.id);
-              if (JSON.stringify(generatedIds) !== JSON.stringify(sourceIds)) failures.push(\`${catalogId}:generated-effect-identity-drift\`);
+              if (JSON.stringify(generatedIds) !== JSON.stringify(sourceIds)) failures.push(`${catalogId}:generated-effect-identity-drift`);
             }
             assert.deepEqual(failures, []);
-          });`;
-          if (!source.includes(after)) {
-            if (!source.includes(before)) throw new Error('Stage 3C generated-registry test marker not found');
-            source = source.replace(before, after);
-            fs.writeFileSync(path, source);
-          }
-          NODE
+          });'''
+          if after not in source:
+              if before not in source:
+                  raise SystemExit('Stage 3C generated-registry test marker not found')
+              path.write_text(source.replace(before, after))
+          PY
 
       - name: Apply Stage 3C playtest semantics
         run: node scripts/stage3c-integrate-playtest.mjs
