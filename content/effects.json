@@ -56,297 +56,845 @@
       "category": "card-flow",
       "action": "draw",
       "description": "Draw cards from the controller's deck into their hand, applying the normal deck/discard reshuffle rules.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onInitiate", "onHide", "onPurchase", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onInitiate",
+        "onHide",
+        "onPurchase",
+        "passive",
+        "onEquip"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "generic"
     },
     "core.discard": {
       "category": "card-flow",
       "action": "discard",
       "description": "Move cards from a hand or other explicitly selected legal source to that fighter's discard pile.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent", "chosen-card"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onInitiate", "onHide", "onAttackDeclared", "onDefenseDeclared", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "chosen-card"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onInitiate",
+        "onHide",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "passive",
+        "onEquip"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "generic-or-resolver-for-choice"
     },
     "core.destroy": {
       "category": "card-flow",
       "action": "destroy",
       "description": "Remove a card from its owner's normal deck cycle and place it in the destroyed/removed area defined by the rules.",
-      "amount": { "required": false, "minimum": 1, "default": 1 },
+      "amount": {
+        "required": false,
+        "minimum": 1,
+        "default": 1
+      },
       "defaultTarget": "chosen-card",
-      "allowedTargets": ["source", "self", "opponent", "chosen-card", "chosen-equipment"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onPurchase", "onHide", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "source",
+        "self",
+        "opponent",
+        "chosen-card",
+        "chosen-equipment"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onPurchase",
+        "onHide",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "generic-or-resolver-for-choice"
     },
     "core.heal": {
       "category": "vitality",
       "action": "heal",
       "description": "Restore HP to the affected fighter without exceeding that fighter's current Max HP unless another canonical rule explicitly changes the cap.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onInitiate", "onHide", "onPurchase", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onInitiate",
+        "onHide",
+        "onPurchase",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "generic"
     },
     "core.gainFocus": {
       "category": "economy",
       "action": "gainFocus",
       "description": "Add Focus to the affected fighter's current Focus pool and to any applicable generated-Focus history for the current turn.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onEquip", "onPurchase", "onInitiate", "onHide", "onAttackDeclared", "onDefenseDeclared", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onEquip",
+        "onPurchase",
+        "onInitiate",
+        "onHide",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "generic"
     },
     "core.gainXP": {
       "category": "progression",
       "action": "custom",
       "description": "Grant XP in addition to XP already awarded by global Attack, Defense, KO, or other canonical rules.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onPurchase", "onInitiate", "onHide", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onPurchase",
+        "onInitiate",
+        "onHide",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "resolver-required"
     },
     "core.reveal": {
       "category": "card-flow",
       "action": "custom",
       "description": "Reveal one or more cards from a specified zone without yet changing ownership or final destination.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onPurchase", "onInitiate", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onPurchase",
+        "onInitiate",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "resolver-required"
     },
     "core.search": {
       "category": "card-flow",
       "action": "custom",
       "description": "Search a specified legal card zone for one or more cards matching the card's canonical filter, then perform the explicitly stated destination/shuffle behavior.",
-      "amount": { "required": false, "minimum": 1, "default": 1 },
+      "amount": {
+        "required": false,
+        "minimum": 1,
+        "default": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onPurchase", "onInitiate", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onPurchase",
+        "onInitiate",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "resolver-required"
     },
     "core.shuffle": {
       "category": "card-flow",
       "action": "custom",
       "description": "Randomize the order of the explicitly identified deck or card group using the normal shuffle rules.",
-      "amount": { "required": false },
+      "amount": {
+        "required": false
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onHide", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onHide",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "resolver-required"
     },
     "core.moveCard": {
       "category": "card-flow",
       "action": "custom",
       "description": "Move a card between explicitly defined legal zones such as hand, discard, deck, play area, equipment, or destroyed area.",
-      "amount": { "required": false, "minimum": 1, "default": 1 },
+      "amount": {
+        "required": false,
+        "minimum": 1,
+        "default": 1
+      },
       "defaultTarget": "chosen-card",
-      "allowedTargets": ["self", "opponent", "chosen-card", "chosen-equipment", "source"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onEquip", "onPurchase", "onInitiate", "onHide", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "chosen-card",
+        "chosen-equipment",
+        "source"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onEquip",
+        "onPurchase",
+        "onInitiate",
+        "onHide",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "resolver-required"
     },
     "core.choice": {
       "category": "choice",
       "action": "custom",
       "description": "Present an explicit player choice between mechanically distinct legal outcomes. The resolver must preserve player agency and the AI path must make an explicit policy-driven choice.",
-      "amount": { "required": false },
+      "amount": {
+        "required": false
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent", "source", "chosen-card", "chosen-equipment"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "onPurchase", "onInitiate", "onHide", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "nextDefense", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "source",
+        "chosen-card",
+        "chosen-equipment"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "onPurchase",
+        "onInitiate",
+        "onHide",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "nextDefense",
+        "endOfTurn",
+        "endOfRound",
+        "nextHonor",
+        "whileEquipped"
+      ],
       "implementation": "resolver-required"
     },
     "combat.modifyAttackPower": {
       "category": "combat-stat",
       "action": "modifyAttackPower",
       "description": "Modify Attack Power by the signed amount for the specified duration. Positive values increase power; negative values reduce it.",
-      "amount": { "required": true, "signed": true },
+      "amount": {
+        "required": true,
+        "signed": true
+      },
       "defaultTarget": "source",
-      "allowedTargets": ["self", "opponent", "source"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "onEquip", "onInitiate", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "source"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "onEquip",
+        "onInitiate",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "endOfTurn",
+        "endOfRound",
+        "nextHonor",
+        "whileEquipped"
+      ],
       "implementation": "generic-or-resolver-for-conditions"
     },
     "combat.modifyDefense": {
       "category": "combat-stat",
       "action": "custom",
       "description": "Modify the affected fighter's standing DEF contribution by the signed amount for the specified duration. This is distinct from modifying a Defense card's Guard.",
-      "amount": { "required": true, "signed": true },
+      "amount": {
+        "required": true,
+        "signed": true
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onEquip", "onInitiate", "onHide", "onAttackDeclared", "onDefenseDeclared", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "nextDefense", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onEquip",
+        "onInitiate",
+        "onHide",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "nextDefense",
+        "endOfTurn",
+        "endOfRound",
+        "nextHonor",
+        "whileEquipped"
+      ],
       "implementation": "resolver-required"
     },
     "combat.modifyGuard": {
       "category": "combat-stat",
       "action": "modifyGuard",
       "description": "Modify the Guard contribution of a Defense card or defensive effect by the signed amount for the specified duration.",
-      "amount": { "required": true, "signed": true },
+      "amount": {
+        "required": true,
+        "signed": true
+      },
       "defaultTarget": "source",
-      "allowedTargets": ["self", "opponent", "source", "chosen-equipment"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onDefenseDeclared", "onEquip", "onInitiate", "passive"],
-      "allowedDurations": ["immediate", "nextDefense", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "source",
+        "chosen-equipment"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onDefenseDeclared",
+        "onEquip",
+        "onInitiate",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextDefense",
+        "endOfTurn",
+        "endOfRound",
+        "nextHonor",
+        "whileEquipped"
+      ],
       "implementation": "generic-or-resolver-for-conditions"
     },
     "combat.modifySpeed": {
       "category": "combat-stat",
       "action": "modifySpeed",
       "description": "Modify Speed by the signed amount for the specified duration.",
-      "amount": { "required": true, "signed": true },
+      "amount": {
+        "required": true,
+        "signed": true
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent", "source"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "onEquip", "onInitiate", "onHide", "passive"],
-      "allowedDurations": ["immediate", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "source"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "onEquip",
+        "onInitiate",
+        "onHide",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "endOfTurn",
+        "endOfRound",
+        "nextHonor",
+        "whileEquipped"
+      ],
       "implementation": "generic-or-resolver-for-conditions"
     },
     "combat.dealDamage": {
       "category": "damage",
       "action": "dealDamage",
       "description": "Deal explicit effect damage separate from normal Attack-vs-Defense combat damage unless the card states otherwise.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "opponent",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "onEquip", "onInitiate", "onHide", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "onEquip",
+        "onInitiate",
+        "onHide",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "generic-or-resolver-for-damage-type"
     },
     "combat.preventDamage": {
       "category": "damage",
       "action": "preventDamage",
       "description": "Prevent or reduce an incoming damage event by the stated amount without retroactively changing whether the Attack Hit unless the card explicitly says so.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onDefenseDeclared", "onEquip", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "endOfTurn", "endOfRound", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onDefenseDeclared",
+        "onEquip",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "endOfTurn",
+        "endOfRound",
+        "whileEquipped"
+      ],
       "implementation": "generic-or-resolver-for-choice"
     },
     "combat.piercing": {
       "category": "damage",
       "action": "piercing",
       "description": "Ignore up to the stated amount of DEF supplied by Equipment for the affected Attack. Piercing does not reduce Character DEF unless another rule explicitly says it does.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "source",
-      "allowedTargets": ["source", "self"],
-      "allowedTriggers": ["onPlay", "onHit", "afterResolve", "onAttackDeclared", "onEquip", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "endOfTurn", "endOfRound", "whileEquipped"],
+      "allowedTargets": [
+        "source",
+        "self"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "afterResolve",
+        "onAttackDeclared",
+        "onEquip",
+        "passive",
+        "onBlock"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "endOfTurn",
+        "endOfRound",
+        "whileEquipped"
+      ],
       "implementation": "generic-or-resolver-for-conditions"
     },
     "combat.chooseZone": {
       "category": "zone",
       "action": "chooseZone",
       "description": "Allow an Attack or defensive declaration to use a legal zone selected by the acting player instead of only its printed default zone.",
-      "amount": { "required": false },
+      "amount": {
+        "required": false
+      },
       "defaultTarget": "source",
-      "allowedTargets": ["source", "self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "nextDefense", "endOfTurn", "endOfRound", "whileEquipped"],
+      "allowedTargets": [
+        "source",
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "afterResolve",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "nextDefense",
+        "endOfTurn",
+        "endOfRound",
+        "whileEquipped"
+      ],
       "implementation": "generic-or-resolver-for-choice"
     },
     "combat.grantFlow": {
       "category": "tempo",
       "action": "custom",
       "description": "Give the current or next qualifying Attack the Flow keyword. Flow ownership is separate from whether the once-per-turn Flow draw has already been used.",
-      "amount": { "required": false },
+      "amount": {
+        "required": false
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "source"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onAttackDeclared", "onEquip", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "endOfTurn", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "source"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onAttackDeclared",
+        "onEquip",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "endOfTurn",
+        "whileEquipped"
+      ],
       "implementation": "resolver-required"
     },
     "combat.readyTempo": {
       "category": "tempo",
       "action": "custom",
       "description": "Ready the affected fighter's Tempo if it is currently spent. Does not grant more than the normal Tempo capacity unless another canonical rule explicitly does so.",
-      "amount": { "required": false },
+      "amount": {
+        "required": false
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onInitiate", "onHide", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onInitiate",
+        "onHide",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "resolver-required"
     },
     "equipment.modifyDefenseContribution": {
       "category": "equipment-stat",
       "action": "custom",
       "description": "Modify the DEF supplied by Equipment/Armor in the affected combat context by the signed amount for the specified duration. This does not modify Character DEF or the Guard contribution of a Defense card or defensive effect. A nextAttack duration is consumed by the next Attack interaction in which the affected Equipment/Armor DEF contribution is evaluated, as defined by the dedicated resolver.",
-      "amount": { "required": true, "signed": true },
+      "amount": {
+        "required": true,
+        "signed": true
+      },
       "defaultTarget": "opponent",
-      "allowedTargets": ["self", "opponent", "chosen-equipment"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "onEquip", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "chosen-equipment"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "onEquip",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "endOfTurn",
+        "endOfRound",
+        "nextHonor",
+        "whileEquipped"
+      ],
       "implementation": "resolver-required"
     },
     "equipment.ready": {
       "category": "equipment-state",
       "action": "ready",
       "description": "Change exhausted Equipment to ready state so it can be used again when otherwise legal.",
-      "amount": { "required": false, "minimum": 1, "default": 1 },
+      "amount": {
+        "required": false,
+        "minimum": 1,
+        "default": 1
+      },
       "defaultTarget": "chosen-equipment",
-      "allowedTargets": ["chosen-equipment", "self", "source"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onInitiate", "onHide", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "chosen-equipment",
+        "self",
+        "source"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onInitiate",
+        "onHide",
+        "passive",
+        "onEquip"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "generic-or-resolver-for-choice"
     },
     "equipment.exhaust": {
       "category": "equipment-state",
       "action": "exhaust",
       "description": "Change ready Equipment to exhausted state until a rule or effect readies it.",
-      "amount": { "required": false, "minimum": 1, "default": 1 },
+      "amount": {
+        "required": false,
+        "minimum": 1,
+        "default": 1
+      },
       "defaultTarget": "chosen-equipment",
-      "allowedTargets": ["chosen-equipment", "self", "opponent", "source"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "onEquip", "onInitiate", "onHide", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "chosen-equipment",
+        "self",
+        "opponent",
+        "source"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "onEquip",
+        "onInitiate",
+        "onHide",
+        "passive",
+        "onPurchase"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "generic-or-resolver-for-choice"
     },
     "economy.spendFocus": {
       "category": "economy",
       "action": "custom",
       "description": "Spend Focus from the affected fighter's current pool and record it as Focus spent this turn where relevant. This is distinct from merely setting Focus to a lower value.",
-      "amount": { "required": true, "minimum": 1 },
+      "amount": {
+        "required": true,
+        "minimum": 1
+      },
       "defaultTarget": "self",
-      "allowedTargets": ["self", "opponent"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onPurchase", "onAttackDeclared", "onDefenseDeclared", "passive"],
-      "allowedDurations": ["immediate"],
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onPurchase",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate"
+      ],
       "implementation": "resolver-required"
     },
     "economy.modifyCost": {
       "category": "economy",
       "action": "custom",
       "description": "Modify the Focus cost of the affected purchase, card class, or acquisition by the signed amount for the stated duration; final cost obeys the global minimum-cost rule if one applies.",
-      "amount": { "required": true, "signed": true },
+      "amount": {
+        "required": true,
+        "signed": true
+      },
       "defaultTarget": "opponent",
-      "allowedTargets": ["self", "opponent", "source", "chosen-card"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onPurchase", "onInitiate", "passive"],
-      "allowedDurations": ["immediate", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "source",
+        "chosen-card"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onPurchase",
+        "onInitiate",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "endOfTurn",
+        "endOfRound",
+        "nextHonor",
+        "whileEquipped"
+      ],
       "implementation": "resolver-required"
     },
     "core.custom": {
       "category": "custom",
       "action": "custom",
       "description": "Explicit escape hatch for a mechanically unique effect that cannot be faithfully represented by any reusable canonical effect plus conditions.",
-      "amount": { "required": false },
+      "amount": {
+        "required": false
+      },
       "defaultTarget": "source",
-      "allowedTargets": ["self", "opponent", "source", "chosen-card", "chosen-equipment"],
-      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onEquip", "onPurchase", "onInitiate", "onHide", "onAttackDeclared", "onDefenseDeclared", "passive"],
-      "allowedDurations": ["immediate", "nextAttack", "nextDefense", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
+      "allowedTargets": [
+        "self",
+        "opponent",
+        "source",
+        "chosen-card",
+        "chosen-equipment"
+      ],
+      "allowedTriggers": [
+        "onPlay",
+        "onHit",
+        "onBlock",
+        "afterResolve",
+        "onEquip",
+        "onPurchase",
+        "onInitiate",
+        "onHide",
+        "onAttackDeclared",
+        "onDefenseDeclared",
+        "passive"
+      ],
+      "allowedDurations": [
+        "immediate",
+        "nextAttack",
+        "nextDefense",
+        "endOfTurn",
+        "endOfRound",
+        "nextHonor",
+        "whileEquipped"
+      ],
       "implementation": "resolver-required"
     }
   },
@@ -401,6 +949,84 @@
     "itemCostPenalty": "Metadata condition carrying an Item purchase-cost penalty option inside a dedicated choice resolver.",
     "defenseGuardPenalty": "Metadata condition carrying a Defense Guard penalty option inside a dedicated choice resolver.",
     "draw": "Metadata condition carrying a draw quantity inside a dedicated composite resolver.",
-    "discard": "Metadata condition carrying a discard quantity inside a dedicated composite resolver."
+    "discard": "Metadata condition carrying a discard quantity inside a dedicated composite resolver.",
+    "oncePerRound": "The effect may successfully resolve no more than once during the current round.",
+    "oncePerGame": "The effect may successfully resolve no more than once during the current game.",
+    "minimumBelt": "Metadata condition carrying the minimum Belt rank required for the effect to resolve.",
+    "equippedThisTurn": "The source Equipment entered the equipped area during the controller's current turn.",
+    "equippedCardIsSource": "The Equipment currently entering play is the source Equipment itself.",
+    "equippedCardIsOtherPermanentEquipment": "The Equipment currently entering play is a different permanent Equipment controlled by the source's controller.",
+    "equippedCardSubtypeIn": "Metadata condition listing Equipment subtypes that qualify for the current equip trigger.",
+    "sourceActivationArmed": "A prior activation of this source created the pending conditional effect being checked.",
+    "manualActivation": "The effect resolves only after its controller explicitly activates the ready source Equipment at a legal timing window.",
+    "attackUsesSourceEquipment": "The current Attack is using or receiving the eligible contribution of the source Weapon/Equipment.",
+    "attackZones": "Metadata condition listing declared Attack zones to which an offensive Equipment effect applies.",
+    "attackHasTag": "Metadata condition naming a required tag on the current Attack.",
+    "attackHasAnyTag": "Metadata condition listing tags of which at least one must be present on the current Attack.",
+    "nextAttackHasTag": "Metadata condition naming a required tag on the next Attack that consumes the pending effect.",
+    "defenseHasTag": "Metadata condition naming a required tag on the Defense that created the trigger.",
+    "hasTwoPairedWeapons": "The controller currently has at least two equipped Weapons with the Paired tag.",
+    "firstHitThisTurn": "The current Hit is the controller's first Hit this turn.",
+    "firstHitWithSourceThisTurn": "The current Hit is the first Hit this turn made using the source Equipment.",
+    "firstHitWithSourceThisRound": "The current Hit is the first Hit this round made using the source Equipment.",
+    "firstQualifyingHitThisTurn": "The current Hit is the first Hit this turn satisfying the effect's other qualifying conditions.",
+    "firstCombatDamageWithSourceThisTurn": "The current event is the first time this turn the source Equipment contributed to combat damage dealt.",
+    "combatDamageDealt": "Exact combat damage dealt by the current Attack after prevention and reduction.",
+    "firstDifferentZoneSequenceThisTurn": "This is the first time this turn the controller has produced the qualifying different-zone Attack sequence.",
+    "targetXpHigher": "The targeted opposing fighter/player currently has strictly more XP than the controller.",
+    "selfIsLowestXp": "The controller is currently tied for or solely has the lowest XP among the compared legal players.",
+    "targetHasTemporaryNegativeStat": "The target currently has at least one temporary negative ATK, DEF, or Speed modifier.",
+    "firstAttackAfterKataThisTurn": "The current Attack is the controller's first Attack after playing a Kata this turn.",
+    "firstAttackWithTagThisTurn": "Metadata condition naming a tag for which the current Attack is the first matching Attack this turn.",
+    "firstDefenseThisRound": "The current Defense is the controller's first Defense this round.",
+    "attackedThisTurn": "The controller has already made at least one Attack during the current turn.",
+    "firstIncomingAttackThisRound": "The current incoming Attack is the first Attack targeting this controller during the round.",
+    "incomingAttackUsesWeapon": "The current incoming Attack qualifies as a Weapon Attack under the canonical Weapon rules.",
+    "incomingAttackIsUnarmed": "The current incoming Attack qualifies as Unarmed under the canonical rules.",
+    "incomingAttackTargetsSelf": "The current incoming Attack legally targets the source Equipment's controller.",
+    "sameOpponentAsBlockedAttack": "The pending effect applies only against the opponent whose Attack created the Block trigger.",
+    "didNotAttackPreviousTurn": "The controller made no Attack during their immediately previous turn.",
+    "hasNotAttackedThisTurn": "The controller has not yet made an Attack during the current turn.",
+    "sceneChangeOccurred": "A Scene Change has just resolved at the relevant trigger window.",
+    "nextPurchaseOnly": "The cost modifier is consumed by the next qualifying purchase and does not modify later purchases.",
+    "nextItemOnly": "The pending modifier is consumed by the next qualifying Item and does not affect later Items.",
+    "marketEndSlot": "The chosen Market card occupies either end slot of the current Market row.",
+    "minimumFinalCost": "Metadata condition carrying the minimum final Focus cost after the modifier is applied.",
+    "scheduledTiming": "Metadata condition naming a delayed expiration or resolution timing handled by the dedicated resolver.",
+    "resolvedCardType": "Metadata condition naming the card type whose completed resolution created the trigger.",
+    "examRequirementCompleted": "A legal requirement of the controller's active Belt Exam was just completed.",
+    "ascendCompleted": "The controller's Ascend phase has just completed.",
+    "boughtCardThisAscend": "The controller bought at least one card during the current Ascend phase.",
+    "purchaseCompleted": "A legal Market purchase has just completed.",
+    "purchasedCardCost": "Printed Focus cost of the card involved in the current purchase event.",
+    "pendingFromSource": "A prior effect from this source scheduled the current Initiate reward.",
+    "forcedDiscardEvent": "An opponent-controlled effect is currently forcing the controller to discard one or more cards.",
+    "defenseOutsideTurn": "The current Defense is being played outside the controller's own turn.",
+    "armedEquipmentZoneMatched": "The current Attack uses the zone previously chosen by this source Equipment's armed effect.",
+    "discardedPrintedFocusValue": "Printed Focus Value of the card paid/discarded for the current Equipment effect.",
+    "costPaid": "The optional cost required by the effect was successfully paid.",
+    "xpFromLegalAttackOrDefense": "The XP gain that created the trigger came from a legal Attack or Defense resolution.",
+    "focusGeneratedBySingleCard": "Amount of Focus generated by the single card that created the trigger.",
+    "firstNegativeCombatModifierThisRound": "The current negative Attack Power or Guard modifier is the first qualifying one affecting the controller this round.",
+    "sourceArmorHelpedBlock": "The source Armor/Defense Equipment contributed Defense to an Attack that was Blocked.",
+    "firstArmorBlockThisRound": "The current Block is the first qualifying Block this round in which the source Armor contributed.",
+    "sourceAffectedCountThreshold": "Metadata condition carrying the number of qualifying affected events after which the source is destroyed or otherwise changes state.",
+    "firstDamageThisRound": "The current damage event is the first damage the controller has taken this round.",
+    "firstCombatDamageThisRound": "The current event is the first combat-damage event the controller has taken this round.",
+    "incomingDamageAtLeast": "Metadata threshold for the unreduced incoming damage amount relevant to the effect.",
+    "sourceExhausted": "The source Equipment is currently exhausted.",
+    "targetHpAtMost": "Metadata threshold requiring the affected fighter's current HP to be at or below the stated value.",
+    "firstSwapThisGame": "The current Equipment swap is the first swap of this source during the game.",
+    "discardedByEffect": "The source card is being discarded by a card/effect rather than normal Hide cleanup.",
+    "firstDamagingAttackThisRound": "The current incoming Attack is the first Attack this round that deals positive damage to the controller.",
+    "damageSourceIsWeapon": "The current damage event was caused by a Weapon Attack/effect as defined by the canonical rules.",
+    "minimumDraw": "Metadata floor for the number of cards drawn during the affected Hide draw.",
+    "currentAttackIsNormal": "The current Attack is a normal Attack rather than a Reversal or other special Attack timing.",
+    "nextAttackDifferentZone": "The next Attack consuming the pending effect must use a different zone from the Attack that created it.",
+    "nextQualifyingAttackOnly": "The pending effect is consumed by the next Attack satisfying its other source/qualifier conditions.",
+    "reactionPlayedAgainstSelf": "A Reaction was just played against the source Equipment's controller.",
+    "sameTurnOnly": "The pending effect expires at the end of the current turn if it has not been consumed.",
+    "sameRoundOnly": "The pending effect expires at the end of the current round if it has not been consumed.",
+    "consumableUsedThisRound": "The controller has resolved at least one Consumable during the current round; used by persistent round-scoped Equipment bonuses created by that use."
   }
 }
