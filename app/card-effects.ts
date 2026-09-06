@@ -1,5 +1,6 @@
 import cardsJson from "./data/cards.json" with { type: "json" };
 import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
+import { isSupportedCharacterResolver } from "./character-effect-resolvers.ts";
 import { SUPPORTED_KATA_RESOLVERS } from "./kata-effect-resolvers.ts";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
@@ -44,6 +45,7 @@ export type StructuredEffectCondition = {
 
 export type StructuredCardEffect = {
   id?: string;
+  effect?: string;
   trigger: StructuredEffectTrigger;
   action: StructuredEffectAction;
   target?: StructuredEffectTarget;
@@ -101,6 +103,8 @@ const IMPLEMENTED_DEDICATED_RESOLVERS = new Set([
   "attack.final.cycle",
   "attack.final.onlyAttackLock",
   "attack.final.optionalAttackCost",
+  "equipment.structured",
+  "location.structured",
 ]);
 
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;
@@ -174,7 +178,7 @@ function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | 
 }
 
 function isImplementedDedicatedResolver(resolver: string) {
-  return IMPLEMENTED_DEDICATED_RESOLVERS.has(resolver) || SUPPORTED_KATA_RESOLVERS.has(resolver);
+  return IMPLEMENTED_DEDICATED_RESOLVERS.has(resolver) || SUPPORTED_KATA_RESOLVERS.has(resolver) || isSupportedCharacterResolver(resolver);
 }
 
 function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): CardEffectPlan {
