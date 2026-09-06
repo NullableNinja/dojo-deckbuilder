@@ -2,16 +2,19 @@ import { readFile, writeFile } from "node:fs/promises";
 import { expectedCardEffectAggregate } from "./card-effect-registry.mjs";
 
 const root = new URL("../", import.meta.url);
-const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"));
+const readText = (path) => readFile(new URL(path, root), "utf8");
+const readJson = async (path) => JSON.parse(await readText(path));
 const writeJson = async (path, value) => writeFile(new URL(path, root), `${JSON.stringify(value, null, 2)}\n`, "utf8");
 
-const [source, rules, cards, effectArchitecture] = await Promise.all([
+const [source, rules, cards, effectsText, effectArchitecture] = await Promise.all([
   readJson("content/dojo-game.json"),
   readJson("content/rules.json"),
   readJson("content/cards.json"),
+  readText("content/effects.json"),
   expectedCardEffectAggregate(),
 ]);
-const { vocabulary: effects, aggregate: cardEffects, families } = effectArchitecture;
+const effects = JSON.parse(effectsText);
+const { aggregate: cardEffects, families } = effectArchitecture;
 
 if (!source?.definition) throw new Error("content/dojo-game.json is missing definition");
 if (source.rulesVersion !== source.definition.rulesVersion) throw new Error("Canonical rulesVersion does not match definition.rulesVersion");
@@ -29,11 +32,12 @@ await Promise.all([
   writeJson("app/data/game-definition.json", source.definition),
   writeJson("app/data/rules.json", rules),
   writeJson("app/data/cards.json", cards),
+  writeFile(new URL("app/data/effects.json", root), effectsText.endsWith("\n") ? effectsText : `${effectsText}\n`, "utf8"),
   writeJson("app/data/card-effects.json", cardEffects),
 ]);
 
 console.log(`Generated content/card-effects.json from the Stage 3B seed + ${families.length} active family source file${families.length === 1 ? "" : "s"}.`);
-console.log(`Validated content/effects.json (${Object.keys(effects.effects ?? {}).length} canonical reusable effects).`);
+console.log(`Validated and copied content/effects.json (${Object.keys(effects.effects ?? {}).length} canonical reusable effects).`);
 console.log(`Generated app/data/game-definition.json from content/dojo-game.json (${source.rulesRevision}).`);
 console.log("Generated app/data/rules.json from content/rules.json.");
 console.log(`Generated app/data/cards.json from content/cards.json (${cards.total} cards).`);
