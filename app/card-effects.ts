@@ -100,6 +100,7 @@ const IMPLEMENTED_DEDICATED_RESOLVERS = new Set([
   "attack.final.cycle",
   "attack.final.onlyAttackLock",
   "attack.final.optionalAttackCost",
+  "equipment.structured",
 ]);
 
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;

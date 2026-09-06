@@ -1,0 +1,45 @@
+name: Stage 3B Equipment Verification
+
+on:
+  push:
+    branches: [stage3b-equipment-effects]
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Reconcile Equipment structured data
+        run: node scripts/stage3b-equipment-data-fix.mjs
+      - name: Register Equipment vocabulary follow-up
+        run: node scripts/stage3b-equipment-vocab-followup.mjs
+      - name: Wire Equipment structured runtime
+        run: node scripts/stage3b-equipment-runtime-wire.mjs
+      - name: Commit authored Equipment reconciliation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/effects.json content/card-effects/equipment.json app/card-effects.ts app/effect-resolvers.ts app/equipment-structured.ts app/playtest.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: finish Stage 3B Equipment structured runtime"
+            git push origin HEAD:stage3b-equipment-effects
+          fi
+      - name: Generate owned game data
+        run: npm run game:generate
+      - name: Check generated game data
+        run: npm run game:check
+      - name: Run Equipment coverage test
+        run: node --experimental-strip-types --test tests/core-equipment-structured-coverage.test.mjs
+      - name: Run full test suite
+        run: npm test
+      - name: Run production build
+        run: npm run build
