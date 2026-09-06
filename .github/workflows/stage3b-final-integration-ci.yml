@@ -33,6 +33,9 @@ jobs:
       - name: Apply Equipment runtime wiring once
         run: node scripts/stage3b-equipment-runtime-wire.mjs
 
+      - name: Normalize Equipment runtime import
+        run: node scripts/stage3b-equipment-import-fix.mjs
+
       - name: Generate canonical game data
         run: npm run game:generate
 
