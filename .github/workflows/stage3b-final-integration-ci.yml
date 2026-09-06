@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Finalize catalog-aware playtest source and restore read-only CI
+      - name: Finalize catalog-aware playtest source and validate against read-only CI
         shell: bash
         run: |
           set -euo pipefail
@@ -112,13 +112,13 @@ jobs:
       - name: Build production bundle against finalized tree
         run: npm run build
 
-      - name: Commit finalized source
+      - name: Commit finalized source without touching workflow history
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/playtest.tsx .github/workflows/stage3b-final-integration-ci.yml scripts/stage3b-catalog-aware-playtest.mjs
+          git add app/playtest.tsx scripts/stage3b-catalog-aware-playtest.mjs
           if git diff --cached --quiet; then
             echo "Expected finalized source changes, but staging is empty." >&2
             exit 1
