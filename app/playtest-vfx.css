@@ -1,0 +1,228 @@
+.playtest-vfx-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+  contain: layout style;
+}
+
+.playtest-vfx-announcer {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.playtest-vfx-cue {
+  --vfx-x: 50vw;
+  --vfx-y: 30vh;
+  --vfx-ink: #fff6d7;
+  --vfx-edge: #17211d;
+  position: fixed;
+  left: var(--vfx-x);
+  top: var(--vfx-y);
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--vfx-edge);
+  border-radius: .42rem;
+  background: color-mix(in srgb, var(--vfx-ink) 94%, transparent);
+  color: #17211d;
+  font-family: "Arial Black", Impact, system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: .045em;
+  line-height: 1.08;
+  text-align: center;
+  text-transform: uppercase;
+  box-shadow: 4px 5px 0 rgba(23, 33, 29, .72);
+  animation-name: ddb-vfx-cue-hold;
+  animation-timing-function: cubic-bezier(.18,.84,.28,1);
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+}
+
+.playtest-vfx-cue--combat {
+  min-width: 7.5rem;
+  padding: .48rem .78rem;
+  font-size: clamp(.9rem, 1.25vw, 1.12rem);
+}
+
+.playtest-vfx-cue--summary {
+  max-width: min(34rem, 58vw);
+  padding: .5rem .8rem;
+  background: rgba(255, 248, 226, .97);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(.74rem, .95vw, .9rem);
+  font-weight: 850;
+  letter-spacing: .025em;
+  line-height: 1.28;
+  white-space: normal;
+}
+
+.playtest-vfx-cue--damage { --vfx-ink: #ff8c78; }
+.playtest-vfx-cue--block { --vfx-ink: #bfe8ff; }
+.playtest-vfx-cue--attack { --vfx-ink: #ffd0a8; }
+.playtest-vfx-cue--certified { --vfx-ink: #f4d7aa; }
+.playtest-vfx-cue--summary { --vfx-ink: #fff8e2; }
+
+.playtest-vfx-banner {
+  position: fixed;
+  left: 50%;
+  top: 31%;
+  min-width: min(72vw, 22rem);
+  transform: translate(-50%, -50%) rotate(-1.5deg);
+  padding: .72rem 1.2rem;
+  border: 3px solid #17211d;
+  border-radius: .4rem;
+  background: rgba(255, 246, 215, .97);
+  color: #17211d;
+  font-family: "Arial Black", Impact, system-ui, sans-serif;
+  font-size: clamp(1.25rem, 3.4vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: .08em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  box-shadow: 7px 8px 0 rgba(23, 33, 29, .72);
+  animation-name: ddb-vfx-banner-hold;
+  animation-timing-function: cubic-bezier(.18,.86,.24,1);
+  animation-fill-mode: both;
+}
+
+.playtest-vfx-banner--ko { background: #ff9e82; font-size: clamp(2.2rem, 7vw, 5rem); }
+.playtest-vfx-banner--promotion { background: #f5dda3; }
+.playtest-vfx-banner--combo { background: #d7cbff; }
+.playtest-vfx-banner--scene { background: #d7ecd6; font-size: clamp(1rem, 2.6vw, 2rem); }
+
+.versus-fighter.ddb-vfx-attack,
+.versus-fighter.ddb-vfx-brace,
+.versus-fighter.ddb-vfx-hit,
+.versus-fighter.ddb-vfx-block,
+.versus-fighter.ddb-vfx-certified,
+.versus-fighter.ddb-vfx-combo,
+.versus-fighter.ddb-vfx-ko {
+  position: relative;
+  z-index: 3;
+  will-change: transform, filter, box-shadow;
+}
+
+.versus-player.ddb-vfx-attack { animation: ddb-vfx-lunge-right 470ms cubic-bezier(.18,.86,.24,1); }
+.versus-enemy.ddb-vfx-attack { animation: ddb-vfx-lunge-left 470ms cubic-bezier(.18,.86,.24,1); }
+.versus-fighter.ddb-vfx-brace { animation: ddb-vfx-brace 430ms ease-out; }
+.versus-fighter.ddb-vfx-hit { animation: ddb-vfx-hit 650ms cubic-bezier(.18,.75,.28,1); }
+.versus-fighter.ddb-vfx-block { animation: ddb-vfx-block 720ms ease-out; }
+.versus-fighter.ddb-vfx-certified { animation: ddb-vfx-certified 760ms cubic-bezier(.18,.84,.28,1); }
+.versus-fighter.ddb-vfx-combo { animation: ddb-vfx-combo 720ms ease-out; }
+.versus-fighter.ddb-vfx-ko { animation: ddb-vfx-ko 1.25s ease-out both; }
+
+.playtest-shell--live.ddb-vfx-screen-impact {
+  animation: ddb-vfx-screen-impact 520ms ease-out;
+}
+
+.playtest-shell--live.ddb-vfx-scene {
+  animation: ddb-vfx-scene 780ms ease-in-out;
+}
+
+@keyframes ddb-vfx-cue-hold {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.82) rotate(-2deg); }
+  13% { opacity: 1; transform: translate(-50%, -50%) scale(1.06) rotate(.5deg); }
+  22% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-.35deg); }
+  78% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-.35deg); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(.98) rotate(-.35deg); }
+}
+
+@keyframes ddb-vfx-banner-hold {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.58) rotate(-5deg); }
+  14% { opacity: 1; transform: translate(-50%, -50%) scale(1.08) rotate(1deg); }
+  24% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-1.5deg); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-1.5deg); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(.97) rotate(-1.5deg); }
+}
+
+@keyframes ddb-vfx-lunge-right {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  42% { transform: translateX(13px) rotate(.7deg) scale(1.015); }
+}
+
+@keyframes ddb-vfx-lunge-left {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  42% { transform: translateX(-13px) rotate(-.7deg) scale(1.015); }
+}
+
+@keyframes ddb-vfx-brace {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(.985); filter: brightness(.92); }
+}
+
+@keyframes ddb-vfx-hit {
+  0%, 100% { transform: translateX(0); filter: brightness(1); }
+  16% { transform: translateX(-6px) rotate(-.5deg); filter: brightness(1.45) saturate(1.35); }
+  34% { transform: translateX(5px) rotate(.4deg); }
+  53% { transform: translateX(-3px); }
+  72% { transform: translateX(1px); }
+}
+
+@keyframes ddb-vfx-block {
+  0%, 100% { transform: scale(1); box-shadow: none; filter: brightness(1); }
+  34% { transform: scale(1.025); box-shadow: 0 0 0 4px rgba(191, 232, 255, .8), 0 0 24px rgba(191, 232, 255, .55); filter: brightness(1.25); }
+}
+
+@keyframes ddb-vfx-certified {
+  0%, 100% { transform: scale(1) rotate(0); }
+  30% { transform: scale(1.025) rotate(-.5deg); filter: brightness(1.2); }
+  58% { transform: scale(1.015) rotate(.35deg); }
+}
+
+@keyframes ddb-vfx-combo {
+  0%, 100% { transform: scale(1); }
+  28% { transform: scale(1.03) rotate(-.55deg); }
+  56% { transform: scale(1.018) rotate(.45deg); filter: brightness(1.22); }
+}
+
+@keyframes ddb-vfx-ko {
+  0% { transform: translateY(0) rotate(0); filter: grayscale(0); }
+  35% { transform: translateY(3px) rotate(-.7deg); filter: grayscale(.3) brightness(.9); }
+  100% { transform: translateY(8px) rotate(-1deg); filter: grayscale(.75) brightness(.7); }
+}
+
+@keyframes ddb-vfx-screen-impact {
+  0%, 100% { box-shadow: inset 0 0 0 rgba(255, 140, 120, 0); }
+  32% { box-shadow: inset 0 0 42px rgba(255, 140, 120, .38); }
+}
+
+@keyframes ddb-vfx-scene {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  46% { filter: brightness(.84) saturate(.78); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playtest-vfx-cue,
+  .playtest-vfx-banner,
+  .versus-fighter.ddb-vfx-attack,
+  .versus-fighter.ddb-vfx-brace,
+  .versus-fighter.ddb-vfx-hit,
+  .versus-fighter.ddb-vfx-block,
+  .versus-fighter.ddb-vfx-certified,
+  .versus-fighter.ddb-vfx-combo,
+  .versus-fighter.ddb-vfx-ko,
+  .playtest-shell--live.ddb-vfx-screen-impact,
+  .playtest-shell--live.ddb-vfx-scene {
+    animation-duration: 180ms !important;
+    transform: none !important;
+  }
+
+  .playtest-vfx-cue,
+  .playtest-vfx-banner {
+    animation-name: ddb-vfx-reduced-fade !important;
+  }
+}
+
+@keyframes ddb-vfx-reduced-fade {
+  0% { opacity: 0; }
+  20%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
