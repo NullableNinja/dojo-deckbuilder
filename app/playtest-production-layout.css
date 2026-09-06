@@ -1,0 +1,285 @@
+/* Quick Duel production layout ownership -----------------------------------
+   The production mat owns live-play geometry. Older Field Test rules remain in
+   globals.css for historical/non-live surfaces, so this final cascade boundary
+   prevents those legacy viewport selectors from re-laying out the live mat.
+
+   Keep component appearance in playtest-production-mat.css. This file should
+   contain geometry/cascade ownership only. */
+
+@media (min-width: 1200px) {
+  .site-frame:has(.playtest-shell.playtest-shell--live) {
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .playtest-shell.playtest-shell--live,
+  .playtest-shell.playtest-shell--live.playtest-shell--guided {
+    width: min(1580px, calc(100% - 24px));
+    height: 100dvh;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 48px minmax(0, 1fr) clamp(190px, 23dvh, 220px) 58px 41px;
+    gap: 7px;
+    overflow: hidden;
+    margin-inline: auto;
+    padding: 8px 0;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-topbar {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: 48px;
+    min-height: 0;
+    margin: 0;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-arena {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 112px;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .playtest-shell.playtest-shell--live .playtest-table {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(278px, .72fr) minmax(490px, 1.62fr) minmax(238px, .62fr);
+    gap: 10px;
+    overflow: visible;
+    margin: 0;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column,
+  .playtest-shell.playtest-shell--live .combat-stage-column {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .playtest-shell.playtest-shell--live .living-fighter-card,
+  .playtest-shell.playtest-shell--live .living-fighter-card.is-enemy {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto auto minmax(104px, 1fr) auto auto auto minmax(34px, auto);
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-card-heading {
+    padding-bottom: 4px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-card-illustration {
+    min-height: 0;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-card-illustration img {
+    max-height: 100%;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-ability {
+    max-height: 48px;
+    overflow: auto;
+    padding: 5px 6px;
+    font-size: 7px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs {
+    top: 148px;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(96px, 1fr) auto 62px minmax(54px, auto) auto;
+    gap: 5px;
+    overflow: hidden;
+    padding: 8px 9px;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-field {
+    min-height: 0;
+    padding: 6px;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art {
+    height: min(82px, 100%);
+  }
+
+  .playtest-shell.playtest-shell--live .acquisition-rail {
+    height: 112px;
+    min-height: 112px;
+    grid-template-columns: 138px minmax(0, 1fr) 210px;
+    gap: 7px;
+    padding: 6px;
+  }
+
+  .playtest-shell.playtest-shell--live .market-rail-cards > button {
+    grid-template-rows: 52px auto auto;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-workspace--hand {
+    grid-column: 1;
+    grid-row: 3;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: block;
+    overflow: hidden;
+    margin: 0;
+  }
+
+  .playtest-shell.playtest-shell--live .hand-panel {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 8px 10px;
+  }
+
+  .playtest-shell.playtest-shell--live .hand-panel > header {
+    min-height: 34px;
+    flex: 0 0 auto;
+    margin-bottom: 4px;
+  }
+
+  .playtest-shell.playtest-shell--live .hand-panel h2 {
+    font-size: clamp(17px, 1.45vw, 22px);
+  }
+
+  .playtest-shell.playtest-shell--live .play-card-row {
+    min-height: 0;
+    height: auto;
+    flex: 1 1 auto;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 4px 4px;
+  }
+
+  .playtest-shell.playtest-shell--live .play-card-row .play-card {
+    height: 100%;
+    min-height: 0;
+    min-width: 112px;
+    max-width: 154px;
+    flex: 1 1 0;
+  }
+
+  .playtest-shell.playtest-shell--live .play-card-main {
+    grid-template-rows: clamp(60px, 8dvh, 78px) auto minmax(0, 1fr) auto;
+  }
+
+  .playtest-shell.playtest-shell--live .play-card-fallback small {
+    -webkit-line-clamp: 2;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-action-dock {
+    grid-column: 1;
+    grid-row: 4;
+    position: relative;
+    inset: auto;
+    align-self: stretch;
+    justify-self: center;
+    width: min(720px, calc(100% - 28px));
+    min-height: 0;
+    height: 58px;
+    margin: 0;
+    transform: none;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-utility-dock {
+    grid-column: 1;
+    grid-row: 5;
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-height: 0;
+    height: 41px;
+    margin: 0;
+  }
+}
+
+/* Medium desktop still needs to defeat the same legacy grid, but it may scroll
+   rather than crushing three battle columns below their usable width. */
+@media (min-width: 1000px) and (max-width: 1199px) {
+  .site-frame:has(.playtest-shell.playtest-shell--live) {
+    overflow: auto;
+  }
+
+  .playtest-shell.playtest-shell--live,
+  .playtest-shell.playtest-shell--live.playtest-shell--guided {
+    width: min(1160px, calc(100% - 20px));
+    height: auto;
+    min-height: 100dvh;
+    display: block;
+    overflow: visible;
+    margin-inline: auto;
+    padding: 8px 0 24px;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-topbar,
+  .playtest-shell.playtest-shell--live > .playtest-arena,
+  .playtest-shell.playtest-shell--live > .playtest-workspace--hand,
+  .playtest-shell.playtest-shell--live > .playtest-action-dock,
+  .playtest-shell.playtest-shell--live > .playtest-utility-dock {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-arena {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .playtest-shell.playtest-shell--live .playtest-table {
+    height: 560px;
+    min-height: 560px;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-workspace--hand {
+    display: block;
+    overflow: visible;
+    margin-top: 8px;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-action-dock {
+    position: sticky;
+    right: auto;
+    bottom: 48px;
+    left: auto;
+    width: min(720px, calc(100% - 28px));
+    min-height: 62px;
+    height: auto;
+    margin: 12px auto 0;
+    transform: none;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-utility-dock {
+    position: sticky;
+    right: auto;
+    bottom: 0;
+    left: auto;
+    width: 100%;
+    min-height: 41px;
+    height: auto;
+    margin-top: 12px;
+  }
+}
