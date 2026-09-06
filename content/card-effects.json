@@ -480,6 +480,27 @@
         }
       ]
     },
+    "DDB-ATK-CORE-047": {
+      "name": "Receipt-Roll Jab",
+      "effects": [
+        {
+          "id": "attack-receipt-roll-first-hit-focus",
+          "trigger": "onHit",
+          "action": "gainFocus",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.conditionalFocus"
+        }
+      ]
+    },
     "DDB-ATK-CORE-048": {
       "name": "Refundable Elbow",
       "effects": [
@@ -667,6 +688,19 @@
           "target": "self",
           "amount": 1,
           "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-058": {
+      "name": "Swan Kick",
+      "effects": [
+        {
+          "id": "attack-swan-kick-next-any-zone",
+          "trigger": "onHit",
+          "action": "chooseZone",
+          "target": "self",
+          "duration": "nextAttack",
+          "resolver": "attack.grantNextAttackAnyZone"
         }
       ]
     },

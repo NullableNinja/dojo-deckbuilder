@@ -3,11 +3,14 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { effectPlanForCard } from "../app/card-effects.ts";
 import {
+  attackCanChooseAnyZone,
   attackPiercing,
   conditionalAttackPowerBonus,
   optionalDiscardDrawChoice,
   readyEquipmentOnHit,
+  structuredConditionalFocus,
   structuredCurrentAttackFlow,
+  structuredNextAttackAnyZone,
   structuredNextAttackFlow,
   targetNextAttackPenalty,
 } from "../app/effect-resolvers.ts";
@@ -56,7 +59,7 @@ const powerContext = (overrides = {}) => ({
 
 test("first Attack resolver batch remains structured with no queued clauses", () => {
   const attackIds = Object.keys(registry.cards).filter((catalogId) => catalogId.startsWith("DDB-ATK-CORE-"));
-  assert.ok(attackIds.length >= 38, "Attack migration should not regress below the completed structured batches");
+  assert.ok(attackIds.length >= 40, "Attack migration should not regress below the completed structured batches");
   for (const catalogId of FIRST_BATCH_IDS) {
     assert.ok(attackIds.includes(catalogId), `${catalogId} must remain in the structured registry`);
     const plan = effectPlanForCard(card(catalogId), registry);
@@ -185,4 +188,24 @@ test("state-backed Attack batch is structured and executable", () => {
   const uppercut = card("DDB-ATK-CORE-069");
   assert.equal(conditionalAttackPowerBonus(uppercut, powerContext({ targetTempoUsed: true })).amount, 2);
   assert.equal(conditionalAttackPowerBonus(uppercut, powerContext({ targetTempoUsed: false })).amount, 0);
+});
+
+
+test("first-Hit Focus and next-Any-zone Attack effects are structured", () => {
+  const receipt = card("DDB-ATK-CORE-047");
+  const receiptPlan = effectPlanForCard(receipt, registry);
+  assert.equal(receiptPlan.source, "structured");
+  assert.deepEqual(receiptPlan.unsupported, []);
+  assert.deepEqual(structuredConditionalFocus(receipt, { timing: "onHit", attackNumber: 1 }), { handled: true, amount: 1 });
+  assert.deepEqual(structuredConditionalFocus(receipt, { timing: "onHit", attackNumber: 2 }), { handled: true, amount: 0 });
+  assert.deepEqual(structuredConditionalFocus(receipt, { timing: "afterResolve", attackNumber: 1 }), { handled: true, amount: 0 });
+
+  const swan = card("DDB-ATK-CORE-058");
+  const swanPlan = effectPlanForCard(swan, registry);
+  assert.equal(swanPlan.source, "structured");
+  assert.deepEqual(swanPlan.unsupported, []);
+  assert.equal(attackCanChooseAnyZone(swan, false, []), false, "Swan Kick itself must not become Any-zone from its next-Attack text");
+  assert.deepEqual(structuredNextAttackAnyZone(swan, { timing: "onHit", attackNumber: 1 }), { handled: true, grant: true });
+  assert.deepEqual(structuredNextAttackAnyZone(swan, { timing: "afterResolve", attackNumber: 1 }), { handled: true, grant: false });
+  assert.deepEqual(structuredNextAttackAnyZone(swan, { timing: "onHit", attackNumber: 0 }), { handled: true, grant: false });
 });

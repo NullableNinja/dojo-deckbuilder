@@ -84,6 +84,8 @@ const IMPLEMENTED_DEDICATED_RESOLVERS = new Set([
   "attack.optionalDiscardDraw",
   "attack.grantNextAttackFlow",
   "attack.currentAttackFlow",
+  "attack.conditionalFocus",
+  "attack.grantNextAttackAnyZone",
 ]);
 
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;
