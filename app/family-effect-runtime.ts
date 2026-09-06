@@ -17,6 +17,13 @@ export type RuntimeDuration =
   | "immediate"
   | "nextAttack"
   | "nextDefense"
+  | "nextDamage"
+  | "nextIncomingAttack"
+  | "nextInitiate"
+  | "nextPurchase"
+  | "nextKata"
+  | "nextRound"
+  | "nextTurn"
   | "endOfTurn"
   | "endOfRound"
   | "nextHonor"
@@ -256,7 +263,7 @@ function applySideOperation(side: RuntimeSideState, command: RuntimeCommand, dir
 
 function persistentEffectAppliesImmediately(command: RuntimeCommand) {
   if (command.qualifier?.nextAttack || command.qualifier?.nextAttackTag || command.qualifier?.nextAttackZone || command.qualifier?.nextIncomingAttack || command.qualifier?.nextDamageEvent || command.qualifier?.nextReversal || command.qualifier?.nextKata || command.qualifier?.activateAt) return false;
-  if (["nextAttack", "nextDefense", "nextDamage", "nextIncomingAttack", "nextInitiate", "nextPurchase", "nextKata", "nextRound"].includes(command.duration)) return false;
+  if (["nextAttack", "nextDefense", "nextDamage", "nextIncomingAttack", "nextInitiate", "nextPurchase", "nextKata", "nextRound", "nextTurn"].includes(command.duration)) return false;
   if (command.effect === "core.gainFocus" && command.qualifier?.spendOnlyOn) return true;
   if (command.effect === "core.custom" && command.qualifier?.stat) return true;
   return ["combat.modifySpeed", "combat.modifyDefense", "combat.modifyGuard"].includes(command.effect);
@@ -368,8 +375,8 @@ function revertStatus(next: FamilyRuntimeState, status: RuntimeStatus) {
   }
 }
 
-export function expireRuntimeStatuses(state: FamilyRuntimeState, duration: RuntimeDuration) {
-  const next: FamilyRuntimeState = {
+function cloneRuntimeState(state: FamilyRuntimeState): FamilyRuntimeState {
+  return {
     ...state,
     self: { ...state.self },
     opponent: { ...state.opponent },
@@ -378,6 +385,10 @@ export function expireRuntimeStatuses(state: FamilyRuntimeState, duration: Runti
     restrictions: [...state.restrictions],
     notes: [...state.notes],
   };
+}
+
+export function expireRuntimeStatuses(state: FamilyRuntimeState, duration: RuntimeDuration) {
+  const next = cloneRuntimeState(state);
   const expiring = next.statuses.filter((status) => status.duration === duration);
   for (const status of expiring) revertStatus(next, status);
   next.statuses = next.statuses.filter((status) => status.duration !== duration);
@@ -386,11 +397,43 @@ export function expireRuntimeStatuses(state: FamilyRuntimeState, duration: Runti
   return next;
 }
 
+/**
+ * Removes one-shot delayed statuses at the gameplay event that consumes them and
+ * returns the exact structured statuses to the caller. The caller applies their
+ * amount to that event's Attack/Defense/damage calculation, so the modifier can
+ * never leak into later events.
+ */
+export function takeRuntimeStatuses(
+  state: FamilyRuntimeState,
+  duration: RuntimeDuration,
+  predicate: (status: RuntimeStatus) => boolean = () => true,
+) {
+  const next = cloneRuntimeState(state);
+  const consumed = next.statuses.filter((status) => status.duration === duration && predicate(status));
+  for (const status of consumed) revertStatus(next, status);
+  const consumedIds = new Set(consumed.map((status) => status.sourceEffectId));
+  next.statuses = next.statuses.filter((status) => !consumedIds.has(status.sourceEffectId));
+  const activeRestrictions = new Set(next.statuses.map((status) => String(status.qualifier?.restriction ?? "")).filter(Boolean));
+  next.restrictions = next.restrictions.filter((restriction) => activeRestrictions.has(restriction) || restriction.includes("."));
+  return { state: next, consumed };
+}
+
+export function runtimeStatusAmount(
+  state: FamilyRuntimeState,
+  duration: RuntimeDuration,
+  effect: string,
+  target: RuntimeTarget = "self",
+) {
+  return state.statuses
+    .filter((status) => status.duration === duration && status.effect === effect && status.target === target)
+    .reduce((total, status) => total + status.amount, 0);
+}
+
 export function consumeRuntimeStatus(state: FamilyRuntimeState, sourceEffectId: string) {
   const status = state.statuses.find((candidate) => candidate.sourceEffectId === sourceEffectId);
   if (!status) return state;
-  const next = { ...state, self: { ...state.self }, opponent: { ...state.opponent }, statuses: [...state.statuses], restrictions: [...state.restrictions] };
-  revertStatus(next as FamilyRuntimeState, status);
+  const next = cloneRuntimeState(state);
+  revertStatus(next, status);
   next.statuses = next.statuses.filter((candidate) => candidate.sourceEffectId !== sourceEffectId);
-  return next as FamilyRuntimeState;
+  return next;
 }
