@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   validate:
@@ -31,4 +33,20 @@ jobs:
       - name: Character family tests
         run: node --experimental-strip-types --test tests/character-family-registry.test.mjs
       - name: Full node test suite
-        run: node --experimental-strip-types --test tests/*.test.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          node --experimental-strip-types --test tests/*.test.mjs 2>&1 | tee /tmp/full-tests.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            {
+              echo '### Character branch full-suite failure'
+              echo
+              echo '```text'
+              tail -n 160 /tmp/full-tests.log
+              echo '```'
+            } > /tmp/failure-comment.md
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/failure-comment.md
+          fi
+          exit "$status"
