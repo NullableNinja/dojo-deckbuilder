@@ -23,6 +23,7 @@
       "app/data/game-definition.json",
       "app/data/rules.json",
       "app/data/cards.json",
+      "app/data/effects.json",
       "app/data/card-effects.json"
     ],
     "legacySourcesPendingMigration": [],
