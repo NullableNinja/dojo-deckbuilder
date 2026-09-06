@@ -2,15 +2,20 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nullableninja.github.io/dojo-deckbuilder/schema/card-effect.schema.json",
   "title": "Dojo Deckbuilder Structured Card Effect",
-  "description": "Machine-readable executable card effect. Printed rules text remains presentation text; the engine should execute this structure instead of parsing English.",
+  "description": "Machine-readable executable card effect. Family authoring sources should reference content/effects.json through the effect field. The generator expands references into runtime-compatible action metadata; printed rules text remains presentation text.",
   "type": "object",
-  "required": ["trigger", "action"],
+  "required": ["trigger"],
   "additionalProperties": false,
   "properties": {
     "id": {
       "type": "string",
       "minLength": 1,
-      "description": "Stable effect identifier unique within the card."
+      "description": "Stable effect-instance identifier unique within the card."
+    },
+    "effect": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*\\.[A-Za-z][A-Za-z0-9]*$",
+      "description": "Stable canonical semantic effect ID from content/effects.json. Family authoring sources should prefer this field."
     },
     "trigger": {
       "enum": [
@@ -44,11 +49,12 @@
         "preventDamage",
         "chooseZone",
         "custom"
-      ]
+      ],
+      "description": "Runtime action. May be omitted in family authoring sources when effect references content/effects.json; the generator will hydrate it."
     },
     "target": {
       "enum": ["self", "opponent", "source", "chosen-card", "chosen-equipment"],
-      "default": "self"
+      "description": "Affected entity. May be supplied by the effect vocabulary's default target when omitted."
     },
     "amount": {
       "type": "number"
@@ -83,9 +89,13 @@
     "resolver": {
       "type": "string",
       "minLength": 1,
-      "description": "Named dedicated resolver for complex effects. Required when action is custom."
+      "description": "Named dedicated resolver for complex effects. Required when the hydrated action is custom or when the vocabulary marks the effect resolver-required."
     }
   },
+  "anyOf": [
+    { "required": ["effect"] },
+    { "required": ["action"] }
+  ],
   "allOf": [
     {
       "if": { "properties": { "action": { "const": "custom" } }, "required": ["action"] },
