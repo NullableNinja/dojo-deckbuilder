@@ -6,7 +6,8 @@ const playtest = await readFile(new URL("../app/playtest.tsx", import.meta.url),
 
 test("market purchases spend only the selected card cost and preserve remaining Focus", () => {
   assert.match(playtest, /const focusBefore = current\.player\.focus;/);
-  assert.match(playtest, /focus:\s*focusBefore - price/);
+  assert.match(playtest, /const price = marketPriceFor\(current\.player, card\)/);
+  assert.match(playtest, /spendFocus\(current\.player, price\)/);
   assert.match(playtest, /Bought \$\{card\.name\} for \$\{price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);
 });
 
