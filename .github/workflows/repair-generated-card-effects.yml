@@ -1,0 +1,45 @@
+name: Verify regenerated card effects
+
+on:
+  push:
+    branches: [repair-generated-card-effects]
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Regenerate canonical outputs
+        run: npm run game:generate
+
+      - name: Run full repository suite
+        run: npm test
+
+      - name: Validate generated diff
+        run: |
+          git diff --check
+          git diff --exit-code -- app/data/game-definition.json app/data/rules.json app/data/cards.json app/data/effects.json
+
+      - name: Upload regenerated effect registries
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-card-effects
+          path: |
+            content/card-effects.json
+            app/data/card-effects.json
+          if-no-files-found: error
+          retention-days: 1
