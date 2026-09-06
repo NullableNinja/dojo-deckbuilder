@@ -1,6 +1,6 @@
 import cardsJson from "./data/cards.json" with { type: "json" };
 import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
-import { isSupportedCharacterResolver } from "./character-effect-resolvers";
+import { isSupportedCharacterResolver } from "./character-effect-resolvers.ts";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
 export type EffectKind = "draw" | "discard" | "heal" | "focus" | "speed" | "nextAttackPower";
@@ -218,39 +218,9 @@ export function structuredEffectsForCard(card: StructuredCardLike, registry?: St
   return entry && Array.isArray(entry.effects) ? entry.effects : null;
 }
 
-export function effectPlanForCard(card: StructuredCardLike, registry?: StructuredEffectRegistry): CardEffectPlan {
-  const structuredEffects = structuredEffectsForCard(card, registry);
-  if (structuredEffects) return planFromStructuredEffects(structuredEffects);
-  return compileCardEffects(card.rulesText ?? "");
-}
-
 export function describeEffectPlan(plan: CardEffectPlan) {
-  const dedicated = plan.dedicated ?? [];
-  if (!plan.effects.length && !dedicated.length && !plan.unsupported.length && plan.source === "structured") return "Structured resolver: no additional executable effect.";
-  if (!plan.effects.length && dedicated.length && !plan.unsupported.length) return `Structured resolver: ${dedicated.join(", ")}.`;
-  if (!plan.effects.length) return "Printed effect is queued for a dedicated resolver; its exact text is shown in the Card Inspector.";
-  const kinds = [...new Set(plan.effects.map((effect) => `${TIMING_LABELS[effect.timing]} ${effect.kind}`))];
-  const dedicatedText = dedicated.length ? ` Dedicated: ${dedicated.join(", ")}.` : "";
-  const remaining = plan.unsupported.length ? ` ${plan.unsupported.length} conditional clause${plan.unsupported.length === 1 ? " remains" : "s remain"} queued.` : "";
-  const prefix = plan.source === "structured" ? "Structured resolver" : "Engine resolver";
-  return `${prefix}: ${kinds.join(", ")}.${dedicatedText}${remaining}`;
-}
-
-export function effectCoverage(cards: StructuredCardLike[], registry?: StructuredEffectRegistry) {
-  const structured = cards.filter((card) => structuredEffectsForCard(card, registry) !== null);
-  const relevant = cards.filter((card) => {
-    const effects = structuredEffectsForCard(card, registry);
-    return Boolean((effects && effects.length) || (card.rulesText && !/no (additional )?effect/i.test(card.rulesText)));
-  });
-  const full = relevant.filter((card) => {
-    const plan = effectPlanForCard(card, registry);
-    const resolved = plan.effects.length + (plan.dedicated?.length ?? 0);
-    return resolved > 0 && plan.unsupported.length === 0;
-  });
-  const partial = relevant.filter((card) => {
-    const plan = effectPlanForCard(card, registry);
-    const resolved = plan.effects.length + (plan.dedicated?.length ?? 0);
-    return resolved > 0 && plan.unsupported.length > 0;
-  });
-  return { total: relevant.length, structured: structured.length, full: full.length, partial: partial.length, queued: relevant.length - full.length - partial.length };
+  const parts = plan.effects.map((effect) => `${TIMING_LABELS[effect.timing]} ${effect.kind} ${effect.amount > 0 ? `+${effect.amount}` : effect.amount}`);
+  if (plan.dedicated.length) parts.push(`dedicated: ${plan.dedicated.join(", ")}`);
+  if (plan.unsupported.length) parts.push(`${plan.unsupported.length} complex effect${plan.unsupported.length === 1 ? "" : "s"} pending resolver`);
+  return parts.join(" · ") || "No additional effect";
 }
