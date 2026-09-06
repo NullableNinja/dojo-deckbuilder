@@ -4,6 +4,7 @@ import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
 import "../app/playtest-production-layout.css";
 import "../app/playtest-polish.css";
+import "../app/playtest-readability.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
