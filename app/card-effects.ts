@@ -1,5 +1,6 @@
 import cardsJson from "./data/cards.json" with { type: "json" };
 import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
+import { isSupportedCharacterResolver } from "./character-effect-resolvers";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
 export type EffectKind = "draw" | "discard" | "heal" | "focus" | "speed" | "nextAttackPower";
@@ -182,7 +183,7 @@ function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): C
       effects.push(compatible);
       continue;
     }
-    if (effect.resolver && IMPLEMENTED_DEDICATED_RESOLVERS.has(effect.resolver)) {
+    if (effect.resolver && (IMPLEMENTED_DEDICATED_RESOLVERS.has(effect.resolver) || isSupportedCharacterResolver(effect.resolver))) {
       dedicated.push(effect.resolver);
       continue;
     }
