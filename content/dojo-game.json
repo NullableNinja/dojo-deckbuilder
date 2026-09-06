@@ -8,17 +8,27 @@
       "content/dojo-game.json",
       "content/rules.json",
       "content/cards.json",
-      "content/card-effects.json",
-      "content/card-effect.schema.json"
+      "content/effects.json",
+      "content/card-effect.schema.json",
+      "content/card-effect-family.schema.json"
+    ],
+    "authoritativeGlobs": [
+      "content/card-effects/*.json"
+    ],
+    "temporaryMigrationSeeds": [
+      "content/card-effects-seed.json"
     ],
     "generatedFiles": [
+      "content/card-effects.json",
       "app/data/game-definition.json",
       "app/data/rules.json",
       "app/data/cards.json",
+      "app/data/effects.json",
       "app/data/card-effects.json"
     ],
     "legacySourcesPendingMigration": [],
-    "generatedFileRule": "Do not hand-edit generated game data. Change the canonical source under content/ and regenerate instead."
+    "generatedFileRule": "Do not hand-edit generated game data. Change the canonical source under content/ and regenerate instead.",
+    "effectRegistryRule": "Reusable semantics are authored in content/effects.json; card behavior is authored by family in content/card-effects/*.json; content/card-effects.json is generated. The temporary seed preserves pre-split Stage 3B work only until its families are fully represented by family sources."
   },
   "definition": {
     "schemaVersion": 1,
