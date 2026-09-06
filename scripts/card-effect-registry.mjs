@@ -146,9 +146,7 @@ export async function loadCardEffectArchitecture() {
   return { source, cards, vocabulary, seed, families };
 }
 
-export function buildCardEffectAggregate({ source, cards, vocabulary, seed, families }) {
-  if (!families.length) return structuredClone(seed);
-
+export function buildCardEffectAggregate({ cards, vocabulary, seed, families }) {
   const cardsByCatalogId = new Map((cards.cards ?? []).map((card) => [card.catalogId, card]));
   const mergedCards = structuredClone(seed.cards ?? {});
   const authoredIds = new Map();
@@ -183,15 +181,7 @@ export function buildCardEffectAggregate({ source, cards, vocabulary, seed, fami
   }
 
   return {
-    schemaVersion: 1,
-    rulesVersion: source.rulesVersion,
-    rulesRevision: source.rulesRevision,
-    description: "Generated unified structured-effect registry. Author reusable semantics in content/effects.json and card behavior in content/card-effects/*.json. content/card-effects-seed.json temporarily preserves pre-split Stage 3B work until all seeded families are represented by family sources.",
-    sources: {
-      vocabulary: "content/effects.json",
-      temporarySeed: "content/card-effects-seed.json",
-      families: families.map(({ file }) => `content/card-effects/${file}`),
-    },
+    ...structuredClone(seed),
     cards: Object.fromEntries(Object.entries(mergedCards).sort(([left], [right]) => left.localeCompare(right))),
   };
 }
