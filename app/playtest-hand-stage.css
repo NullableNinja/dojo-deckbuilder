@@ -1,0 +1,282 @@
+/* Quick Duel hand-stage pass ------------------------------------------------
+   The hand is a primary play surface, not a compressed footer. This layer
+   deliberately gives the seven-card starter hand enough height to show complete
+   digital card bodies and moves action/utility controls back into normal flow so
+   they never cover cards. */
+
+@media (min-width: 1200px) {
+  .playtest-shell.playtest-shell--live,
+  .playtest-shell.playtest-shell--live.playtest-shell--guided {
+    min-height: 1120px;
+    grid-template-rows: 60px 556px 356px 72px 46px;
+    gap: 8px;
+    padding: 8px 0 18px;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-workspace--hand {
+    grid-column: 1;
+    grid-row: 3;
+    width: calc(100% - 108px);
+    height: 356px;
+    min-height: 356px;
+    justify-self: center;
+    overflow: visible;
+    margin: 0;
+  }
+
+  .playtest-shell.playtest-shell--live .hand-panel {
+    width: 100%;
+    height: 356px;
+    min-height: 356px;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    padding: 11px 14px 12px;
+  }
+
+  /* Controls belong after the cards, never on top of them. */
+  .playtest-shell.playtest-shell--live > .playtest-action-dock {
+    grid-column: 1;
+    grid-row: 4;
+    position: relative !important;
+    inset: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    align-self: center;
+    justify-self: center;
+    width: min(820px, calc(100% - 160px));
+    min-height: 64px;
+    height: 64px;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-utility-dock {
+    grid-column: 1;
+    grid-row: 5;
+    position: relative !important;
+    inset: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    align-self: stretch;
+    width: calc(100% - 108px);
+    max-width: none;
+    min-height: 42px;
+    height: 42px;
+    justify-self: center;
+    margin: 0 !important;
+  }
+
+  /* Keep the three combat columns on one visual baseline. */
+  .playtest-shell.playtest-shell--live .playtest-table {
+    align-items: stretch;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column,
+  .playtest-shell.playtest-shell--live .combat-stage-column {
+    margin: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card,
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+  .playtest-shell.playtest-shell--live .playtest-combat-desk.combat-stage {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+
+/* Hand header --------------------------------------------------------------- */
+.playtest-shell.playtest-shell--live .hand-panel > header {
+  min-height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.playtest-shell.playtest-shell--live .hand-panel .eyebrow {
+  font-size: 11px;
+}
+
+.playtest-shell.playtest-shell--live .hand-panel h2 {
+  margin-top: 3px;
+  font-size: clamp(22px, 1.55vw, 28px);
+  line-height: 1.02;
+}
+
+.playtest-shell.playtest-shell--live .hand-counters {
+  max-width: 58%;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.playtest-shell.playtest-shell--live .hand-counters span {
+  padding: 4px 7px;
+  font-size: 9px;
+}
+
+/* Full-size playable card rack --------------------------------------------- */
+.playtest-shell.playtest-shell--live .play-card-row {
+  width: 100%;
+  min-height: 286px;
+  height: 286px;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 4px 7px 8px;
+}
+
+.playtest-shell.playtest-shell--live .play-card-row .play-card {
+  flex: 1 1 0;
+  min-width: 158px;
+  max-width: 202px;
+  height: 276px;
+  min-height: 276px;
+  margin: 0;
+  transform: none !important;
+}
+
+.playtest-shell.playtest-shell--live .play-card-main {
+  height: 276px;
+  grid-template-rows: 126px 20px minmax(82px, 1fr) 42px;
+}
+
+/* Complete card art should be visible instead of cropping to the top third. */
+.playtest-shell.playtest-shell--live .play-card-art-window {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  background: linear-gradient(155deg, #e6d3ae, #f6ead1);
+}
+
+.playtest-shell.playtest-shell--live .play-card-art-window > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.playtest-shell.playtest-shell--live .play-card-kind {
+  margin: -9px 7px 0;
+  padding: 4px 8px;
+  font-size: 9px;
+}
+
+.playtest-shell.playtest-shell--live .play-card-fallback {
+  gap: 5px;
+  padding: 7px 9px 6px;
+}
+
+.playtest-shell.playtest-shell--live .play-card-fallback b {
+  font-size: 14px;
+  line-height: 1.05;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.playtest-shell.playtest-shell--live .play-card-fallback small {
+  font-size: 10.5px;
+  line-height: 1.28;
+  -webkit-line-clamp: 4;
+}
+
+.playtest-shell.playtest-shell--live .play-card-fallback em {
+  display: block;
+  font-size: 7px;
+}
+
+.playtest-shell.playtest-shell--live .play-card-meta {
+  min-height: 42px;
+  gap: 7px;
+  padding: 5px 8px;
+}
+
+.playtest-shell.playtest-shell--live .play-card-meta b,
+.playtest-shell.playtest-shell--live .play-card-meta strong {
+  font-size: 12px;
+}
+
+.playtest-shell.playtest-shell--live .play-card-meta small {
+  font-size: 8px;
+}
+
+.playtest-shell.playtest-shell--live .play-card-meta em {
+  font-size: 9px;
+}
+
+.playtest-shell.playtest-shell--live .play-card-inspect {
+  top: 7px;
+  right: 7px;
+  padding: 5px 7px;
+  font-size: 9px;
+}
+
+/* The old fan effect made a readable rack look misaligned. Keep interactions
+   restrained now that the cards themselves are large enough to inspect. */
+.playtest-shell.playtest-shell--live.motion-full .play-card-row .play-card:nth-child(4n + 1),
+.playtest-shell.playtest-shell--live.motion-full .play-card-row .play-card:nth-child(4n + 3) {
+  transform: none !important;
+}
+
+.playtest-shell.playtest-shell--live.motion-full .play-card-row .play-card:hover:not(.is-disabled),
+.playtest-shell.playtest-shell--live .play-card-row .play-card:focus-within {
+  z-index: 30;
+  transform: translateY(-6px) scale(1.035) !important;
+  box-shadow: 0 16px 26px rgba(10, 8, 5, .3);
+}
+
+.playtest-shell.playtest-shell--live .play-card-row .play-card.is-selected {
+  transform: translateY(-4px) !important;
+}
+
+/* Context/equipment strips remain readable without stealing the card rack. */
+.playtest-shell.playtest-shell--live .equipment-reaction-strip,
+.playtest-shell.playtest-shell--live .hand-context-strip,
+.playtest-shell.playtest-shell--live .discard-choice-notice,
+.playtest-shell.playtest-shell--live .ducktape-tray {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 1200px) and (max-width: 1499px) {
+  .playtest-shell.playtest-shell--live .play-card-row .play-card {
+    min-width: 146px;
+    max-width: 184px;
+  }
+}
+
+@media (min-width: 1000px) and (max-width: 1199px) {
+  .playtest-shell.playtest-shell--live > .playtest-workspace--hand {
+    min-height: 340px;
+    height: auto;
+  }
+
+  .playtest-shell.playtest-shell--live .hand-panel {
+    min-height: 340px;
+    height: auto;
+  }
+
+  .playtest-shell.playtest-shell--live .play-card-row {
+    min-height: 278px;
+    height: 278px;
+  }
+
+  .playtest-shell.playtest-shell--live .play-card-row .play-card {
+    min-width: 158px;
+    max-width: 190px;
+    height: 268px;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-action-dock,
+  .playtest-shell.playtest-shell--live > .playtest-utility-dock {
+    position: relative !important;
+    inset: auto !important;
+    margin-top: 10px !important;
+    transform: none !important;
+  }
+}
