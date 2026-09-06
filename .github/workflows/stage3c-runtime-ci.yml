@@ -1,0 +1,47 @@
+name: Stage 3C Defense + Consumable Runtime
+
+on:
+  push:
+    branches:
+      - stage3c-defense-consumable-runtime
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate canonical runtime data
+        run: npm run game:generate
+
+      - name: Verify canonical game data
+        run: npm run game:check
+
+      - name: Stage 3C targeted tests
+        run: node --test tests/stage3c-defense-consumable-runtime.test.mjs
+
+      - name: Full test suite
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Verify generated data is committed
+        run: git diff --exit-code

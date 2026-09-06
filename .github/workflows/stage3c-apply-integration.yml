@@ -1,0 +1,80 @@
+name: Stage 3C Apply Semantic Integration
+
+on:
+  push:
+    branches:
+      - stage3c-defense-consumable-runtime
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply Stage 3C playtest semantics
+        run: |
+          node scripts/stage3c-integrate-playtest.mjs
+          python <<'PY'
+          from pathlib import Path
+          path = Path('app/playtest.tsx')
+          source = path.read_text()
+          before = 'function stage3cDefenseContext(defender: Board, attacker: Board, defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext {'
+          after = 'function stage3cDefenseContext(defender: Board, attacker: Board, defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext & { weaponAttack: boolean; defenderAttackedThisRound: boolean } {'
+          if before in source:
+              path.write_text(source.replace(before, after))
+          elif after not in source:
+              raise SystemExit('Stage 3C Defense context type marker not found')
+          PY
+
+      - name: Apply Stage 3C combat timing semantics
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          path = Path('scripts/stage3c-integrate-playtest-v2.mjs')
+          source = path.read_text()
+          start = source.find('replaceOnce(\n  "player Attack one-shot consumption",')
+          stop = source.find('// The marker above intentionally', start)
+          if start >= 0 and stop >= 0:
+              source = source[:start] + source[stop:]
+              path.write_text(source)
+          PY
+          node scripts/stage3c-integrate-playtest-v2.mjs
+
+      - name: Generate canonical runtime data
+        run: npm run game:generate
+
+      - name: Verify canonical game data
+        run: npm run game:check
+
+      - name: Stage 3C targeted tests
+        run: node --test tests/stage3c-defense-consumable-runtime.test.mjs
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit combat integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m "Stage 3C: connect delayed Defense and Consumable combat hooks"
+            git push
+          fi
