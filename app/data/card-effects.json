@@ -10,7 +10,6 @@
         {
           "id": "attack-aftermarket-last-ascend-zone",
           "trigger": "onAttackDeclared",
-          "action": "chooseZone",
           "target": "source",
           "conditions": [
             {
@@ -23,7 +22,9 @@
               "value": "Mid"
             }
           ],
-          "resolver": "attack.final.alternateZone"
+          "resolver": "attack.final.alternateZone",
+          "effect": "combat.chooseZone",
+          "action": "chooseZone"
         }
       ]
     },
@@ -33,7 +34,6 @@
         {
           "id": "attack-aisle-seven-piercing",
           "trigger": "onAttackDeclared",
-          "action": "piercing",
           "target": "source",
           "amount": 1,
           "conditions": [
@@ -43,15 +43,19 @@
               "value": true
             }
           ],
-          "resolver": "attack.piercing"
+          "resolver": "attack.piercing",
+          "effect": "combat.piercing",
+          "action": "piercing"
         },
         {
           "id": "attack-aisle-seven-ready",
           "trigger": "onHit",
-          "action": "ready",
           "target": "chosen-equipment",
           "amount": 1,
-          "resolver": "attack.readyEquipmentOnHit"
+          "resolver": "attack.readyEquipmentOnHit",
+          "effect": "equipment.ready",
+          "action": "ready",
+          "duration": "immediate"
         }
       ]
     },
@@ -61,11 +65,12 @@
         {
           "id": "attack-ankle-invoice-suppress-equipment",
           "trigger": "onHit",
-          "action": "modifyGuard",
           "target": "chosen-equipment",
           "amount": -2,
           "duration": "endOfTurn",
-          "resolver": "attack.final.equipmentSuppression"
+          "resolver": "attack.final.equipmentSuppression",
+          "effect": "combat.modifyGuard",
+          "action": "modifyGuard"
         }
       ]
     },
@@ -75,7 +80,6 @@
         {
           "id": "attack-axe-kick-defense-card-power",
           "trigger": "onDefenseDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -86,7 +90,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.afterDefensePower"
+          "resolver": "attack.afterDefensePower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -96,7 +102,6 @@
         {
           "id": "attack-back-kick-first-attack-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -107,14 +112,17 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-back-kick-next-flow",
           "trigger": "afterResolve",
-          "action": "custom",
           "target": "self",
-          "resolver": "attack.grantNextAttackFlow"
+          "resolver": "attack.grantNextAttackFlow",
+          "effect": "combat.grantFlow",
+          "action": "custom"
         }
       ]
     },
@@ -124,7 +132,6 @@
         {
           "id": "attack-backfist-defense-memory-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -135,7 +142,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -145,11 +154,12 @@
         {
           "id": "attack-backleg-side-next-attack-penalty",
           "trigger": "onHit",
-          "action": "modifyAttackPower",
           "target": "opponent",
           "amount": -1,
           "duration": "nextAttack",
-          "resolver": "attack.targetNextAttackPenalty"
+          "resolver": "attack.targetNextAttackPenalty",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -159,7 +169,6 @@
         {
           "id": "attack-budget-cut-focus-refund",
           "trigger": "afterResolve",
-          "action": "gainFocus",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -170,7 +179,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.focus"
+          "resolver": "attack.final.focus",
+          "effect": "core.gainFocus",
+          "action": "gainFocus"
         }
       ]
     },
@@ -180,7 +191,6 @@
         {
           "id": "attack-centerline-matching-armor-piercing",
           "trigger": "onAttackDeclared",
-          "action": "piercing",
           "target": "source",
           "amount": 2,
           "conditions": [
@@ -190,7 +200,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.piercing"
+          "resolver": "attack.piercing",
+          "effect": "combat.piercing",
+          "action": "piercing"
         }
       ]
     },
@@ -200,7 +212,6 @@
         {
           "id": "attack-certified-palm-exam-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -211,12 +222,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.power"
+          "resolver": "attack.final.power",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-certified-palm-first-normal-hit-focus",
           "trigger": "onHit",
-          "action": "gainFocus",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -227,7 +239,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.focus"
+          "resolver": "attack.final.focus",
+          "effect": "core.gainFocus",
+          "action": "gainFocus"
         }
       ]
     },
@@ -237,7 +251,6 @@
         {
           "id": "attack-courtesy-counter-block-memory-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -248,7 +261,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -258,7 +273,6 @@
         {
           "id": "attack-courtesy-notice-choice",
           "trigger": "onHit",
-          "action": "custom",
           "target": "opponent",
           "conditions": [
             {
@@ -274,7 +288,9 @@
               "value": 1
             }
           ],
-          "resolver": "attack.final.hitChoice"
+          "resolver": "attack.final.hitChoice",
+          "effect": "core.choice",
+          "action": "custom"
         }
       ]
     },
@@ -284,7 +300,6 @@
         {
           "id": "attack-defensive-front-kick-reaction",
           "trigger": "passive",
-          "action": "custom",
           "target": "source",
           "amount": 1,
           "conditions": [
@@ -296,7 +311,9 @@
               ]
             }
           ],
-          "resolver": "attack.final.defensiveReaction"
+          "resolver": "attack.final.defensiveReaction",
+          "effect": "core.custom",
+          "action": "custom"
         }
       ]
     },
@@ -306,7 +323,6 @@
         {
           "id": "attack-defensive-side-block-round-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -317,7 +333,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -327,7 +345,6 @@
         {
           "id": "attack-discount-dim-mak-choice",
           "trigger": "onHit",
-          "action": "custom",
           "target": "opponent",
           "conditions": [
             {
@@ -339,7 +356,9 @@
               "value": 1
             }
           ],
-          "resolver": "attack.final.hitChoice"
+          "resolver": "attack.final.hitChoice",
+          "effect": "core.choice",
+          "action": "custom"
         }
       ]
     },
@@ -349,10 +368,11 @@
         {
           "id": "attack-double-punch-combo-steps",
           "trigger": "passive",
-          "action": "custom",
           "target": "source",
           "amount": 2,
-          "resolver": "attack.final.comboMultiplicity"
+          "resolver": "attack.final.comboMultiplicity",
+          "effect": "core.custom",
+          "action": "custom"
         }
       ]
     },
@@ -362,11 +382,12 @@
         {
           "id": "attack-dragon-tail-speed",
           "trigger": "onHit",
-          "action": "modifySpeed",
           "target": "opponent",
           "amount": -2,
           "duration": "nextHonor",
-          "resolver": "attack.targetSpeedPenaltyUntilHonor"
+          "resolver": "attack.targetSpeedPenaltyUntilHonor",
+          "effect": "combat.modifySpeed",
+          "action": "modifySpeed"
         }
       ]
     },
@@ -376,7 +397,6 @@
         {
           "id": "attack-emotional-support-hand-size",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -387,7 +407,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -397,7 +419,6 @@
         {
           "id": "attack-escalator-speed-piercing",
           "trigger": "onAttackDeclared",
-          "action": "piercing",
           "target": "source",
           "amount": 1,
           "conditions": [
@@ -407,7 +428,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.piercing"
+          "resolver": "attack.piercing",
+          "effect": "combat.piercing",
+          "action": "piercing"
         }
       ]
     },
@@ -417,14 +440,14 @@
         {
           "id": "attack-fire-drill-zone",
           "trigger": "onAttackDeclared",
-          "action": "chooseZone",
           "target": "source",
-          "resolver": "attack.chooseAnyZone"
+          "resolver": "attack.chooseAnyZone",
+          "effect": "combat.chooseZone",
+          "action": "chooseZone"
         },
         {
           "id": "attack-fire-drill-feint",
           "trigger": "onDefenseDeclared",
-          "action": "custom",
           "target": "source",
           "conditions": [
             {
@@ -432,7 +455,9 @@
               "value": 1
             }
           ],
-          "resolver": "attack.final.fireDrillFeint"
+          "resolver": "attack.final.fireDrillFeint",
+          "effect": "core.choice",
+          "action": "custom"
         }
       ]
     },
@@ -442,7 +467,6 @@
         {
           "id": "attack-fire-exit-cycle-draw",
           "trigger": "afterResolve",
-          "action": "draw",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -453,12 +477,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.cycle"
+          "resolver": "attack.final.cycle",
+          "effect": "core.draw",
+          "action": "draw"
         },
         {
           "id": "attack-fire-exit-cycle-discard",
           "trigger": "afterResolve",
-          "action": "discard",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -469,7 +494,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.cycle"
+          "resolver": "attack.final.cycle",
+          "effect": "core.discard",
+          "action": "discard"
         }
       ]
     },
@@ -479,7 +506,6 @@
         {
           "id": "attack-flying-front-second-attack",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -490,15 +516,18 @@
               "value": 2
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-flying-front-resolve-focus",
           "trigger": "afterResolve",
-          "action": "gainFocus",
           "target": "self",
           "amount": 1,
-          "duration": "immediate"
+          "duration": "immediate",
+          "effect": "core.gainFocus",
+          "action": "gainFocus"
         }
       ]
     },
@@ -508,10 +537,11 @@
         {
           "id": "attack-flying-knee-hit-draw",
           "trigger": "onHit",
-          "action": "draw",
           "target": "self",
           "amount": 1,
-          "duration": "immediate"
+          "duration": "immediate",
+          "effect": "core.draw",
+          "action": "draw"
         }
       ]
     },
@@ -521,7 +551,6 @@
         {
           "id": "attack-flying-spin-cycle-draw",
           "trigger": "afterResolve",
-          "action": "draw",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -532,7 +561,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalCycle"
+          "resolver": "attack.conditionalCycle",
+          "effect": "core.draw",
+          "action": "draw"
         }
       ]
     },
@@ -542,7 +573,6 @@
         {
           "id": "attack-front-jab-first-cycle-draw",
           "trigger": "afterResolve",
-          "action": "draw",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -553,12 +583,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalCycle"
+          "resolver": "attack.conditionalCycle",
+          "effect": "core.draw",
+          "action": "draw"
         },
         {
           "id": "attack-front-jab-first-cycle-discard",
           "trigger": "afterResolve",
-          "action": "discard",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -569,7 +600,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalCycle"
+          "resolver": "attack.conditionalCycle",
+          "effect": "core.discard",
+          "action": "discard"
         }
       ]
     },
@@ -579,11 +612,12 @@
         {
           "id": "attack-front-ridgehand-next-armor-penalty",
           "trigger": "onHit",
-          "action": "modifyGuard",
           "target": "opponent",
           "amount": -1,
           "duration": "nextAttack",
-          "resolver": "attack.nextAttackArmorPenalty"
+          "resolver": "attack.nextAttackArmorPenalty",
+          "effect": "equipment.modifyDefenseContribution",
+          "action": "custom"
         }
       ]
     },
@@ -593,7 +627,6 @@
         {
           "id": "attack-hammerfist-matching-armor-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -604,12 +637,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-hammerfist-matching-armor-piercing",
           "trigger": "onAttackDeclared",
-          "action": "piercing",
           "target": "source",
           "amount": 1,
           "conditions": [
@@ -619,7 +653,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.piercing"
+          "resolver": "attack.piercing",
+          "effect": "combat.piercing",
+          "action": "piercing"
         }
       ]
     },
@@ -629,7 +665,6 @@
         {
           "id": "attack-helmet-check-matching-armor-piercing",
           "trigger": "onAttackDeclared",
-          "action": "piercing",
           "target": "source",
           "amount": 2,
           "conditions": [
@@ -639,7 +674,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.piercing"
+          "resolver": "attack.piercing",
+          "effect": "combat.piercing",
+          "action": "piercing"
         }
       ]
     },
@@ -649,7 +686,6 @@
         {
           "id": "attack-hook-kick-low-setup",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -660,7 +696,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -670,7 +708,6 @@
         {
           "id": "attack-hook-punch-previous-block-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -681,7 +718,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -691,7 +730,6 @@
         {
           "id": "attack-horizontal-elbow-item-setup",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -702,7 +740,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -712,7 +752,6 @@
         {
           "id": "attack-inside-crescent-cycle",
           "trigger": "afterResolve",
-          "action": "custom",
           "target": "self",
           "conditions": [
             {
@@ -726,7 +765,9 @@
               "value": 1
             }
           ],
-          "resolver": "attack.optionalDiscardDraw"
+          "resolver": "attack.optionalDiscardDraw",
+          "effect": "core.choice",
+          "action": "custom"
         }
       ]
     },
@@ -736,7 +777,6 @@
         {
           "id": "attack-knee-strike-loaded-target-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -747,12 +787,13 @@
               "value": 2
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-knee-strike-loaded-target-piercing",
           "trigger": "onAttackDeclared",
-          "action": "piercing",
           "target": "source",
           "amount": 1,
           "conditions": [
@@ -762,7 +803,9 @@
               "value": 2
             }
           ],
-          "resolver": "attack.piercing"
+          "resolver": "attack.piercing",
+          "effect": "combat.piercing",
+          "action": "piercing"
         }
       ]
     },
@@ -772,11 +815,12 @@
         {
           "id": "attack-knifehand-suppress-equipment",
           "trigger": "onHit",
-          "action": "modifyGuard",
           "target": "chosen-equipment",
           "amount": -1,
           "duration": "endOfTurn",
-          "resolver": "attack.final.equipmentSuppression"
+          "resolver": "attack.final.equipmentSuppression",
+          "effect": "combat.modifyGuard",
+          "action": "modifyGuard"
         }
       ]
     },
@@ -786,11 +830,12 @@
         {
           "id": "attack-liver-shot-next-attack-penalty",
           "trigger": "onHit",
-          "action": "modifyAttackPower",
           "target": "opponent",
           "amount": -2,
           "duration": "nextAttack",
-          "resolver": "attack.targetNextAttackPenalty"
+          "resolver": "attack.targetNextAttackPenalty",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -800,7 +845,6 @@
         {
           "id": "attack-loading-dock-weapon-flow",
           "trigger": "onAttackDeclared",
-          "action": "custom",
           "target": "source",
           "conditions": [
             {
@@ -809,7 +853,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.currentAttackFlow"
+          "resolver": "attack.currentAttackFlow",
+          "effect": "combat.grantFlow",
+          "action": "custom"
         }
       ]
     },
@@ -819,7 +865,6 @@
         {
           "id": "attack-mall-ninja-improvised-weapon",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -830,7 +875,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -840,11 +887,12 @@
         {
           "id": "attack-outside-crescent-speed",
           "trigger": "onHit",
-          "action": "modifySpeed",
           "target": "opponent",
           "amount": -1,
           "duration": "nextHonor",
-          "resolver": "attack.targetSpeedPenaltyUntilHonor"
+          "resolver": "attack.targetSpeedPenaltyUntilHonor",
+          "effect": "combat.modifySpeed",
+          "action": "modifySpeed"
         }
       ]
     },
@@ -854,7 +902,6 @@
         {
           "id": "attack-overhand-right-no-defense-power",
           "trigger": "onDefenseDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -865,7 +912,9 @@
               "value": false
             }
           ],
-          "resolver": "attack.afterDefensePower"
+          "resolver": "attack.afterDefensePower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -875,7 +924,6 @@
         {
           "id": "attack-overtime-focus-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -886,7 +934,9 @@
               "value": 5
             }
           ],
-          "resolver": "attack.final.power"
+          "resolver": "attack.final.power",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -896,7 +946,6 @@
         {
           "id": "attack-palm-heel-once-hit-focus",
           "trigger": "onHit",
-          "action": "gainFocus",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -907,7 +956,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalFocus"
+          "resolver": "attack.conditionalFocus",
+          "effect": "core.gainFocus",
+          "action": "gainFocus"
         }
       ]
     },
@@ -917,18 +968,20 @@
         {
           "id": "attack-popup-roundhouse-hit-draw",
           "trigger": "onHit",
-          "action": "draw",
           "target": "self",
           "amount": 1,
-          "duration": "immediate"
+          "duration": "immediate",
+          "effect": "core.draw",
+          "action": "draw"
         },
         {
           "id": "attack-popup-roundhouse-hit-discard",
           "trigger": "onHit",
-          "action": "discard",
           "target": "self",
           "amount": 1,
-          "duration": "immediate"
+          "duration": "immediate",
+          "effect": "core.discard",
+          "action": "discard"
         }
       ]
     },
@@ -938,7 +991,6 @@
         {
           "id": "attack-punch-clock-previous-kata-item-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -949,12 +1001,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-punch-clock-item-hit-speed",
           "trigger": "onHit",
-          "action": "modifySpeed",
           "target": "opponent",
           "amount": -1,
           "duration": "nextHonor",
@@ -965,7 +1018,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.targetSpeedPenaltyUntilHonor"
+          "resolver": "attack.targetSpeedPenaltyUntilHonor",
+          "effect": "combat.modifySpeed",
+          "action": "modifySpeed"
         }
       ]
     },
@@ -975,9 +1030,10 @@
         {
           "id": "attack-question-mark-zone",
           "trigger": "onAttackDeclared",
-          "action": "chooseZone",
           "target": "source",
-          "resolver": "attack.chooseAnyZone"
+          "resolver": "attack.chooseAnyZone",
+          "effect": "combat.chooseZone",
+          "action": "chooseZone"
         }
       ]
     },
@@ -987,7 +1043,6 @@
         {
           "id": "attack-rear-hand-punch-setup",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -998,7 +1053,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1008,7 +1065,6 @@
         {
           "id": "attack-rear-thrust-was-hit",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1019,7 +1075,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1029,7 +1087,6 @@
         {
           "id": "attack-receipt-roll-first-hit-focus",
           "trigger": "onHit",
-          "action": "gainFocus",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -1040,7 +1097,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalFocus"
+          "resolver": "attack.conditionalFocus",
+          "effect": "core.gainFocus",
+          "action": "gainFocus"
         }
       ]
     },
@@ -1050,7 +1109,6 @@
         {
           "id": "attack-refundable-elbow-reversal-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1061,16 +1119,19 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-refundable-elbow-next-attack-penalty",
           "trigger": "onHit",
-          "action": "modifyAttackPower",
           "target": "opponent",
           "amount": -1,
           "duration": "nextAttack",
-          "resolver": "attack.targetNextAttackPenalty"
+          "resolver": "attack.targetNextAttackPenalty",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1080,7 +1141,6 @@
         {
           "id": "attack-reverse-punch-kata-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1091,7 +1151,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1101,7 +1163,6 @@
         {
           "id": "attack-roundhouse-zone-change",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -1112,7 +1173,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1122,7 +1185,6 @@
         {
           "id": "attack-second-opinion-second-attack",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -1133,15 +1195,18 @@
               "value": 2
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-second-opinion-hit-focus",
           "trigger": "onHit",
-          "action": "gainFocus",
           "target": "self",
           "amount": 1,
-          "duration": "immediate"
+          "duration": "immediate",
+          "effect": "core.gainFocus",
+          "action": "gainFocus"
         }
       ]
     },
@@ -1151,7 +1216,6 @@
         {
           "id": "attack-side-kick-only-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1162,12 +1226,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.power"
+          "resolver": "attack.final.power",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-side-kick-only-lock",
           "trigger": "onAttackDeclared",
-          "action": "custom",
           "target": "self",
           "conditions": [
             {
@@ -1176,7 +1241,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.onlyAttackLock"
+          "resolver": "attack.final.onlyAttackLock",
+          "effect": "core.custom",
+          "action": "custom"
         }
       ]
     },
@@ -1186,9 +1253,10 @@
         {
           "id": "attack-snap-front-kick-next-flow",
           "trigger": "onHit",
-          "action": "custom",
           "target": "self",
-          "resolver": "attack.grantNextAttackFlow"
+          "resolver": "attack.grantNextAttackFlow",
+          "effect": "combat.grantFlow",
+          "action": "custom"
         }
       ]
     },
@@ -1198,7 +1266,6 @@
         {
           "id": "attack-spinning-backfist-next-flow",
           "trigger": "afterResolve",
-          "action": "custom",
           "target": "self",
           "conditions": [
             {
@@ -1207,7 +1274,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.grantNextAttackFlow"
+          "resolver": "attack.grantNextAttackFlow",
+          "effect": "combat.grantFlow",
+          "action": "custom"
         }
       ]
     },
@@ -1217,7 +1286,6 @@
         {
           "id": "attack-spinning-elbow-cycle-draw",
           "trigger": "afterResolve",
-          "action": "draw",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -1228,12 +1296,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalCycle"
+          "resolver": "attack.conditionalCycle",
+          "effect": "core.draw",
+          "action": "draw"
         },
         {
           "id": "attack-spinning-elbow-cycle-discard",
           "trigger": "afterResolve",
-          "action": "discard",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -1244,7 +1313,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalCycle"
+          "resolver": "attack.conditionalCycle",
+          "effect": "core.discard",
+          "action": "discard"
         }
       ]
     },
@@ -1254,7 +1325,6 @@
         {
           "id": "attack-spinning-hook-mid-high-setup",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1265,7 +1335,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1275,7 +1347,6 @@
         {
           "id": "attack-superman-kata-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1286,23 +1357,27 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         },
         {
           "id": "attack-superman-hit-draw",
           "trigger": "onHit",
-          "action": "draw",
           "target": "self",
           "amount": 1,
-          "duration": "immediate"
+          "duration": "immediate",
+          "effect": "core.draw",
+          "action": "draw"
         },
         {
           "id": "attack-superman-hit-discard",
           "trigger": "onHit",
-          "action": "discard",
           "target": "self",
           "amount": 1,
-          "duration": "immediate"
+          "duration": "immediate",
+          "effect": "core.discard",
+          "action": "discard"
         }
       ]
     },
@@ -1312,10 +1387,11 @@
         {
           "id": "attack-swan-kick-next-any-zone",
           "trigger": "onHit",
-          "action": "chooseZone",
           "target": "self",
           "duration": "nextAttack",
-          "resolver": "attack.grantNextAttackAnyZone"
+          "resolver": "attack.grantNextAttackAnyZone",
+          "effect": "combat.chooseZone",
+          "action": "chooseZone"
         }
       ]
     },
@@ -1325,7 +1401,6 @@
         {
           "id": "attack-switching-axe-discard-cost",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1335,7 +1410,9 @@
               "value": 1
             }
           ],
-          "resolver": "attack.final.optionalAttackCost"
+          "resolver": "attack.final.optionalAttackCost",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1345,11 +1422,12 @@
         {
           "id": "attack-teep-next-attack-penalty",
           "trigger": "onHit",
-          "action": "modifyAttackPower",
           "target": "opponent",
           "amount": -1,
           "duration": "nextAttack",
-          "resolver": "attack.targetNextAttackPenalty"
+          "resolver": "attack.targetNextAttackPenalty",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1359,9 +1437,10 @@
         {
           "id": "attack-the-blitz-next-flow",
           "trigger": "afterResolve",
-          "action": "custom",
           "target": "self",
-          "resolver": "attack.grantNextAttackFlow"
+          "resolver": "attack.grantNextAttackFlow",
+          "effect": "combat.grantFlow",
+          "action": "custom"
         }
       ]
     },
@@ -1371,7 +1450,6 @@
         {
           "id": "attack-three-gate-cycle-draw",
           "trigger": "afterResolve",
-          "action": "draw",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -1382,12 +1460,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.cycle"
+          "resolver": "attack.final.cycle",
+          "effect": "core.draw",
+          "action": "draw"
         },
         {
           "id": "attack-three-gate-cycle-discard",
           "trigger": "afterResolve",
-          "action": "discard",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -1398,7 +1477,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.cycle"
+          "resolver": "attack.final.cycle",
+          "effect": "core.discard",
+          "action": "discard"
         }
       ]
     },
@@ -1408,7 +1489,6 @@
         {
           "id": "attack-three-stamp-exam-focus",
           "trigger": "afterResolve",
-          "action": "gainFocus",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -1419,7 +1499,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.final.focus"
+          "resolver": "attack.final.focus",
+          "effect": "core.gainFocus",
+          "action": "gainFocus"
         }
       ]
     },
@@ -1429,7 +1511,6 @@
         {
           "id": "attack-tornado-crescent-choice",
           "trigger": "onHit",
-          "action": "custom",
           "target": "self",
           "conditions": [
             {
@@ -1449,7 +1530,9 @@
               "value": 1
             }
           ],
-          "resolver": "attack.final.hitChoice"
+          "resolver": "attack.final.hitChoice",
+          "effect": "core.choice",
+          "action": "custom"
         }
       ]
     },
@@ -1459,7 +1542,6 @@
         {
           "id": "attack-tornado-round-kata-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1470,7 +1552,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1480,7 +1564,6 @@
         {
           "id": "attack-triple-round-two-zones",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1491,7 +1574,9 @@
               "value": 2
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1501,7 +1586,6 @@
         {
           "id": "attack-turning-side-zone-cycle-draw",
           "trigger": "afterResolve",
-          "action": "draw",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -1512,12 +1596,13 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalCycle"
+          "resolver": "attack.conditionalCycle",
+          "effect": "core.draw",
+          "action": "draw"
         },
         {
           "id": "attack-turning-side-zone-cycle-discard",
           "trigger": "afterResolve",
-          "action": "discard",
           "target": "self",
           "amount": 1,
           "duration": "immediate",
@@ -1528,7 +1613,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalCycle"
+          "resolver": "attack.conditionalCycle",
+          "effect": "core.discard",
+          "action": "discard"
         }
       ]
     },
@@ -1538,7 +1625,6 @@
         {
           "id": "attack-turnstile-tempo",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 1,
           "duration": "immediate",
@@ -1549,7 +1635,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1559,7 +1647,6 @@
         {
           "id": "attack-uppercut-spent-tempo-power",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1570,7 +1657,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1580,7 +1669,6 @@
         {
           "id": "attack-upward-elbow-faster-target",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1591,7 +1679,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
@@ -1601,7 +1691,6 @@
         {
           "id": "attack-wheel-kick-spin-setup",
           "trigger": "onAttackDeclared",
-          "action": "modifyAttackPower",
           "target": "source",
           "amount": 2,
           "duration": "immediate",
@@ -1612,7 +1701,9 @@
               "value": true
             }
           ],
-          "resolver": "attack.conditionalPower"
+          "resolver": "attack.conditionalPower",
+          "effect": "combat.modifyAttackPower",
+          "action": "modifyAttackPower"
         }
       ]
     },
