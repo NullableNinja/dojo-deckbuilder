@@ -39,6 +39,9 @@ jobs:
       - name: Materialize Location family
         run: node scripts/stage3b-materialize-locations.mjs
 
+      - name: Promote Starter family from temporary seed
+        run: node scripts/stage3b-promote-starters.mjs
+
       - name: Audit temporary Stage 3B seed ownership
         run: node scripts/stage3b-seed-audit.mjs
 
@@ -80,6 +83,7 @@ jobs:
             app/equipment-structured.ts
             app/location-effect-resolvers.ts
             app/playtest.tsx
+            content/card-effects/starters.json
             content/card-effects/locations.json
             content/card-effects.json
             app/data/card-effects.json
