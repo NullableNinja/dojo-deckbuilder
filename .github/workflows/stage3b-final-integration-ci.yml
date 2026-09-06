@@ -9,7 +9,7 @@ on:
       - stage3b-final-integration
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -33,7 +33,7 @@ jobs:
       - name: Check generated game data
         run: npm run game:check
 
-      - name: Apply catalog-aware playtest migration
+      - name: Apply catalog-aware playtest migration for validation
         run: node scripts/stage3b-catalog-aware-playtest.mjs
 
       - name: Run full test suite
@@ -44,20 +44,6 @@ jobs:
 
       - name: Build production bundle
         run: npm run build
-
-      - name: Commit catalog-aware playtest migration
-        if: success() && github.event_name == 'push'
-        shell: bash
-        run: |
-          if git diff --quiet -- app/playtest.tsx; then
-            echo "Catalog-aware playtest migration already committed."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/playtest.tsx
-          git commit -m "fix: use catalog-aware structured effects in playtest"
-          git push
 
       - name: Show generated effect changes
         if: always()
