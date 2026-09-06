@@ -1,0 +1,536 @@
+/* Quick Duel visual polish --------------------------------------------------
+   Final-cascade corrections for the production Paper-Fu mat.
+   This layer intentionally owns visual hierarchy after legacy Field Test CSS. */
+
+.playtest-shell.playtest-shell--live {
+  --phase-marker-y: 84px;
+  --phase-label: "INITIATE";
+  --live-shell-width: min(1580px, calc(100vw - 24px));
+  --live-shell-edge: calc((100vw - var(--live-shell-width)) / 2);
+  --hud-side-width: calc((var(--live-shell-width) - 114px) / 2);
+}
+
+/* Mortal-Kombat-inspired top HUD: one authoritative round readout plus live HP. */
+.playtest-shell.playtest-shell--live .battle-versus-hud {
+  position: relative;
+  height: 54px;
+  grid-template-columns: minmax(0, 1fr) 86px minmax(0, 1fr);
+  gap: 14px;
+  padding-inline: 10px;
+}
+
+.playtest-shell.playtest-shell--live .battle-versus-hud::before,
+.playtest-shell.playtest-shell--live .battle-versus-hud::after {
+  box-sizing: border-box;
+  width: 100%;
+  height: 19px;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  border: 2px solid rgba(255, 242, 203, .88);
+  border-radius: 5px 12px 4px 10px;
+  padding: 0 9px;
+  color: #fff8dc;
+  background: linear-gradient(180deg, #313a32, #18251e);
+  box-shadow: 0 3px 0 rgba(26, 18, 11, .42), inset 0 0 0 2px rgba(24, 30, 26, .25);
+  font: 950 7px/1 var(--sans);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.playtest-shell.playtest-shell--live .battle-versus-hud::before { content: "YOU"; justify-content: flex-start; }
+.playtest-shell.playtest-shell--live .battle-versus-hud::after { content: "COMPUTER"; justify-content: flex-end; }
+.playtest-shell.playtest-shell--live .versus-center { width: 66px; height: 54px; }
+.playtest-shell.playtest-shell--live .versus-center > span {
+  top: 6px;
+  color: #fff;
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: .16em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+.playtest-shell.playtest-shell--live .versus-center > b { width: 52px; height: 52px; font-size: 28px; }
+
+@media (min-width: 1200px) {
+  /* Reuse the actual dynamic HP tracks in the top HUD. The numeric HP stays on
+     each fighter dossier as the intentionally duplicated precise value. */
+  .playtest-shell.playtest-shell--live .fighter-column--player .fighter-hp-track,
+  .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    position: fixed;
+    z-index: 90;
+    top: 25px;
+    height: 11px;
+    border: 1px solid #252922;
+    border-radius: 2px 7px 3px 6px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3), 0 1px 0 rgba(255, 255, 255, .25);
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column--player .fighter-hp-track {
+    left: calc(var(--live-shell-edge) + 58px);
+    width: calc(var(--hud-side-width) - 70px);
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    right: calc(var(--live-shell-edge) + 58px);
+    width: calc(var(--hud-side-width) - 70px);
+  }
+
+  /* Give the combat mat more vertical ownership and make the hand feel like a
+     floating rack rather than a second giant board. */
+  .playtest-shell.playtest-shell--live,
+  .playtest-shell.playtest-shell--live.playtest-shell--guided {
+    grid-template-rows: 54px minmax(0, 1fr) clamp(158px, 18dvh, 184px) 54px 39px;
+  }
+
+  .playtest-shell.playtest-shell--live:has(.play-card-row:empty),
+  .playtest-shell.playtest-shell--live.playtest-shell--guided:has(.play-card-row:empty) {
+    grid-template-rows: 54px minmax(0, 1fr) 92px 54px 39px;
+  }
+
+  /* Vertical HIYAH phase rail. The moving stamp is the sole persistent phase
+     indicator; the combat stage is free to concentrate on cards and zones. */
+  .playtest-shell.playtest-shell--live > .playtest-arena {
+    position: relative;
+    padding-left: 48px;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-arena::before {
+    content: "H\A I\A Y\A A\A H";
+    position: absolute;
+    z-index: 6;
+    top: 10px;
+    bottom: 122px;
+    left: 4px;
+    width: 34px;
+    display: block;
+    white-space: pre;
+    border: 1px solid rgba(255, 244, 214, .28);
+    border-radius: 15px 4px 16px 6px;
+    padding: 16px 0;
+    color: rgba(255, 246, 220, .78);
+    background: rgba(24, 44, 35, .84);
+    box-shadow: 3px 4px 0 rgba(214, 165, 40, .5), 0 8px 18px rgba(22, 14, 8, .22);
+    font-family: var(--display);
+    font-size: 22px;
+    line-height: 2.15;
+    text-align: center;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-arena::after {
+    content: var(--phase-label);
+    position: absolute;
+    z-index: 7;
+    top: var(--phase-marker-y);
+    left: 0;
+    width: 42px;
+    border: 1px solid #ffe69a;
+    border-radius: 7px 2px 8px 3px;
+    padding: 4px 2px;
+    color: #fff;
+    background: var(--mat-red);
+    box-shadow: 2px 3px 0 var(--mat-gold);
+    font: 950 5px/1 var(--sans);
+    letter-spacing: .06em;
+    text-align: center;
+    text-transform: uppercase;
+    transform: translateY(-50%) rotate(-2deg);
+  }
+
+  .playtest-shell.playtest-shell--live:has(.combat-stage.state-player-initiate) { --phase-marker-y: 67px; --phase-label: "INITIATE"; }
+  .playtest-shell.playtest-shell--live:has(.combat-stage.state-player-yell) { --phase-marker-y: 114px; --phase-label: "YELL"; }
+  .playtest-shell.playtest-shell--live:has(.combat-stage.state-defense-window) { --phase-marker-y: 114px; --phase-label: "REACTION"; }
+  .playtest-shell.playtest-shell--live:has(.combat-stage.state-reversal-window) { --phase-marker-y: 114px; --phase-label: "REVERSAL"; }
+  .playtest-shell.playtest-shell--live:has(.combat-stage.state-player-ascend) { --phase-marker-y: 161px; --phase-label: "ASCEND"; }
+  .playtest-shell.playtest-shell--live:has(.combat-stage.state-ai-ready) { --phase-marker-y: 114px; --phase-label: "OPPONENT"; }
+}
+
+/* The top center owns Round. The HIYAH rail owns phase. */
+.playtest-shell.playtest-shell--live .combat-stage-heading { grid-template-columns: minmax(0, 1fr); }
+.playtest-shell.playtest-shell--live .combat-stage-heading > div { display: none; }
+.playtest-shell.playtest-shell--live .playtest-action-dock > div:first-child > span { display: none; }
+.playtest-shell.playtest-shell--live .combat-stage.state-player-initiate .clash-seal > span,
+.playtest-shell.playtest-shell--live .combat-stage.state-player-yell .clash-seal > span,
+.playtest-shell.playtest-shell--live .combat-stage.state-player-ascend .clash-seal > span,
+.playtest-shell.playtest-shell--live .combat-stage.state-ai-ready .clash-seal > span { visibility: hidden; }
+
+/* Normalize the living fighter dossier. This deliberately defeats the old
+   two-column .fighter-panel rules that were still winning on desktop. */
+.playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card,
+.playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "heading" "vitality" "art" "stats" "resources" "status" "ability";
+  grid-template-rows: minmax(38px, auto) 31px minmax(94px, 1fr) 42px 39px minmax(18px, auto) minmax(42px, auto);
+  align-self: stretch;
+  align-items: stretch;
+  gap: 4px;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.playtest-shell.playtest-shell--live .fighter-column {
+  overflow: hidden;
+  padding-block: 3px;
+}
+
+.playtest-shell.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card {
+  height: calc(100% - 104px);
+}
+
+.playtest-shell.playtest-shell--live .fighter-combo-rack {
+  height: 98px;
+  min-height: 98px;
+  overflow: auto;
+  margin-top: 6px;
+  padding: 6px;
+}
+
+.playtest-shell.playtest-shell--live .fighter-card-heading {
+  min-height: 0;
+  align-items: flex-start;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+
+.playtest-shell.playtest-shell--live .fighter-card-heading > div { flex: 1 1 auto; min-width: 0; }
+
+.playtest-shell.playtest-shell--live .fighter-dossier-name {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  font-size: clamp(15px, 1.18vw, 22px);
+  line-height: 1.02;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.playtest-shell.playtest-shell--live .fighter-belt-badge { min-width: 48px; padding: 4px 5px; font-size: 9px; }
+.playtest-shell.playtest-shell--live .fighter-vitality { min-height: 0; gap: 2px; }
+.playtest-shell.playtest-shell--live .fighter-vitality > div b { font-size: 20px; }
+.playtest-shell.playtest-shell--live .fighter-vitality > div span { font-size: 6px; }
+
+.playtest-shell.playtest-shell--live .fighter-panel-art.fighter-card-illustration,
+.playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration {
+  grid-area: art;
+  grid-column: 1;
+  grid-row: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+  border: 1px solid rgba(49, 87, 70, .22);
+  padding: 0;
+  background: radial-gradient(circle at 50% 61%, rgba(255, 255, 255, .86) 0 31%, transparent 32%), linear-gradient(155deg, rgba(45, 109, 78, .12), rgba(214, 165, 40, .11));
+}
+
+.playtest-shell.playtest-shell--live .fighter-panel-art.fighter-card-illustration img,
+.playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration img {
+  position: relative;
+  z-index: 1;
+  width: 88%;
+  height: 94%;
+  max-width: 88%;
+  max-height: 94%;
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 7px 5px rgba(35, 25, 16, .22));
+}
+
+.playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration img { transform: scaleX(-1); }
+.playtest-shell.playtest-shell--live .fighter-panel-art.fighter-card-illustration:hover img { transform: none; }
+.playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration:hover img { transform: scaleX(-1); }
+
+.playtest-shell.playtest-shell--live .fighter-stats.fighter-stats--combat,
+.playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-stats.fighter-stats--combat {
+  grid-area: stats;
+  grid-column: 1;
+  grid-row: auto;
+  min-height: 0;
+}
+
+.playtest-shell.playtest-shell--live .fighter-stats--combat > b { padding: 3px 4px; }
+.playtest-shell.playtest-shell--live .fighter-stats--combat .fighter-stat-glyph { width: 17px; height: 17px; }
+.playtest-shell.playtest-shell--live .fighter-stats--combat b > span { font-size: 14px; }
+.playtest-shell.playtest-shell--live .fighter-resource-strip { min-height: 0; grid-template-columns: minmax(0, 1fr) 48px; gap: 4px; }
+.playtest-shell.playtest-shell--live .fighter-xp-meter { gap: 2px; padding: 4px 5px; }
+.playtest-shell.playtest-shell--live .fighter-focus-seal { padding: 3px; }
+.playtest-shell.playtest-shell--live .fighter-focus-seal > span { font-size: 15px; }
+.playtest-shell.playtest-shell--live .fighter-status-tray { min-height: 16px; gap: 2px; }
+.playtest-shell.playtest-shell--live .fighter-status-tray span { padding: 2px 5px; font-size: 5px; }
+
+/* Ability is always present. Art gives up space before rules text ever scrolls. */
+.playtest-shell.playtest-shell--live .fighter-ability {
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  align-content: center;
+  gap: 2px;
+  padding: 5px 6px;
+  font-size: clamp(6px, .52vw, 7.5px);
+  line-height: 1.18;
+}
+.playtest-shell.playtest-shell--live .fighter-ability b { font-size: 5px; }
+
+/* Equipment is a compact loadout tab; the attached cards expand only while
+   intentionally interacting with the tab. */
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs,
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy {
+  top: 76px;
+  right: 5px;
+  left: auto;
+  width: 74px;
+}
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy { right: auto; left: 5px; }
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs > div { display: none; }
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs:hover > div,
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs:focus-within > div { display: grid; }
+
+/* Main combat board stays inside its own geometry. */
+.playtest-shell.playtest-shell--live .playtest-table { overflow: hidden; }
+.playtest-shell.playtest-shell--live .combat-stage-column { overflow: hidden; }
+.playtest-shell.playtest-shell--live .playtest-combat-desk.combat-stage {
+  min-height: 0;
+  align-content: stretch;
+  grid-template-rows: auto minmax(120px, 1.45fr) auto minmax(64px, .72fr) minmax(54px, auto) auto;
+  gap: 5px;
+  padding: 8px 9px;
+}
+.playtest-shell.playtest-shell--live .clash-field { min-height: 0; overflow: hidden; }
+
+/* Market fallback artwork must not inherit the old position:absolute card
+   renderer. That inheritance was capable of painting one fallback card across
+   the entire rail and caused the wild hover flashing. */
+.playtest-shell.playtest-shell--live .acquisition-rail {
+  min-height: 116px;
+  height: 116px;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.playtest-shell.playtest-shell--live .market-rail-cards {
+  min-width: 0;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.playtest-shell.playtest-shell--live .market-rail-cards > button {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  contain: layout paint;
+  transform: none !important;
+  transition: border-color .12s ease, box-shadow .12s ease, background-color .12s ease;
+}
+
+.playtest-shell.playtest-shell--live .market-rail-cards > button:hover,
+.playtest-shell.playtest-shell--live .market-rail-cards > button:focus-visible {
+  z-index: auto;
+  transform: none !important;
+  border-color: var(--mat-gold);
+  background: #fff9e9;
+  box-shadow: inset 0 -3px 0 rgba(214, 165, 40, .36), 1px 2px 0 rgba(73, 52, 26, .16);
+}
+
+.playtest-shell.playtest-shell--live .market-rail-cards > button > span {
+  position: relative;
+  isolation: isolate;
+  contain: strict;
+}
+
+.playtest-shell.playtest-shell--live .market-rail-cards img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: top;
+  pointer-events: none;
+  transform: none !important;
+}
+
+.playtest-shell.playtest-shell--live .market-rail-cards .native-card-art {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  contain: strict;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 1px;
+  padding: 3px;
+}
+
+.playtest-shell.playtest-shell--live .market-rail-cards .native-card-art::before { inset: 2px; }
+.playtest-shell.playtest-shell--live .market-rail-cards .native-card-art::after,
+.playtest-shell.playtest-shell--live .market-rail-cards .native-card-art > b,
+.playtest-shell.playtest-shell--live .market-rail-cards .native-card-art > small,
+.playtest-shell.playtest-shell--live .market-rail-cards .native-card-art > em { display: none; }
+.playtest-shell.playtest-shell--live .market-rail-cards .native-card-art > strong {
+  align-self: center;
+  overflow: hidden;
+  font-size: 7px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.playtest-shell.playtest-shell--live .market-rail-cards .native-card-ribbon { padding: 2px 3px; font-size: 4px; }
+
+/* Floating hand/rack. */
+.playtest-shell.playtest-shell--live .hand-panel {
+  border: 1px solid rgba(255, 244, 216, .18);
+  border-top: 5px solid var(--mat-green);
+  border-radius: 11px 4px 12px 5px;
+  background: linear-gradient(180deg, rgba(34, 71, 56, .88), rgba(27, 56, 45, .92));
+  box-shadow: 0 12px 26px rgba(20, 13, 8, .24);
+}
+.playtest-shell.playtest-shell--live .hand-panel > header { min-height: 30px; margin-bottom: 2px; }
+.playtest-shell.playtest-shell--live .hand-panel h2 { color: #fff7df; font-size: clamp(16px, 1.35vw, 21px); }
+.playtest-shell.playtest-shell--live .hand-panel .eyebrow { color: #ff846d; }
+.playtest-shell.playtest-shell--live .play-card-row {
+  align-items: flex-end;
+  justify-content: center;
+  gap: 7px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 1px 5px 5px;
+}
+.playtest-shell.playtest-shell--live .play-card-row .play-card {
+  flex: 0 1 148px;
+  min-width: 108px;
+  max-width: 148px;
+  height: 100%;
+  transform-origin: 50% 110%;
+}
+.playtest-shell.playtest-shell--live.motion-full .play-card-row .play-card:nth-child(4n + 1) { transform: rotate(-.55deg) translateY(2px); }
+.playtest-shell.playtest-shell--live.motion-full .play-card-row .play-card:nth-child(4n + 3) { transform: rotate(.55deg) translateY(2px); }
+.playtest-shell.playtest-shell--live.motion-full .play-card-row .play-card:hover:not(.is-disabled) { transform: translateY(-7px) scale(1.025); }
+.playtest-shell.playtest-shell--live .play-card-main { min-height: 0; }
+.playtest-shell.playtest-shell--live .play-card-row:empty::after {
+  content: "Hand cleared for Ascend.";
+  align-self: center;
+  color: rgba(255, 247, 222, .58);
+  font: 850 8px/1 var(--sans);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* REAL overlays: explicitly beat .playtest-shell--live > * { position:relative }. */
+.playtest-shell.playtest-shell--live > .ascend-desk-backdrop,
+.playtest-shell.playtest-shell--live > .playtest-inspector-backdrop {
+  position: fixed !important;
+  z-index: 500 !important;
+  inset: 0 !important;
+  width: 100vw;
+  height: 100dvh;
+  margin: 0 !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+}
+
+.playtest-shell.playtest-shell--live > .ascend-desk-backdrop {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.playtest-shell.playtest-shell--live .ascend-desk {
+  width: min(1500px, calc(100vw - 32px));
+  height: min(820px, calc(100dvh - 32px));
+  min-height: 0;
+  max-height: calc(100dvh - 32px);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  align-self: center;
+  overflow: hidden;
+}
+
+.playtest-shell.playtest-shell--live .ascend-desk-header { gap: 12px; padding: 11px 15px 9px; }
+.playtest-shell.playtest-shell--live .ascend-desk-header h2 { margin-top: 2px; font-size: clamp(27px, 3vw, 38px); }
+.playtest-shell.playtest-shell--live .ascend-desk-header p { margin: 4px 0 0; font-size: 10px; line-height: 1.25; }
+.playtest-shell.playtest-shell--live .ascend-desk-balance { min-width: 132px; padding: 6px 8px; }
+.playtest-shell.playtest-shell--live .ascend-guide { grid-template-columns: 128px minmax(0, 1fr); gap: 6px; padding: 6px 12px; }
+.playtest-shell.playtest-shell--live .ascend-guide-kicker { padding: 5px 7px; }
+.playtest-shell.playtest-shell--live .ascend-guide li { min-height: 38px; grid-template-columns: 22px minmax(0, 1fr); gap: 4px; padding: 4px; }
+.playtest-shell.playtest-shell--live .ascend-guide li > b { width: 21px; height: 21px; font-size: 8px; }
+.playtest-shell.playtest-shell--live .ascend-step-coach { display: none; }
+.playtest-shell.playtest-shell--live .ascend-desk-body { min-height: 0; overflow: auto; padding: 10px 14px; overscroll-behavior: contain; }
+.playtest-shell.playtest-shell--live .ascend-market > header { margin-bottom: 8px; }
+.playtest-shell.playtest-shell--live .ascend-market > header h3 { margin-top: 2px; font-size: 23px; }
+.playtest-shell.playtest-shell--live .ascend-market > header p { font-size: 9px; }
+.playtest-shell.playtest-shell--live .ascend-market-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; overflow: visible; }
+.playtest-shell.playtest-shell--live .ascend-market-grid .play-card {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: clamp(205px, 28dvh, 252px);
+}
+.playtest-shell.playtest-shell--live .ascend-market-grid .play-card-main { height: 100%; }
+.playtest-shell.playtest-shell--live .ascend-desk-footer { min-height: 50px; padding: 7px 14px; }
+.playtest-shell.playtest-shell--live .ascend-desk-footer > details { display: none; }
+.playtest-shell.playtest-shell--live .ascend-guide-actions small { font-size: 7px; }
+
+.playtest-shell.playtest-shell--live > .playtest-inspector-backdrop {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.playtest-shell.playtest-shell--live .coach-dialog,
+.playtest-shell.playtest-shell--live .fight-log-dialog,
+.playtest-shell.playtest-shell--live .effect-choice-dialog,
+.playtest-shell.playtest-shell--live .playtest-inspector {
+  align-self: center;
+  justify-self: center;
+  max-height: calc(100dvh - 36px);
+  overscroll-behavior: contain;
+}
+
+.playtest-shell.playtest-shell--live .coach-dialog,
+.playtest-shell.playtest-shell--live .fight-log-dialog { width: min(760px, calc(100vw - 36px)); }
+.playtest-shell.playtest-shell--live .fight-log-groups { max-height: min(58dvh, 560px); }
+
+:root[data-theme="dark"] .playtest-shell.playtest-shell--live .market-rail-cards > button:hover,
+:root[data-theme="dark"] .playtest-shell.playtest-shell--live .market-rail-cards > button:focus-visible { background: #294438; }
+:root[data-theme="dark"] .playtest-shell.playtest-shell--live .hand-panel {
+  color: #eef5ef;
+  background: linear-gradient(180deg, rgba(28, 57, 46, .94), rgba(20, 43, 34, .97));
+}
+:root[data-theme="dark"] .playtest-shell.playtest-shell--live > .playtest-arena::before { background: rgba(14, 31, 24, .92); }
+
+@media (min-width: 1200px) and (max-height: 820px) {
+  .playtest-shell.playtest-shell--live,
+  .playtest-shell.playtest-shell--live.playtest-shell--guided {
+    grid-template-rows: 50px minmax(0, 1fr) 146px 50px 36px;
+    gap: 5px;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-arena { grid-template-rows: minmax(0, 1fr) 102px; }
+  .playtest-shell.playtest-shell--live .acquisition-rail { min-height: 102px; height: 102px; }
+  .playtest-shell.playtest-shell--live .market-rail-cards > button { grid-template-rows: 44px auto auto; }
+
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card,
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy {
+    grid-template-rows: minmax(34px, auto) 27px minmax(72px, 1fr) 36px 34px minmax(15px, auto) minmax(36px, auto);
+    padding: 6px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-ability { font-size: 5.8px; }
+  .playtest-shell.playtest-shell--live .playtest-combat-desk.combat-stage {
+    grid-template-rows: auto minmax(90px, 1.25fr) auto 54px minmax(48px, auto) auto;
+  }
+}
