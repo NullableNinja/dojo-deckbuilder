@@ -1,0 +1,1205 @@
+{
+  "generatedFrom": "content/cards.json + content/card-effects.json",
+  "structuredAttackCount": 40,
+  "remainingAttackCount": 31,
+  "remaining": [
+    {
+      "catalogId": "DDB-ATK-CORE-001",
+      "name": "Aftermarket Uppercut",
+      "rulesText": "If you bought a card during your last Ascend, this Attack may be declared as Mid instead.",
+      "zone": "High",
+      "tags": [
+        "Attack",
+        "Hand",
+        "Market"
+      ],
+      "focusValue": 1,
+      "fpCost": 4,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-001",
+        "Catalog Order": 6,
+        "Card Name": "Aftermarket Uppercut",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Focus Cost": 4,
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If you bought a card during your last Ascend, this Attack may be declared as Mid instead.",
+        "Flavor Text": "Installed after purchase. Warranty immediately voided.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Rewards economy turns with zone flexibility, not raw damage.",
+        "Playtest Focus": "Confirm memory burden is acceptable.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-003",
+      "name": "Ankle Invoice",
+      "rulesText": "On Hit, choose one matching Armor or Gear card on the target. It provides 2 less DEF until end of turn.",
+      "zone": "Low",
+      "tags": [
+        "Kick",
+        "Leg",
+        "Anti-Armor"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-003",
+        "Catalog Order": 10,
+        "Technique Name": "Ankle Invoice",
+        "Focus Value": 1,
+        "Zone": "Low",
+        "Timing": "Turn",
+        "Rules Text": "On Hit, choose one matching Armor or Gear card on the target. It provides 2 less DEF until end of turn.",
+        "Tags": "Kick, Leg, Anti-Armor",
+        "Build Path": "Pressure / Anti-Armor",
+        "Flavor Text": "Payment is due at the knees.",
+        "Focus Cost": 5,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Ankle Invoice",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-004",
+      "name": "Axe Kick",
+      "rulesText": "If the defender plays a Defense card, this Attack gets +1 Attack Power after Defense is built.",
+      "zone": "Low",
+      "tags": [
+        "Kick",
+        "Leg"
+      ],
+      "focusValue": 1,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "4"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-004",
+        "Catalog Order": 16,
+        "Technique Name": "Axe Kick",
+        "Focus Value": 1,
+        "Zone": "Low",
+        "Timing": "Turn",
+        "Rules Text": "If the defender plays a Defense card, this Attack gets +1 Attack Power after Defense is built.",
+        "Tags": "Kick, Leg",
+        "Build Path": "Pressure",
+        "Flavor Text": "What goes up must come down aggressively.",
+        "Focus Cost": 6,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Axe Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 4,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-006",
+      "name": "Backfist",
+      "rulesText": "If you played a Defense since your last turn, this Attack gets +1 Attack Power.",
+      "zone": "High",
+      "tags": [
+        "Hand"
+      ],
+      "focusValue": 1,
+      "fpCost": 4,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-006",
+        "Catalog Order": 19,
+        "Technique Name": "Backfist",
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If you played a Defense since your last turn, this Attack gets +1 Attack Power.",
+        "Tags": "Hand",
+        "Build Path": "Counter",
+        "Flavor Text": "Focus is the key to success",
+        "Focus Cost": 4,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Backfist",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-008",
+      "name": "Budget-Cut Backfist",
+      "rulesText": "If you spent Focus on a card earlier this turn, gain 1 Focus after this resolves.",
+      "zone": "High",
+      "tags": [
+        "Attack",
+        "Hand",
+        "Focus"
+      ],
+      "focusValue": 1,
+      "fpCost": 3,
+      "stats": {
+        "Attack Power": "2"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-008",
+        "Catalog Order": 70,
+        "Card Name": "Budget-Cut Backfist",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Focus Cost": 3,
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If you spent Focus on a card earlier this turn, gain 1 Focus after this resolves.",
+        "Flavor Text": "The budget was reduced. The fist remained fully funded.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Rebates sequencing without producing net Focus by itself.",
+        "Playtest Focus": "Verify once-per-copy loops remain bounded.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-010",
+      "name": "Certified Palm Stamp",
+      "rulesText": "If you completed a Belt Exam task this round, this Attack gets +2 Attack Power. If it is your first normal Attack this turn and it Hits, gain 1 Focus.",
+      "zone": "High",
+      "tags": [
+        "Attack",
+        "High",
+        "Belt Exam",
+        "Focus"
+      ],
+      "focusValue": 1,
+      "fpCost": 4,
+      "stats": {
+        "Attack Power": "2"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-010",
+        "Catalog Order": 87,
+        "Card Name": "Certified Palm Stamp",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Technique",
+        "Focus Cost": 4,
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If you completed a Belt Exam task this round, this Attack gets +2 Attack Power. If it is your first normal Attack this turn and it Hits, gain 1 Focus.",
+        "Flavor Text": "Approved, denied, and delivered directly to the forehead.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Belt-task Attack payoff that asks players to pursue certification before damage.",
+        "Playtest Focus": "Whether task completion is too easy to engineer for a 4-Focus card.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-011",
+      "name": "Courtesy-Counter Knee",
+      "rulesText": "If you Blocked since your last turn, this Attack gets +1 Attack Power.",
+      "zone": "Mid",
+      "tags": [
+        "Attack",
+        "Knee",
+        "Block"
+      ],
+      "focusValue": 1,
+      "fpCost": 4,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-011",
+        "Catalog Order": 114,
+        "Card Name": "Courtesy-Counter Knee",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Focus Cost": 4,
+        "Focus Value": 1,
+        "Zone": "Mid",
+        "Timing": "Turn",
+        "Rules Text": "If you Blocked since your last turn, this Attack gets +1 Attack Power.",
+        "Flavor Text": "Thank you for waiting. Your knee is now being processed.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Turns defense into decisive but finite pressure.",
+        "Playtest Focus": "Monitor Fortress conversion into burst damage.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-012",
+      "name": "Courtesy-Notice Knee",
+      "rulesText": "On Hit, choose one: the target's next Item this round costs 1 more Focus; or the target's next Defense this round gets −1 Guard.",
+      "zone": "Mid",
+      "tags": [
+        "Attack",
+        "Mid",
+        "Item",
+        "Defense",
+        "Guard",
+        "Focus"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-012",
+        "Catalog Order": 115,
+        "Card Name": "Courtesy-Notice Knee",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Technique",
+        "Focus Cost": 5,
+        "Focus Value": 1,
+        "Zone": "Mid",
+        "Timing": "Turn",
+        "Rules Text": "On Hit, choose one: the target's next Item this round costs 1 more Focus; or the target's next Defense this round gets −1 Guard.",
+        "Flavor Text": "This notice is nonbinding, except for the knee-shaped part.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Forked disruption Attack that adapts to whether the target relies on defense or Item timing.",
+        "Playtest Focus": "Whether increasing a card cost is memorable and meaningful during a turn.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-013",
+      "name": "Defensive Front Kick",
+      "rulesText": "Reaction — after a Mid or Low Attack targeting you resolves, you may play this card against that attacker. If played this way, it gets +1 Attack Power.",
+      "zone": "Low",
+      "tags": [
+        "Kick",
+        "Leg",
+        "Push",
+        "Interrupt"
+      ],
+      "focusValue": 1,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-013",
+        "Catalog Order": 125,
+        "Technique Name": "Defensive Front Kick",
+        "Focus Value": 1,
+        "Zone": "Low",
+        "Timing": "Reaction / Turn",
+        "Rules Text": "Reaction — after a Mid or Low Attack targeting you resolves, you may play this card against that attacker. If played this way, it gets +1 Attack Power.",
+        "Tags": "Kick, Leg, Push, Interrupt",
+        "Build Path": "Counter",
+        "Flavor Text": "Speed is nothing without precision",
+        "Focus Cost": 6,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Defensive Front Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-014",
+      "name": "Defensive Side Kick",
+      "rulesText": "If you Blocked an Attack this round, this Attack gets +2 Attack Power.",
+      "zone": "Low",
+      "tags": [
+        "Kick",
+        "Leg",
+        "Interrupt"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-014",
+        "Catalog Order": 126,
+        "Technique Name": "Defensive Side Kick",
+        "Focus Value": 1,
+        "Zone": "Low",
+        "Timing": "Turn",
+        "Rules Text": "If you Blocked an Attack this round, this Attack gets +2 Attack Power.",
+        "Tags": "Kick, Leg, Interrupt",
+        "Build Path": "Counter / Pressure",
+        "Flavor Text": "Courage is the foundation of skill",
+        "Focus Cost": 5,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Defensive Side Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-015",
+      "name": "Discount Dim Mak",
+      "rulesText": "On Hit, choose one: the target loses Tempo for this round; or gain 1 Focus.",
+      "zone": "Any",
+      "tags": [
+        "Spoof"
+      ],
+      "focusValue": 2,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "2"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-015",
+        "Catalog Order": 133,
+        "Technique Name": "Discount Dim Mak",
+        "Focus Value": 2,
+        "Zone": "Any",
+        "Timing": "Turn",
+        "Rules Text": "On Hit, choose one: the target loses Tempo for this round; or gain 1 Focus.",
+        "Tags": "Spoof",
+        "Build Path": "Economy / Control",
+        "Flavor Text": "Five-point palm technique? Best I can do is three.",
+        "Focus Cost": 5,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Discount Dim Mak",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 2,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-016",
+      "name": "Double Punch",
+      "rulesText": "For Combo requirements, this card counts as two consecutive Punch steps. It awards normal Attack XP only once.",
+      "zone": "Mid",
+      "tags": [
+        "Punch",
+        "Hand",
+        "Multi-Hit"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-016",
+        "Catalog Order": 145,
+        "Technique Name": "Double Punch",
+        "Focus Value": 1,
+        "Zone": "Mid",
+        "Timing": "Turn",
+        "Rules Text": "For Combo requirements, this card counts as two consecutive Punch steps. It awards normal Attack XP only once.",
+        "Tags": "Punch, Hand, Multi-Hit",
+        "Build Path": "Combo / Momentum",
+        "Flavor Text": "Fall down seven times, stand up eight",
+        "Focus Cost": 5,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Double Punch",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-020",
+      "name": "Fire-Drill Feint",
+      "rulesText": "Choose High, Mid, or Low when declared. If the defender commits a Defense that would Block this Attack, you may discard 1 card to change this Attack to one of the other two zones before Defense resolves.",
+      "zone": "Any",
+      "tags": [
+        "Attack",
+        "Zone",
+        "Discard",
+        "Defense"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "2"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-020",
+        "Catalog Order": 192,
+        "Card Name": "Fire-Drill Feint",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Technique",
+        "Focus Cost": 5,
+        "Focus Value": 1,
+        "Zone": "Any",
+        "Timing": "Turn",
+        "Rules Text": "Choose High, Mid, or Low when declared. If the defender commits a Defense that would Block this Attack, you may discard 1 card to change this Attack to one of the other two zones before Defense resolves.",
+        "Flavor Text": "The alarm is a distraction. The other distraction is your elbow.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Hand-costed zone feint with an explicit, pre-resolution timing window.",
+        "Playtest Focus": "Whether the zone-change timing is easy to teach beside Question Mark Kick.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-021",
+      "name": "Fire-Exit Flying Elbow",
+      "rulesText": "If a non-Honor Scene Change occurred this round, draw 1 card, then discard 1 card after this resolves.",
+      "zone": "Mid",
+      "tags": [
+        "Attack",
+        "Elbow",
+        "Location"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "4"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-021",
+        "Catalog Order": 193,
+        "Card Name": "Fire-Exit Flying Elbow",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Focus Cost": 5,
+        "Focus Value": 1,
+        "Zone": "Mid",
+        "Timing": "Turn",
+        "Rules Text": "If a non-Honor Scene Change occurred this round, draw 1 card, then discard 1 card after this resolves.",
+        "Flavor Text": "Alarmed, illuminated, and somehow still locked.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Makes voluntary scene play tactically relevant.",
+        "Playtest Focus": "Watch excessive filtering in Location builds.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-024",
+      "name": "Flying Spin Crescent Kick",
+      "rulesText": "Choose its zone when declared. If you played a Jump or Spin Attack earlier this turn, draw 1 card after this resolves.",
+      "zone": "Any",
+      "tags": [
+        "Kick",
+        "Leg",
+        "Jump"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "2"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-024",
+        "Catalog Order": 200,
+        "Technique Name": "Flying Spin Crescent Kick",
+        "Focus Value": 1,
+        "Zone": "Any",
+        "Timing": "Turn",
+        "Rules Text": "Choose its zone when declared. If you played a Jump or Spin Attack earlier this turn, draw 1 card after this resolves.",
+        "Tags": "Kick, Leg, Jump",
+        "Build Path": "Momentum / Combo",
+        "Flavor Text": "Train like you fight",
+        "Focus Cost": 5,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Flying Spin Crescent Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 2,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-025",
+      "name": "Front Jab",
+      "rulesText": "If this is your first Attack this turn, draw 1 card, then discard 1 card.",
+      "zone": "High",
+      "tags": [
+        "Punch",
+        "Hand"
+      ],
+      "focusValue": 1,
+      "fpCost": 4,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-025",
+        "Catalog Order": 218,
+        "Technique Name": "Front Jab",
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If this is your first Attack this turn, draw 1 card, then discard 1 card.",
+        "Tags": "Punch, Hand",
+        "Build Path": "Momentum",
+        "Flavor Text": "Master yourself before you master others",
+        "Focus Cost": 4,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Front Jab",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-026",
+      "name": "Front Ridgehand",
+      "rulesText": "On Hit, the target's matching Armor provides 1 less DEF against your next Attack this turn.",
+      "zone": "High",
+      "tags": [
+        "Hand",
+        "Open-Hand"
+      ],
+      "focusValue": 1,
+      "fpCost": 4,
+      "stats": {
+        "Attack Power": "2"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-026",
+        "Catalog Order": 219,
+        "Technique Name": "Front Ridgehand",
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "On Hit, the target's matching Armor provides 1 less DEF against your next Attack this turn.",
+        "Tags": "Hand, Open-Hand",
+        "Build Path": "Control",
+        "Flavor Text": "Pain is temporary, pride is forever",
+        "Focus Cost": 4,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Front Ridgehand",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 2,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-030",
+      "name": "Hook Punch",
+      "rulesText": "If your previous Attack this turn was Blocked, this Attack gets +2 Attack Power.",
+      "zone": "Mid",
+      "tags": [
+        "Punch",
+        "Hand"
+      ],
+      "focusValue": 1,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-030",
+        "Catalog Order": 248,
+        "Technique Name": "Hook Punch",
+        "Focus Value": 1,
+        "Zone": "Mid",
+        "Timing": "Turn",
+        "Rules Text": "If your previous Attack this turn was Blocked, this Attack gets +2 Attack Power.",
+        "Tags": "Punch, Hand",
+        "Build Path": "Pressure / Combo",
+        "Flavor Text": "Pain is weakness leaving the body",
+        "Focus Cost": 6,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Hook Punch",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-034",
+      "name": "Knifehand Strike",
+      "rulesText": "On Hit, choose one matching Armor or Gear card on the target. It provides 1 less DEF until end of turn.",
+      "zone": "Mid",
+      "tags": [
+        "Hand",
+        "Open-Hand"
+      ],
+      "focusValue": 1,
+      "fpCost": 4,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-034",
+        "Catalog Order": 290,
+        "Technique Name": "Knifehand Strike",
+        "Focus Value": 1,
+        "Zone": "Mid",
+        "Timing": "Turn",
+        "Rules Text": "On Hit, choose one matching Armor or Gear card on the target. It provides 1 less DEF until end of turn.",
+        "Tags": "Hand, Open-Hand",
+        "Build Path": "Control / Anti-Armor",
+        "Flavor Text": "The hand is empty. The warranty is void.",
+        "Focus Cost": 4,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Knifehand Strike",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-039",
+      "name": "Overhand Right",
+      "rulesText": "If the defender plays no Defense card, this Attack gets +2 Attack Power.",
+      "zone": "High",
+      "tags": [
+        "Punch",
+        "Hand"
+      ],
+      "focusValue": 1,
+      "fpCost": 7,
+      "stats": {
+        "Attack Power": "4"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-039",
+        "Catalog Order": 377,
+        "Technique Name": "Overhand Right",
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If the defender plays no Defense card, this Attack gets +2 Attack Power.",
+        "Tags": "Punch, Hand",
+        "Build Path": "Pressure",
+        "Flavor Text": "Special delivery.",
+        "Focus Cost": 7,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Overhand Right",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 4,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-040",
+      "name": "Overtime Open-Palm",
+      "rulesText": "If you generated at least 5 Focus this turn, this Attack gets +1 Attack Power.",
+      "zone": "High",
+      "tags": [
+        "Attack",
+        "Hand",
+        "Focus"
+      ],
+      "focusValue": 1,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "5"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-040",
+        "Catalog Order": 379,
+        "Card Name": "Overtime Open-Palm",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Focus Cost": 6,
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If you generated at least 5 Focus this turn, this Attack gets +1 Attack Power.",
+        "Flavor Text": "The shift ends when the palm says it ends.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Late-engine payoff for the new Focus package.",
+        "Playtest Focus": "Ensure it remains aspirational rather than automatic.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-041",
+      "name": "Palm Heel Strike",
+      "rulesText": "On Hit, gain 1 Focus. Once per turn.",
+      "zone": "High",
+      "tags": [
+        "Hand",
+        "Open-Hand"
+      ],
+      "focusValue": 2,
+      "fpCost": 4,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-041",
+        "Catalog Order": 383,
+        "Technique Name": "Palm Heel Strike",
+        "Focus Value": 2,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "On Hit, gain 1 Focus. Once per turn.",
+        "Tags": "Hand, Open-Hand",
+        "Build Path": "Economy",
+        "Flavor Text": "Open hand. Closed case.",
+        "Focus Cost": 4,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Palm Heel Strike",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-043",
+      "name": "Punch-Clock Uppercut",
+      "rulesText": "If the card you played immediately before this was a Kata or Item, this Attack gets +1 Attack Power. If it Hits after you played an Item, the target gets −1 Speed until the next Honor Phase.",
+      "zone": "High",
+      "tags": [
+        "Attack",
+        "High",
+        "Kata",
+        "Item",
+        "Speed"
+      ],
+      "focusValue": 1,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-043",
+        "Catalog Order": 417,
+        "Card Name": "Punch-Clock Uppercut",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Technique",
+        "Focus Cost": 6,
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If the card you played immediately before this was a Kata or Item, this Attack gets +1 Attack Power. If it Hits after you played an Item, the target gets −1 Speed until the next Honor Phase.",
+        "Flavor Text": "Clock in. Clock out. Clock somebody directly upward.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Sequencing Attack that turns setup cards into a concrete combat choice.",
+        "Playtest Focus": "Whether Item-heavy decks can trigger it too reliably.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-044",
+      "name": "Question Mark Kick",
+      "rulesText": "After you declare a zone but before a Defense card is played, you may change this Attack to a different zone.",
+      "zone": "Any",
+      "tags": [
+        "Kick",
+        "Leg"
+      ],
+      "focusValue": 1,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-044",
+        "Catalog Order": 421,
+        "Technique Name": "Question Mark Kick",
+        "Focus Value": 1,
+        "Zone": "Any",
+        "Timing": "Turn",
+        "Rules Text": "After you declare a zone but before a Defense card is played, you may change this Attack to a different zone.",
+        "Tags": "Kick, Leg",
+        "Build Path": "Control / Combo",
+        "Flavor Text": "Surprise has entered the chat.",
+        "Focus Cost": 6,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Question Mark Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-052",
+      "name": "Side Kick",
+      "rulesText": "If this is your only Attack this turn, it gets +2 Attack Power.",
+      "zone": "Low",
+      "tags": [
+        "Kick",
+        "Leg"
+      ],
+      "focusValue": 1,
+      "fpCost": 7,
+      "stats": {
+        "Attack Power": "4"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-052",
+        "Catalog Order": 483,
+        "Technique Name": "Side Kick",
+        "Focus Value": 1,
+        "Zone": "Low",
+        "Timing": "Turn",
+        "Rules Text": "If this is your only Attack this turn, it gets +2 Attack Power.",
+        "Tags": "Kick, Leg",
+        "Build Path": "Pressure",
+        "Flavor Text": "Fear limits, courage frees",
+        "Focus Cost": 7,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Side Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 4,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-055",
+      "name": "Spinning Elbow",
+      "rulesText": "If your previous Attack this turn Hit, draw 1 card, then discard 1 card after this resolves.",
+      "zone": "High",
+      "tags": [
+        "Elbow",
+        "Hand",
+        "Spin"
+      ],
+      "focusValue": 1,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "4"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-055",
+        "Catalog Order": 497,
+        "Technique Name": "Spinning Elbow",
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If your previous Attack this turn Hit, draw 1 card, then discard 1 card after this resolves.",
+        "Tags": "Elbow, Hand, Spin",
+        "Build Path": "Momentum / Combo",
+        "Flavor Text": "If you get dizzy, pretend it was tactical.",
+        "Focus Cost": 6,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Spinning Elbow",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 4,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-059",
+      "name": "Switching Axe Kick",
+      "rulesText": "You may discard 1 card as an additional cost. If you do, this Attack gets +2 Attack Power.",
+      "zone": "High",
+      "tags": [
+        "Kick",
+        "Leg"
+      ],
+      "focusValue": 1,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-059",
+        "Catalog Order": 517,
+        "Technique Name": "Switching Axe Kick",
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "You may discard 1 card as an additional cost. If you do, this Attack gets +2 Attack Power.",
+        "Tags": "Kick, Leg",
+        "Build Path": "Momentum / Pressure",
+        "Flavor Text": "In every defeat, there's a lesson",
+        "Focus Cost": 6,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Switching Axe Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-062",
+      "name": "Three-Gate Tour",
+      "rulesText": "When you play this Attack, declare High, Mid, or Low for it. If it is the third different zone you have attacked while working on your Yellow Belt Exam, draw 1 card, then discard 1 card.",
+      "zone": "Any",
+      "tags": [
+        "Attack",
+        "Zone",
+        "Belt Exam",
+        "Draw",
+        "Discard"
+      ],
+      "focusValue": 1,
+      "fpCost": 3,
+      "stats": {
+        "Attack Power": "2"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-062",
+        "Catalog Order": 540,
+        "Card Name": "Three-Gate Tour",
+        "Type": "Attack",
+        "Subtype": "Attack",
+        "Family": "Technique",
+        "Focus Cost": 3,
+        "Focus Value": 1,
+        "Zone": "Any",
+        "Timing": "Turn",
+        "Rules Text": "When you play this Attack, declare High, Mid, or Low for it. If it is the third different zone you have attacked while working on your Yellow Belt Exam, draw 1 card, then discard 1 card.",
+        "Tags": "Attack, Zone, Belt Exam, Draw, Discard",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Package": "Belt Honors",
+        "Attack Power": 2,
+        "Card Type": "Technique",
+        "Category": "Technique",
+        "Flavor Text": "The official tour includes all exits, all entrances, and one accidental kick.",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-063",
+      "name": "Three-Stamp Roundhouse",
+      "rulesText": "If this completes a requirement of your active Belt Exam, gain 1 Focus after it resolves.",
+      "zone": "High",
+      "tags": [
+        "Attack",
+        "Kick",
+        "Belt Exam"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "4"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-063",
+        "Catalog Order": 547,
+        "Card Name": "Three-Stamp Roundhouse",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Focus Cost": 5,
+        "Focus Value": 1,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "If this completes a requirement of your active Belt Exam, gain 1 Focus after it resolves.",
+        "Flavor Text": "Approved, approved, and aggressively approved.",
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Design Purpose": "Makes Belt tasks economically visible without free XP.",
+        "Playtest Focus": "Check task wording across every exam.",
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-064",
+      "name": "Tornado Crescent Kick",
+      "rulesText": "On Hit, choose one: gain 1 Focus; or draw 1 card, then discard 1 card.",
+      "zone": "High",
+      "tags": [
+        "Kick",
+        "Leg",
+        "Spin",
+        "Jump"
+      ],
+      "focusValue": 2,
+      "fpCost": 6,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-064",
+        "Catalog Order": 553,
+        "Technique Name": "Tornado Crescent Kick",
+        "Focus Value": 2,
+        "Zone": "High",
+        "Timing": "Turn",
+        "Rules Text": "On Hit, choose one: gain 1 Focus; or draw 1 card, then discard 1 card.",
+        "Tags": "Kick, Leg, Spin, Jump",
+        "Build Path": "Economy / Momentum",
+        "Flavor Text": "Every challenge is an opportunity to grow",
+        "Focus Cost": 6,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Tornado Crescent Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    },
+    {
+      "catalogId": "DDB-ATK-CORE-067",
+      "name": "Turning Side Kick",
+      "rulesText": "If this Attack targets a different zone than your previous Attack this turn, draw 1 card, then discard 1 card.",
+      "zone": "Mid",
+      "tags": [
+        "Kick",
+        "Leg",
+        "Spin"
+      ],
+      "focusValue": 1,
+      "fpCost": 5,
+      "stats": {
+        "Attack Power": "3"
+      },
+      "subtype": "Attack",
+      "details": {
+        "Catalog ID": "DDB-ATK-CORE-067",
+        "Catalog Order": 561,
+        "Technique Name": "Turning Side Kick",
+        "Focus Value": 1,
+        "Zone": "Mid",
+        "Timing": "Turn",
+        "Rules Text": "If this Attack targets a different zone than your previous Attack this turn, draw 1 card, then discard 1 card.",
+        "Tags": "Kick, Leg, Spin",
+        "Build Path": "Momentum / Combo",
+        "Flavor Text": "Victory isn't always about defeating others",
+        "Focus Cost": 5,
+        "Availability": "Approved",
+        "v2 Status": "Approved",
+        "Card Name": "Turning Side Kick",
+        "Card Type": "Technique",
+        "Subtype": "Attack",
+        "Category": "Attack",
+        "Design Purpose": "Existing catalog card",
+        "Playtest Focus": "Existing catalog card",
+        "Attack Power": 3,
+        "Rules Version": "v2.3"
+      }
+    }
+  ]
+}
