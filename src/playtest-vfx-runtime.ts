@@ -1,13 +1,19 @@
 import "../app/playtest-vfx.css";
 import { derivePlaytestEvents, dispatchPlaytestEvent, PLAYTEST_EVENT_NAME, type FighterSide, type PlaytestEvent, type PlaytestMatchSnapshot } from "./playtest-events";
+import { buildVfxPresentationCues, type VfxPresentationCue } from "./playtest-vfx-presentation";
 
 type VfxWindow = Window & { __ddbPlaytestVfxInstalled?: boolean };
-
 type VfxMode = "full" | "reduced" | "off";
 
 const MATCH_KEY = "ddb-field-match";
 const MODE_KEY = "ddb-vfx-mode";
+const CUE_GAP_MS = 140;
+const MAX_PENDING_CUES = 14;
 const vfxWindow = window as VfxWindow;
+
+const presentationQueue: VfxPresentationCue[] = [];
+let presentationRunning = false;
+let bridgeDispatchDepth = 0;
 
 function parseMatch(value: string | null): PlaytestMatchSnapshot | null {
   if (!value) return null;
@@ -68,137 +74,142 @@ function pulse(element: HTMLElement | null, className: string, duration = 520) {
   window.setTimeout(() => element.classList.remove(className), vfxMode() === "reduced" ? Math.min(duration, 220) : duration);
 }
 
-function floatLabel(side: FighterSide | null, label: string, tone: string, duration = 850) {
-  if (vfxMode() === "off") return;
-  const layer = ensureLayer();
-  const node = document.createElement("div");
-  node.className = `playtest-vfx-float playtest-vfx-float--${tone}`;
-  node.textContent = label;
-
-  const anchor = side ? fighterElement(side) : shellElement();
-  if (anchor) {
-    const rect = anchor.getBoundingClientRect();
-    node.style.setProperty("--vfx-x", `${rect.left + rect.width / 2}px`);
-    node.style.setProperty("--vfx-y", `${rect.top + Math.min(rect.height * 0.68, 74)}px`);
-  } else {
-    node.style.setProperty("--vfx-x", "50vw");
-    node.style.setProperty("--vfx-y", "26vh");
-  }
-  layer.append(node);
-  window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 320) : duration);
+function anchoredPosition(side: FighterSide, offset: number) {
+  const anchor = fighterElement(side);
+  if (!anchor) return { x: side === "player" ? "28vw" : "72vw", y: "27vh" };
+  const rect = anchor.getBoundingClientRect();
+  const x = `${Math.max(90, Math.min(window.innerWidth - 90, rect.left + rect.width / 2))}px`;
+  const anchorIsUpperHalf = rect.top + rect.height / 2 < window.innerHeight / 2;
+  const rawY = anchorIsUpperHalf ? rect.bottom + offset : rect.top - offset;
+  const y = `${Math.max(74, Math.min(window.innerHeight - 74, rawY))}px`;
+  return { x, y };
 }
 
-function centerBanner(label: string, tone: string, duration = 1100) {
+function cueLabel(side: FighterSide, label: string, tone: string, duration: number, lane: "combat" | "summary" = "combat") {
   if (vfxMode() === "off") return;
+  document.querySelectorAll(".playtest-vfx-cue").forEach((node) => node.remove());
+  const layer = ensureLayer();
+  const node = document.createElement("div");
+  node.className = `playtest-vfx-cue playtest-vfx-cue--${lane} playtest-vfx-cue--${tone}`;
+  node.textContent = label;
+  const position = anchoredPosition(side, lane === "combat" ? 28 : 78);
+  node.style.setProperty("--vfx-x", position.x);
+  node.style.setProperty("--vfx-y", position.y);
+  node.style.animationDuration = `${vfxMode() === "reduced" ? Math.min(duration, 420) : duration}ms`;
+  layer.append(node);
+  window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 440) : duration + 30);
+}
+
+function centerBanner(label: string, tone: string, duration = 1200) {
+  if (vfxMode() === "off") return;
+  document.querySelectorAll(".playtest-vfx-banner").forEach((node) => node.remove());
   const layer = ensureLayer();
   const node = document.createElement("div");
   node.className = `playtest-vfx-banner playtest-vfx-banner--${tone}`;
   node.textContent = label;
+  node.style.animationDuration = `${vfxMode() === "reduced" ? Math.min(duration, 460) : duration}ms`;
   layer.append(node);
-  window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 420) : duration);
+  window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 480) : duration + 30);
 }
 
-function renderEvent(event: PlaytestEvent) {
+function renderEvent(event: PlaytestEvent, holdMs: number) {
   if (vfxMode() === "off" || !shellElement()) return;
 
   switch (event.type) {
     case "combat.attack": {
-      pulse(fighterElement(event.actor), "ddb-vfx-attack", 380);
-      pulse(fighterElement(event.target), "ddb-vfx-brace", 380);
-      if (event.zone) floatLabel(event.actor, `${event.zone.toUpperCase()} STRIKE`, "attack", 620);
+      pulse(fighterElement(event.actor), "ddb-vfx-attack", 520);
+      pulse(fighterElement(event.target), "ddb-vfx-brace", 520);
+      cueLabel(event.actor, event.zone ? `${event.zone.toUpperCase()} STRIKE` : "ATTACK", "attack", holdMs);
       break;
     }
     case "combat.hit": {
-      pulse(fighterElement(event.target), "ddb-vfx-hit", 520);
-      floatLabel(event.target, event.amount > 0 ? `−${event.amount} HP` : "HIT!", "damage");
-      if (event.amount >= 5) pulse(shellElement(), "ddb-vfx-screen-impact", 420);
+      pulse(fighterElement(event.target), "ddb-vfx-hit", 700);
+      cueLabel(event.target, event.amount > 0 ? `−${event.amount} HP` : "HIT!", "damage", holdMs);
+      if (event.amount >= 5) pulse(shellElement(), "ddb-vfx-screen-impact", 520);
       announce(event.amount > 0
         ? `${event.target === "player" ? "You take" : "Opponent takes"} ${event.amount} damage.`
         : `${event.target === "player" ? "The attack hits you" : "The attack hits the opponent"} but deals no damage.`);
       break;
     }
     case "combat.block": {
-      pulse(fighterElement(event.target), "ddb-vfx-block", 560);
-      floatLabel(event.target, "BLOCK!", "block");
+      pulse(fighterElement(event.target), "ddb-vfx-block", 760);
+      cueLabel(event.target, "BLOCK!", "block", holdMs);
       announce(event.target === "player" ? "Attack blocked." : "Opponent blocks the attack.");
       break;
     }
     case "combat.ko": {
-      pulse(fighterElement(event.fighter), "ddb-vfx-ko", 1200);
-      centerBanner("K.O.", "ko", 1500);
-      pulse(shellElement(), "ddb-vfx-screen-impact", 700);
+      pulse(fighterElement(event.fighter), "ddb-vfx-ko", 1400);
+      centerBanner("K.O.", "ko", holdMs);
+      pulse(shellElement(), "ddb-vfx-screen-impact", 800);
       announce(event.winner === "player" ? "Knockout. You win." : "Knockout. Opponent wins.");
       break;
     }
-    case "vitality.heal":
-      pulse(fighterElement(event.fighter), "ddb-vfx-heal", 520);
-      floatLabel(event.fighter, `+${event.amount} HP`, "heal");
-      break;
-    case "resource.focusGain":
-      pulse(fighterElement(event.fighter), "ddb-vfx-focus", 480);
-      floatLabel(event.fighter, `+${event.amount} FOCUS`, "focus");
-      break;
-    case "resource.focusSpend":
-      floatLabel(event.fighter, `−${event.amount} FOCUS`, "focus-spend", 660);
-      break;
-    case "resource.xpGain":
-      pulse(fighterElement(event.fighter), "ddb-vfx-xp", 500);
-      floatLabel(event.fighter, `+${event.amount} XP`, "xp", 760);
-      break;
-    case "card.draw":
-      floatLabel(event.fighter, `DRAW +${event.amount}`, "draw", 620);
-      break;
-    case "card.discard":
-      floatLabel(event.fighter, `DISCARD ×${event.amount}`, "discard", 650);
-      break;
-    case "card.destroy":
-      pulse(fighterElement(event.fighter), "ddb-vfx-destroy", 520);
-      floatLabel(event.fighter, `DESTROY ×${event.amount}`, "destroy", 780);
-      break;
-    case "tempo.used":
-      floatLabel(event.fighter, "TEMPO!", "tempo", 620);
-      break;
-    case "tempo.ready":
-      pulse(fighterElement(event.fighter), "ddb-vfx-ready", 420);
-      floatLabel(event.fighter, "TEMPO READY", "ready", 600);
-      break;
-    case "flow.ready":
-      pulse(fighterElement(event.fighter), "ddb-vfx-flow", 520);
-      floatLabel(event.fighter, "FLOW READY", "flow", 680);
-      break;
-    case "flow.triggered":
-      pulse(fighterElement(event.fighter), "ddb-vfx-flow", 520);
-      floatLabel(event.fighter, "FLOW!", "flow", 650);
-      break;
-    case "equipment.exhaust":
-      floatLabel(event.fighter, event.amount === 1 ? "EQUIPMENT EXHAUSTED" : `EQUIPMENT ×${event.amount} EXHAUSTED`, "equipment", 760);
-      break;
-    case "equipment.ready":
-      pulse(fighterElement(event.fighter), "ddb-vfx-ready", 420);
-      floatLabel(event.fighter, event.amount === 1 ? "EQUIPMENT READY" : `EQUIPMENT ×${event.amount} READY`, "ready", 700);
-      break;
-    case "market.purchase":
-      pulse(fighterElement(event.fighter), "ddb-vfx-purchase", 460);
-      floatLabel(event.fighter, event.amount === 1 ? "ACQUIRED" : `ACQUIRED ×${event.amount}`, "purchase", 720);
-      break;
     case "progress.beltExam":
-      pulse(fighterElement(event.fighter), "ddb-vfx-certified", 680);
-      floatLabel(event.fighter, "EXAM CERTIFIED", "certified", 900);
+      pulse(fighterElement(event.fighter), "ddb-vfx-certified", 800);
+      cueLabel(event.fighter, "EXAM CERTIFIED", "certified", holdMs);
       break;
     case "progress.promotion":
-      pulse(fighterElement(event.fighter), "ddb-vfx-certified", 820);
-      centerBanner(event.fighter === "player" ? "BELT UP!" : "OPPONENT PROMOTES", "promotion", 1050);
+      pulse(fighterElement(event.fighter), "ddb-vfx-certified", 900);
+      centerBanner(event.fighter === "player" ? "BELT UP!" : "OPPONENT PROMOTES", "promotion", holdMs);
       announce(event.fighter === "player" ? "Belt promotion complete." : "Opponent promoted a belt rank.");
       break;
     case "combo.completed":
-      pulse(fighterElement(event.fighter), "ddb-vfx-combo", 660);
-      centerBanner("COMBO!", "combo", 900);
+      pulse(fighterElement(event.fighter), "ddb-vfx-combo", 760);
+      centerBanner(event.amount > 1 ? `COMBO ×${event.amount}!` : "COMBO!", "combo", holdMs);
       break;
     case "scene.change":
-      pulse(shellElement(), "ddb-vfx-scene", 720);
-      centerBanner("SCENE CHANGE", "scene", 850);
+      pulse(shellElement(), "ddb-vfx-scene", 800);
+      centerBanner("SCENE CHANGE", "scene", holdMs);
+      break;
+    default:
+      // Routine resource/card/equipment events are intentionally condensed into
+      // one readable summary ticket by buildVfxPresentationCues().
       break;
   }
+}
+
+function renderCue(cue: VfxPresentationCue) {
+  if (cue.kind === "event") {
+    renderEvent(cue.event, cue.holdMs);
+    return;
+  }
+
+  const label = cue.labels.join("  ·  ");
+  cueLabel(cue.fighter, label, "summary", cue.holdMs, "summary");
+  announce(`${cue.fighter === "player" ? "Your" : "Opponent"} results: ${cue.labels.join(", ")}.`);
+}
+
+function cueDelay(cue: VfxPresentationCue) {
+  if (vfxMode() === "reduced") return Math.min(cue.holdMs, 440) + 70;
+  return cue.holdMs + CUE_GAP_MS;
+}
+
+function drainPresentationQueue() {
+  if (presentationRunning || vfxMode() === "off") return;
+  const cue = presentationQueue.shift();
+  if (!cue) return;
+  presentationRunning = true;
+  renderCue(cue);
+  window.setTimeout(() => {
+    presentationRunning = false;
+    drainPresentationQueue();
+  }, cueDelay(cue));
+}
+
+function enqueuePresentation(events: PlaytestEvent[]) {
+  if (!events.length || vfxMode() === "off") return;
+  const cues = buildVfxPresentationCues(events);
+
+  // If rapid actions create a backlog, drop only stale routine summaries first.
+  // Combat and milestone cues are never discarded.
+  while (presentationQueue.length + cues.length > MAX_PENDING_CUES) {
+    const staleSummary = presentationQueue.findIndex((cue) => cue.kind === "summary");
+    if (staleSummary < 0) break;
+    presentationQueue.splice(staleSummary, 1);
+  }
+
+  presentationQueue.push(...cues);
+  drainPresentationQueue();
 }
 
 function installMatchStateBridge() {
@@ -214,18 +225,33 @@ function installMatchStateBridge() {
       const next = parseMatch(value);
       const events = derivePlaytestEvents(previous, next);
       previous = next;
-      for (const event of events) dispatchPlaytestEvent(event);
+
+      // Preserve the semantic event bus for future audio/accessibility subscribers,
+      // while batching this same state transition into one readable visual sentence.
+      bridgeDispatchDepth += 1;
+      try {
+        for (const event of events) dispatchPlaytestEvent(event);
+      } finally {
+        bridgeDispatchDepth -= 1;
+      }
+      enqueuePresentation(events);
     }
     return originalSetItem.call(this, key, value);
   };
 
   Storage.prototype.removeItem = function patchedRemoveItem(key: string) {
-    if (this === window.localStorage && key === MATCH_KEY) previous = null;
+    if (this === window.localStorage && key === MATCH_KEY) {
+      previous = null;
+      presentationQueue.length = 0;
+    }
     return originalRemoveItem.call(this, key);
   };
 
   window.addEventListener(PLAYTEST_EVENT_NAME, ((customEvent: Event) => {
-    renderEvent((customEvent as CustomEvent<PlaytestEvent>).detail);
+    // Events raised by another future subsystem still receive VFX. Events dispatched
+    // by our own state bridge are already queued as a batch and must not be duplicated.
+    if (bridgeDispatchDepth > 0) return;
+    enqueuePresentation([(customEvent as CustomEvent<PlaytestEvent>).detail]);
   }) as EventListener);
 }
 
