@@ -28,6 +28,12 @@ export type EquipmentRegistryEffect = {
 
 type Registry = { cards?: Record<string, { name?: string; effects?: EquipmentRegistryEffect[] }> };
 const registry = cardEffectsJson as unknown as Registry;
+const BELT_ORDER = ["White", "Yellow", "Orange", "Green", "Blue", "Purple", "Brown", "Red", "Black"];
+const beltAtLeast = (actual: unknown, required: unknown) => {
+  const actualIndex = BELT_ORDER.findIndex((belt) => belt.toLocaleLowerCase() === String(actual ?? "").toLocaleLowerCase());
+  const requiredIndex = BELT_ORDER.findIndex((belt) => belt.toLocaleLowerCase() === String(required ?? "").toLocaleLowerCase());
+  return actualIndex >= 0 && requiredIndex >= 0 && actualIndex >= requiredIndex;
+};
 
 const equipmentCatalogId = (card: EquipmentCardLike) => String(card.catalogId ?? "").toUpperCase();
 export function isStructuredEquipment(card: EquipmentCardLike) {
@@ -71,7 +77,7 @@ function conditionMatches(condition: Condition, context: Record<string, unknown>
   const kind = String(condition.kind ?? "");
   const expected = condition.value;
   const actual = context[kind];
-  if (kind === "minimumBelt") return true; // consumed by callers that know Belt ordering.
+  if (kind === "minimumBelt") return beltAtLeast(context.beltName, expected);
   if (["choiceKind", "scheduledTiming", "resolvedCardType", "firstAttackWithTagThisTurn", "attackHasTag", "nextAttackHasTag", "defenseHasTag", "minimumFinalCost", "sourceAffectedCountThreshold", "minimumDraw"].includes(kind)) return true;
   if (kind === "attackHasAnyTag") {
     const tags = tagsOf(context.attackTags);
@@ -403,10 +409,7 @@ export function structuredOnEquipPlan(card: EquipmentCardLike, enteringCard?: Eq
   const unsupported: string[] = [];
   for (const effect of effects.filter((candidate) => candidate.trigger === "onEquip")) {
     const minimumBelt = equipmentConditionValue(effect, "minimumBelt");
-    if (minimumBelt && !context.beltName) {
-      unsupported.push(effect.id ?? "unknown-on-equip-effect");
-      continue;
-    }
+    if (minimumBelt && !beltAtLeast(context.beltName, minimumBelt)) continue;
     if (!equipmentConditionsMatch(effect, values)) continue;
     if (effect.effect === "equipment.ready" && effect.target === "chosen-equipment") readyOther += Number(effect.amount ?? 1);
     else if (effect.effect === "equipment.exhaust" && effect.target === "source") exhaustSource = true;
