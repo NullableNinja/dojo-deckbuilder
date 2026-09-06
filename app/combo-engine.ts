@@ -1,6 +1,9 @@
+import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
+
 export type ComboCardLike = {
   id: string;
   name: string;
+  catalogId?: string | null;
   cardType?: string;
   subtype?: string;
   zone?: string | null;
@@ -8,6 +11,16 @@ export type ComboCardLike = {
   rulesText?: string | null;
   details?: Record<string, string | number | null | undefined>;
 };
+
+type ComboEffectRegistry = { cards?: Record<string, { effects?: { resolver?: string; amount?: number }[] }> };
+const comboEffectRegistry = cardEffectsJson as unknown as ComboEffectRegistry;
+function finalAttackComboMultiplicity(card: ComboCardLike) {
+  const catalogId = String(card.catalogId ?? "").trim();
+  if (!catalogId) return 1;
+  return (comboEffectRegistry.cards?.[catalogId]?.effects ?? [])
+    .filter((effect) => effect.resolver === "attack.final.comboMultiplicity")
+    .reduce((largest, effect) => Math.max(largest, Math.max(1, Number(effect.amount ?? 1))), 1);
+}
 
 export type ComboContext = {
   priorCards: ComboCardLike[];
@@ -75,20 +88,28 @@ function descriptorMatches(descriptor: string, card: ComboCardLike, zone = '') {
 
 function orderedAttackSequence(parts: string[], context: ComboContext) {
   const priorAttacks = context.priorCards.filter(isAttack);
-  const prior = priorAttacks.map((card, index) => ({ card, zone: context.zonesPlayed[index] ?? '' }));
-  const requiredPrior = parts.slice(0, -1);
-  const current = parts.at(-1) ?? '';
-  if (!descriptorMatches(current, context.currentCard, context.currentZone)) return false;
+  const virtual = priorAttacks.flatMap((card, index) => Array.from(
+    { length: finalAttackComboMultiplicity(card) },
+    () => ({ card, zone: context.zonesPlayed[index] ?? '', current: false }),
+  ));
+  virtual.push(...Array.from(
+    { length: finalAttackComboMultiplicity(context.currentCard) },
+    () => ({ card: context.currentCard, zone: context.currentZone, current: true }),
+  ));
   let cursor = 0;
-  for (const descriptor of requiredPrior) {
+  let finalWasCurrent = false;
+  for (const descriptor of parts) {
     let matched = false;
-    while (cursor < prior.length) {
-      const entry = prior[cursor++];
-      if (descriptorMatches(descriptor, entry.card, entry.zone)) { matched = true; break; }
+    while (cursor < virtual.length) {
+      const entry = virtual[cursor++];
+      if (!descriptorMatches(descriptor, entry.card, entry.zone)) continue;
+      matched = true;
+      finalWasCurrent = entry.current;
+      break;
     }
     if (!matched) return false;
   }
-  return true;
+  return finalWasCurrent;
 }
 
 function parsePayoff(payoff: string) {

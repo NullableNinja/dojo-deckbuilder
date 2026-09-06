@@ -4,6 +4,29 @@
   "rulesRevision": "v2.3-r5",
   "description": "Canonical structured-effect migration registry. Entries are keyed by Catalog ID so executable behavior can migrate independently of the large printed-card catalog without changing printed card identity.",
   "cards": {
+    "DDB-ATK-CORE-001": {
+      "name": "Aftermarket Uppercut",
+      "effects": [
+        {
+          "id": "attack-aftermarket-last-ascend-zone",
+          "trigger": "onAttackDeclared",
+          "action": "chooseZone",
+          "target": "source",
+          "conditions": [
+            {
+              "kind": "boughtCardLastAscend",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "alternateZone",
+              "value": "Mid"
+            }
+          ],
+          "resolver": "attack.final.alternateZone"
+        }
+      ]
+    },
     "DDB-ATK-CORE-002": {
       "name": "Aisle-Seven Sweep",
       "effects": [
@@ -29,6 +52,20 @@
           "target": "chosen-equipment",
           "amount": 1,
           "resolver": "attack.readyEquipmentOnHit"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-003": {
+      "name": "Ankle Invoice",
+      "effects": [
+        {
+          "id": "attack-ankle-invoice-suppress-equipment",
+          "trigger": "onHit",
+          "action": "modifyGuard",
+          "target": "chosen-equipment",
+          "amount": -2,
+          "duration": "endOfTurn",
+          "resolver": "attack.final.equipmentSuppression"
         }
       ]
     },
@@ -116,6 +153,27 @@
         }
       ]
     },
+    "DDB-ATK-CORE-008": {
+      "name": "Budget-Cut Backfist",
+      "effects": [
+        {
+          "id": "attack-budget-cut-focus-refund",
+          "trigger": "afterResolve",
+          "action": "gainFocus",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "focusSpentEarlierThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.focus"
+        }
+      ]
+    },
     "DDB-ATK-CORE-009": {
       "name": "Centerline Breaker",
       "effects": [
@@ -133,6 +191,43 @@
             }
           ],
           "resolver": "attack.piercing"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-010": {
+      "name": "Certified Palm Stamp",
+      "effects": [
+        {
+          "id": "attack-certified-palm-exam-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "completedBeltExamThisRound",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.power"
+        },
+        {
+          "id": "attack-certified-palm-first-normal-hit-focus",
+          "trigger": "onHit",
+          "action": "gainFocus",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstNormalAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.focus"
         }
       ]
     },
@@ -157,6 +252,54 @@
         }
       ]
     },
+    "DDB-ATK-CORE-012": {
+      "name": "Courtesy-Notice Knee",
+      "effects": [
+        {
+          "id": "attack-courtesy-notice-choice",
+          "trigger": "onHit",
+          "action": "custom",
+          "target": "opponent",
+          "conditions": [
+            {
+              "kind": "choiceKind",
+              "value": "courtesy-notice"
+            },
+            {
+              "kind": "itemCostPenalty",
+              "value": 1
+            },
+            {
+              "kind": "defenseGuardPenalty",
+              "value": 1
+            }
+          ],
+          "resolver": "attack.final.hitChoice"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-013": {
+      "name": "Defensive Front Kick",
+      "effects": [
+        {
+          "id": "attack-defensive-front-kick-reaction",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "source",
+          "amount": 1,
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "attack.final.defensiveReaction"
+        }
+      ]
+    },
     "DDB-ATK-CORE-014": {
       "name": "Defensive Side Kick",
       "effects": [
@@ -175,6 +318,41 @@
             }
           ],
           "resolver": "attack.conditionalPower"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-015": {
+      "name": "Discount Dim Mak",
+      "effects": [
+        {
+          "id": "attack-discount-dim-mak-choice",
+          "trigger": "onHit",
+          "action": "custom",
+          "target": "opponent",
+          "conditions": [
+            {
+              "kind": "choiceKind",
+              "value": "discount-dim-mak"
+            },
+            {
+              "kind": "focusGain",
+              "value": 1
+            }
+          ],
+          "resolver": "attack.final.hitChoice"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-016": {
+      "name": "Double Punch",
+      "effects": [
+        {
+          "id": "attack-double-punch-combo-steps",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "source",
+          "amount": 2,
+          "resolver": "attack.final.comboMultiplicity"
         }
       ]
     },
@@ -230,6 +408,68 @@
             }
           ],
           "resolver": "attack.piercing"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-020": {
+      "name": "Fire-Drill Feint",
+      "effects": [
+        {
+          "id": "attack-fire-drill-zone",
+          "trigger": "onAttackDeclared",
+          "action": "chooseZone",
+          "target": "source",
+          "resolver": "attack.chooseAnyZone"
+        },
+        {
+          "id": "attack-fire-drill-feint",
+          "trigger": "onDefenseDeclared",
+          "action": "custom",
+          "target": "source",
+          "conditions": [
+            {
+              "kind": "discardCost",
+              "value": 1
+            }
+          ],
+          "resolver": "attack.final.fireDrillFeint"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-021": {
+      "name": "Fire-Exit Flying Elbow",
+      "effects": [
+        {
+          "id": "attack-fire-exit-cycle-draw",
+          "trigger": "afterResolve",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "nonHonorSceneChangedThisRound",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.cycle"
+        },
+        {
+          "id": "attack-fire-exit-cycle-discard",
+          "trigger": "afterResolve",
+          "action": "discard",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "nonHonorSceneChangedThisRound",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.cycle"
         }
       ]
     },
@@ -526,6 +766,20 @@
         }
       ]
     },
+    "DDB-ATK-CORE-034": {
+      "name": "Knifehand Strike",
+      "effects": [
+        {
+          "id": "attack-knifehand-suppress-equipment",
+          "trigger": "onHit",
+          "action": "modifyGuard",
+          "target": "chosen-equipment",
+          "amount": -1,
+          "duration": "endOfTurn",
+          "resolver": "attack.final.equipmentSuppression"
+        }
+      ]
+    },
     "DDB-ATK-CORE-035": {
       "name": "Liver Shot",
       "effects": [
@@ -615,6 +869,27 @@
         }
       ]
     },
+    "DDB-ATK-CORE-040": {
+      "name": "Overtime Open-Palm",
+      "effects": [
+        {
+          "id": "attack-overtime-focus-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "focusGeneratedThisTurn",
+              "operator": "gte",
+              "value": 5
+            }
+          ],
+          "resolver": "attack.final.power"
+        }
+      ]
+    },
     "DDB-ATK-CORE-041": {
       "name": "Palm Heel Strike",
       "effects": [
@@ -691,6 +966,18 @@
             }
           ],
           "resolver": "attack.targetSpeedPenaltyUntilHonor"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-044": {
+      "name": "Question Mark Kick",
+      "effects": [
+        {
+          "id": "attack-question-mark-zone",
+          "trigger": "onAttackDeclared",
+          "action": "chooseZone",
+          "target": "source",
+          "resolver": "attack.chooseAnyZone"
         }
       ]
     },
@@ -858,6 +1145,41 @@
         }
       ]
     },
+    "DDB-ATK-CORE-052": {
+      "name": "Side Kick",
+      "effects": [
+        {
+          "id": "attack-side-kick-only-power",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.power"
+        },
+        {
+          "id": "attack-side-kick-only-lock",
+          "trigger": "onAttackDeclared",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.onlyAttackLock"
+        }
+      ]
+    },
     "DDB-ATK-CORE-053": {
       "name": "Snap Front Kick",
       "effects": [
@@ -997,6 +1319,26 @@
         }
       ]
     },
+    "DDB-ATK-CORE-059": {
+      "name": "Switching Axe Kick",
+      "effects": [
+        {
+          "id": "attack-switching-axe-discard-cost",
+          "trigger": "onAttackDeclared",
+          "action": "modifyAttackPower",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "discardCost",
+              "value": 1
+            }
+          ],
+          "resolver": "attack.final.optionalAttackCost"
+        }
+      ]
+    },
     "DDB-ATK-CORE-060": {
       "name": "Teep (Push Kick)",
       "effects": [
@@ -1020,6 +1362,94 @@
           "action": "custom",
           "target": "self",
           "resolver": "attack.grantNextAttackFlow"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-062": {
+      "name": "Three-Gate Tour",
+      "effects": [
+        {
+          "id": "attack-three-gate-cycle-draw",
+          "trigger": "afterResolve",
+          "action": "draw",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "yellowBeltExamThirdZone",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.cycle"
+        },
+        {
+          "id": "attack-three-gate-cycle-discard",
+          "trigger": "afterResolve",
+          "action": "discard",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "yellowBeltExamThirdZone",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.cycle"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-063": {
+      "name": "Three-Stamp Roundhouse",
+      "effects": [
+        {
+          "id": "attack-three-stamp-exam-focus",
+          "trigger": "afterResolve",
+          "action": "gainFocus",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "completesActiveBeltExam",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "attack.final.focus"
+        }
+      ]
+    },
+    "DDB-ATK-CORE-064": {
+      "name": "Tornado Crescent Kick",
+      "effects": [
+        {
+          "id": "attack-tornado-crescent-choice",
+          "trigger": "onHit",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "choiceKind",
+              "value": "tornado-crescent"
+            },
+            {
+              "kind": "focusGain",
+              "value": 1
+            },
+            {
+              "kind": "draw",
+              "value": 1
+            },
+            {
+              "kind": "discard",
+              "value": 1
+            }
+          ],
+          "resolver": "attack.final.hitChoice"
         }
       ]
     },
