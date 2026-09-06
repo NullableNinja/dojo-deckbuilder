@@ -1,0 +1,364 @@
+{
+  "$schema": "../card-effect-family.schema.json",
+  "schemaVersion": 1,
+  "rulesVersion": "v2.3",
+  "rulesRevision": "v2.3-r5",
+  "family": "Combo",
+  "cards": {
+    "DDB-CMB-CORE-001": {
+      "name": "Aisle-Three Ambush",
+      "effects": [
+        {"id":"combo-aisle-three-ambush-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-002": {
+      "name": "Appeal Denied",
+      "effects": [
+        {"id":"combo-appeal-denied-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-003": {
+      "name": "Bird Law",
+      "effects": [
+        {"id":"combo-bird-law-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-bird-law-speed","effect":"combat.modifySpeed","trigger":"onAttackDeclared","target":"self","amount":2,"duration":"endOfRound","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-004": {
+      "name": "Blitzed Expectations",
+      "effects": [
+        {"id":"combo-blitzed-expectations-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-blitzed-expectations-flow","effect":"combat.grantFlow","trigger":"onAttackDeclared","target":"source","duration":"immediate","resolver":"combo.grantFlow"}
+      ]
+    },
+    "DDB-CMB-CORE-005": {
+      "name": "Block, Stock, and Barrel",
+      "effects": [
+        {"id":"combo-block-stock-barrel-piercing","effect":"combat.piercing","trigger":"onAttackDeclared","target":"source","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-block-stock-barrel-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-006": {
+      "name": "Blunt Force Seminar",
+      "effects": [
+        {"id":"combo-blunt-force-seminar-equipment-def","effect":"equipment.modifyDefenseContribution","trigger":"onHit","target":"opponent","amount":-1,"duration":"nextAttack","resolver":"combo.equipmentDefenseSuppression"}
+      ]
+    },
+    "DDB-CMB-CORE-007": {
+      "name": "Body Shop Special",
+      "effects": [
+        {"id":"combo-body-shop-special-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-body-shop-special-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-008": {
+      "name": "Breathe In, Violence Out",
+      "effects": [
+        {"id":"combo-breathe-violence-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-breathe-violence-flow","effect":"combat.grantFlow","trigger":"onHit","target":"self","duration":"nextAttack","resolver":"combo.grantFlow"}
+      ]
+    },
+    "DDB-CMB-CORE-009": {
+      "name": "Budget, Breathe, Bonk",
+      "effects": [
+        {"id":"combo-budget-breathe-bonk-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-010": {
+      "name": "Catch and Release Program",
+      "effects": [
+        {"id":"combo-catch-release-piercing","effect":"combat.piercing","trigger":"onAttackDeclared","target":"source","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-011": {
+      "name": "Catch These Hands",
+      "effects": [
+        {"id":"combo-catch-these-hands-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-012": {
+      "name": "Clock In, Block Out",
+      "effects": [
+        {"id":"combo-clock-in-block-out-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-013": {
+      "name": "Comment Period Closed",
+      "effects": [
+        {"id":"combo-comment-period-guard-penalty","effect":"combat.modifyGuard","trigger":"passive","target":"opponent","amount":-2,"duration":"endOfRound","resolver":"combo.nextReactionPenalty"},
+        {"id":"combo-comment-period-power-penalty","effect":"combat.modifyAttackPower","trigger":"passive","target":"opponent","amount":-2,"duration":"endOfRound","resolver":"combo.nextReactionPenalty"}
+      ]
+    },
+    "DDB-CMB-CORE-014": {
+      "name": "Curriculum Vitae",
+      "effects": [
+        {"id":"combo-curriculum-vitae-draw","effect":"core.draw","trigger":"afterResolve","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-curriculum-vitae-focus","effect":"core.gainFocus","trigger":"afterResolve","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-015": {
+      "name": "Empty Hands, Full Problems",
+      "effects": [
+        {"id":"combo-empty-hands-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-016": {
+      "name": "Flexible Schedule",
+      "effects": [
+        {"id":"combo-flexible-schedule-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-flexible-schedule-speed","effect":"combat.modifySpeed","trigger":"onHit","target":"opponent","amount":-1,"duration":"nextHonor","resolver":"combo.nextRoundSpeed"}
+      ]
+    },
+    "DDB-CMB-CORE-017": {
+      "name": "Guarded Optimism",
+      "effects": [
+        {"id":"combo-guarded-optimism-draw","effect":"core.draw","trigger":"onInitiate","target":"self","amount":1,"duration":"immediate","resolver":"combo.delayedNextInitiate"}
+      ]
+    },
+    "DDB-CMB-CORE-018": {
+      "name": "Hands, Feet, Repeat",
+      "effects": [
+        {"id":"combo-hands-feet-repeat-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-019": {
+      "name": "Head, Shoulders, Knees & Regret",
+      "effects": [
+        {"id":"combo-head-shoulders-damage","effect":"combat.dealDamage","trigger":"onHit","target":"opponent","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-head-shoulders-xp","effect":"core.gainXP","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.gainXP"}
+      ]
+    },
+    "DDB-CMB-CORE-020": {
+      "name": "High-Low Budget Cut",
+      "effects": [
+        {"id":"combo-high-low-budget-cut-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-021": {
+      "name": "I Meant To Do That",
+      "effects": [
+        {"id":"combo-i-meant-to-do-that-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-022": {
+      "name": "Improvised Curriculum",
+      "effects": [
+        {"id":"combo-improvised-curriculum-choice","effect":"core.choice","trigger":"onAttackDeclared","target":"self","duration":"immediate","resolver":"combo.discardWeaponChoice"},
+        {"id":"combo-improvised-curriculum-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":4,"duration":"immediate","resolver":"combo.discardWeaponChoice"}
+      ]
+    },
+    "DDB-CMB-CORE-023": {
+      "name": "Inner Peace Was a Mistake",
+      "effects": [
+        {"id":"combo-inner-peace-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-024": {
+      "name": "Kata-lytic Converter",
+      "effects": [
+        {"id":"combo-katalytic-piercing","effect":"combat.piercing","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-025": {
+      "name": "Low-Hanging Fruit",
+      "effects": [
+        {"id":"combo-low-hanging-fruit-speed","effect":"combat.modifySpeed","trigger":"onHit","target":"opponent","amount":-2,"duration":"nextHonor","resolver":"combo.nextRoundSpeed"}
+      ]
+    },
+    "DDB-CMB-CORE-026": {
+      "name": "Lowered Expectations",
+      "effects": [
+        {"id":"combo-lowered-expectations-piercing","effect":"combat.piercing","trigger":"onAttackDeclared","target":"source","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-027": {
+      "name": "Maximum Overdojo",
+      "effects": [
+        {"id":"combo-maximum-overdojo-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-028": {
+      "name": "No, YOU Come Here",
+      "effects": [
+        {"id":"combo-no-you-come-here-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.delayedNextTurnAttack"}
+      ]
+    },
+    "DDB-CMB-CORE-029": {
+      "name": "Not Today, Gravity",
+      "effects": [
+        {"id":"combo-not-today-gravity-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-not-today-gravity-draw","effect":"core.draw","trigger":"afterResolve","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-030": {
+      "name": "One-Two-Oh-No",
+      "effects": [
+        {"id":"combo-one-two-oh-no-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-031": {
+      "name": "Panic Into Purpose",
+      "effects": [
+        {"id":"combo-panic-purpose-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-032": {
+      "name": "Paperwork and Pain",
+      "effects": [
+        {"id":"combo-paperwork-pain-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-033": {
+      "name": "Personal Space Violation",
+      "effects": [
+        {"id":"combo-personal-space-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-personal-space-flow","effect":"combat.grantFlow","trigger":"onAttackDeclared","target":"source","duration":"immediate","resolver":"combo.grantFlow"}
+      ]
+    },
+    "DDB-CMB-CORE-034": {
+      "name": "Pocket Snack Tactics",
+      "effects": [
+        {"id":"combo-pocket-snack-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-pocket-snack-flow","effect":"combat.grantFlow","trigger":"onAttackDeclared","target":"source","duration":"immediate","resolver":"combo.grantFlow"}
+      ]
+    },
+    "DDB-CMB-CORE-035": {
+      "name": "Pointy End Forward",
+      "effects": [
+        {"id":"combo-pointy-end-forward-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-036": {
+      "name": "Purchase Order of Pain",
+      "effects": [
+        {"id":"combo-purchase-order-draw","effect":"core.draw","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-purchase-order-discard","effect":"core.discard","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.drawThenDiscard"},
+        {"id":"combo-purchase-order-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-037": {
+      "name": "Questionable Geometry",
+      "effects": [
+        {"id":"combo-questionable-geometry-piercing","effect":"combat.piercing","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-038": {
+      "name": "Red Tape and Roundhouse",
+      "effects": [
+        {"id":"combo-red-tape-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-red-tape-speed","effect":"combat.modifySpeed","trigger":"onHit","target":"self","amount":1,"duration":"nextHonor","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-039": {
+      "name": "Return Receipt",
+      "effects": [
+        {"id":"combo-return-receipt-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-040": {
+      "name": "Rope-a-Dope-a-Dojo",
+      "effects": [
+        {"id":"combo-rope-dope-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":4,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-041": {
+      "name": "Shell Company",
+      "effects": [
+        {"id":"combo-shell-company-draw","effect":"core.draw","trigger":"onInitiate","target":"self","amount":1,"duration":"immediate","resolver":"combo.delayedNextInitiate"},
+        {"id":"combo-shell-company-discard","effect":"core.discard","trigger":"onInitiate","target":"self","amount":1,"duration":"immediate","resolver":"combo.delayedNextInitiate"}
+      ]
+    },
+    "DDB-CMB-CORE-042": {
+      "name": "Shin Happens",
+      "effects": [
+        {"id":"combo-shin-happens-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-shin-happens-speed","effect":"combat.modifySpeed","trigger":"onHit","target":"opponent","amount":-1,"duration":"nextHonor","resolver":"combo.nextRoundSpeed"}
+      ]
+    },
+    "DDB-CMB-CORE-043": {
+      "name": "Stick Around",
+      "effects": [
+        {"id":"combo-stick-around-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-stick-around-speed","effect":"combat.modifySpeed","trigger":"onHit","target":"opponent","amount":-1,"duration":"nextHonor","resolver":"combo.nextRoundSpeed"}
+      ]
+    },
+    "DDB-CMB-CORE-044": {
+      "name": "Swan Song",
+      "effects": [
+        {"id":"combo-swan-song-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-045": {
+      "name": "Sweep Dreams",
+      "effects": [
+        {"id":"combo-sweep-dreams-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-046": {
+      "name": "The Full Tax Audit",
+      "effects": [
+        {"id":"combo-full-tax-audit-draw","effect":"core.draw","trigger":"afterResolve","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-full-tax-audit-focus","effect":"core.gainFocus","trigger":"afterResolve","target":"self","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-047": {
+      "name": "Three Breaths, One Regret",
+      "effects": [
+        {"id":"combo-three-breaths-draw","effect":"core.draw","trigger":"passive","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-three-breaths-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-048": {
+      "name": "Three Forms, No Refunds",
+      "effects": [
+        {"id":"combo-three-forms-piercing","effect":"combat.piercing","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-049": {
+      "name": "Three-Piece & Hydration",
+      "effects": [
+        {"id":"combo-three-piece-hydration-draw","effect":"core.draw","trigger":"afterResolve","target":"self","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-three-piece-hydration-discard","effect":"core.discard","trigger":"afterResolve","target":"self","amount":1,"duration":"immediate","resolver":"combo.drawThenDiscard"}
+      ]
+    },
+    "DDB-CMB-CORE-050": {
+      "name": "Three-Piece, No Biscuit",
+      "effects": [
+        {"id":"combo-three-piece-no-biscuit-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-051": {
+      "name": "Two Sticks, No Plan",
+      "effects": [
+        {"id":"combo-two-sticks-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-two-sticks-draw","effect":"core.draw","trigger":"afterResolve","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-052": {
+      "name": "Weaponized Serenity",
+      "effects": [
+        {"id":"combo-weaponized-serenity-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    },
+    "DDB-CMB-CORE-053": {
+      "name": "Wing It",
+      "effects": [
+        {"id":"combo-wing-it-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":3,"duration":"immediate","resolver":"combo.delayedNextTurnAttack"}
+      ]
+    },
+    "DDB-CMB-CORE-054": {
+      "name": "Wrong Door, Right Elbow",
+      "effects": [
+        {"id":"combo-wrong-door-power","effect":"combat.modifyAttackPower","trigger":"onAttackDeclared","target":"source","amount":2,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-wrong-door-draw","effect":"core.draw","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"},
+        {"id":"combo-wrong-door-discard","effect":"core.discard","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.drawThenDiscard"}
+      ]
+    },
+    "DDB-CMB-CORE-055": {
+      "name": "You Missed, Congratulations",
+      "effects": [
+        {"id":"combo-you-missed-focus","effect":"core.gainFocus","trigger":"onHit","target":"self","amount":1,"duration":"immediate","resolver":"combo.requirement"}
+      ]
+    }
+  }
+}
