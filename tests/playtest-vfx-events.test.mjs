@@ -54,6 +54,33 @@ test("real HP loss and healing derive Hit and Heal events", () => {
   ]);
 });
 
+test("final combat log damage is authoritative and suppresses duplicate aggregate HP-delta Hits", () => {
+  const previous = match();
+  const next = match({
+    player: board({ hp: 21 }),
+    log: ["Flying Knee hits you for 4. Attack 7 vs Defense 3.", "older filing"],
+  });
+  assert.deepEqual(derivePlaytestEvents(previous, next).filter((event) => event.type === "combat.hit"), [
+    { type: "combat.hit", actor: "ai", target: "player", amount: 4 },
+  ]);
+});
+
+test("multiple combat resolutions persisted together still derive distinct chronological Hit events", () => {
+  const previous = match();
+  const next = match({
+    player: board({ hp: 18 }),
+    log: [
+      "Uppercut hits you for 4. Attack 8 vs Defense 4.",
+      "Basic Jab hits you for 3. Attack 5 vs Defense 2.",
+      "older filing",
+    ],
+  });
+  assert.deepEqual(derivePlaytestEvents(previous, next).filter((event) => event.type === "combat.hit"), [
+    { type: "combat.hit", actor: "ai", target: "player", amount: 3 },
+    { type: "combat.hit", actor: "ai", target: "player", amount: 4 },
+  ]);
+});
+
 test("Attack declaration uses actual attack counter and zone history", () => {
   const previous = match();
   const next = match({ player: board({ attacksThisTurn: 1, zonesPlayed: ["Mid"] }) });
