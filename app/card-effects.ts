@@ -121,6 +121,27 @@ const IMPLEMENTED_DEDICATED_RESOLVERS = new Set([
   "location.structured",
 ]);
 
+const GENERIC_CANONICAL_EFFECTS = new Set([
+  "core.draw",
+  "core.discard",
+  "core.heal",
+  "core.gainFocus",
+  "core.gainXP",
+  "core.destroy",
+  "core.reveal",
+  "combat.modifySpeed",
+  "combat.modifyAttackPower",
+  "combat.modifyDefense",
+  "combat.modifyGuard",
+  "combat.preventDamage",
+  "combat.dealDamage",
+  "combat.grantFlow",
+  "combat.chooseZone",
+  "economy.modifyCost",
+  "equipment.ready",
+  "equipment.exhaust",
+]);
+
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;
 const runtimeCards = cardsJson as unknown as RuntimeCardCatalog;
 const structuredEffectsByRulesText = new Map<string, StructuredCardEffect[]>();
@@ -189,8 +210,6 @@ function canonicalEffectName(effect: StructuredCardEffect) {
 }
 
 function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | null {
-  // Resolver-bearing effects are owned by their dedicated structured runtime. Never
-  // flatten them into a generic operation first; doing so loses conditions/choices.
   if (effect.resolver || effect.conditions?.length) return null;
   if (!["onPlay", "onHit", "onBlock", "afterResolve"].includes(effect.trigger)) return null;
   const timing = effect.trigger as EffectTiming;
@@ -228,7 +247,12 @@ function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): C
       dedicated.push(effect.resolver);
       continue;
     }
-    unsupported.push(effect.id ?? `${effect.trigger}:${canonicalEffectName(effect) || "unknown"}`);
+    const canonical = canonicalEffectName(effect);
+    if (!effect.resolver && GENERIC_CANONICAL_EFFECTS.has(canonical)) {
+      dedicated.push(canonical);
+      continue;
+    }
+    unsupported.push(effect.id ?? `${effect.trigger}:${canonical || "unknown"}`);
   }
   return { effects, dedicated, unsupported, source: "structured" };
 }
