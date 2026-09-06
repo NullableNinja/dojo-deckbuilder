@@ -4,12 +4,15 @@ on:
   push:
     branches:
       - stage3b-final-integration
+  pull_request:
+    branches:
+      - stage3b-final-integration
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  finalize:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,115 +27,38 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Finalize catalog-aware playtest source and validate against read-only CI
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/stage3b-catalog-aware-playtest.mjs
-          rm scripts/stage3b-catalog-aware-playtest.mjs
-          cat > .github/workflows/stage3b-final-integration-ci.yml <<'FINAL_WORKFLOW'
-          name: Stage 3B Final Integration CI
-
-          on:
-            push:
-              branches:
-                - stage3b-final-integration
-            pull_request:
-              branches:
-                - stage3b-final-integration
-
-          permissions:
-            contents: read
-
-          jobs:
-            validate:
-              runs-on: ubuntu-latest
-              steps:
-                - name: Checkout
-                  uses: actions/checkout@v4
-
-                - name: Set up Node
-                  uses: actions/setup-node@v4
-                  with:
-                    node-version: '22.12.0'
-                    cache: npm
-
-                - name: Install dependencies
-                  run: npm ci
-
-                - name: Generate canonical game data
-                  run: npm run game:generate
-
-                - name: Check generated game data
-                  run: npm run game:check
-
-                - name: Run full test suite
-                  shell: bash
-                  run: |
-                    set -o pipefail
-                    npm test 2>&1 | tee stage3b-test.log
-
-                - name: Build production bundle
-                  run: npm run build
-
-                - name: Verify committed catalog-aware playtest call sites
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    grep -q 'effectPlanForCard(card)' app/playtest.tsx
-                    if grep -q 'compileCardEffects(card.rulesText' app/playtest.tsx; then
-                      echo 'Legacy rules-text-only card effect call site remains.' >&2
-                      exit 1
-                    fi
-
-                - name: Upload integration diagnostics
-                  if: always()
-                  uses: actions/upload-artifact@v4
-                  with:
-                    name: stage3b-integration-diagnostics
-                    path: |
-                      stage3b-test.log
-                      content/card-effects.json
-                      app/data/card-effects.json
-                    if-no-files-found: error
-          FINAL_WORKFLOW
-
       - name: Generate canonical game data
         run: npm run game:generate
 
       - name: Check generated game data
         run: npm run game:check
 
-      - name: Run full test suite against finalized tree
+      - name: Run full test suite
         shell: bash
         run: |
           set -o pipefail
           npm test 2>&1 | tee stage3b-test.log
 
-      - name: Build production bundle against finalized tree
+      - name: Build production bundle
         run: npm run build
 
-      - name: Commit finalized source without touching workflow history
+      - name: Verify committed catalog-aware playtest call sites
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/playtest.tsx scripts/stage3b-catalog-aware-playtest.mjs
-          if git diff --cached --quiet; then
-            echo "Expected finalized source changes, but staging is empty." >&2
+          grep -q 'effectPlanForCard(card)' app/playtest.tsx
+          if grep -q 'compileCardEffects(card.rulesText' app/playtest.tsx; then
+            echo 'Legacy rules-text-only card effect call site remains.' >&2
             exit 1
           fi
-          git commit -m "finalize: commit catalog-aware Stage 3B playtest integration"
-          git push origin HEAD:stage3b-final-integration
 
-      - name: Upload finalization diagnostics
+      - name: Upload integration diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stage3b-finalization-diagnostics
+          name: stage3b-integration-diagnostics
           path: |
             stage3b-test.log
-            app/playtest.tsx
-            .github/workflows/stage3b-final-integration-ci.yml
+            content/card-effects.json
+            app/data/card-effects.json
           if-no-files-found: error
