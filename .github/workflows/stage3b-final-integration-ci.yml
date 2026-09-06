@@ -58,4 +58,5 @@ jobs:
             stage3b-test.log
             content/card-effects.json
             app/data/card-effects.json
+            app/playtest.tsx
           if-no-files-found: error
