@@ -20,6 +20,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Reconcile Equipment structured data
         run: node scripts/stage3b-equipment-data-fix.mjs
+      - name: Register Equipment vocabulary follow-up
+        run: node scripts/stage3b-equipment-vocab-followup.mjs
       - name: Wire Equipment structured runtime
         run: node scripts/stage3b-equipment-runtime-wire.mjs
       - name: Commit authored Equipment reconciliation
