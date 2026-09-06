@@ -1,6 +1,6 @@
 import cardsJson from "./data/cards.json" with { type: "json" };
 import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
-import { SUPPORTED_KATA_RESOLVERS } from "./kata-effect-resolvers";
+import { SUPPORTED_KATA_RESOLVERS } from "./kata-effect-resolvers.ts";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
 export type EffectKind = "draw" | "discard" | "heal" | "focus" | "speed" | "nextAttackPower";
