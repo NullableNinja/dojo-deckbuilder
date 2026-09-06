@@ -9,7 +9,7 @@ on:
       - stage3b-final-integration
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -62,28 +62,6 @@ jobs:
           if grep -q 'compileCardEffects(card.rulesText' app/playtest.tsx; then
             echo 'Legacy rules-text-only card effect call site remains.' >&2
             exit 1
-          fi
-
-      - name: Freeze tested Stage 3B integration outputs
-        if: github.event_name == 'push' && github.ref == 'refs/heads/stage3b-final-integration'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            content/card-effects/locations.json \
-            content/card-effects.json \
-            app/data/card-effects.json \
-            app/card-effects.ts \
-            app/effect-resolvers.ts \
-            app/equipment-structured.ts \
-            app/playtest.tsx
-          if git diff --cached --quiet; then
-            echo "Stage 3B integration outputs are already frozen."
-          else
-            git commit -m "Stage 3B: freeze tested integration outputs"
-            git push origin HEAD:stage3b-final-integration
           fi
 
       - name: Upload integration diagnostics
