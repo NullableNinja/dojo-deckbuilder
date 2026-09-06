@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Generate canonical game data
+        run: npm run game:generate
+
       - name: Run automated tests
         env:
           GITHUB_PAGES: true
