@@ -33,15 +33,18 @@ jobs:
       - name: Generate canonical game data
         run: npm run game:generate
 
-      - name: Run automated tests
-        env:
-          GITHUB_PAGES: true
-        run: npm test
+      - name: Validate canonical game data
+        run: npm run game:check
 
       - name: Build production static site
         env:
           GITHUB_PAGES: true
         run: npm run build
+
+      - name: Run behavioral tests
+        env:
+          GITHUB_PAGES: true
+        run: node --experimental-strip-types --test tests/*.test.mjs
 
       - name: Set up GitHub Pages
         uses: actions/configure-pages@v5
