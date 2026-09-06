@@ -248,7 +248,7 @@ function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): C
       continue;
     }
     const canonical = canonicalEffectName(effect);
-    if (!effect.resolver && GENERIC_CANONICAL_EFFECTS.has(canonical)) {
+    if (!effect.resolver && !effect.conditions?.length && GENERIC_CANONICAL_EFFECTS.has(canonical)) {
       dedicated.push(canonical);
       continue;
     }

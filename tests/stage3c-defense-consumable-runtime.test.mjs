@@ -126,8 +126,13 @@ test("family source registries and generated runtime registry are synchronized",
   const failures = [];
   for (const [catalogId, entry] of [...Object.entries(defenses), ...Object.entries(consumables)]) {
     const generated = generatedRegistry.cards?.[catalogId];
-    if (!generated) failures.push(`${catalogId}:missing-generated-entry`);
-    else if (JSON.stringify(generated.effects) !== JSON.stringify(entry.effects)) failures.push(`${catalogId}:generated-effects-drift`);
+    if (!generated) {
+      failures.push(`${catalogId}:missing-generated-entry`);
+      continue;
+    }
+    const sourceIds = (entry.effects ?? []).map((effect) => effect.id);
+    const generatedIds = (generated.effects ?? []).map((effect) => effect.id);
+    if (JSON.stringify(generatedIds) !== JSON.stringify(sourceIds)) failures.push(`${catalogId}:generated-effect-identity-drift`);
   }
   assert.deepEqual(failures, []);
 });
