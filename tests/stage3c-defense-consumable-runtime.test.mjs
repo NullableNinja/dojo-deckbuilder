@@ -61,7 +61,7 @@ test("Double Forearm Guard respects the incoming Attack Power threshold", () => 
   assert.equal(structuredDefenseGuardBonus(guard, { incomingAttackPower: 8 }).amount, 1);
 });
 
-test("Defense on-Block commands mutate runtime state and preserve player-choice work", () => {
+test("Defense on-Block commands mutate runtime state", () => {
   const accordion = card("DDB-DEF-CORE-001");
   const commands = defenseRuntimeCommands(accordion, "onBlock", { blockSucceeded: true });
   assert.ok(commands.some((command) => command.effect === "core.draw" && command.amount === 1));
@@ -71,11 +71,12 @@ test("Defense on-Block commands mutate runtime state and preserve player-choice 
   assert.equal(state.self.discard, 1);
 });
 
-test("Consumable immediate state changes are executable from structured data", () => {
+test("Consumable immediate and end-of-round effects preserve timing semantics", () => {
   const mochi = card("DDB-CON-CORE-006");
   const state = applyConsumableRuntime(createFamilyRuntimeState(), mochi, "onPlay");
   assert.equal(state.self.draw, 2);
-  assert.equal(state.self.speed, -1);
+  assert.equal(state.self.speed, 0);
+  assert.ok(state.statuses.some((status) => status.effect === "combat.modifySpeed" && status.amount === -1 && status.duration === "endOfRound"));
 });
 
 test("Consumable delayed attack modifiers persist with the intended timing qualifier", () => {
