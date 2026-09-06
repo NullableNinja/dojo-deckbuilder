@@ -3,6 +3,8 @@ name: Validate Stage 3B Attack Family Registry
 on:
   push:
     branches: [stage3b-attacks-family-registry]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
