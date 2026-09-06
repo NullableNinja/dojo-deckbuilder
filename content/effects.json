@@ -789,7 +789,8 @@
         "onEquip",
         "onInitiate",
         "onHide",
-        "passive"
+        "passive",
+        "onPurchase"
       ],
       "allowedDurations": [
         "immediate"
