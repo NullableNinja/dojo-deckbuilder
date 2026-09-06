@@ -1,0 +1,4833 @@
+{
+  "$schema": "../card-effect-family.schema.json",
+  "schemaVersion": 1,
+  "rulesVersion": "v2.3",
+  "rulesRevision": "v2.3-r5",
+  "family": "Equipment",
+  "cards": {
+    "DDB-DEQ-CORE-001": {
+      "name": "Body Shield",
+      "effects": [
+        {
+          "id": "equipment-deq-001-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 4,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-001-no-two-handed-weapon",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-002": {
+      "name": "Breakroom Apron Plating",
+      "effects": [
+        {
+          "id": "equipment-deq-002-consumable-round-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "endOfRound",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "consumableUsedThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-003": {
+      "name": "Bubble Wrap Gi",
+      "effects": [
+        {
+          "id": "equipment-deq-003-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-003-first-damage-reduction",
+          "effect": "combat.preventDamage",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstDamageThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-deq-003-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstDamageThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-deq-003-next-initiate-ready",
+          "effect": "equipment.ready",
+          "trigger": "onInitiate",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sourceExhausted",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-004": {
+      "name": "Buckler",
+      "effects": [
+        {
+          "id": "equipment-deq-004-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-004-first-weapon-extra-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            },
+            {
+              "kind": "firstIncomingAttackThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "incomingAttackUsesWeapon",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-005": {
+      "name": "Budget Bike Helmet",
+      "effects": [
+        {
+          "id": "equipment-deq-005-armor-block-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstArmorBlockThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sourceArmorHelpedBlock",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-006": {
+      "name": "Cardboard Chestplate",
+      "effects": [
+        {
+          "id": "equipment-deq-006-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-006-destroy-after-two-preventions",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "source",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sourceAffectedCountThreshold",
+              "value": 2,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-007": {
+      "name": "Cardboard Cutout of Yourself",
+      "effects": [
+        {
+          "id": "equipment-deq-007-once-game-zero-attack",
+          "effect": "core.custom",
+          "trigger": "onAttackDeclared",
+          "target": "self",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerGame",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "incomingAttackTargetsSelf",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-008": {
+      "name": "Chest Protector",
+      "effects": [
+        {
+          "id": "equipment-deq-008-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-009": {
+      "name": "Cookie Sheet Bracer",
+      "effects": [
+        {
+          "id": "equipment-deq-009-high-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-009-weapon-extra-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid"
+              ]
+            },
+            {
+              "kind": "incomingAttackUsesWeapon",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-010": {
+      "name": "Dojo Door",
+      "effects": [
+        {
+          "id": "equipment-deq-010-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 4,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-010-speed-penalty",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "self",
+          "amount": -2,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-010-no-weapon-attacks",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-011": {
+      "name": "Emergency Clipboard",
+      "effects": [
+        {
+          "id": "equipment-deq-011-high-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-011-block-purchase-discount",
+          "effect": "economy.modifyCost",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": -1,
+          "duration": "endOfRound",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "nextPurchaseOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "minimumFinalCost",
+              "value": 1,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-012": {
+      "name": "Emergency Exit Sign",
+      "effects": [
+        {
+          "id": "equipment-deq-012-low-hp-untargetable",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerGame",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "targetHpAtMost",
+              "value": 5,
+              "operator": "eq"
+            },
+            {
+              "kind": "scheduledTiming",
+              "value": "startNextTurnOrUntilAttack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-013": {
+      "name": "Emotional Support Pillow",
+      "effects": [
+        {
+          "id": "equipment-deq-013-once-round-attack-reduction",
+          "effect": "combat.preventDamage",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-014": {
+      "name": "Fire-Code Padded Vest",
+      "effects": [
+        {
+          "id": "equipment-deq-014-mid-low-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-014-combat-damage-reduction",
+          "effect": "combat.preventDamage",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstCombatDamageThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-deq-014-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstCombatDamageThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-deq-014-green-hide-ready",
+          "effect": "equipment.ready",
+          "trigger": "onHide",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Green"
+            },
+            {
+              "kind": "incomingDamageAtLeast",
+              "value": 3,
+              "operator": "eq"
+            },
+            {
+              "kind": "sourceExhausted",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-015": {
+      "name": "Foot Guards",
+      "effects": [
+        {
+          "id": "equipment-deq-015-low-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-015-low-block-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "endOfRound",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Low"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-016": {
+      "name": "Forearm Guards",
+      "effects": [
+        {
+          "id": "equipment-deq-016-high-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-017": {
+      "name": "Groin Guard",
+      "effects": [
+        {
+          "id": "equipment-deq-017-low-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-018": {
+      "name": "Helmet Made of Smaller Helmets",
+      "effects": [
+        {
+          "id": "equipment-deq-018-high-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 3,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-018-hide-draw-penalty",
+          "effect": "core.custom",
+          "trigger": "onHide",
+          "target": "self",
+          "amount": 1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumDraw",
+              "value": 1,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-019": {
+      "name": "Inflatable Sumo Suit",
+      "effects": [
+        {
+          "id": "equipment-deq-019-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 3,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-019-speed-penalty",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "self",
+          "amount": -3,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-019-low-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": -1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "attackZones",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-020": {
+      "name": "Inspection-Grade Headgear",
+      "effects": [
+        {
+          "id": "equipment-deq-020-high-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-020-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onBlock",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Blue"
+            },
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "equipment-deq-020-blue-high-block-draw",
+          "effect": "core.draw",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Blue"
+            },
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "equipment-deq-020-blue-high-block-discard",
+          "effect": "core.discard",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Blue"
+            },
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-021": {
+      "name": "Kendo Do",
+      "effects": [
+        {
+          "id": "equipment-deq-021-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 3,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-021-speed-penalty",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "self",
+          "amount": -1,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-022": {
+      "name": "Kendo Men",
+      "effects": [
+        {
+          "id": "equipment-deq-022-high-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 3,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-022-speed-penalty",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "self",
+          "amount": -1,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-023": {
+      "name": "Knee Pads",
+      "effects": [
+        {
+          "id": "equipment-deq-023-low-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-024": {
+      "name": "Kote",
+      "effects": [
+        {
+          "id": "equipment-deq-024-weapon-high-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid"
+              ]
+            },
+            {
+              "kind": "incomingAttackUsesWeapon",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-025": {
+      "name": "Layers of Hoodies",
+      "effects": [
+        {
+          "id": "equipment-deq-025-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-025-first-swap-discard",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstSwapThisGame",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-026": {
+      "name": "Leather Bracers",
+      "effects": [
+        {
+          "id": "equipment-deq-026-high-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-026-weapon-damage-reduction",
+          "effect": "combat.preventDamage",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "damageSourceIsWeapon",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-027": {
+      "name": "Mom's Tupperware Lid",
+      "effects": [
+        {
+          "id": "equipment-deq-027-high-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-027-discard-return-hand",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "source",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerGame",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "discardedByEffect",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-028": {
+      "name": "Mouthguard",
+      "effects": [
+        {
+          "id": "equipment-deq-028-first-high-damage-reduction",
+          "effect": "combat.preventDamage",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            },
+            {
+              "kind": "firstDamagingAttackThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-029": {
+      "name": "Museum Rope Barrier",
+      "effects": [
+        {
+          "id": "equipment-deq-029-first-incoming-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "opponent",
+          "amount": -2,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstIncomingAttackThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-deq-029-destroy-after-three-affected",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "source",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sourceAffectedCountThreshold",
+              "value": 3,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-030": {
+      "name": "No Soliciting Sign",
+      "effects": [
+        {
+          "id": "equipment-deq-030-first-target-discard-or-retarget",
+          "effect": "core.custom",
+          "trigger": "onAttackDeclared",
+          "target": "opponent",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstIncomingAttackThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "choiceKind",
+              "value": "discard-or-retarget"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-031": {
+      "name": "Padded Gi",
+      "effects": [
+        {
+          "id": "equipment-deq-031-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-032": {
+      "name": "Participation Trophy Shield",
+      "effects": [
+        {
+          "id": "equipment-deq-032-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-032-lowest-xp-extra-defense",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "selfIsLowestXp",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-033": {
+      "name": "Phone Book Chest Guard",
+      "effects": [
+        {
+          "id": "equipment-deq-033-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-033-speed-penalty",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "self",
+          "amount": -1,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-034": {
+      "name": "Pool Noodle Shield",
+      "effects": [
+        {
+          "id": "equipment-deq-034-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-034-block-attacker-focus-loss",
+          "effect": "economy.spendFocus",
+          "trigger": "onBlock",
+          "target": "opponent",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sourceArmorHelpedBlock",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-035": {
+      "name": "Reflective Safety Vest",
+      "effects": [
+        {
+          "id": "equipment-deq-035-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-035-first-incoming-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstIncomingAttackThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-036": {
+      "name": "Rush-Hour Shin Guards",
+      "effects": [
+        {
+          "id": "equipment-deq-036-no-tempo-extra-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "hasTempo",
+              "value": false,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-037": {
+      "name": "Sensei's Disapproving Stare",
+      "effects": [
+        {
+          "id": "equipment-deq-037-first-incoming-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstIncomingAttackThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-038": {
+      "name": "Shin Guards",
+      "effects": [
+        {
+          "id": "equipment-deq-038-low-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-039": {
+      "name": "Sparring Headgear",
+      "effects": [
+        {
+          "id": "equipment-deq-039-high-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-040": {
+      "name": "Stunt Double",
+      "effects": [
+        {
+          "id": "equipment-deq-040-once-game-prevent-all-damage",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerGame",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-041": {
+      "name": "Taekwondo Hogu",
+      "effects": [
+        {
+          "id": "equipment-deq-041-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 3,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-041-first-unarmed-mid-damage-reduction",
+          "effect": "combat.preventDamage",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            },
+            {
+              "kind": "firstIncomingAttackThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "incomingAttackIsUnarmed",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-042": {
+      "name": "Three-Ring Binder Cuirass",
+      "effects": [
+        {
+          "id": "equipment-deq-042-armor-block-mark-exam",
+          "effect": "core.custom",
+          "trigger": "onBlock",
+          "target": "self",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstArmorBlockThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sourceArmorHelpedBlock",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-043": {
+      "name": "Traffic Cone Helmet",
+      "effects": [
+        {
+          "id": "equipment-deq-043-high-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-043-speed-penalty",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "self",
+          "amount": -1,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-044": {
+      "name": "Trash Can Lid",
+      "effects": [
+        {
+          "id": "equipment-deq-044-all-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-044-weapon-block-purchase-discount",
+          "effect": "economy.modifyCost",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": -1,
+          "duration": "endOfRound",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "nextPurchaseOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "minimumFinalCost",
+              "value": 1,
+              "operator": "eq"
+            },
+            {
+              "kind": "incomingAttackUsesWeapon",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-045": {
+      "name": "Two-Way Mirror Bracer",
+      "effects": [
+        {
+          "id": "equipment-deq-045-high-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-045-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onBlock",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-deq-045-block-reveal-attacker-top",
+          "effect": "core.reveal",
+          "trigger": "onBlock",
+          "target": "opponent",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-DEQ-CORE-046": {
+      "name": "Yoga Mat Cape",
+      "effects": [
+        {
+          "id": "equipment-deq-046-high-low-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-deq-046-once-game-ignore-speed-penalty",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerGame",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-001": {
+      "name": "Battery-Powered Incense Fan",
+      "effects": [
+        {
+          "id": "equipment-gea-001-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "afterResolve",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "resolvedCardType",
+              "value": "Kata"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-001-after-kata-focus",
+          "effect": "core.gainFocus",
+          "trigger": "afterResolve",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "resolvedCardType",
+              "value": "Kata"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-002": {
+      "name": "Belt-Exam Punch Card",
+      "effects": [
+        {
+          "id": "equipment-gea-002-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "examRequirementCompleted",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-002-exam-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextHonor",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "examRequirementCompleted",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-002-orange-exam-complete-focus",
+          "effect": "core.gainFocus",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "completesActiveBeltExam",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "examRequirementCompleted",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "minimumBelt",
+              "value": "Orange"
+            },
+            {
+              "kind": "choiceKind",
+              "value": "complete-task-instead"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-GEA-CORE-003": {
+      "name": "Blue Belt Equipment Trolley",
+      "effects": [
+        {
+          "id": "equipment-gea-003-on-equip-ready-other",
+          "effect": "equipment.ready",
+          "trigger": "onEquip",
+          "target": "chosen-equipment",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "equippedCardIsSource",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-003-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onEquip",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Blue"
+            },
+            {
+              "kind": "equippedCardIsOtherPermanentEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-003-blue-equip-cycle-draw",
+          "effect": "core.draw",
+          "trigger": "onEquip",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Blue"
+            },
+            {
+              "kind": "equippedCardIsOtherPermanentEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-003-blue-equip-cycle-discard",
+          "effect": "core.discard",
+          "trigger": "onEquip",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Blue"
+            },
+            {
+              "kind": "equippedCardIsOtherPermanentEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-004": {
+      "name": "Caution-Tape Spool",
+      "effects": [
+        {
+          "id": "equipment-gea-004-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "incomingAttackTargetsSelf",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-004-incoming-zone-choice",
+          "effect": "core.choice",
+          "trigger": "onAttackDeclared",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "choiceKind",
+              "value": "incoming-zone"
+            },
+            {
+              "kind": "incomingAttackTargetsSelf",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-gea-004-chosen-zone-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "incomingAttackTargetsSelf",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-005": {
+      "name": "Clip-On Tempo Meter",
+      "effects": [
+        {
+          "id": "equipment-gea-005-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onInitiate",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-gea-005-tempo-initiate-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onInitiate",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "hasTempo",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-GEA-CORE-006": {
+      "name": "Department-Issue Stopwatch",
+      "effects": [
+        {
+          "id": "equipment-gea-006-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-006-activation-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextHonor",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-006-tempo-cycle-draw",
+          "effect": "core.draw",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "hasTempo",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-gea-006-tempo-cycle-discard",
+          "effect": "core.discard",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "hasTempo",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-GEA-CORE-007": {
+      "name": "Dojo Suggestion Slot",
+      "effects": [
+        {
+          "id": "equipment-gea-007-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-007-activation-discard",
+          "effect": "core.discard",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-007-activation-focus",
+          "effect": "core.gainFocus",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-007-zero-focus-upgrade",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "discardedPrintedFocusValue",
+              "value": 0,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-008": {
+      "name": "Emergency Whistle Lanyard",
+      "effects": [
+        {
+          "id": "equipment-gea-008-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "forcedDiscardEvent",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-008-reduce-forced-discard",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "forcedDiscardEvent",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-009": {
+      "name": "Green Counter-Signature",
+      "effects": [
+        {
+          "id": "equipment-gea-009-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onDefenseDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "defenseOutsideTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-009-outside-turn-defense-guard",
+          "effect": "combat.modifyGuard",
+          "trigger": "onDefenseDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "defenseOutsideTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-009-green-block-reversal",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Green"
+            },
+            {
+              "kind": "sameRoundOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-010": {
+      "name": "Laminated Floor Plan",
+      "effects": [
+        {
+          "id": "equipment-gea-010-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-010-attack-zone-choice",
+          "effect": "core.choice",
+          "trigger": "passive",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "choiceKind",
+              "value": "next-attack-zone"
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-gea-010-chosen-zone-piercing",
+          "effect": "combat.piercing",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-010-chosen-zone-blocked-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "armedEquipmentZoneMatched",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-011": {
+      "name": "Late-Fee Wrist Counter",
+      "effects": [
+        {
+          "id": "equipment-gea-011-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "ascendCompleted",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "boughtCardThisAscend",
+              "value": false,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-011-next-initiate-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onInitiate",
+          "target": "self",
+          "amount": 2,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "pendingFromSource",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-012": {
+      "name": "Market Aisle Map",
+      "effects": [
+        {
+          "id": "equipment-gea-012-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onPurchase",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "marketEndSlot",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "nextPurchaseOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "minimumFinalCost",
+              "value": 2,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-012-end-market-discount",
+          "effect": "economy.modifyCost",
+          "trigger": "onPurchase",
+          "target": "chosen-card",
+          "amount": -1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "marketEndSlot",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "nextPurchaseOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "minimumFinalCost",
+              "value": 2,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-013": {
+      "name": "Municipal Lanyard of Authority",
+      "effects": [
+        {
+          "id": "equipment-gea-013-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "nextItemOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "minimumFinalCost",
+              "value": 1,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-013-next-item-discount",
+          "effect": "economy.modifyCost",
+          "trigger": "passive",
+          "target": "self",
+          "amount": -1,
+          "duration": "endOfTurn",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "nextItemOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "minimumFinalCost",
+              "value": 1,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-013-qualifying-item-ready-other",
+          "effect": "equipment.ready",
+          "trigger": "onEquip",
+          "target": "chosen-equipment",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "equippedCardIsOtherPermanentEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "equippedCardSubtypeIn",
+              "value": [
+                "Gear",
+                "Defense Equipment"
+              ]
+            },
+            {
+              "kind": "sourceActivationArmed",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-014": {
+      "name": "Noise-Cancelling Headband",
+      "effects": [
+        {
+          "id": "equipment-gea-014-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "resolvedCardType",
+              "value": "Kata"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-014-ignore-first-negative-combat-modifier",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "duration": "endOfRound",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "resolvedCardType",
+              "value": "Kata"
+            },
+            {
+              "kind": "firstNegativeCombatModifierThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-015": {
+      "name": "Plastic Medal Rack",
+      "effects": [
+        {
+          "id": "equipment-gea-015-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "xpFromLegalAttackOrDefense",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-015-bonus-xp",
+          "effect": "core.gainXP",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "xpFromLegalAttackOrDefense",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-015-xp-next-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "passive",
+          "target": "self",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "xpFromLegalAttackOrDefense",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-016": {
+      "name": "Pocket Abacus of Pain",
+      "effects": [
+        {
+          "id": "equipment-gea-016-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "focusGeneratedBySingleCard",
+              "value": 2,
+              "operator": "gte"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-016-focus-generation-reward",
+          "effect": "core.gainFocus",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "focusGeneratedBySingleCard",
+              "value": 2,
+              "operator": "gte"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-017": {
+      "name": "Portable Belt-Exam Bell",
+      "effects": [
+        {
+          "id": "equipment-gea-017-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "examRequirementCompleted",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-017-exam-cycle-draw",
+          "effect": "core.draw",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "examRequirementCompleted",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-017-exam-cycle-discard",
+          "effect": "core.discard",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "examRequirementCompleted",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-018": {
+      "name": "Portable Suggestion Box",
+      "effects": [
+        {
+          "id": "equipment-gea-018-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onPurchase",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "purchaseCompleted",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-018-bottom-hand-card",
+          "effect": "core.moveCard",
+          "trigger": "onPurchase",
+          "target": "chosen-card",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "purchaseCompleted",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-018-next-initiate-draw",
+          "effect": "core.draw",
+          "trigger": "onInitiate",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "pendingFromSource",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-019": {
+      "name": "Refillable Punch Card",
+      "effects": [
+        {
+          "id": "equipment-gea-019-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onPurchase",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "purchasedCardCost",
+              "value": 4,
+              "operator": "gte"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-019-next-initiate-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onInitiate",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "pendingFromSource",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-020": {
+      "name": "Rental Chair Recoil",
+      "effects": [
+        {
+          "id": "equipment-gea-020-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onBlock",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "defenderPlayedDefense",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameOpponentAsBlockedAttack",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-020-reversal-piercing",
+          "effect": "combat.piercing",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "defenderPlayedDefense",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameOpponentAsBlockedAttack",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-021": {
+      "name": "Scene-Change Clapperboard",
+      "effects": [
+        {
+          "id": "equipment-gea-021-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sceneChangeOccurred",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "nonHonorSceneChangedThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-021-scene-change-focus",
+          "effect": "core.gainFocus",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sceneChangeOccurred",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "nonHonorSceneChangedThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-022": {
+      "name": "Three-Hole Punch Holster",
+      "effects": [
+        {
+          "id": "equipment-gea-022-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onHit",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstHitThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-022-first-hit-discard",
+          "effect": "core.discard",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstHitThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-022-first-hit-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstHitThisTurn",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "costPaid",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-023": {
+      "name": "Tiny Lockbox of Momentum",
+      "effects": [
+        {
+          "id": "equipment-gea-023-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onHit",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-gea-023-next-initiate-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onInitiate",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "pendingFromSource",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-GEA-CORE-024": {
+      "name": "Yellow Tape Measure",
+      "effects": [
+        {
+          "id": "equipment-gea-024-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-gea-024-attack-zone-choice",
+          "effect": "core.choice",
+          "trigger": "passive",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "choiceKind",
+              "value": "next-attack-zone"
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-gea-024-different-zone-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "differentZoneFromPreviousAttack",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "armedEquipmentZoneMatched",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-gea-024-yellow-exam-draw",
+          "effect": "core.draw",
+          "trigger": "afterResolve",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "yellowBeltExamThirdZone",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "minimumBelt",
+              "value": "Yellow"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-001": {
+      "name": "Baseball Bat",
+      "effects": [
+        {
+          "id": "equipment-wpn-001-first-attack-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-002": {
+      "name": "Bo Staff (Long Staff)",
+      "effects": [
+        {
+          "id": "equipment-wpn-002-after-defense-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onDefenseDeclared",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "defenderPlayedDefense",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameTurnOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-003": {
+      "name": "Bo-Shuriken (Throwing Spikes)",
+      "effects": [
+        {
+          "id": "equipment-wpn-003-first-attack-faster-target",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "targetSpeedHigher",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-004": {
+      "name": "Bokken (Wooden Sword)",
+      "effects": [
+        {
+          "id": "equipment-wpn-004-blocked-attack-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-005": {
+      "name": "Brass Knuckles",
+      "effects": [
+        {
+          "id": "equipment-wpn-005-punch-hit-next-punch",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onHit",
+          "target": "source",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackHasTag",
+              "value": "Punch"
+            },
+            {
+              "kind": "nextAttackHasTag",
+              "value": "Punch"
+            },
+            {
+              "kind": "oncePerTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-006": {
+      "name": "Broken Bottle",
+      "effects": [
+        {
+          "id": "equipment-wpn-006-delayed-direct-damage",
+          "effect": "core.custom",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": 1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstHitWithSourceThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "scheduledTiming",
+              "value": "endOfTargetNextTurn"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-007": {
+      "name": "Museum-Gift Nunchaku",
+      "effects": [
+        {
+          "id": "equipment-wpn-007-punch-kick-hit-draw",
+          "effect": "core.draw",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackHasAnyTag",
+              "value": [
+                "Punch",
+                "Kick"
+              ]
+            },
+            {
+              "kind": "firstQualifyingHitThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-wpn-007-punch-kick-hit-discard",
+          "effect": "core.discard",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackHasAnyTag",
+              "value": [
+                "Punch",
+                "Kick"
+              ]
+            },
+            {
+              "kind": "firstQualifyingHitThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-008": {
+      "name": "Butterfly Knife (Balisong)",
+      "effects": [
+        {
+          "id": "equipment-wpn-008-equipped-this-turn-first-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "equippedThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-009": {
+      "name": "Chain Whip",
+      "effects": [
+        {
+          "id": "equipment-wpn-009-high-piercing",
+          "effect": "combat.piercing",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "attackZones",
+              "value": [
+                "High"
+              ]
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-010": {
+      "name": "Club",
+      "effects": [
+        {
+          "id": "equipment-wpn-010-armor-piercing",
+          "effect": "combat.piercing",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "targetHasMatchingArmor",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-011": {
+      "name": "Collapsible Queue Pole",
+      "effects": [
+        {
+          "id": "equipment-wpn-011-blocked-attack-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-012": {
+      "name": "Dao (Chinese Saber)",
+      "effects": [
+        {
+          "id": "equipment-wpn-012-second-after-first-hit",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "attackNumber",
+              "operator": "eq",
+              "value": 2
+            },
+            {
+              "kind": "previousAttackHit",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-013": {
+      "name": "Deer Horn Knives",
+      "effects": [
+        {
+          "id": "equipment-wpn-013-block-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sameRoundOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-014": {
+      "name": "Dojo Mop",
+      "effects": [
+        {
+          "id": "equipment-wpn-014-low-hit-speed-penalty",
+          "effect": "core.custom",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackZones",
+              "value": [
+                "Low"
+              ]
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "scheduledTiming",
+              "value": "nextRound"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-015": {
+      "name": "Dragon Sword",
+      "effects": [
+        {
+          "id": "equipment-wpn-015-first-hit-additional-damage",
+          "effect": "combat.dealDamage",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": 2,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstHitThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-016": {
+      "name": "Eko Bo (Short Staff)",
+      "effects": [
+        {
+          "id": "equipment-wpn-016-block-next-attacker",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sameRoundOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameOpponentAsBlockedAttack",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-017": {
+      "name": "Eku (Okinawan Oar)",
+      "effects": [
+        {
+          "id": "equipment-wpn-017-first-low-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "attackZones",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-018": {
+      "name": "Emotional Support Brick",
+      "effects": [
+        {
+          "id": "equipment-wpn-018-speed-floor-2",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-019": {
+      "name": "Escrima Sticks",
+      "effects": [
+        {
+          "id": "equipment-wpn-019-paired-second-attack-flow",
+          "effect": "combat.grantFlow",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "attackNumber",
+              "operator": "eq",
+              "value": 2
+            },
+            {
+              "kind": "hasTwoPairedWeapons",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-020": {
+      "name": "Executive Foam Sword",
+      "effects": [
+        {
+          "id": "equipment-wpn-020-exact-one-damage-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 2,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "combatDamageDealt",
+              "value": 1,
+              "operator": "eq"
+            },
+            {
+              "kind": "oncePerTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-021": {
+      "name": "Extension-Cord Nunchaku",
+      "effects": [
+        {
+          "id": "equipment-wpn-021-two-zone-sequence-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onAttackDeclared",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "differentZoneFromPreviousAttack",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "firstDifferentZoneSequenceThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-022": {
+      "name": "Fan (Tessen)",
+      "effects": [
+        {
+          "id": "equipment-wpn-022-high-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High",
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-wpn-022-post-block-purchase-discount",
+          "effect": "economy.modifyCost",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": -1,
+          "duration": "endOfRound",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "nextPurchaseOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "minimumFinalCost",
+              "value": 1,
+              "operator": "eq"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-023": {
+      "name": "Folding Chair of Destiny",
+      "effects": [
+        {
+          "id": "equipment-wpn-023-equip-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onEquip",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "equippedThisTurn",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameTurnOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-024": {
+      "name": "Folding-Sign Staff",
+      "effects": [
+        {
+          "id": "equipment-wpn-024-scene-change-ready",
+          "effect": "equipment.ready",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sceneChangeOccurred",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-wpn-024-scene-change-next-any-zone",
+          "effect": "combat.chooseZone",
+          "trigger": "passive",
+          "target": "self",
+          "duration": "endOfRound",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sceneChangeOccurred",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameRoundOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-025": {
+      "name": "Frozen Burrito",
+      "effects": [
+        {
+          "id": "equipment-wpn-025-hit-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstHitWithSourceThisTurn",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-026": {
+      "name": "Giant Foam Finger",
+      "effects": [
+        {
+          "id": "equipment-wpn-026-declared-attack-zone-change",
+          "effect": "combat.chooseZone",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-027": {
+      "name": "Gladius",
+      "effects": [
+        {
+          "id": "equipment-wpn-027-after-defense-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onDefenseDeclared",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "defenderPlayedDefense",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameTurnOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-028": {
+      "name": "Grandma's Wooden Spoon",
+      "effects": [
+        {
+          "id": "equipment-wpn-028-lower-xp-first-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "targetXpHigher",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-029": {
+      "name": "Hand Axe",
+      "effects": [
+        {
+          "id": "equipment-wpn-029-matching-armor-defense-suppression",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "onHit",
+          "target": "chosen-equipment",
+          "amount": -1,
+          "duration": "endOfTurn",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "targetHasMatchingArmor",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-030": {
+      "name": "Hook Swords",
+      "effects": [
+        {
+          "id": "equipment-wpn-030-chosen-armor-gear-defense-suppression",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "onHit",
+          "target": "chosen-equipment",
+          "amount": -1,
+          "duration": "endOfTurn",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "choiceKind",
+              "value": "matching-armor-or-gear"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-031": {
+      "name": "Jian (Straight Sword)",
+      "effects": [
+        {
+          "id": "equipment-wpn-031-after-defense-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onDefenseDeclared",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "defenderPlayedDefense",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameTurnOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-032": {
+      "name": "Jo Staff (Short Staff)",
+      "effects": [
+        {
+          "id": "equipment-wpn-032-first-after-kata",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackAfterKataThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-033": {
+      "name": "Kali Sticks (Arnis)",
+      "effects": [
+        {
+          "id": "equipment-wpn-033-paired-first-defense",
+          "effect": "combat.modifyGuard",
+          "trigger": "onDefenseDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "hasTwoPairedWeapons",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "firstDefenseThisRound",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-034": {
+      "name": "Kama (Sickle)",
+      "effects": [
+        {
+          "id": "equipment-wpn-034-second-attack-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "attackNumber",
+              "operator": "eq",
+              "value": 2
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-035": {
+      "name": "Kampalan (Southeast Asian Weapon)",
+      "effects": [
+        {
+          "id": "equipment-wpn-035-hit-memory-first-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "wasHitSinceLastTurn",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-036": {
+      "name": "Karambit (Hooked Dagger)",
+      "effects": [
+        {
+          "id": "equipment-wpn-036-negative-stat-target-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "targetHasTemporaryNegativeStat",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-037": {
+      "name": "Katana (Japanese Sword)",
+      "effects": [
+        {
+          "id": "equipment-wpn-037-second-after-first-hit",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "attackNumber",
+              "operator": "eq",
+              "value": 2
+            },
+            {
+              "kind": "previousAttackHit",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-038": {
+      "name": "Kris (Curved Dagger)",
+      "effects": [
+        {
+          "id": "equipment-wpn-038-healing-suppression",
+          "effect": "core.custom",
+          "trigger": "onHit",
+          "target": "opponent",
+          "resolver": "equipment.structured",
+          "amount": 2,
+          "conditions": [
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "scheduledTiming",
+              "value": "beforeControllerNextTurn"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-039": {
+      "name": "Kubotan",
+      "effects": [
+        {
+          "id": "equipment-wpn-039-mid-hit-next-defense-penalty",
+          "effect": "combat.modifyDefense",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackZones",
+              "value": [
+                "Mid"
+              ]
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameTurnOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-040": {
+      "name": "Kunai (Throwing Knives)",
+      "effects": [
+        {
+          "id": "equipment-wpn-040-no-defense-cycle-draw",
+          "effect": "core.draw",
+          "trigger": "afterResolve",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "defenderPlayedDefense",
+              "operator": "eq",
+              "value": false
+            },
+            {
+              "kind": "oncePerTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-wpn-040-no-defense-cycle-discard",
+          "effect": "core.discard",
+          "trigger": "afterResolve",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "defenderPlayedDefense",
+              "operator": "eq",
+              "value": false
+            },
+            {
+              "kind": "oncePerTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-041": {
+      "name": "Meteor Hammer",
+      "effects": [
+        {
+          "id": "equipment-wpn-041-first-attack-any-zone",
+          "effect": "combat.chooseZone",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-042": {
+      "name": "Parking-Lot Patience Stick",
+      "effects": [
+        {
+          "id": "equipment-wpn-042-patience-defense",
+          "effect": "combat.modifyDefense",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "didNotAttackPreviousTurn",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "hasNotAttackedThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-wpn-042-patience-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "didNotAttackPreviousTurn",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "hasNotAttackedThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-043": {
+      "name": "Municipal Training Tonfa",
+      "effects": [
+        {
+          "id": "equipment-wpn-043-first-defense-after-attack",
+          "effect": "combat.modifyGuard",
+          "trigger": "onDefenseDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstDefenseThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "attackedThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-044": {
+      "name": "Naginata (Polearm)",
+      "effects": [
+        {
+          "id": "equipment-wpn-044-first-low-mid-piercing",
+          "effect": "combat.piercing",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "attackZones",
+              "value": [
+                "Low",
+                "Mid"
+              ]
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-045": {
+      "name": "Nunchaku",
+      "effects": [
+        {
+          "id": "equipment-wpn-045-first-hit-next-flow",
+          "effect": "combat.grantFlow",
+          "trigger": "onHit",
+          "target": "self",
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstHitThisTurn",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-046": {
+      "name": "Orange Permit Puncher",
+      "effects": [
+        {
+          "id": "equipment-wpn-046-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "minimumBelt",
+              "value": "Orange"
+            },
+            {
+              "kind": "attackNumber",
+              "value": 2,
+              "operator": "eq"
+            },
+            {
+              "kind": "currentAttackIsNormal",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        },
+        {
+          "id": "equipment-wpn-046-orange-second-normal-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 2,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "attackNumber",
+              "operator": "eq",
+              "value": 2
+            },
+            {
+              "kind": "minimumBelt",
+              "value": "Orange"
+            },
+            {
+              "kind": "currentAttackIsNormal",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "manualActivation",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-047": {
+      "name": "Pocket Stick",
+      "effects": [
+        {
+          "id": "equipment-wpn-047-first-hand-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackWithTagThisTurn",
+              "value": "Hand"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-048": {
+      "name": "Pool Noodle of Shame",
+      "effects": [
+        {
+          "id": "equipment-wpn-048-combat-damage-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstCombatDamageWithSourceThisTurn",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-049": {
+      "name": "Qiang (Spear)",
+      "effects": [
+        {
+          "id": "equipment-wpn-049-first-attack-any-zone",
+          "effect": "combat.chooseZone",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-050": {
+      "name": "Receipt-Spindle Sai",
+      "effects": [
+        {
+          "id": "equipment-wpn-050-parry-block-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sameRoundOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "defenseHasTag",
+              "value": "Parry"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-051": {
+      "name": "Rolled-Up Rulebook",
+      "effects": [
+        {
+          "id": "equipment-wpn-051-reaction-defense",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "oncePerRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "reactionPlayedAgainstSelf",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "scheduledTiming",
+              "value": "exchangeEnd"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-052": {
+      "name": "Rope Dart",
+      "effects": [
+        {
+          "id": "equipment-wpn-052-hit-speed-penalty",
+          "effect": "core.custom",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "scheduledTiming",
+              "value": "nextRound"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-053": {
+      "name": "Sai (Trident)",
+      "effects": [
+        {
+          "id": "equipment-wpn-053-block-next-attacker",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sameRoundOnly",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameOpponentAsBlockedAttack",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-054": {
+      "name": "Scythe",
+      "effects": [
+        {
+          "id": "equipment-wpn-054-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "passive",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-wpn-054-exhaust-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 3,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-055": {
+      "name": "Sectional Staff",
+      "effects": [
+        {
+          "id": "equipment-wpn-055-dodge-block-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "defenseHasTag",
+              "value": "Dodge"
+            }
+          ]
+        },
+        {
+          "id": "equipment-wpn-055-dodge-block-cycle",
+          "effect": "core.choice",
+          "trigger": "onBlock",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "choiceKind",
+              "value": "sectional-staff-cycle"
+            },
+            {
+              "kind": "draw",
+              "value": 1
+            },
+            {
+              "kind": "discard",
+              "value": 1
+            },
+            {
+              "kind": "defenseHasTag",
+              "value": "Dodge"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-056": {
+      "name": "Short Sword",
+      "effects": [
+        {
+          "id": "equipment-wpn-056-blocked-next-different-zone",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "nextAttackDifferentZone",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "sameTurnOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-057": {
+      "name": "Shuriken (Throwing Stars)",
+      "effects": [
+        {
+          "id": "equipment-wpn-057-exhaust",
+          "effect": "equipment.exhaust",
+          "trigger": "onHit",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-wpn-057-hit-direct-damage",
+          "effect": "combat.dealDamage",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-058": {
+      "name": "Staff of Questionable Lineage",
+      "effects": [
+        {
+          "id": "equipment-wpn-058-hit-defense-until-next-initiate",
+          "effect": "core.custom",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 1,
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "firstHitWithSourceThisRound",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "scheduledTiming",
+              "value": "nextInitiate"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-059": {
+      "name": "Tactical Baguette",
+      "effects": [
+        {
+          "id": "equipment-wpn-059-blocked-round-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "blockedThisRound",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            },
+            {
+              "kind": "nextQualifyingAttackOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-060": {
+      "name": "Tanto (Dagger)",
+      "effects": [
+        {
+          "id": "equipment-wpn-060-first-attack-faster-target",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "firstAttackThisTurn",
+              "operator": "eq",
+              "value": true
+            },
+            {
+              "kind": "targetSpeedHigher",
+              "operator": "eq",
+              "value": true
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-061": {
+      "name": "Tekko (Brass Knuckles)",
+      "effects": [
+        {
+          "id": "equipment-wpn-061-punch-counts-unarmed",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "source",
+          "duration": "whileEquipped",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackHasTag",
+              "value": "Punch"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-062": {
+      "name": "Tonfa (Police Baton)",
+      "effects": [
+        {
+          "id": "equipment-wpn-062-mid-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        },
+        {
+          "id": "equipment-wpn-062-block-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "sameRoundOnly",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-063": {
+      "name": "Traffic Cone",
+      "effects": [
+        {
+          "id": "equipment-wpn-063-high-defense",
+          "effect": "equipment.modifyDefenseContribution",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    },
+    "DDB-WPN-CORE-064": {
+      "name": "Whip",
+      "effects": [
+        {
+          "id": "equipment-wpn-064-hit-spend-target-tempo",
+          "effect": "core.custom",
+          "trigger": "onHit",
+          "target": "opponent",
+          "duration": "endOfRound",
+          "resolver": "equipment.structured",
+          "conditions": [
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-WPN-CORE-065": {
+      "name": "Yo-Yo",
+      "effects": [
+        {
+          "id": "equipment-wpn-065-second-attack-hit-focus",
+          "effect": "core.gainFocus",
+          "trigger": "onHit",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "attackNumber",
+              "operator": "eq",
+              "value": 2
+            },
+            {
+              "kind": "attackUsesSourceEquipment",
+              "value": true,
+              "operator": "eq"
+            }
+          ],
+          "resolver": "equipment.structured"
+        }
+      ]
+    }
+  }
+}

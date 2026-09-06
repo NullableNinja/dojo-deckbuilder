@@ -1,0 +1,2554 @@
+{
+  "$schema": "../card-effect-family.schema.json",
+  "schemaVersion": 1,
+  "rulesVersion": "v2.3",
+  "rulesRevision": "v2.3-r5",
+  "family": "Location",
+  "description": "Core Location scene rules migrated to structured executable effects. Location conditions form a dedicated runtime context interpreted by location.structured without parsing printed rules text.",
+  "cards": {
+    "DDB-LOC-CORE-001": {
+      "name": "After-Hours Equipment Cage",
+      "effects": [
+        {
+          "id": "location-001-equipment-exhaust-focus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "equipmentExhaust"
+            },
+            {
+              "kind": "ownTurn",
+              "value": true
+            },
+            {
+              "kind": "firstMatchingPerRound",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-001-outside-initiate-ready-penalty",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "equipmentContribution"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyReadiedEquipmentPrintedBonus"
+            },
+            {
+              "kind": "equipmentReadiedOutsideInitiate",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1,
+          "duration": "nextHonor"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-002": {
+      "name": "Astral Training Plane",
+      "effects": [
+        {
+          "id": "location-002-first-combo-numeric-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "comboTrigger"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyComboPrintedNumericEffect"
+            },
+            {
+              "kind": "firstMatchingPerTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-002-weapon-armor-bonus-penalty",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "equipmentContribution"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponArmorPrintedBonus"
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 0
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1,
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-003": {
+      "name": "Back Alley",
+      "effects": [
+        {
+          "id": "location-003-street-weapon-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Street"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-003-healing-penalty",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "healing"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyHealing"
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-004": {
+      "name": "Backyard Belt Mill",
+      "effects": [
+        {
+          "id": "location-004-first-attack-defense-xp",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "xpGain"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyXpGain"
+            },
+            {
+              "kind": "xpSourceAny",
+              "value": [
+                "Attack",
+                "Defense"
+              ]
+            },
+            {
+              "kind": "firstMatchingPerRound",
+              "value": true
+            },
+            {
+              "kind": "isKoXp",
+              "value": false
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-005": {
+      "name": "Beach Training Montage",
+      "effects": [
+        {
+          "id": "location-005-low-attack-penalty",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        },
+        {
+          "id": "location-005-first-kata-flow-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "kataGrantedFlowThisAttack",
+              "value": true
+            },
+            {
+              "kind": "firstKataFlowThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-006": {
+      "name": "Belt Testing Annex, Room 4",
+      "effects": [
+        {
+          "id": "location-006-reveal-belt-exam",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "sceneReveal"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "stateActiveBeltExam"
+            }
+          ],
+          "resolver": "location.structured"
+        },
+        {
+          "id": "location-006-belt-exam-choice",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "beltExamComplete"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "beltExamSpeedOrCycleChoice"
+            },
+            {
+              "kind": "firstMatchingPerRound",
+              "value": true
+            },
+            {
+              "kind": "choiceOptions",
+              "value": [
+                "speed+1-nextHonor",
+                "draw1-discard1"
+              ]
+            }
+          ],
+          "resolver": "location.structured"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-007": {
+      "name": "City Bus in Motion",
+      "effects": [
+        {
+          "id": "location-007-mid-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-007-dodge-movement-defense-minus",
+          "trigger": "passive",
+          "action": "modifyGuard",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "defenseTagAny",
+              "value": [
+                "Dodge",
+                "Movement"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-008": {
+      "name": "Community Ice Rink",
+      "effects": [
+        {
+          "id": "location-008-first-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "firstAttackThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        },
+        {
+          "id": "location-008-dodge-defense-plus",
+          "trigger": "passive",
+          "action": "modifyGuard",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "defenseTagAny",
+              "value": [
+                "Dodge"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-009": {
+      "name": "Concrete Stairwell",
+      "effects": [
+        {
+          "id": "location-009-high-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-009-jump-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackTagAny",
+              "value": [
+                "Jump"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-010": {
+      "name": "Construction Site",
+      "effects": [
+        {
+          "id": "location-010-improvised-weapon-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Improvised"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 2
+        },
+        {
+          "id": "location-010-zero-damage-recoil",
+          "trigger": "passive",
+          "action": "dealDamage",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "afterAttack"
+            },
+            {
+              "kind": "attackUsesEquipmentTagAny",
+              "value": [
+                "Improvised"
+              ]
+            },
+            {
+              "kind": "combatDamageDealt",
+              "value": 0
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-011": {
+      "name": "Corporate Conference Room",
+      "effects": [
+        {
+          "id": "location-011-first-item-discount",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "purchase"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyPurchaseCost"
+            },
+            {
+              "kind": "cardTypeAny",
+              "value": [
+                "Item"
+              ]
+            },
+            {
+              "kind": "firstMatchingPerTurn",
+              "value": true
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        },
+        {
+          "id": "location-011-first-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "firstAttackThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-012": {
+      "name": "Department Lobby During a Fire Drill",
+      "effects": [
+        {
+          "id": "location-012-item-before-first-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "firstAttackThisTurn",
+              "value": true
+            },
+            {
+              "kind": "itemPlayedBeforeFirstAttack",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-012-item-after-first-attack-discount",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "purchase"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyPurchaseCost"
+            },
+            {
+              "kind": "cardTypeAny",
+              "value": [
+                "Item"
+              ]
+            },
+            {
+              "kind": "attackedThisTurn",
+              "value": true
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-013": {
+      "name": "Discount Dojo Grand Reopening",
+      "effects": [
+        {
+          "id": "location-013-first-expensive-card-discount",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "purchase"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyPurchaseCost"
+            },
+            {
+              "kind": "printedCostAtLeast",
+              "value": 5
+            },
+            {
+              "kind": "firstMatchingPerRound",
+              "value": true
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 4
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        },
+        {
+          "id": "location-013-market-persistence",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "marketRefill"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "keepUnboughtMarketCards"
+            }
+          ],
+          "resolver": "location.structured"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-014": {
+      "name": "Dumpster Behind the Dojo",
+      "effects": [
+        {
+          "id": "location-014-junk-cycle",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "manualSceneAction"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "discardJunkDrawGainFocus"
+            },
+            {
+              "kind": "oncePerTurn",
+              "value": true
+            },
+            {
+              "kind": "discardCount",
+              "value": 1
+            },
+            {
+              "kind": "drawCount",
+              "value": 1
+            },
+            {
+              "kind": "focusGain",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured"
+        },
+        {
+          "id": "location-014-improvised-weapon-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Improvised"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-015": {
+      "name": "Elevator of Poor Decisions",
+      "effects": [
+        {
+          "id": "location-015-mid-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-015-two-handed-weapon-penalty",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Two-Handed",
+                "Two-handed"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-016": {
+      "name": "Family Pizza Arcade",
+      "effects": [
+        {
+          "id": "location-016-first-combo-finisher-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "isComboFinisher",
+              "value": true
+            },
+            {
+              "kind": "firstComboThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-016-consumable-heal-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "healing"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyHealing"
+            },
+            {
+              "kind": "healingSourceAny",
+              "value": [
+                "Consumable"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-017": {
+      "name": "Farmers Market",
+      "effects": [
+        {
+          "id": "location-017-consumable-heal-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "healing"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyHealing"
+            },
+            {
+              "kind": "healingSourceAny",
+              "value": [
+                "Consumable"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 2
+        },
+        {
+          "id": "location-017-first-item-discount",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "purchase"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyPurchaseCost"
+            },
+            {
+              "kind": "cardTypeAny",
+              "value": [
+                "Item"
+              ]
+            },
+            {
+              "kind": "firstMatchingPerTurn",
+              "value": true
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-018": {
+      "name": "Fire Exit Between Two Gyms",
+      "effects": [
+        {
+          "id": "location-018-block-counter-zone-choice",
+          "trigger": "passive",
+          "action": "chooseZone",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "block"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "nextCounterAttackChosenZone"
+            },
+            {
+              "kind": "oncePerRound",
+              "value": true
+            },
+            {
+              "kind": "choiceOptions",
+              "value": [
+                "High",
+                "Mid",
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "duration": "nextAttack"
+        },
+        {
+          "id": "location-018-chosen-zone-hit-focus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "afterAttack"
+            },
+            {
+              "kind": "usesSceneChosenCounterZone",
+              "value": true
+            },
+            {
+              "kind": "attackHit",
+              "value": true
+            },
+            {
+              "kind": "sameRoundAsSceneChoice",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-019": {
+      "name": "Furniture Showroom Maze",
+      "effects": [
+        {
+          "id": "location-019-first-damage-reduction-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "damageReduction"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "increaseDamageReduction"
+            },
+            {
+              "kind": "reductionSourceAny",
+              "value": [
+                "Defensive Equipment"
+              ]
+            },
+            {
+              "kind": "firstMatchingPerTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-020": {
+      "name": "Gas Station at 2 A.M.",
+      "effects": [
+        {
+          "id": "location-020-first-consumable-heal-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "healing"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyHealing"
+            },
+            {
+              "kind": "healingSourceAny",
+              "value": [
+                "Consumable"
+              ]
+            },
+            {
+              "kind": "firstConsumableThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-020-first-consumable-next-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "firstConsumableUsedThisTurn",
+              "value": true
+            },
+            {
+              "kind": "afterThatConsumable",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-021": {
+      "name": "Hardware Store Aisle 12",
+      "effects": [
+        {
+          "id": "location-021-first-item-discount",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "purchase"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyPurchaseCost"
+            },
+            {
+              "kind": "cardTypeAny",
+              "value": [
+                "Item"
+              ]
+            },
+            {
+              "kind": "firstItemPurchaseThisAscend",
+              "value": true
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        },
+        {
+          "id": "location-021-improvised-weapon-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Improvised"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-022": {
+      "name": "Haunted Dojo",
+      "effects": [
+        {
+          "id": "location-022-destroy-junk-focus-hp",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "manualSceneAction"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "destroyJunkGainFocusLoseHp"
+            },
+            {
+              "kind": "oncePerTurn",
+              "value": true
+            },
+            {
+              "kind": "destroyCount",
+              "value": 1
+            },
+            {
+              "kind": "focusGain",
+              "value": 2
+            },
+            {
+              "kind": "hpLoss",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-023": {
+      "name": "Kids' Birthday Party",
+      "effects": [
+        {
+          "id": "location-023-high-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        },
+        {
+          "id": "location-023-first-combo-finisher-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "isComboFinisher",
+              "value": true
+            },
+            {
+              "kind": "firstComboThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-024": {
+      "name": "Laundromat of Pain",
+      "effects": [
+        {
+          "id": "location-024-flexible-weapon-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Flexible"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-024-first-dodge-defense-plus",
+          "trigger": "passive",
+          "action": "modifyGuard",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "defenseTagAny",
+              "value": [
+                "Dodge"
+              ]
+            },
+            {
+              "kind": "firstMatchingPerRound",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-025": {
+      "name": "Local-Access Television Studio",
+      "effects": [
+        {
+          "id": "location-025-first-learned-combo-cycle",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "comboTrigger"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "drawThenDiscard"
+            },
+            {
+              "kind": "comboIsLearned",
+              "value": true
+            },
+            {
+              "kind": "firstMatchingPerRound",
+              "value": true
+            },
+            {
+              "kind": "drawCount",
+              "value": 1
+            },
+            {
+              "kind": "discardCount",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured"
+        },
+        {
+          "id": "location-025-blocked-finisher-focus-loss",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "afterAttack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "loseFocusIfAble"
+            },
+            {
+              "kind": "isComboFinisher",
+              "value": true
+            },
+            {
+              "kind": "attackBlocked",
+              "value": true
+            },
+            {
+              "kind": "maximumLoss",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-026": {
+      "name": "Locker Room",
+      "effects": [
+        {
+          "id": "location-026-first-consumable-next-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "firstConsumableUsedThisTurn",
+              "value": true
+            },
+            {
+              "kind": "afterThatConsumable",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-027": {
+      "name": "Mall Food Court",
+      "effects": [
+        {
+          "id": "location-027-consumable-heal-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "healing"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyHealing"
+            },
+            {
+              "kind": "healingSourceAny",
+              "value": [
+                "Consumable"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 2
+        },
+        {
+          "id": "location-027-improvised-weapon-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Improvised"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-028": {
+      "name": "Meditation Garden",
+      "effects": [
+        {
+          "id": "location-028-first-kata-focus-plus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "kataPlay"
+            },
+            {
+              "kind": "firstKataThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-028-first-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "firstAttackThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-029": {
+      "name": "Moonlit Bamboo Grove",
+      "effects": [
+        {
+          "id": "location-029-staff-polearm-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Staff",
+                "Polearm"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-029-jump-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackTagAny",
+              "value": [
+                "Jump"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-030": {
+      "name": "Municipal Budget Hearing Mat",
+      "effects": [
+        {
+          "id": "location-030-first-big-focus-card-plus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "focusGeneration"
+            },
+            {
+              "kind": "printedFocusAtLeast",
+              "value": 2
+            },
+            {
+              "kind": "firstMatchingPerTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-030-first-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "firstAttackThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-031": {
+      "name": "Municipal Pool After Closing",
+      "effects": [
+        {
+          "id": "location-031-low-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-031-first-low-block-choice",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "block"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "readyEquipmentOrSpeedChoice"
+            },
+            {
+              "kind": "incomingAttackZone",
+              "value": [
+                "Low"
+              ]
+            },
+            {
+              "kind": "firstMatchingPerRound",
+              "value": true
+            },
+            {
+              "kind": "choiceOptions",
+              "value": [
+                "ready-equipment",
+                "speed+1-nextHonor"
+              ]
+            }
+          ],
+          "resolver": "location.structured"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-032": {
+      "name": "Night Market",
+      "effects": [
+        {
+          "id": "location-032-first-consumable-improvised-discount",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "purchase"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyPurchaseCost"
+            },
+            {
+              "kind": "cardSubtypeOrTagAny",
+              "value": [
+                "Consumable",
+                "Improvised"
+              ]
+            },
+            {
+              "kind": "firstMatchingPerTurn",
+              "value": true
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-033": {
+      "name": "No-Parking Loading Dock",
+      "effects": [
+        {
+          "id": "location-033-expensive-purchase-choice",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "purchase"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "discardForReadyOrDefenseChoice"
+            },
+            {
+              "kind": "printedCostAtLeast",
+              "value": 5
+            },
+            {
+              "kind": "firstMatchingPerRound",
+              "value": true
+            },
+            {
+              "kind": "discardCount",
+              "value": 1
+            },
+            {
+              "kind": "choiceOptions",
+              "value": [
+                "ready-equipment",
+                "defense+1-nextHonor"
+              ]
+            }
+          ],
+          "resolver": "location.structured"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-034": {
+      "name": "Office Cubicle Maze",
+      "effects": [
+        {
+          "id": "location-034-high-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        },
+        {
+          "id": "location-034-defensive-equipment-mid-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyDefensiveEquipmentContribution"
+            },
+            {
+              "kind": "incomingAttackZone",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-035": {
+      "name": "Old Train Yard",
+      "effects": [
+        {
+          "id": "location-035-staff-polearm-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Staff",
+                "Polearm"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-035-speed-four-defense-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyStandingDefense"
+            },
+            {
+              "kind": "selfSpeedAtLeast",
+              "value": 4
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-036": {
+      "name": "Parking Garage Spiral",
+      "effects": [
+        {
+          "id": "location-036-spin-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackTagAny",
+              "value": [
+                "Spin"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-036-first-low-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "Low"
+              ]
+            },
+            {
+              "kind": "firstLowAttackThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-037": {
+      "name": "Parking Lot Behind the Dojo",
+      "effects": [
+        {
+          "id": "location-037-kata-focus-zero",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "kataPlay"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "setKataFocusGeneration"
+            },
+            {
+              "kind": "fixedValue",
+              "value": 0
+            }
+          ],
+          "resolver": "location.structured"
+        },
+        {
+          "id": "location-037-street-improvised-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Street",
+                "Improvised"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-038": {
+      "name": "Permit Office Rooftop Garden",
+      "effects": [
+        {
+          "id": "location-038-first-kata-speed-plus",
+          "trigger": "passive",
+          "action": "modifySpeed",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "kataPlay"
+            },
+            {
+              "kind": "firstKataThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1,
+          "duration": "endOfRound"
+        },
+        {
+          "id": "location-038-first-high-while-fastest-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "High"
+              ]
+            },
+            {
+              "kind": "firstHighAttackThisTurn",
+              "value": true
+            },
+            {
+              "kind": "isFastest",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-039": {
+      "name": "Public Library",
+      "effects": [
+        {
+          "id": "location-039-first-kata-focus-plus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "kataPlay"
+            },
+            {
+              "kind": "firstKataThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-039-first-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "firstAttackThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-040": {
+      "name": "Rain-Slick Alley",
+      "effects": [
+        {
+          "id": "location-040-low-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-040-spin-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackTagAny",
+              "value": [
+                "Spin"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-041": {
+      "name": "River Dock",
+      "effects": [
+        {
+          "id": "location-041-push-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackTagAny",
+              "value": [
+                "Push"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 2
+        },
+        {
+          "id": "location-041-low-defense-plus",
+          "trigger": "passive",
+          "action": "modifyGuard",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "defenseZone",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-042": {
+      "name": "Rooftop at Sunset",
+      "effects": [
+        {
+          "id": "location-042-first-high-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "High"
+              ]
+            },
+            {
+              "kind": "firstHighAttackThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-042-blocked-jump-spin-next-round-speed",
+          "trigger": "passive",
+          "action": "modifySpeed",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "afterAttack"
+            },
+            {
+              "kind": "attackTagAny",
+              "value": [
+                "Jump",
+                "Spin"
+              ]
+            },
+            {
+              "kind": "attackBlocked",
+              "value": true
+            },
+            {
+              "kind": "appliesNextRound",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -2,
+          "duration": "endOfRound"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-043": {
+      "name": "School Gymnasium",
+      "effects": [
+        {
+          "id": "location-043-first-defense-plus",
+          "trigger": "passive",
+          "action": "modifyGuard",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "firstDefenseThisRound",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-043-unarmed-attack-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackIsUnarmed",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-044": {
+      "name": "Strip-Mall McDojo",
+      "effects": [
+        {
+          "id": "location-044-first-kata-focus-plus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "kataPlay"
+            },
+            {
+              "kind": "firstKataThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-044-defense-guard-minus",
+          "trigger": "passive",
+          "action": "modifyGuard",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-045": {
+      "name": "Subway Platform",
+      "effects": [
+        {
+          "id": "location-045-fastest-attack-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "roundStart"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyStandingAttack"
+            },
+            {
+              "kind": "isFastest",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1,
+          "duration": "endOfRound"
+        },
+        {
+          "id": "location-045-slowest-defense-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "roundStart"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyStandingDefense"
+            },
+            {
+              "kind": "isSlowest",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1,
+          "duration": "endOfRound"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-046": {
+      "name": "The Demonstration of Unnecessary Confidence",
+      "effects": [
+        {
+          "id": "location-046-reveal-belt-exam",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "sceneReveal"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "stateActiveBeltExam"
+            }
+          ],
+          "resolver": "location.structured"
+        },
+        {
+          "id": "location-046-first-player-belt-exam-draw",
+          "trigger": "passive",
+          "action": "draw",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "beltExamComplete"
+            },
+            {
+              "kind": "firstAcrossPlayersPerRound",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-047": {
+      "name": "Tournament Mat",
+      "effects": [
+        {
+          "id": "location-047-weapon-bonus-minus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "hasWeaponEquipped",
+              "value": true
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 0
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        },
+        {
+          "id": "location-047-unarmed-plus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackIsUnarmed",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-048": {
+      "name": "Traditional Dojo",
+      "effects": [
+        {
+          "id": "location-048-first-kata-focus-plus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "kataPlay"
+            },
+            {
+              "kind": "firstKataThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-048-first-defense-plus",
+          "trigger": "passive",
+          "action": "modifyGuard",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "firstDefenseThisRound",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-049": {
+      "name": "Unattended Folding-Chair Warehouse",
+      "effects": [
+        {
+          "id": "location-049-first-equipment-exhaust-next-defense",
+          "trigger": "passive",
+          "action": "modifyGuard",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "defense"
+            },
+            {
+              "kind": "equipmentExhaustedEarlierThisRound",
+              "value": true
+            },
+            {
+              "kind": "firstEquipmentExhaustThisRound",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1,
+          "duration": "nextDefense"
+        },
+        {
+          "id": "location-049-two-handed-equip-speed-minus",
+          "trigger": "passive",
+          "action": "modifySpeed",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "equipmentEquip"
+            },
+            {
+              "kind": "equippedCardTagAny",
+              "value": [
+                "Two-Handed",
+                "Two-handed"
+              ]
+            },
+            {
+              "kind": "firstMatchingPerSceneStay",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1,
+          "duration": "nextHonor"
+        }
+      ]
+    },
+    "DDB-LOC-CORE-050": {
+      "name": "Underground Fight Club",
+      "effects": [
+        {
+          "id": "location-050-ko-xp-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "ko"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyKoXp"
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-050-healing-minus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "healing"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyHealing"
+            },
+            {
+              "kind": "minimumFinalValue",
+              "value": 1
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -2
+        }
+      ]
+    },
+    "DDB-LOC-CORE-051": {
+      "name": "Vending-Machine Meditation Nook",
+      "effects": [
+        {
+          "id": "location-051-first-consumable-focus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "consumableResolve"
+            },
+            {
+              "kind": "firstConsumableThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-052": {
+      "name": "Warehouse After Hours",
+      "effects": [
+        {
+          "id": "location-052-two-handed-plus",
+          "trigger": "passive",
+          "action": "custom",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "locationOperation",
+              "value": "modifyWeaponAttackBonus"
+            },
+            {
+              "kind": "equipmentTagAny",
+              "value": [
+                "Two-Handed",
+                "Two-handed"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-052-high-attack-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            },
+            {
+              "kind": "attackZone",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    },
+    "DDB-LOC-CORE-053": {
+      "name": "Yoga Studio",
+      "effects": [
+        {
+          "id": "location-053-first-kata-focus-plus",
+          "trigger": "passive",
+          "action": "gainFocus",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "kataPlay"
+            },
+            {
+              "kind": "firstKataThisTurn",
+              "value": true
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": 1
+        },
+        {
+          "id": "location-053-all-attacks-minus",
+          "trigger": "passive",
+          "action": "modifyAttackPower",
+          "target": "self",
+          "conditions": [
+            {
+              "kind": "locationEvent",
+              "value": "attack"
+            }
+          ],
+          "resolver": "location.structured",
+          "amount": -1
+        }
+      ]
+    }
+  }
+}

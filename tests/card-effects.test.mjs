@@ -100,9 +100,8 @@ test("Starter cards resolve through the canonical structured-effect registry", a
   assert.deepEqual(breathingPlan.dedicated, []);
   assert.deepEqual(breathingPlan.unsupported, []);
 
-  // playtest.tsx still calls compileCardEffects(card.rulesText) for the generic
-  // effect subset. The bridge resolves exact canonical Starter text through the
-  // generated registry before the English parser gets a chance.
+  // Keep the text-only compatibility bridge covered where printed text maps to
+  // a single structured identity. Duplicate printed text must resolve by catalog ID.
   const bridgedBreathingPlan = compileCardEffects(breathing.rulesText);
   assert.equal(bridgedBreathingPlan.source, "structured");
   assert.deepEqual(bridgedBreathingPlan.effects, [
@@ -126,13 +125,23 @@ test("Starter cards resolve through the canonical structured-effect registry", a
   ]);
   assert.deepEqual(footworkPlan.dedicated, ["starter.gainFocusIfFastest"]);
   assert.deepEqual(footworkPlan.unsupported, []);
-  const bridgedFootworkPlan = compileCardEffects(footwork.rulesText);
-  assert.equal(bridgedFootworkPlan.source, "structured");
-  assert.deepEqual(bridgedFootworkPlan.effects, [
+
+  const runtimeFootworkPlan = effectPlanForCard(footwork);
+  assert.equal(runtimeFootworkPlan.source, "structured");
+  assert.deepEqual(runtimeFootworkPlan.effects, [
     { timing: "onPlay", kind: "speed", amount: 2 },
   ]);
-  assert.deepEqual(bridgedFootworkPlan.dedicated, ["starter.gainFocusIfFastest"]);
-  assert.deepEqual(bridgedFootworkPlan.unsupported, []);
+  assert.deepEqual(runtimeFootworkPlan.dedicated, ["starter.gainFocusIfFastest"]);
+  assert.deepEqual(runtimeFootworkPlan.unsupported, []);
+
+  const kataFootwork = cards.find((card) => card.catalogId === "DDB-KAT-CORE-021");
+  const kataFootworkPlan = effectPlanForCard(kataFootwork);
+  assert.equal(kataFootworkPlan.source, "structured");
+  assert.deepEqual(kataFootworkPlan.effects, [
+    { timing: "onPlay", kind: "speed", amount: 2 },
+  ]);
+  assert.deepEqual(kataFootworkPlan.dedicated, ["kata.conditional"]);
+  assert.deepEqual(kataFootworkPlan.unsupported, []);
 
   const wildSwing = cards.find((card) => card.catalogId === "DDB-STA-CORE-011");
   const wildSwingPlan = effectPlanForCard(wildSwing, registry);

@@ -117,15 +117,12 @@ function validateVocabulary(vocabulary, source) {
 }
 
 export async function loadCardEffectArchitecture() {
-  const [source, cards, vocabulary, seed] = await Promise.all([
+  const [source, cards, vocabulary] = await Promise.all([
     readJson("content/dojo-game.json"),
     readJson("content/cards.json"),
     readJson("content/effects.json"),
-    readJson("content/card-effects-seed.json"),
   ]);
   validateVocabulary(vocabulary, source);
-  assert(seed.rulesVersion === source.rulesVersion, "content/card-effects-seed.json rulesVersion does not match canonical rulesVersion.");
-  assert(seed.rulesRevision === source.rulesRevision, "content/card-effects-seed.json rulesRevision does not match canonical rulesRevision.");
 
   const directory = new URL("content/card-effects/", root);
   const files = (await readdir(directory))
@@ -143,12 +140,12 @@ export async function loadCardEffectArchitecture() {
     assert(registry.cards && typeof registry.cards === "object", `content/card-effects/${file} is missing cards.`);
     families.push({ file, family: expectedFamily, registry });
   }
-  return { source, cards, vocabulary, seed, families };
+  return { source, cards, vocabulary, families };
 }
 
-export function buildCardEffectAggregate({ cards, vocabulary, seed, families }) {
+export function buildCardEffectAggregate({ source, cards, vocabulary, families }) {
   const cardsByCatalogId = new Map((cards.cards ?? []).map((card) => [card.catalogId, card]));
-  const mergedCards = structuredClone(seed.cards ?? {});
+  const mergedCards = {};
   const authoredIds = new Map();
 
   for (const { file, family, registry } of families) {
@@ -181,7 +178,10 @@ export function buildCardEffectAggregate({ cards, vocabulary, seed, families }) 
   }
 
   return {
-    ...structuredClone(seed),
+    schemaVersion: 1,
+    rulesVersion: source.rulesVersion,
+    rulesRevision: source.rulesRevision,
+    description: "Canonical structured-effect migration registry. Entries are keyed by Catalog ID so executable behavior can migrate independently of the large printed-card catalog without changing printed card identity.",
     cards: Object.fromEntries(Object.entries(mergedCards).sort(([left], [right]) => left.localeCompare(right))),
   };
 }
