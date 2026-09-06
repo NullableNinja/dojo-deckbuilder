@@ -1,0 +1,52 @@
+name: Stage 3B Character Effects CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "content/card-effects/characters.json"
+      - "app/character-effect-resolvers.ts"
+      - "app/card-effects.ts"
+      - "tests/character-family-registry.test.mjs"
+      - ".github/workflows/stage3b-character-effects-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run game:generate
+      - run: npm run game:check
+      - name: TypeScript and Vite build
+        run: npm run build
+      - name: Character family tests
+        run: node --experimental-strip-types --test tests/character-family-registry.test.mjs
+      - name: Full node test suite
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          node --experimental-strip-types --test tests/*.test.mjs 2>&1 | tee /tmp/full-tests.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            {
+              echo '### Character branch exact full-suite failures'
+              echo
+              echo '```text'
+              grep -n -B 10 -A 28 '^not ok' /tmp/full-tests.log || true
+              echo '```'
+            } > /tmp/failure-comment.md
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/failure-comment.md
+          fi
+          exit "$status"
