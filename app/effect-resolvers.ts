@@ -10,6 +10,7 @@ import {
   structuredConsumableMandatoryDiscard,
   structuredConsumableNextAttackPenalty,
   structuredConsumableNextDefensePenalty,
+  structuredConsumableReturnsToSupply,
   structuredConsumableSpeedPenalty,
 } from "./consumable-effect-resolvers.ts";
 import { conditionValue, structuredRuntimeEffects } from "./family-effect-runtime.ts";
@@ -56,6 +57,10 @@ export function destroysAfterUse(card: Parameters<typeof legacy.destroysAfterUse
   return legacy.destroysAfterUse(card);
 }
 
+export function returnsToSupplyAfterUse(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
+  return isCoreConsumable(card) && structuredConsumableReturnsToSupply(card);
+}
+
 export function destroyJunkChoiceCount(card: Parameters<typeof legacy.destroyJunkChoiceCount>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableDestroyJunkCount(card);
   return legacy.destroyJunkChoiceCount(card);
@@ -82,6 +87,26 @@ export function targetSpeedPenaltyUntilHonor(
 ) {
   if (isCoreConsumable(card)) return structuredConsumableSpeedPenalty(card);
   return legacy.targetSpeedPenaltyUntilHonor(card, context);
+}
+
+export function conditionalHealAfterHit(
+  card: Parameters<typeof legacy.conditionalHealAfterHit>[0],
+  wasHitSinceLastTurn: boolean,
+) {
+  // Migrated Defense/Consumable healing is executed by the structured family
+  // runtime at its declared trigger. Never parse their printed prose here.
+  if (isCoreDefense(card) || isCoreConsumable(card)) return 0;
+  return legacy.conditionalHealAfterHit(card, wasHitSinceLastTurn);
+}
+
+export function discardChoiceFollowup(
+  source: Parameters<typeof legacy.discardChoiceFollowup>[0],
+  discarded: Parameters<typeof legacy.discardChoiceFollowup>[1],
+) {
+  if (isCoreDefense(source) || isCoreConsumable(source)) {
+    return { focus: 0, nextAttackPower: 0, nextDefenseGuard: 0, notes: [] as string[] };
+  }
+  return legacy.discardChoiceFollowup(source, discarded);
 }
 
 export function structuredNextAttackFlow(
@@ -117,11 +142,21 @@ export function optionalDiscardDrawChoice(card: Parameters<typeof legacy.optiona
       draw: Number(conditionValue(effect, "draw") ?? conditionValue(effect, "drawAfterCost") ?? 0),
     };
   }
+  if (isCoreConsumable(card)) return null;
   return legacy.optionalDiscardDrawChoice(card);
 }
 
 export function deckLookPlan(card: Parameters<typeof legacy.deckLookPlan>[0]): legacy.DeckLookPlan | null {
-  const id = catalogId(card);
-  if (id === "DDB-CON-CORE-022") return { kind: "reorder", count: 3, distinctTypeFocus: 1 };
+  if (isCoreConsumable(card)) {
+    const reorder = structuredRuntimeEffects(card).find((effect) => effect.resolver === "consumable.reorderTopThree");
+    if (reorder) {
+      return {
+        kind: "reorder",
+        count: Number(conditionValue(reorder, "revealCount") ?? conditionValue(reorder, "count") ?? 3),
+        distinctTypeFocus: Number(conditionValue(reorder, "bonusFocus") ?? 1),
+      };
+    }
+    return null;
+  }
   return legacy.deckLookPlan(card);
 }
