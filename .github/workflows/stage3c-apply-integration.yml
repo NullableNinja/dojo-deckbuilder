@@ -64,7 +64,19 @@ jobs:
           PY
 
       - name: Apply Stage 3C playtest semantics
-        run: node scripts/stage3c-integrate-playtest.mjs
+        run: |
+          node scripts/stage3c-integrate-playtest.mjs
+          python <<'PY'
+          from pathlib import Path
+          path = Path('app/playtest.tsx')
+          source = path.read_text()
+          before = 'function stage3cDefenseContext(defender: Board, attacker: Board, defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext {'
+          after = 'function stage3cDefenseContext(defender: Board, attacker: Board, defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext & { weaponAttack: boolean; defenderAttackedThisRound: boolean } {'
+          if before in source:
+              path.write_text(source.replace(before, after))
+          elif after not in source:
+              raise SystemExit('Stage 3C Defense context type marker not found')
+          PY
 
       - name: Generate canonical runtime data
         run: npm run game:generate
