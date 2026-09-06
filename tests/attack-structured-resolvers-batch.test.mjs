@@ -260,3 +260,19 @@ test("eleven-card state and response Attack batch is structured and executable",
   assert.equal(targetSpeedPenaltyUntilHonor(punchClock, { previousCardIsItem: true }), 1);
   assert.equal(targetSpeedPenaltyUntilHonor(punchClock, { previousCardIsItem: false }), 0);
 });
+
+
+test("post-Defense Attack modifiers feed final power into AI damage math", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /const finalAttackPower = Math\.max\(0, pending\.attackPower \+ postDefensePower\.amount\);/);
+  assert.match(source, /const rawDamage = hit \? Math\.max\(0, finalAttackPower - defensePower \+ \(pending\.damageModifier \?\? 0\)\) : 0;/);
+  assert.doesNotMatch(source, /const rawDamage = hit \? Math\.max\(0, pending\.attackPower - defensePower \+ \(pending\.damageModifier \?\? 0\)\) : 0;/);
+});
+
+test("Block memory includes zero-damage strikes stopped by standing DEF or Armor", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /if \(!hit\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
+  const aiBlockMemory = source.match(/if \(!hit\) nextAi = \{ \.\.\.nextAi, blockedSinceLastTurn: true, blockedThisRound: true \};/g) ?? [];
+  assert.ok(aiBlockMemory.length >= 2, "normal Attacks and Reversals must both remember standing-DEF Blocks");
+  assert.doesNotMatch(source, /if \(!hit && defenseCard\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
+});

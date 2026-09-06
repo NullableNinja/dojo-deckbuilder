@@ -1571,6 +1571,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       targetDiscardNotes.push(`target discards ${discardCount}: ${discarded.map((id) => cardFor(id)?.name ?? "Unknown").join(", ")}`);
     }
     if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), discard: [...nextAi.discard, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, blockedSinceLastTurn: !hit || Boolean(nextAi.blockedSinceLastTurn), blockedThisRound: !hit || Boolean(nextAi.blockedThisRound), nextDefenseCardBonus: 0 };
+    if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };
     nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
     if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
     const armorPenaltyGrant = hit ? nextAttackArmorPenalty(card) : 0;
@@ -1880,9 +1881,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const postDefensePower = afterDefenseAttackPowerBonus(aiCard, Boolean(defenseCard));
     const finalAttackPower = Math.max(0, pending.attackPower + postDefensePower.amount);
     const hit = finalAttackPower > defensePower;
-    if (!hit && defenseCard) nextPlayer = { ...nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true };
+    if (!hit) nextPlayer = { ...nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true };
     const reversalEquipmentBonus = !hit && defenseCard ? (nextPlayer.pendingReversalBonusOnBlock ?? 0) : 0;
-    const rawDamage = hit ? Math.max(0, pending.attackPower - defensePower + (pending.damageModifier ?? 0)) : 0;
+    const rawDamage = hit ? Math.max(0, finalAttackPower - defensePower + (pending.damageModifier ?? 0)) : 0;
     const reduced = reduceDamageForFighter(nextPlayer, rawDamage);
     const damageBeforeOptional = reduced.damage;
     const optionalReduction = !skipOptionalPrompt && damageBeforeOptional > 0 ? optionalCombatDamagePlan(current.player) : null;
@@ -2033,6 +2034,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const targetDebuff = hit ? applyTargetHitDebuffs(nextAi, card, { previousCardIsItem }) : { board: nextAi, notes: [] as string[] };
     nextAi = targetDebuff.board;
     if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), playArea: [...nextAi.playArea, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, blockedSinceLastTurn: !hit || Boolean(nextAi.blockedSinceLastTurn), blockedThisRound: !hit || Boolean(nextAi.blockedThisRound), nextDefenseCardBonus: 0 };
+    if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };
     nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
     if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
     let defenseFollowupNotes: string[] = [];
