@@ -67,30 +67,39 @@ const otherSide = (side: FighterSide): FighterSide => side === "player" ? "ai" :
 function newlyPrependedLogLines(previous: PlaytestMatchSnapshot, next: PlaytestMatchSnapshot) {
   const before = Array.isArray(previous.log) ? previous.log : [];
   const after = Array.isArray(next.log) ? next.log : [];
-  if (!after.length) return [];
-  if (!before.length) return [];
-  const previousHead = before[0];
-  const previousHeadIndex = after.indexOf(previousHead);
-  if (previousHeadIndex < 0) return after.slice(0, Math.min(3, after.length));
+  if (!after.length || !before.length) return [];
+  const previousHeadIndex = after.indexOf(before[0]);
+  if (previousHeadIndex < 0) return after.slice(0, Math.min(6, after.length));
   return after.slice(0, previousHeadIndex);
 }
 
-function deriveBlockEvents(previous: PlaytestMatchSnapshot, next: PlaytestMatchSnapshot): PlaytestEvent[] {
+function deriveCombatResolutionEvents(previous: PlaytestMatchSnapshot, next: PlaytestMatchSnapshot): PlaytestEvent[] {
   const events: PlaytestEvent[] = [];
-  for (const line of newlyPrependedLogLines(previous, next)) {
+  for (const line of newlyPrependedLogLines(previous, next).reverse()) {
     if (!/Attack\s+\d+\s+vs\s+Defense\s+\d+/i.test(line)) continue;
+
+    const hitPlayer = line.match(/\bhits you for\s+(\d+)/i);
+    if (hitPlayer) {
+      events.push({ type: "combat.hit", actor: "ai", target: "player", amount: Number(hitPlayer[1]) });
+      continue;
+    }
+
+    const hitOpponent = line.match(/\bhits\s+(?!you\b)[^.]*?\s+for\s+(\d+)/i);
+    if (hitOpponent) {
+      events.push({ type: "combat.hit", actor: "player", target: "ai", amount: Number(hitOpponent[1]) });
+      continue;
+    }
+
     if (/\bis blocked\b/i.test(line)) {
       events.push({ type: "combat.block", actor: "player", target: "ai" });
       continue;
     }
-    if (/\bblocks\b/i.test(line)) {
-      events.push({ type: "combat.block", actor: "ai", target: "player" });
-    }
+    if (/\bblocks\b/i.test(line)) events.push({ type: "combat.block", actor: "ai", target: "player" });
   }
   return events;
 }
 
-function deriveBoardEvents(side: FighterSide, previous: PlaytestBoardSnapshot, next: PlaytestBoardSnapshot): PlaytestEvent[] {
+function deriveBoardEvents(side: FighterSide, previous: PlaytestBoardSnapshot, next: PlaytestBoardSnapshot, loggedHitTargets: Set<FighterSide>): PlaytestEvent[] {
   const events: PlaytestEvent[] = [];
   const opponent = otherSide(side);
 
@@ -101,13 +110,14 @@ function deriveBoardEvents(side: FighterSide, previous: PlaytestBoardSnapshot, n
   }
 
   const hpDelta = number(next.hp) - number(previous.hp);
-  if (hpDelta < 0) events.push({ type: "combat.hit", actor: opponent, target: side, amount: Math.abs(hpDelta) });
+  if (hpDelta < 0 && !loggedHitTargets.has(side)) events.push({ type: "combat.hit", actor: opponent, target: side, amount: Math.abs(hpDelta) });
   if (hpDelta > 0) events.push({ type: "vitality.heal", fighter: side, amount: hpDelta });
 
   const generatedFocusDelta = number(next.focusGeneratedThisTurn) - number(previous.focusGeneratedThisTurn);
-  if (generatedFocusDelta > 0) events.push({ type: "resource.focusGain", fighter: side, amount: generatedFocusDelta });
-
   const spentFocusDelta = number(next.focusSpentThisTurn) - number(previous.focusSpentThisTurn);
+  const rawFocusDelta = number(next.focus) - number(previous.focus);
+  if (generatedFocusDelta > 0) events.push({ type: "resource.focusGain", fighter: side, amount: generatedFocusDelta });
+  else if (rawFocusDelta > 0 && spentFocusDelta <= 0) events.push({ type: "resource.focusGain", fighter: side, amount: rawFocusDelta });
   if (spentFocusDelta > 0) events.push({ type: "resource.focusSpend", fighter: side, amount: spentFocusDelta });
 
   const xpDelta = number(next.xp) - number(previous.xp);
@@ -154,10 +164,12 @@ function deriveBoardEvents(side: FighterSide, previous: PlaytestBoardSnapshot, n
 export function derivePlaytestEvents(previous: PlaytestMatchSnapshot | null, next: PlaytestMatchSnapshot | null): PlaytestEvent[] {
   if (!previous || !next || previous.schema !== 8 || next.schema !== 8 || !previous.player || !previous.ai || !next.player || !next.ai) return [];
 
+  const combatResolutionEvents = deriveCombatResolutionEvents(previous, next);
+  const loggedHitTargets = new Set(combatResolutionEvents.filter((event): event is Extract<PlaytestEvent, { type: "combat.hit" }> => event.type === "combat.hit").map((event) => event.target));
   const events = [
-    ...deriveBoardEvents("player", previous.player, next.player),
-    ...deriveBoardEvents("ai", previous.ai, next.ai),
-    ...deriveBlockEvents(previous, next),
+    ...deriveBoardEvents("player", previous.player, next.player, loggedHitTargets),
+    ...deriveBoardEvents("ai", previous.ai, next.ai, loggedHitTargets),
+    ...combatResolutionEvents,
   ];
 
   if (previous.locationId && next.locationId && previous.locationId !== next.locationId) events.push({ type: "scene.change" });
