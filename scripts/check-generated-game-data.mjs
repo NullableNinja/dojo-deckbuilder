@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { expectedCardEffectAggregate } from "./card-effect-registry.mjs";
 
 const root = new URL("../", import.meta.url);
@@ -38,7 +38,7 @@ if (!sameJson(generated, source.definition)) fail("app/data/game-definition.json
 if (!sameJson(generatedRules, canonicalRules)) fail("app/data/rules.json has drifted from content/rules.json; run npm run game:generate");
 if (!sameJson(generatedCards, canonicalCards)) fail("app/data/cards.json has drifted from content/cards.json; run npm run game:generate");
 if (!sameJson(generatedVocabulary, canonicalVocabulary)) fail("app/data/effects.json has drifted from content/effects.json; run npm run game:generate");
-if (effectArchitecture && !sameJson(canonicalCardEffects, effectArchitecture.aggregate)) fail("content/card-effects.json has drifted from the effect seed/family sources; run npm run game:generate");
+if (effectArchitecture && !sameJson(canonicalCardEffects, effectArchitecture.aggregate)) fail("content/card-effects.json has drifted from the card-effect family sources; run npm run game:generate");
 if (!sameJson(generatedCardEffects, canonicalCardEffects)) fail("app/data/card-effects.json has drifted from content/card-effects.json; run npm run game:generate");
 if (!String(canonicalRules.version ?? "").startsWith(source.rulesVersion)) fail(`content/rules.json version '${canonicalRules.version ?? "missing"}' does not match ${source.rulesVersion}`);
 if (!String(canonicalCards.version ?? "").startsWith(source.rulesVersion)) fail(`content/cards.json version '${canonicalCards.version ?? "missing"}' does not match ${source.rulesVersion}`);
@@ -61,7 +61,32 @@ for (const path of expectedAuthoritative) {
   if (!source.sourcePolicy?.authoritativeFiles?.includes(path)) fail(`${path} is canonical but missing from sourcePolicy.authoritativeFiles`);
 }
 if (!source.sourcePolicy?.authoritativeGlobs?.includes("content/card-effects/*.json")) fail("content/card-effects/*.json is canonical but missing from sourcePolicy.authoritativeGlobs");
-if (!source.sourcePolicy?.temporaryMigrationSeeds?.includes("content/card-effects-seed.json")) fail("content/card-effects-seed.json must be declared as a temporary Stage 3B migration seed until the split is complete");
+if ((source.sourcePolicy?.temporaryMigrationSeeds ?? []).length) fail(`Temporary migration seeds remain after Stage 3B: ${source.sourcePolicy.temporaryMigrationSeeds.join(", ")}`);
+try {
+  await access(new URL("content/card-effects-seed.json", root));
+  fail("content/card-effects-seed.json still exists after all effect families were split");
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+}
+
+const expectedFamilyFiles = [
+  "starters.json",
+  "attacks.json",
+  "defenses.json",
+  "katas.json",
+  "consumables.json",
+  "equipment.json",
+  "combos.json",
+  "locations.json",
+  "characters.json",
+];
+const activeFamilyFiles = new Set((effectArchitecture?.families ?? []).map(({ file }) => file));
+for (const file of expectedFamilyFiles) {
+  if (!activeFamilyFiles.has(file)) fail(`Stage 3B family source content/card-effects/${file} is missing`);
+}
+if (activeFamilyFiles.size !== expectedFamilyFiles.length) {
+  fail(`Stage 3B should have exactly ${expectedFamilyFiles.length} active family sources; found ${activeFamilyFiles.size}`);
+}
 
 const expectedGenerated = new Set([
   "content/card-effects.json",
@@ -235,6 +260,6 @@ if (failures.length) {
   console.log(`Card-effect family sources: ${effectArchitecture?.families.length ?? 0} active family file(s)`);
   console.log(`Unified structured effect registry: content/card-effects.json (${structuredEntries.length} migrated cards)`);
   console.log("Generated runtime outputs: app/data/game-definition.json, app/data/rules.json, app/data/cards.json, app/data/effects.json, app/data/card-effects.json");
-  console.log("Temporary Stage 3B effect seed: content/card-effects-seed.json (remove after seeded families are fully split)");
+  console.log("Temporary Stage 3B effect seeds: none");
   console.log("Legacy authoritative data sources: none");
 }
