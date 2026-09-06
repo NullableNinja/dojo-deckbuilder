@@ -11,6 +11,20 @@ const unifiedRegistry = JSON.parse(await readFile(new URL("../content/card-effec
 const coreAttacks = cards.filter((card) => String(card.catalogId ?? "").startsWith("DDB-ATK-CORE-"));
 const familyIds = Object.keys(registry);
 
+function projectToAuthoredShape(generated, authored) {
+  if (Array.isArray(authored)) {
+    assert.ok(Array.isArray(generated), "generated value must remain an array where the family source authored an array");
+    return authored.map((item, index) => projectToAuthoredShape(generated[index], item));
+  }
+  if (authored && typeof authored === "object") {
+    assert.ok(generated && typeof generated === "object", "generated value must remain an object where the family source authored an object");
+    return Object.fromEntries(
+      Object.keys(authored).map((key) => [key, projectToAuthoredShape(generated[key], authored[key])]),
+    );
+  }
+  return generated;
+}
+
 test("Attack family registry has the canonical Stage 3B metadata", () => {
   assert.equal(attackFamily.schemaVersion, 1);
   assert.equal(attackFamily.rulesVersion, "v2.3");
@@ -58,7 +72,14 @@ test("every migrated Core Attack keeps an explicit executable effects array", ()
   assert.deepEqual(invalid, []);
 });
 
-test("Attack family source preserves the currently integrated Attack semantics", () => {
-  const integratedAttackSubset = Object.fromEntries(coreAttacks.map((card) => [card.catalogId, unifiedRegistry[card.catalogId]]));
-  assert.deepEqual(registry, integratedAttackSubset);
+test("Attack family source preserves all authored semantics through aggregate hydration", () => {
+  const generatedAttackSubset = Object.fromEntries(
+    coreAttacks.map((card) => {
+      const authored = registry[card.catalogId];
+      const generated = unifiedRegistry[card.catalogId];
+      assert.ok(generated, `${card.catalogId} must remain present in the generated aggregate`);
+      return [card.catalogId, projectToAuthoredShape(generated, authored)];
+    }),
+  );
+  assert.deepEqual(generatedAttackSubset, registry);
 });
