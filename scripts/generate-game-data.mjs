@@ -29,13 +29,12 @@ await Promise.all([
   writeJson("app/data/game-definition.json", source.definition),
   writeJson("app/data/rules.json", rules),
   writeJson("app/data/cards.json", cards),
-  writeJson("app/data/effects.json", effects),
   writeJson("app/data/card-effects.json", cardEffects),
 ]);
 
-console.log(`Generated content/card-effects.json from effect vocabulary + ${families.length} family source file${families.length === 1 ? "" : "s"}.`);
+console.log(`Generated content/card-effects.json from the Stage 3B seed + ${families.length} active family source file${families.length === 1 ? "" : "s"}.`);
+console.log(`Validated content/effects.json (${Object.keys(effects.effects ?? {}).length} canonical reusable effects).`);
 console.log(`Generated app/data/game-definition.json from content/dojo-game.json (${source.rulesRevision}).`);
 console.log("Generated app/data/rules.json from content/rules.json.");
 console.log(`Generated app/data/cards.json from content/cards.json (${cards.total} cards).`);
-console.log(`Generated app/data/effects.json from content/effects.json (${Object.keys(effects.effects ?? {}).length} canonical effects).`);
-console.log(`Generated app/data/card-effects.json from unified family registry (${Object.keys(cardEffects.cards ?? {}).length} migrated cards).`);
+console.log(`Generated app/data/card-effects.json from the unified registry (${Object.keys(cardEffects.cards ?? {}).length} migrated cards).`);
