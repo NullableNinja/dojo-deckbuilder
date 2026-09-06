@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Apply Equipment runtime wiring once
+        run: node scripts/stage3b-equipment-runtime-wire.mjs
+
       - name: Generate canonical game data
         run: npm run game:generate
 
@@ -59,6 +62,10 @@ jobs:
           name: stage3b-integration-diagnostics
           path: |
             stage3b-test.log
+            app/card-effects.ts
+            app/effect-resolvers.ts
+            app/equipment-structured.ts
+            app/playtest.tsx
             content/card-effects.json
             app/data/card-effects.json
           if-no-files-found: error
