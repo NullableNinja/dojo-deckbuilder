@@ -18,6 +18,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Repair migration patcher
+        run: node scripts/fix-stage3b-patcher.mjs
       - name: Apply all remaining Attack migrations
         run: node scripts/stage3b-finish-attacks.mjs
       - name: Regenerate canonical runtime data
@@ -37,7 +39,7 @@ jobs:
           }
           NODE
       - name: Remove temporary migration machinery from final-state workspace
-        run: rm -f .github/workflows/stage3b-finish-attacks.yml .github/workflows/audit-remaining-attacks.yml scripts/stage3b-finish-attacks.mjs
+        run: rm -f .github/workflows/stage3b-finish-attacks.yml .github/workflows/audit-remaining-attacks.yml scripts/stage3b-finish-attacks.mjs scripts/fix-stage3b-patcher.mjs
       - name: Run full repository suite against final state
         run: npm test
       - name: Commit verified product changes only
