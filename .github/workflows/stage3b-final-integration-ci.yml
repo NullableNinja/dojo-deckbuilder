@@ -36,6 +36,9 @@ jobs:
       - name: Normalize Equipment runtime import
         run: node scripts/stage3b-equipment-import-fix.mjs
 
+      - name: Materialize Location family
+        run: node scripts/stage3b-materialize-locations.mjs
+
       - name: Generate canonical game data
         run: npm run game:generate
 
@@ -72,6 +75,7 @@ jobs:
             app/effect-resolvers.ts
             app/equipment-structured.ts
             app/playtest.tsx
+            content/card-effects/locations.json
             content/card-effects.json
             app/data/card-effects.json
           if-no-files-found: error
