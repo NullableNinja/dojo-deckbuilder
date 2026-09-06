@@ -148,9 +148,8 @@ function deriveBoardEvents(side: FighterSide, previous: PlaytestBoardSnapshot, n
   const purchaseDelta = number(next.cardsBought) - number(previous.cardsBought);
   if (purchaseDelta > 0) events.push({ type: "market.purchase", fighter: side, amount: purchaseDelta });
 
-  const completedTaskDelta = length(next.completedTasks) - length(previous.completedTasks);
   const examJustCompleted = previous.completedBeltExamThisRound !== true && next.completedBeltExamThisRound === true;
-  if (completedTaskDelta > 0 || examJustCompleted) events.push({ type: "progress.beltExam", fighter: side });
+  if (examJustCompleted) events.push({ type: "progress.beltExam", fighter: side });
 
   const beltDelta = number(next.belt) - number(previous.belt);
   if (beltDelta > 0) events.push({ type: "progress.promotion", fighter: side, belt: number(next.belt) });
