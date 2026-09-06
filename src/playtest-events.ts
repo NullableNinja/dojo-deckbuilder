@@ -1,5 +1,20 @@
 export type FighterSide = "player" | "ai";
 
+export type PlaytestCombatExchange = {
+  id: string;
+  actor: FighterSide;
+  target: FighterSide;
+  attackCardId: string;
+  defenseCardId: string | null;
+  zone: string;
+  attackPower: number;
+  defensePower: number;
+  damage: number;
+  outcome: "hit" | "block";
+  isReversal?: boolean;
+  notes?: string[];
+};
+
 export type PlaytestEvent =
   | { type: "combat.attack"; actor: FighterSide; target: FighterSide; zone?: string }
   | { type: "combat.hit"; actor: FighterSide; target: FighterSide; amount: number }
@@ -58,6 +73,7 @@ export type PlaytestMatchSnapshot = {
   locationId?: string | null;
   winner?: FighterSide | null;
   log?: string[];
+  lastExchange?: PlaytestCombatExchange | null;
 };
 
 const number = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -74,6 +90,17 @@ function newlyPrependedLogLines(previous: PlaytestMatchSnapshot, next: PlaytestM
 }
 
 function deriveCombatResolutionEvents(previous: PlaytestMatchSnapshot, next: PlaytestMatchSnapshot): PlaytestEvent[] {
+  const exchange = next.lastExchange;
+  if (exchange?.id && exchange.id !== previous.lastExchange?.id) {
+    const declaration: PlaytestEvent[] = exchange.isReversal
+      ? [{ type: "combat.attack", actor: exchange.actor, target: exchange.target, zone: exchange.zone }]
+      : [];
+    const resolution: PlaytestEvent = exchange.outcome === "hit"
+      ? { type: "combat.hit", actor: exchange.actor, target: exchange.target, amount: exchange.damage }
+      : { type: "combat.block", actor: exchange.actor, target: exchange.target };
+    return [...declaration, resolution];
+  }
+
   const events: PlaytestEvent[] = [];
   for (const line of newlyPrependedLogLines(previous, next).reverse()) {
     if (!/Attack\s+\d+\s+vs\s+Defense\s+\d+/i.test(line)) continue;

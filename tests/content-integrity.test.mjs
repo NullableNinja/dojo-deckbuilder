@@ -250,11 +250,12 @@ test("field test three adds real digital-game decisions without replacing the Co
 });
 
 test("v2 engine upgrade keeps rules, play, and simulation on one versioned contract", async () => {
-  const [playtest, worker, manifest, styles] = await Promise.all([
+  const [playtest, worker, manifest, styles, productionMat] = await Promise.all([
     readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/simulation-worker.mjs", import.meta.url), "utf8"),
     readFile(new URL("../public/rules-manifest.json", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest-production-mat.css", import.meta.url), "utf8"),
   ]);
   assert.match(playtest, /import gameDefinitionJson from "\.\/data\/game-definition\.json"/);
   assert.match(playtest, /fetchRulesManifest/);
@@ -269,21 +270,23 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.match(playtest, /className="ascend-desk-backdrop"/);
   assert.match(playtest, /className="ascend-guide"/);
   assert.match(playtest, /advanceAscendReview/);
-  assert.match(playtest, /className="combat-desk-links"/);
+  assert.match(playtest, /className=\{`acquisition-rail/);
+  assert.match(playtest, /className="market-rail-cards"/);
   assert.doesNotMatch(playtest, /className="playtest-side-stack"/);
   assert.match(styles, /\.ascend-desk-backdrop \{[^}]*position: fixed/);
   assert.match(styles, /\.ascend-market-grid \{[^}]*repeat\(7, minmax\(118px, 1fr\)\)/);
   assert.match(styles, /:root\[data-theme="dark"\] \.ascend-desk \{/);
-  assert.match(styles, /\.playtest-shell--live \.play-card-row \{[^}]*display: flex[^}]*overflow-x: auto/);
-  assert.match(styles, /\.playtest-shell--live \.playtest-action-dock \{[^}]*position: static/);
-  assert.match(styles, /\.fighter-stats \{[^}]*repeat\(6/);
+  assert.match(productionMat, /\.playtest-shell--live \.play-card-row \{[^}]*display: flex[^}]*overflow-x: auto/);
+  assert.match(productionMat, /\.playtest-action-dock \{[^}]*position: sticky/);
+  assert.match(productionMat, /\.fighter-stats--combat \{[^}]*repeat\(3/);
+  assert.match(productionMat, /\.market-rail-cards \{[^}]*repeat\(7/);
 });
 
 
 test("Quick Duel polish keeps the HUD clear and the primary action surface singular", async () => {
   const [playtest, styles] = await Promise.all([
     readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/playtest-board-v4.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest-production-mat.css", import.meta.url), "utf8"),
   ]);
   assert.match(playtest, /className="playtest-utility-dock"/);
   assert.match(playtest, /className="coach-dialog paper-stack"/);
@@ -291,8 +294,8 @@ test("Quick Duel polish keeps the HUD clear and the primary action surface singu
   assert.match(playtest, /className="hand-context-strip"/);
   assert.doesNotMatch(playtest, /className="combat-utility-panel paper-stack"/);
   assert.doesNotMatch(playtest, /className="playtest-yell-actions"/);
-  assert.match(styles, /Stable hand geometry/);
-  assert.match(styles, /fighter-combo-rack \.active-combo-grid \{[\s\S]*overflow-y: auto/);
-  assert.match(styles, /playtest-inspector \.inspector-card-visual > \.native-card-art \{[\s\S]*position: relative !important/);
+  assert.match(styles, /Hand: hybrid digital\/physical card objects/);
+  assert.match(styles, /fighter-combo-rack \.active-combo-grid \{[^}]*overflow: visible/);
+  assert.match(styles, /playtest-inspector \.inspector-card-visual > \.native-card-art \{[^}]*min-height: 390px/);
   assert.match(styles, /victory-confetti/);
 });
