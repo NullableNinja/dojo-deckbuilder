@@ -1,6 +1,8 @@
 import cardsJson from "./data/cards.json" with { type: "json" };
 import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
 import { isSupportedCharacterResolver } from "./character-effect-resolvers.ts";
+import { isSupportedDefenseResolver } from "./defense-effect-resolvers.ts";
+import { isSupportedConsumableResolver } from "./consumable-effect-resolvers.ts";
 import { SUPPORTED_KATA_RESOLVERS } from "./kata-effect-resolvers.ts";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
@@ -178,7 +180,11 @@ function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | 
 }
 
 function isImplementedDedicatedResolver(resolver: string) {
-  return IMPLEMENTED_DEDICATED_RESOLVERS.has(resolver) || SUPPORTED_KATA_RESOLVERS.has(resolver) || isSupportedCharacterResolver(resolver);
+  return IMPLEMENTED_DEDICATED_RESOLVERS.has(resolver)
+    || SUPPORTED_KATA_RESOLVERS.has(resolver)
+    || isSupportedCharacterResolver(resolver)
+    || isSupportedDefenseResolver(resolver)
+    || isSupportedConsumableResolver(resolver);
 }
 
 function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): CardEffectPlan {
