@@ -1,0 +1,59 @@
+name: Stage 3B One-Shot Source Freeze
+
+on:
+  push:
+    branches:
+      - stage3b-final-integration
+
+permissions:
+  contents: write
+
+jobs:
+  freeze:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3b-final-integration
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Materialize tested Stage 3B runtime state
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/stage3b-equipment-type-fix.mjs
+          node scripts/stage3b-equipment-runtime-wire.mjs
+          node scripts/stage3b-equipment-import-fix.mjs
+          node scripts/stage3b-materialize-locations.mjs
+          npm run game:generate
+
+      - name: Commit frozen Stage 3B sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            app/effect-resolvers.ts \
+            app/playtest.tsx \
+            content/card-effects/locations.json \
+            content/card-effects.json \
+            app/data/card-effects.json \
+            app/data/effects.json
+          if git diff --cached --quiet; then
+            echo "Stage 3B runtime is already frozen."
+            exit 0
+          fi
+          git commit -m "Stage 3B: freeze tested runtime and generated registries"
+          git push origin HEAD:stage3b-final-integration
