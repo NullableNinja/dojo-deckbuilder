@@ -7,5 +7,18 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "structured-effects",
+              test: /app[\\/]data[\\/]card-effects\.json$/,
+              priority: 20,
+            },
+          ],
+        },
+      },
+    },
   },
 });
