@@ -192,6 +192,33 @@ export function structuredNextAttackFlow(card: EffectCardLike, context: {
   };
 }
 
+export function structuredConditionalFocus(card: EffectCardLike, context: {
+  timing: "onPlay" | "onHit" | "onBlock" | "afterResolve";
+  attackNumber: number;
+}) {
+  const effects = structuredResolvers(card, "attack.conditionalFocus");
+  if (!effects.length) return { handled: false, amount: 0 };
+  const values = { firstAttackThisTurn: context.attackNumber === 1, attackNumber: context.attackNumber };
+  return {
+    handled: true,
+    amount: effects
+      .filter((effect) => effect.trigger === context.timing && structuredConditionsMatch(effect, values))
+      .reduce((total, effect) => total + Number(effect.amount ?? 0), 0),
+  };
+}
+
+export function structuredNextAttackAnyZone(card: EffectCardLike, context: {
+  timing: "onPlay" | "onHit" | "onBlock" | "afterResolve";
+  attackNumber: number;
+}) {
+  const effects = structuredResolvers(card, "attack.grantNextAttackAnyZone");
+  if (!effects.length) return { handled: false, grant: false };
+  return {
+    handled: true,
+    grant: context.attackNumber > 0 && effects.some((effect) => effect.trigger === context.timing),
+  };
+}
+
 export function structuredCurrentAttackFlow(card: EffectCardLike, context: { hasWeaponEquipped: boolean }) {
   const effects = structuredResolvers(card, "attack.currentAttackFlow");
   if (!effects.length) return { handled: false, hasFlow: false };
