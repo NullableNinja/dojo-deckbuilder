@@ -9,7 +9,7 @@ on:
       - stage3b-final-integration
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -33,37 +33,8 @@ jobs:
       - name: Check generated game data
         run: npm run game:check
 
-      - name: Diagnose structured rules-text collisions
-        shell: bash
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const cards = JSON.parse(fs.readFileSync('app/data/cards.json', 'utf8')).cards;
-          const registry = JSON.parse(fs.readFileSync('app/data/card-effects.json', 'utf8')).cards;
-          const normalize = (value) => String(value ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim();
-          const groups = new Map();
-          for (const card of cards) {
-            const id = String(card.catalogId ?? '');
-            const effects = registry[id]?.effects;
-            const text = normalize(card.rulesText);
-            if (!text || !Array.isArray(effects)) continue;
-            const list = groups.get(text) ?? [];
-            list.push({ id, name: card.name, effects });
-            groups.set(text, list);
-          }
-          let collisions = 0;
-          for (const [text, entries] of groups) {
-            if (entries.length < 2) continue;
-            const signatures = new Set(entries.map((entry) => JSON.stringify(entry.effects)));
-            if (signatures.size < 2) continue;
-            if (!entries.some((entry) => entry.id.startsWith('DDB-STA-CORE-'))) continue;
-            collisions += 1;
-            console.log('STRUCTURED RULES-TEXT COLLISION');
-            console.log(text);
-            for (const entry of entries) console.log(JSON.stringify(entry, null, 2));
-          }
-          console.log(`Starter collisions: ${collisions}`);
-          NODE
+      - name: Apply catalog-aware playtest migration
+        run: node scripts/stage3b-catalog-aware-playtest.mjs
 
       - name: Run full test suite
         shell: bash
@@ -73,6 +44,20 @@ jobs:
 
       - name: Build production bundle
         run: npm run build
+
+      - name: Commit catalog-aware playtest migration
+        if: success() && github.event_name == 'push'
+        shell: bash
+        run: |
+          if git diff --quiet -- app/playtest.tsx; then
+            echo "Catalog-aware playtest migration already committed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx
+          git commit -m "fix: use catalog-aware structured effects in playtest"
+          git push
 
       - name: Show generated effect changes
         if: always()
