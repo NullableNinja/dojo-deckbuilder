@@ -12,6 +12,7 @@ import {
 } from "./family-effect-runtime.ts";
 
 export type ConsumableRuntimeContext = {
+  [key: string]: unknown;
   hpThresholdMet?: boolean;
   hasTempo?: boolean;
   handEmptyAfterHeal?: boolean;
@@ -86,11 +87,27 @@ export function isSupportedConsumableResolver(resolver?: string) {
 
 function conditionValues(context: ConsumableRuntimeContext) {
   return {
+    ...context,
     hasTempo: Boolean(context.hasTempo),
+    hpThresholdMet: Boolean(context.hpThresholdMet),
+    handEmptyAfterHeal: Boolean(context.handEmptyAfterHeal),
+    normalAttacksResolvedThisTurn: context.normalAttacksResolvedThisTurn ?? 0,
+    reactionItemUsedSinceLastTurn: Boolean(context.reactionItemUsedSinceLastTurn),
+    temporaryNegativeModifierPresent: Boolean(context.temporaryNegativeModifierPresent),
+    removedTemporaryNegativeModifier: Boolean(context.removedTemporaryNegativeModifier),
+    nextAttackBlocked: Boolean(context.nextAttackBlocked),
+    interferencePrevented: Boolean(context.interferencePrevented),
+    chosenFriendlyIsBenched: Boolean(context.chosenFriendlyIsBenched),
+    chosenFriendlyIsConscious: context.chosenFriendlyIsConscious !== false,
+    sameTurnSourceActive: context.sameTurnSourceActive !== false,
+    discardedCount: context.discardedCount ?? 0,
+    revealedFocusValue: context.revealedFocusValue ?? 0,
+    revealedDifferentTypeCount: context.revealedDifferentTypeCount ?? 0,
+    selectedEquipmentSubtype: context.selectedEquipmentSubtype ?? "",
   };
 }
 
-function resolverConditionMatches(catalogId: string, effect: StructuredRuntimeEffect, context: ConsumableRuntimeContext) {
+function resolverConditionMatches(_catalogId: string, effect: StructuredRuntimeEffect, context: ConsumableRuntimeContext) {
   if (!conditionsMatch(effect, conditionValues(context))) return false;
   switch (effect.resolver) {
     case "consumable.focusByHpThreshold": return Boolean(context.hpThresholdMet);
@@ -147,7 +164,19 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
   const resolver = effect.resolver;
   if (!resolver) return command;
 
-  if (choiceResolver(resolver) && ["core.custom", "core.choice", "core.destroy", "equipment.exhaust", "core.discard", "core.reveal", "economy.modifyCost"].includes(command.effect)) {
+  if (choiceResolver(resolver) && [
+    "core.custom",
+    "core.choice",
+    "core.destroy",
+    "core.discard",
+    "core.reveal",
+    "core.heal",
+    "combat.modifyAttackPower",
+    "combat.modifyGuard",
+    "combat.modifySpeed",
+    "economy.modifyCost",
+    "equipment.exhaust",
+  ].includes(command.effect)) {
     command.choice = { resolver, catalogId };
   }
 
@@ -170,11 +199,11 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       break;
     case "consumable.nextDamagePrevention":
       command.qualifier = { nextDamageEvent: true };
-      command.duration = effect.duration ?? "nextDamage";
+      command.duration = "nextDamage";
       break;
     case "consumable.nextIncomingAttackDefense":
       command.qualifier = { nextIncomingAttack: true };
-      command.duration = "nextAttack";
+      command.duration = "nextIncomingAttack";
       break;
     case "consumable.setSpeedToValue":
       command.qualifier = { setValue: Number(effect.amount ?? 0) };
@@ -194,12 +223,13 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       break;
     case "consumable.zoneSpecificIncomingAttackPenalty":
       command.qualifier = { chosenIncomingZone: true };
-      command.duration = "nextAttack";
+      command.duration = "nextIncomingAttack";
       break;
     case "consumable.reorderTopThree":
       command.choice = { resolver, reveal: 3, bonusFocusIfDifferentTypes: 3 };
       break;
     case "consumable.ascendPurchaseDiscount":
+      command.duration = "nextPurchase";
       command.qualifier = { minPrintedCost: 5, minimumFinalCost: 4 };
       break;
     case "consumable.pepTalkConditionalAttackBonus":
@@ -215,6 +245,7 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       break;
     case "consumable.blockedAttackBacklash":
       if (command.trigger === "passive") command.effect = "combat.dealDamage";
+      command.duration = command.trigger === "passive" ? "immediate" : "nextAttack";
       command.qualifier = { watchedAttack: "nextAttack" };
       break;
     case "consumable.preventInterfereOnNextAttack":
@@ -273,8 +304,24 @@ export function classifyConsumableEffect(effect: StructuredRuntimeEffect) {
   return "unsupported" as const;
 }
 
+export function structuredConsumableLifecycle(card: RuntimeCardLike) {
+  const catalogId = String(card.catalogId ?? "");
+  const isCoreConsumable = catalogId.startsWith("DDB-CON-CORE-");
+  const explicitlyDestroyed = isCoreConsumable && structuredRuntimeEffects(card).some((effect) =>
+    String(effect.effect ?? effect.action ?? "") === "core.destroy" && String(effect.target ?? "self") === "source"
+  );
+  return {
+    returnToSupply: isCoreConsumable && !explicitlyDestroyed,
+    explicitlyDestroyed,
+  };
+}
+
 export function structuredConsumableDestroysAfterUse(card: RuntimeCardLike) {
-  return consumableRuntimeCommands(card, "onPlay").some((command) => command.effect === "core.destroy" && command.target === "source");
+  return structuredConsumableLifecycle(card).explicitlyDestroyed;
+}
+
+export function structuredConsumableReturnsToSupply(card: RuntimeCardLike) {
+  return structuredConsumableLifecycle(card).returnToSupply;
 }
 
 export function structuredConsumableNextAttackPenalty(card: RuntimeCardLike) {
