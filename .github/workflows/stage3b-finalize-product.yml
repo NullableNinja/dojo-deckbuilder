@@ -73,14 +73,17 @@ jobs:
       - name: Verify focused regressions
         run: node --experimental-strip-types --test tests/attack-structured-resolvers-batch.test.mjs
 
-      - name: Run full repository suite
+      - name: Remove one-shot workflow from final-state test workspace
+        run: rm .github/workflows/stage3b-finalize-product.yml
+
+      - name: Run full repository suite against final repository state
         run: npm test
 
-      - name: Commit verified product files
+      - name: Commit verified product files only
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app/playtest.tsx tests/attack-structured-resolvers-batch.test.mjs
-          test -n "$(git status --short)" || { echo "No product changes to commit"; exit 1; }
+          test -n "$(git diff --cached --name-only)" || { echo "No product changes to commit"; exit 1; }
           git commit -m "fix: certify Block memory and post-Defense damage"
           git push origin HEAD:stage3b-attack-eleven
