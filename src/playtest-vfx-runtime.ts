@@ -110,9 +110,11 @@ function renderEvent(event: PlaytestEvent) {
     }
     case "combat.hit": {
       pulse(fighterElement(event.target), "ddb-vfx-hit", 520);
-      floatLabel(event.target, `−${event.amount} HP`, "damage");
+      floatLabel(event.target, event.amount > 0 ? `−${event.amount} HP` : "HIT!", "damage");
       if (event.amount >= 5) pulse(shellElement(), "ddb-vfx-screen-impact", 420);
-      announce(`${event.target === "player" ? "You take" : "Opponent takes"} ${event.amount} damage.`);
+      announce(event.amount > 0
+        ? `${event.target === "player" ? "You take" : "Opponent takes"} ${event.amount} damage.`
+        : `${event.target === "player" ? "The attack hits you" : "The attack hits the opponent"} but deals no damage.`);
       break;
     }
     case "combat.block": {
