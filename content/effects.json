@@ -257,7 +257,7 @@
       "amount": { "required": false },
       "defaultTarget": "source",
       "allowedTargets": ["source", "self", "opponent"],
-      "allowedTriggers": ["onPlay", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "passive"],
+      "allowedTriggers": ["onPlay", "onHit", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "passive"],
       "allowedDurations": ["immediate", "nextAttack", "nextDefense", "endOfTurn", "endOfRound", "whileEquipped"],
       "implementation": "generic-or-resolver-for-choice"
     },
@@ -281,6 +281,17 @@
       "allowedTargets": ["self", "opponent"],
       "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onInitiate", "onHide", "passive"],
       "allowedDurations": ["immediate"],
+      "implementation": "resolver-required"
+    },
+    "equipment.modifyDefenseContribution": {
+      "category": "equipment-stat",
+      "action": "custom",
+      "description": "Modify the DEF supplied by Equipment/Armor in the affected combat context by the signed amount for the specified duration. This does not modify Character DEF or the Guard contribution of a Defense card or defensive effect. A nextAttack duration is consumed by the next Attack interaction in which the affected Equipment/Armor DEF contribution is evaluated, as defined by the dedicated resolver.",
+      "amount": { "required": true, "signed": true },
+      "defaultTarget": "opponent",
+      "allowedTargets": ["self", "opponent", "chosen-equipment"],
+      "allowedTriggers": ["onPlay", "onHit", "onBlock", "afterResolve", "onAttackDeclared", "onDefenseDeclared", "onEquip", "passive"],
+      "allowedDurations": ["immediate", "nextAttack", "endOfTurn", "endOfRound", "nextHonor", "whileEquipped"],
       "implementation": "resolver-required"
     },
     "equipment.ready": {
@@ -385,6 +396,7 @@
     "incomingZones": "Metadata condition listing incoming Attack zones to which a reaction applies.",
     "choiceKind": "Metadata condition naming a structured choice contract handled by a dedicated resolver.",
     "discardCost": "Metadata condition carrying a discard cost required by a dedicated resolver.",
+    "drawAfterCost": "Metadata condition carrying a draw quantity granted only after a dedicated choice resolver successfully pays its stated cost; use this for cost-contingent draw rewards rather than unconditional composite draws.",
     "focusGain": "Metadata condition carrying a Focus reward option inside a dedicated choice resolver.",
     "itemCostPenalty": "Metadata condition carrying an Item purchase-cost penalty option inside a dedicated choice resolver.",
     "defenseGuardPenalty": "Metadata condition carrying a Defense Guard penalty option inside a dedicated choice resolver.",
