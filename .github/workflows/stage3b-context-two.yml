@@ -1,0 +1,130 @@
+name: Stage 3B migrate context-cycle Attack pair
+
+on:
+  push:
+    branches:
+      - stage3b-attack-context-batch
+    paths:
+      - .github/workflows/stage3b-context-two.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3b-attack-context-batch
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Add canonical structured effects and regressions
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          registry_path = Path("content/card-effects.json")
+          registry = json.loads(registry_path.read_text())
+          cards = registry["cards"]
+
+          additions = {
+              "DDB-ATK-CORE-025": {
+                  "name": "Front Jab",
+                  "effects": [
+                      {
+                          "id": "attack-front-jab-first-cycle-draw",
+                          "trigger": "afterResolve",
+                          "action": "draw",
+                          "target": "self",
+                          "amount": 1,
+                          "duration": "immediate",
+                          "conditions": [{"kind": "firstAttackThisTurn", "operator": "eq", "value": True}],
+                          "resolver": "attack.conditionalCycle",
+                      },
+                      {
+                          "id": "attack-front-jab-first-cycle-discard",
+                          "trigger": "afterResolve",
+                          "action": "discard",
+                          "target": "self",
+                          "amount": 1,
+                          "duration": "immediate",
+                          "conditions": [{"kind": "firstAttackThisTurn", "operator": "eq", "value": True}],
+                          "resolver": "attack.conditionalCycle",
+                      },
+                  ],
+              },
+              "DDB-ATK-CORE-067": {
+                  "name": "Turning Side Kick",
+                  "effects": [
+                      {
+                          "id": "attack-turning-side-zone-cycle-draw",
+                          "trigger": "afterResolve",
+                          "action": "draw",
+                          "target": "self",
+                          "amount": 1,
+                          "duration": "immediate",
+                          "conditions": [{"kind": "differentZoneFromPreviousAttack", "operator": "eq", "value": True}],
+                          "resolver": "attack.conditionalCycle",
+                      },
+                      {
+                          "id": "attack-turning-side-zone-cycle-discard",
+                          "trigger": "afterResolve",
+                          "action": "discard",
+                          "target": "self",
+                          "amount": 1,
+                          "duration": "immediate",
+                          "conditions": [{"kind": "differentZoneFromPreviousAttack", "operator": "eq", "value": True}],
+                          "resolver": "attack.conditionalCycle",
+                      },
+                  ],
+              },
+          }
+
+          for catalog_id in additions:
+              if catalog_id in cards:
+                  raise SystemExit(f"{catalog_id} is already structured")
+          cards.update(additions)
+          registry["cards"] = dict(sorted(cards.items()))
+          registry_path.write_text(json.dumps(registry, indent=2, ensure_ascii=False) + "\n")
+
+          test_path = Path("tests/attack-structured-resolvers-batch.test.mjs")
+          tests = test_path.read_text()
+          marker = 'test("Front Jab and Turning Side Kick use live turn context for their cycles"'
+          if marker not in tests:
+              tests += '''\n\ntest("Front Jab and Turning Side Kick use live turn context for their cycles", () => {\n  const frontJab = card("DDB-ATK-CORE-025");\n  const turningSide = card("DDB-ATK-CORE-067");\n\n  for (const attack of [frontJab, turningSide]) {\n    const plan = effectPlanForCard(attack, registry);\n    assert.equal(plan.source, "structured");\n    assert.deepEqual(plan.unsupported, []);\n  }\n\n  assert.deepEqual(\n    structuredConditionalCycle(frontJab, { timing: "afterResolve", firstAttackThisTurn: true }),\n    { handled: true, draw: 1, discard: 1 },\n  );\n  assert.deepEqual(\n    structuredConditionalCycle(frontJab, { timing: "afterResolve", firstAttackThisTurn: false }),\n    { handled: true, draw: 0, discard: 0 },\n  );\n  assert.deepEqual(\n    structuredConditionalCycle(turningSide, { timing: "afterResolve", differentZoneFromPreviousAttack: true }),\n    { handled: true, draw: 1, discard: 1 },\n  );\n  assert.deepEqual(\n    structuredConditionalCycle(turningSide, { timing: "afterResolve", differentZoneFromPreviousAttack: false }),\n    { handled: true, draw: 0, discard: 0 },\n  );\n});\n'''
+          test_path.write_text(tests)
+          PY
+
+      - name: Regenerate runtime canonical data
+        run: npm run game:generate
+
+      - name: Verify focused Attack regressions
+        run: node --experimental-strip-types --test tests/attack-structured-resolvers-batch.test.mjs
+
+      - name: Remove one-shot workflow from final-state test workspace
+        run: rm .github/workflows/stage3b-context-two.yml
+
+      - name: Run full repository suite against final repository state
+        run: npm test
+
+      - name: Commit verified product files only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/card-effects.json app/data/card-effects.json tests/attack-structured-resolvers-batch.test.mjs
+          test -n "$(git diff --cached --name-only)" || { echo "No product changes to commit"; exit 1; }
+          git commit -m "feat: structure context-cycle Attacks"
+          git push origin HEAD:stage3b-attack-context-batch
