@@ -33,17 +33,20 @@ function summaryLabel(event: PlaytestEvent): { fighter: FighterSide; label: stri
   }
 }
 
+/* Hold times remain long enough to read/capture. Responsiveness is handled by
+   the runtime's interruptible queue: the next state transition replaces stale
+   presentation immediately instead of waiting for these holds to finish. */
 function eventHoldMs(event: PlaytestEvent) {
   switch (event.type) {
-    case "combat.attack": return 320;
+    case "combat.attack": return 760;
     case "combat.hit":
-    case "combat.block": return 520;
-    case "combat.ko": return 1050;
-    case "progress.promotion": return 820;
-    case "combo.completed": return 760;
-    case "progress.beltExam": return 720;
-    case "scene.change": return 650;
-    default: return 480;
+    case "combat.block": return 1250;
+    case "combat.ko": return 1900;
+    case "progress.promotion": return 1700;
+    case "combo.completed": return 1650;
+    case "progress.beltExam": return 1450;
+    case "scene.change": return 1350;
+    default: return 1150;
   }
 }
 
@@ -86,7 +89,7 @@ export function buildVfxPresentationCues(events: PlaytestEvent[]): VfxPresentati
 
   for (const fighter of ["player", "ai"] as const) {
     const labels = summaryByFighter[fighter];
-    if (labels.length) cues.push({ kind: "summary", fighter, labels, holdMs: 560 });
+    if (labels.length) cues.push({ kind: "summary", fighter, labels, holdMs: 1450 });
   }
 
   return cues;
