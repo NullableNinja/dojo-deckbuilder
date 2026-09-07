@@ -53,6 +53,34 @@ if after not in source:
 path.write_text(source)
 PY
 
+echo "== Align discard state-transition regression with explicit choice timing =="
+python <<'PY'
+from pathlib import Path
+path = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
+source = path.read_text()
+before = '''test("Defense on-Block draw/discard changes gameplay state", () => {
+  const accordion = card("DDB-DEF-CORE-001");
+  const state = applyDefenseRuntime(createFamilyRuntimeState(), accordion, "onBlock", { ...defenseBaseContext, blockSucceeded: true });
+  assert.equal(state.self.draw, 1);
+  assert.equal(state.self.discard, 1);
+});'''
+after = '''test("Defense on-Block draw applies immediately and explicit discard queues the choice", () => {
+  const accordion = card("DDB-DEF-CORE-001");
+  const state = applyDefenseRuntime(createFamilyRuntimeState(), accordion, "onBlock", { ...defenseBaseContext, blockSucceeded: true });
+  assert.equal(state.self.draw, 1);
+  assert.equal(state.self.discard, 0);
+  assert.ok(state.pendingChoices.some((choice) =>
+    choice.resolver === "defense.discardChoice"
+    && choice.sourceEffectId === "defense-accordion-folder-block-discard"
+  ));
+});'''
+if after not in source:
+    if before not in source:
+        raise SystemExit('Accordion-Folder state-transition test marker not found')
+    source = source.replace(before, after)
+path.write_text(source)
+PY
+
 echo "== Add explicit-choice regression coverage =="
 python <<'PY'
 from pathlib import Path
