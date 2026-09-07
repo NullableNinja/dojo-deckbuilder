@@ -143,9 +143,10 @@ test("Location lifecycle reset keeps delayed state but clears turn/round/scene u
   assert.equal(nextRound.locationNextRoundSpeed, 0);
 });
 
-test("Quick Duel uses all Core Locations and gameplay no longer calls the legacy Location rulesText parser", () => {
+test("Quick Duel uses all Core Locations and gameplay no longer calls legacy Location prose/focus paths", () => {
   assert.match(playtestSource, /quickDuelLocationPool\s*=\s*locationPool\.filter\(\(card\)\s*=>\s*card\.catalogId\.includes\("-LOC-CORE-"\)\)/);
   assert.doesNotMatch(playtestSource, /locationAttackRuleModifiers/);
+  assert.doesNotMatch(playtestSource, /\blocationFocusModifier\s*\(/);
   assert.doesNotMatch(playtestSource, /location\.name\s*===/);
   assert.doesNotMatch(playtestSource, /\["Public Library",\s*"Strip-Mall McDojo"/);
   assert.doesNotMatch(resolverSource, /rulesText|normalizedMinus/);
