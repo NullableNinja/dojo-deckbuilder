@@ -16,6 +16,7 @@ import "../app/playtest-overlay-fix.css";
 import "../app/playtest-functional-recovery.css";
 import "../app/card-inspector.css";
 import "../app/mobile-site-polish.css";
+import "../app/card-inspector-host-fix.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
