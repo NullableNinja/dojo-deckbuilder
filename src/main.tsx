@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
-import CardInspectorBridge from "../app/card-inspector";
+import CardInspectorLoader from "../app/card-inspector-loader";
 import "../app/card-inspector.css";
 import "../app/playtest-production-layout.css";
 import "../app/playtest-polish.css";
@@ -47,7 +47,7 @@ createRoot(rootElement).render(
   <StrictMode>
     <>
       <CompanionApp />
-      <CardInspectorBridge />
+      <CardInspectorLoader />
     </>
   </StrictMode>,
 );
