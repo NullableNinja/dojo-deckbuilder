@@ -32,6 +32,8 @@ jobs:
           path = Path("app/character-runtime.ts")
           text = path.read_text()
           text = text.replace('import cardEffectsJson from "./data/card-effects.json";', 'import cardEffectsJson from "./data/card-effects.json" with { type: "json" };')
+          text = text.replace('&& greenCharacterAbilityUnlocked(resolver, board.belt)', '&& (!resolver.startsWith("character.green.") || greenCharacterAbilityUnlocked(board.belt))')
+          text = text.replace('effect.resolver === "character.cannotEquipWeapons" && greenCharacterAbilityUnlocked(String(effect.resolver), board.belt)', 'effect.resolver === "character.cannotEquipWeapons"')
           path.write_text(text)
           PY
 
