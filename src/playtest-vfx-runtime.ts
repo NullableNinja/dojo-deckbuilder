@@ -7,12 +7,13 @@ type VfxMode = "full" | "reduced" | "off";
 
 const MATCH_KEY = "ddb-field-match";
 const MODE_KEY = "ddb-vfx-mode";
-const CUE_GAP_MS = 140;
-const MAX_PENDING_CUES = 14;
+const CUE_GAP_MS = 35;
+const MAX_PENDING_CUES = 4;
 const vfxWindow = window as VfxWindow;
 
 const presentationQueue: VfxPresentationCue[] = [];
 let presentationRunning = false;
+let presentationTimer: number | null = null;
 let bridgeDispatchDepth = 0;
 
 function parseMatch(value: string | null): PlaytestMatchSnapshot | null {
@@ -63,7 +64,7 @@ function ensureAnnouncer() {
 function announce(message: string) {
   const announcer = ensureAnnouncer();
   announcer.textContent = "";
-  window.setTimeout(() => { announcer.textContent = message; }, 20);
+  window.setTimeout(() => { announcer.textContent = message; }, 10);
 }
 
 function pulse(element: HTMLElement | null, className: string, duration = 520) {
@@ -71,7 +72,7 @@ function pulse(element: HTMLElement | null, className: string, duration = 520) {
   element.classList.remove(className);
   void element.offsetWidth;
   element.classList.add(className);
-  window.setTimeout(() => element.classList.remove(className), vfxMode() === "reduced" ? Math.min(duration, 220) : duration);
+  window.setTimeout(() => element.classList.remove(className), vfxMode() === "reduced" ? Math.min(duration, 180) : duration);
 }
 
 function anchoredPosition(side: FighterSide, offset: number) {
@@ -95,21 +96,21 @@ function cueLabel(side: FighterSide, label: string, tone: string, duration: numb
   const position = anchoredPosition(side, lane === "combat" ? 28 : 78);
   node.style.setProperty("--vfx-x", position.x);
   node.style.setProperty("--vfx-y", position.y);
-  node.style.animationDuration = `${vfxMode() === "reduced" ? Math.min(duration, 420) : duration}ms`;
+  node.style.animationDuration = `${vfxMode() === "reduced" ? Math.min(duration, 300) : duration}ms`;
   layer.append(node);
-  window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 440) : duration + 30);
+  window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 320) : duration + 20);
 }
 
-function centerBanner(label: string, tone: string, duration = 1200) {
+function centerBanner(label: string, tone: string, duration = 720) {
   if (vfxMode() === "off") return;
   document.querySelectorAll(".playtest-vfx-banner").forEach((node) => node.remove());
   const layer = ensureLayer();
   const node = document.createElement("div");
   node.className = `playtest-vfx-banner playtest-vfx-banner--${tone}`;
   node.textContent = label;
-  node.style.animationDuration = `${vfxMode() === "reduced" ? Math.min(duration, 460) : duration}ms`;
+  node.style.animationDuration = `${vfxMode() === "reduced" ? Math.min(duration, 320) : duration}ms`;
   layer.append(node);
-  window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 480) : duration + 30);
+  window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 340) : duration + 20);
 }
 
 function renderEvent(event: PlaytestEvent, holdMs: number) {
@@ -117,53 +118,51 @@ function renderEvent(event: PlaytestEvent, holdMs: number) {
 
   switch (event.type) {
     case "combat.attack": {
-      pulse(fighterElement(event.actor), "ddb-vfx-attack", 520);
-      pulse(fighterElement(event.target), "ddb-vfx-brace", 520);
+      pulse(fighterElement(event.actor), "ddb-vfx-attack", 380);
+      pulse(fighterElement(event.target), "ddb-vfx-brace", 360);
       cueLabel(event.actor, event.zone ? `${event.zone.toUpperCase()} STRIKE` : "ATTACK", "attack", holdMs);
       break;
     }
     case "combat.hit": {
-      pulse(fighterElement(event.target), "ddb-vfx-hit", 700);
+      pulse(fighterElement(event.target), "ddb-vfx-hit", 520);
       cueLabel(event.target, event.amount > 0 ? `−${event.amount} HP` : "HIT!", "damage", holdMs);
-      if (event.amount >= 5) pulse(shellElement(), "ddb-vfx-screen-impact", 520);
+      if (event.amount >= 5) pulse(shellElement(), "ddb-vfx-screen-impact", 420);
       announce(event.amount > 0
         ? `${event.target === "player" ? "You take" : "Opponent takes"} ${event.amount} damage.`
         : `${event.target === "player" ? "The attack hits you" : "The attack hits the opponent"} but deals no damage.`);
       break;
     }
     case "combat.block": {
-      pulse(fighterElement(event.target), "ddb-vfx-block", 760);
+      pulse(fighterElement(event.target), "ddb-vfx-block", 520);
       cueLabel(event.target, "BLOCK!", "block", holdMs);
       announce(event.target === "player" ? "Attack blocked." : "Opponent blocks the attack.");
       break;
     }
     case "combat.ko": {
-      pulse(fighterElement(event.fighter), "ddb-vfx-ko", 1400);
+      pulse(fighterElement(event.fighter), "ddb-vfx-ko", 1050);
       centerBanner("K.O.", "ko", holdMs);
-      pulse(shellElement(), "ddb-vfx-screen-impact", 800);
+      pulse(shellElement(), "ddb-vfx-screen-impact", 650);
       announce(event.winner === "player" ? "Knockout. You win." : "Knockout. Opponent wins.");
       break;
     }
     case "progress.beltExam":
-      pulse(fighterElement(event.fighter), "ddb-vfx-certified", 800);
+      pulse(fighterElement(event.fighter), "ddb-vfx-certified", 620);
       cueLabel(event.fighter, "EXAM CERTIFIED", "certified", holdMs);
       break;
     case "progress.promotion":
-      pulse(fighterElement(event.fighter), "ddb-vfx-certified", 900);
+      pulse(fighterElement(event.fighter), "ddb-vfx-certified", 700);
       centerBanner(event.fighter === "player" ? "BELT UP!" : "OPPONENT PROMOTES", "promotion", holdMs);
       announce(event.fighter === "player" ? "Belt promotion complete." : "Opponent promoted a belt rank.");
       break;
     case "combo.completed":
-      pulse(fighterElement(event.fighter), "ddb-vfx-combo", 760);
+      pulse(fighterElement(event.fighter), "ddb-vfx-combo", 600);
       centerBanner(event.amount > 1 ? `COMBO ×${event.amount}!` : "COMBO!", "combo", holdMs);
       break;
     case "scene.change":
-      pulse(shellElement(), "ddb-vfx-scene", 800);
+      pulse(shellElement(), "ddb-vfx-scene", 620);
       centerBanner("SCENE CHANGE", "scene", holdMs);
       break;
     default:
-      // Routine resource/card/equipment events are intentionally condensed into
-      // one readable summary ticket by buildVfxPresentationCues().
       break;
   }
 }
@@ -180,8 +179,14 @@ function renderCue(cue: VfxPresentationCue) {
 }
 
 function cueDelay(cue: VfxPresentationCue) {
-  if (vfxMode() === "reduced") return Math.min(cue.holdMs, 440) + 70;
+  if (vfxMode() === "reduced") return Math.min(cue.holdMs, 300) + 25;
   return cue.holdMs + CUE_GAP_MS;
+}
+
+function clearPresentationTimer() {
+  if (presentationTimer === null) return;
+  window.clearTimeout(presentationTimer);
+  presentationTimer = null;
 }
 
 function drainPresentationQueue() {
@@ -190,7 +195,8 @@ function drainPresentationQueue() {
   if (!cue) return;
   presentationRunning = true;
   renderCue(cue);
-  window.setTimeout(() => {
+  presentationTimer = window.setTimeout(() => {
+    presentationTimer = null;
     presentationRunning = false;
     drainPresentationQueue();
   }, cueDelay(cue));
@@ -198,14 +204,17 @@ function drainPresentationQueue() {
 
 function enqueuePresentation(events: PlaytestEvent[]) {
   if (!events.length || vfxMode() === "off") return;
-  const cues = buildVfxPresentationCues(events);
+  const cues = buildVfxPresentationCues(events).slice(0, MAX_PENDING_CUES);
+  if (!cues.length) return;
 
-  // If rapid actions create a backlog, drop only stale routine summaries first.
-  // Combat and milestone cues are never discarded.
-  while (presentationQueue.length + cues.length > MAX_PENDING_CUES) {
-    const staleSummary = presentationQueue.findIndex((cue) => cue.kind === "summary");
-    if (staleSummary < 0) break;
-    presentationQueue.splice(staleSummary, 1);
+  /* A new user action wins over stale presentation. The previous implementation
+     queued every cue to completion, so rapid clicks could leave feedback several
+     seconds behind the game state. Interrupt old visuals and present the newest
+     state transition immediately. */
+  if (presentationRunning || presentationQueue.length) {
+    clearPresentationTimer();
+    presentationQueue.length = 0;
+    presentationRunning = false;
   }
 
   presentationQueue.push(...cues);
@@ -226,8 +235,6 @@ function installMatchStateBridge() {
       const events = derivePlaytestEvents(previous, next);
       previous = next;
 
-      // Preserve the semantic event bus for future audio/accessibility subscribers,
-      // while batching this same state transition into one readable visual sentence.
       bridgeDispatchDepth += 1;
       try {
         for (const event of events) dispatchPlaytestEvent(event);
@@ -243,13 +250,13 @@ function installMatchStateBridge() {
     if (this === window.localStorage && key === MATCH_KEY) {
       previous = null;
       presentationQueue.length = 0;
+      clearPresentationTimer();
+      presentationRunning = false;
     }
     return originalRemoveItem.call(this, key);
   };
 
   window.addEventListener(PLAYTEST_EVENT_NAME, ((customEvent: Event) => {
-    // Events raised by another future subsystem still receive VFX. Events dispatched
-    // by our own state bridge are already queued as a batch and must not be duplicated.
     if (bridgeDispatchDepth > 0) return;
     enqueuePresentation([(customEvent as CustomEvent<PlaytestEvent>).detail]);
   }) as EventListener);

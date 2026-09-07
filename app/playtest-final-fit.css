@@ -1,0 +1,359 @@
+/* Quick Duel final-fit pass -------------------------------------------------
+   This layer owns the remaining live-play composition issues found after the
+   hierarchy overhaul: fighter framing, vitality/status alignment, contained
+   abilities, compact Combo access, and the two genuinely floating bottom bars.
+   It intentionally loads last. */
+
+@media (min-width: 1200px) {
+  .playtest-shell.playtest-shell--live,
+  .playtest-shell.playtest-shell--live.playtest-shell--guided {
+    min-height: 1200px;
+    grid-template-rows: 58px 590px 430px 0;
+    gap: 10px;
+    padding-bottom: 150px;
+  }
+
+  /* Give the actual duel another 50px rather than stealing pixels from fighter
+     art or rules text. The hand can scroll naturally below it. */
+  .playtest-shell.playtest-shell--live > .playtest-arena,
+  .playtest-shell.playtest-shell--live .playtest-table,
+  .playtest-shell.playtest-shell--live .fighter-column,
+  .playtest-shell.playtest-shell--live .combat-stage-column {
+    height: 590px;
+    min-height: 590px;
+  }
+
+  .playtest-shell.playtest-shell--live > .playtest-arena {
+    grid-template-rows: 590px;
+  }
+
+  /* Learned Combos are accessed from the fighter's compact Combo button. The
+     old always-open rack made the player's fighter card a different height from
+     the opponent's and reintroduced the framing bug. */
+  .playtest-shell.playtest-shell--live .fighter-combo-rack {
+    display: none !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column:has(.fighter-combo-rack) {
+    display: block !important;
+  }
+
+  /* One fighter-card contract for every character, regardless of side or Combo
+     ownership. Nothing inside the dossier is allowed to escape its paper edge. */
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card,
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+  .playtest-shell.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card {
+    width: 100%;
+    height: 590px;
+    min-height: 590px;
+    max-height: 590px;
+    box-sizing: border-box;
+    grid-template-areas:
+      "heading"
+      "vitality"
+      "art"
+      "stats"
+      "xp"
+      "ability";
+    grid-template-rows: 56px 48px minmax(225px, 1fr) 52px 42px minmax(112px, auto);
+    gap: 6px;
+    overflow: hidden !important;
+    padding: 10px;
+  }
+
+  /* Vitality is one deliberate horizontal band: precise HP on the inside edge,
+     Tempo/Flow/etc. on the opposite half. No more two elements painting on top
+     of each other in the same grid cell. */
+  .playtest-shell.playtest-shell--live .fighter-vitality {
+    grid-area: vitality;
+    width: 48%;
+    height: 48px;
+    min-height: 48px;
+    align-self: center;
+    justify-self: start;
+    display: flex;
+    align-items: center;
+    padding: 0;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-vitality > div {
+    width: 100%;
+    min-height: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-vitality > div b {
+    font-size: 23px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-vitality > div span {
+    font-size: 9px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-status-tray {
+    grid-area: vitality;
+    width: 49%;
+    max-width: 49%;
+    min-height: 0;
+    height: 48px;
+    align-self: center;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 4px;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-status-tray span {
+    max-width: 100%;
+    padding: 4px 7px;
+    font-size: 8px;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality {
+    justify-self: end;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality > div {
+    flex-direction: row !important;
+    justify-content: flex-end;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-status-tray {
+    justify-self: start;
+    justify-content: flex-start;
+  }
+
+  /* The source fighter illustrations are tall, full-body canvases. Give the IMG
+     its intrinsic aspect ratio instead of a 100%-wide replaced-element box. This
+     guarantees the complete source image is in frame for every fighter. */
+  .playtest-shell.playtest-shell--live .fighter-panel-art.fighter-card-illustration,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration {
+    grid-area: art;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    padding: 4px 8px 0;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-panel-art.fighter-card-illustration img,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration img,
+  .playtest-shell.playtest-shell--live .fighter-panel-art.fighter-card-illustration:hover img,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration:hover img {
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    height: 100% !important;
+    max-width: 96% !important;
+    max-height: 100% !important;
+    margin: 0 auto !important;
+    object-fit: contain !important;
+    object-position: center bottom !important;
+    transform: none !important;
+    scale: none !important;
+    translate: none !important;
+  }
+
+  /* Keep Loadout useful without letting its tab invade HP/Tempo. It now sits in
+     the portrait band and stays inside the fighter card's clipping boundary. */
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs,
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy {
+    top: 126px;
+    width: 78px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs {
+    right: 8px;
+    left: auto;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy {
+    right: auto;
+    left: 8px;
+  }
+
+  /* XP only needs enough room to communicate the next certification. The freed
+     right-hand space is a permanent, compact Combo doorway. */
+  .playtest-shell.playtest-shell--live .fighter-xp-meter {
+    grid-area: xp;
+    width: 61%;
+    max-width: none;
+    height: 42px;
+    min-height: 42px;
+    align-self: stretch;
+    justify-self: start;
+    padding: 5px 7px;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-xp-meter {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-combo-launch {
+    grid-area: xp;
+    z-index: 4;
+    width: 36%;
+    height: 42px;
+    min-width: 0;
+    min-height: 42px;
+    align-self: stretch;
+    justify-self: end;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 1px 6px;
+    overflow: hidden;
+    border: 1px solid rgba(182, 146, 205, .58);
+    border-radius: 7px 3px 8px 4px;
+    padding: 5px 7px;
+    color: #f6eaff;
+    background: rgba(77, 49, 91, .88);
+    box-shadow: 2px 3px 0 rgba(40, 27, 47, .45);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-combo-launch:hover,
+  .playtest-shell.playtest-shell--live .fighter-combo-launch:focus-visible {
+    border-color: #dabaf0;
+    background: rgba(91, 58, 107, .96);
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-combo-launch > span {
+    overflow: hidden;
+    font-size: 8px;
+    font-weight: 950;
+    letter-spacing: .055em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-combo-launch > b {
+    grid-row: 1 / 3;
+    grid-column: 2;
+    font-family: var(--display);
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-combo-launch > small {
+    color: #d8c3df;
+    font-size: 7px;
+    white-space: nowrap;
+  }
+
+  /* The ability owns its final row and can never paint past the paper. Favor a
+     small adaptive type reduction over clipping into the hand below. */
+  .playtest-shell.playtest-shell--live .fighter-ability,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-ability {
+    grid-area: ability;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    box-sizing: border-box;
+    display: block;
+    overflow: hidden !important;
+    margin: 0;
+    padding: 8px 9px;
+    font-size: clamp(9px, .61vw, 10.5px);
+    line-height: 1.26;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-ability b {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-ability span {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  /* Match the central paper to the new fighter height. The extra height is spent
+     on the strike and filing areas instead of dead padding. */
+  .playtest-shell.playtest-shell--live .playtest-combat-desk.combat-stage {
+    height: 590px;
+    min-height: 590px;
+    grid-template-rows: 88px 182px 42px 94px minmax(126px, 1fr);
+  }
+
+  .playtest-shell.playtest-shell--live .clash-field {
+    height: 182px;
+    min-height: 182px;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage {
+    height: 94px;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane-cards {
+    height: 68px;
+    min-height: 68px;
+  }
+
+  .playtest-shell.playtest-shell--live .impact-readout {
+    min-height: 126px;
+  }
+
+  /* Floating primary control sits above the permanent utility rail. Neither one
+     consumes board height. */
+  .playtest-shell.playtest-shell--live > .playtest-action-dock {
+    z-index: 335;
+    bottom: calc(54px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* The Market reference shares the same floating shelf, off to the right. */
+  .playtest-shell.playtest-shell--live .acquisition-rail {
+    z-index: 325;
+    right: max(18px, calc((100vw - var(--live-shell-width)) / 2 + 10px)) !important;
+    bottom: calc(56px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Utility controls are true chrome: docked to the bottom edge of the viewport,
+     never somewhere halfway down the document. */
+  .playtest-shell.playtest-shell--live > .playtest-utility-dock {
+    position: fixed !important;
+    z-index: 330;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 46px;
+    min-height: 46px;
+    margin: 0 !important;
+    border-radius: 0;
+    padding: 5px max(12px, calc((100vw - var(--live-shell-width)) / 2 + 8px));
+    background: rgba(17, 42, 32, .97);
+    box-shadow: 0 -5px 16px rgba(13, 8, 5, .22);
+    backdrop-filter: blur(12px);
+  }
+}
+
+@media (min-width: 1200px) and (max-height: 820px) {
+  .playtest-shell.playtest-shell--live,
+  .playtest-shell.playtest-shell--live.playtest-shell--guided {
+    min-height: 1200px;
+    grid-template-rows: 58px 590px 430px 0;
+  }
+}

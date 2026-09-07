@@ -9,6 +9,7 @@ import "../app/playtest-acquisition-desk.css";
 import "../app/playtest-hand-stage.css";
 import "../app/playtest-stability-pass.css";
 import "../app/playtest-ui-overhaul.css";
+import "../app/playtest-final-fit.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
@@ -41,13 +42,45 @@ function presentationSlug(value: string) {
   return value.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function ensureComboLauncher(panel: HTMLElement) {
+  if (panel.dataset.side !== "player") return;
+
+  let launch = panel.querySelector<HTMLButtonElement>(".fighter-combo-launch");
+  if (!launch) {
+    launch = document.createElement("button");
+    launch.type = "button";
+    launch.className = "fighter-combo-launch";
+    launch.setAttribute("aria-label", "Open Combo docket");
+
+    const label = document.createElement("span");
+    label.textContent = "∞ COMBOS";
+    const count = document.createElement("b");
+    const hint = document.createElement("small");
+    hint.textContent = "Open docket";
+    launch.append(label, count, hint);
+
+    launch.addEventListener("click", () => {
+      rootElement.querySelector<HTMLButtonElement>(".acquisition-dockets button")?.click();
+    });
+    panel.append(launch);
+  }
+
+  const learned = rootElement.querySelectorAll(".fighter-column--player .active-combo-card").length;
+  const nextValue = `${learned}/2`;
+  const count = launch.querySelector("b");
+  if (count && count.textContent !== nextValue) count.textContent = nextValue;
+}
+
 /* Presentation metadata deliberately lives outside canonical game data. It lets
-   the final CSS use the printed Belt name and fighter identity without changing
-   card records or teaching layout concerns to the game engine. */
+   the final CSS use printed Belt identity and fighter identity without changing
+   card records or teaching layout concerns to the game engine. The Combo launch
+   is also presentation-only: it forwards to the existing canonical docket UI. */
 function syncFighterPresentationMetadata() {
   rootElement.querySelectorAll<HTMLElement>(".fighter-panel.living-fighter-card").forEach((panel) => {
     const fighterName = panel.querySelector<HTMLElement>(".fighter-dossier-name")?.textContent?.trim();
     if (fighterName) panel.dataset.fighter = presentationSlug(fighterName);
+
+    ensureComboLauncher(panel);
 
     const beltBadge = panel.querySelector<HTMLElement>(".fighter-belt-badge");
     if (!beltBadge) return;
@@ -61,8 +94,14 @@ function syncFighterPresentationMetadata() {
   });
 }
 
+let presentationSyncQueued = false;
 const fighterPresentationObserver = new MutationObserver(() => {
-  window.requestAnimationFrame(syncFighterPresentationMetadata);
+  if (presentationSyncQueued) return;
+  presentationSyncQueued = true;
+  window.requestAnimationFrame(() => {
+    presentationSyncQueued = false;
+    syncFighterPresentationMetadata();
+  });
 });
 fighterPresentationObserver.observe(rootElement, { childList: true, subtree: true, characterData: true });
 window.requestAnimationFrame(syncFighterPresentationMetadata);

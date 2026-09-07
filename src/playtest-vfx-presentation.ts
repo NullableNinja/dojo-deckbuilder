@@ -35,15 +35,15 @@ function summaryLabel(event: PlaytestEvent): { fighter: FighterSide; label: stri
 
 function eventHoldMs(event: PlaytestEvent) {
   switch (event.type) {
-    case "combat.attack": return 760;
+    case "combat.attack": return 320;
     case "combat.hit":
-    case "combat.block": return 1250;
-    case "combat.ko": return 1700;
-    case "progress.promotion": return 1450;
-    case "combo.completed": return 1350;
-    case "progress.beltExam": return 1300;
-    case "scene.change": return 1250;
-    default: return 1100;
+    case "combat.block": return 520;
+    case "combat.ko": return 1050;
+    case "progress.promotion": return 820;
+    case "combo.completed": return 760;
+    case "progress.beltExam": return 720;
+    case "scene.change": return 650;
+    default: return 480;
   }
 }
 
@@ -54,8 +54,6 @@ export function buildVfxPresentationCues(events: PlaytestEvent[]): VfxPresentati
   const resolutions = events.filter(isResolution);
   const ko = events.find(isKo);
 
-  // A KO should finish the visual sentence cleanly: Attack -> Hit/Block -> K.O.
-  // Secondary resource/card chatter from the same transition is intentionally omitted.
   if (ko) {
     return [...attacks, ...resolutions, ko].map((event) => ({ kind: "event" as const, event, holdMs: eventHoldMs(event) }));
   }
@@ -68,7 +66,6 @@ export function buildVfxPresentationCues(events: PlaytestEvent[]): VfxPresentati
 
   const milestones = events.filter((event) => {
     if (!isMilestone(event)) return false;
-    // Promotion already communicates that the Belt Exam succeeded; don't immediately flash both.
     if (event.type === "progress.beltExam" && promotions.has(event.fighter)) return false;
     return true;
   });
@@ -89,7 +86,7 @@ export function buildVfxPresentationCues(events: PlaytestEvent[]): VfxPresentati
 
   for (const fighter of ["player", "ai"] as const) {
     const labels = summaryByFighter[fighter];
-    if (labels.length) cues.push({ kind: "summary", fighter, labels, holdMs: 1450 });
+    if (labels.length) cues.push({ kind: "summary", fighter, labels, holdMs: 560 });
   }
 
   return cues;
