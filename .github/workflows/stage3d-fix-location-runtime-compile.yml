@@ -1,0 +1,38 @@
+name: Stage 3D Fix Location Runtime Compile
+
+on:
+  push:
+    branches:
+      - stage3d-location-runtime
+
+permissions:
+  contents: write
+
+jobs:
+  apply-compile-fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3d-location-runtime
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply guarded compile fixes
+        run: node scripts/stage3d-fix-location-runtime-compile.mjs
+      - name: Commit playtest compile fixes
+        run: |
+          if git diff --quiet -- app/playtest.tsx; then
+            echo "No playtest changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx
+          git commit -m "Stage 3D: fix Location runtime TypeScript integration"
+          git push origin HEAD:stage3d-location-runtime
