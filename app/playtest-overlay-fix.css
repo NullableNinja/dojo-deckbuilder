@@ -1,0 +1,72 @@
+/* Quick Duel overlay authority ------------------------------------------------
+   Modal/reference surfaces must sit above every live-play stacking context.
+   The board intentionally uses elevated HUD/arena layers for persistent HP and
+   utility chrome, so opening a modal temporarily demotes those layers instead of
+   asking modal children to out-z-index isolated parents. */
+
+body:has(.playtest-shell--live .ascend-desk-backdrop) {
+  overflow: hidden !important;
+}
+
+body:has(.playtest-shell--live .ascend-desk-backdrop) .site-frame,
+body:has(.playtest-shell--live .ascend-desk-backdrop) .view-stage,
+body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-shell.playtest-shell--live {
+  transform: none !important;
+  filter: none !important;
+  perspective: none !important;
+  contain: none !important;
+  isolation: auto !important;
+}
+
+body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-shell.playtest-shell--live > :not(.ascend-desk-backdrop):not(.playtest-inspector-backdrop) {
+  z-index: 0 !important;
+}
+
+body:has(.playtest-shell--live .ascend-desk-backdrop) .fighter-hp-track,
+body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-acquisition-rail,
+body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-action-dock,
+body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-utility-dock,
+body:has(.playtest-shell--live .ascend-desk-backdrop) .battle-versus-hud {
+  z-index: 0 !important;
+}
+
+.playtest-shell.playtest-shell--live > .ascend-desk-backdrop,
+.playtest-shell.playtest-shell--live .ascend-desk-backdrop {
+  position: fixed !important;
+  z-index: 2147483000 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  padding: clamp(12px, 2vw, 28px) !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background: rgba(5, 10, 8, .82) !important;
+  backdrop-filter: blur(10px) saturate(.78) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(.78) !important;
+  transform: none !important;
+  isolation: isolate !important;
+}
+
+.playtest-shell.playtest-shell--live .ascend-desk-backdrop > .ascend-desk {
+  position: relative !important;
+  z-index: 2147483001 !important;
+  justify-self: center !important;
+  align-self: center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: none !important;
+}
+
+/* The same rule prevents the other true dialogs from regressing behind the mat. */
+.playtest-shell.playtest-shell--live > .playtest-inspector-backdrop,
+.playtest-shell.playtest-shell--live .playtest-inspector-backdrop {
+  z-index: 2147482000 !important;
+}
