@@ -1,4 +1,5 @@
 /* Card Inspector host-lifecycle recovery -----------------------------------
+   Final overlay authority for the shared Library / Quick Duel inspector.
    The universal inspector is a portal overlay. It must never change the
    lifetime, geometry, or visibility of the page that launched it.
 
