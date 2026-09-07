@@ -58,6 +58,7 @@ function meaningfulDelta(delta) {
   const { commands, ...fields } = delta;
   return Object.entries(fields).some(([key, value]) => {
     if (key === "choices") return Array.isArray(value) && value.length > 0;
+    if (key === "kataFocusSet") return value !== null;
     if (typeof value === "boolean") return value;
     if (typeof value === "number") return value !== 0;
     return value !== null;
@@ -104,11 +105,15 @@ test("usage scopes enforce first/once semantics deterministically", () => {
   const second = resolveLocationEffects({ catalogId: "DDB-LOC-CORE-004" }, { ...satisfyingContext(mill), ...locationUsageContext(marked) });
   assert.equal(second.length, 0);
 
-  const demo = source.cards["DDB-LOC-CORE-046"].effects.find((effect) => effect.id.includes("belt-exam"));
-  const globalFirst = resolveLocationEffects({ catalogId: "DDB-LOC-CORE-046" }, { ...satisfyingContext(demo), usedLocationEffectsAcrossPlayersThisRound: [] });
-  assert.ok(globalFirst.length);
+  const demo = source.cards["DDB-LOC-CORE-046"].effects.find((effect) => effect.id === "location-046-first-player-belt-exam-draw");
+  assert.ok(demo, "Demonstration across-player Belt Exam effect missing");
+  const globalFirst = resolveLocationEffects({ catalogId: "DDB-LOC-CORE-046" }, { ...satisfyingContext(demo), usedLocationEffectsAcrossPlayersThisRound: [] })
+    .filter((command) => command.effectId === demo.id);
+  assert.equal(globalFirst.length, 1);
+  assert.deepEqual(locationUsageScopes(globalFirst[0]), ["acrossPlayersRound"]);
   const across = usedAcrossPlayersAfter(globalFirst);
-  const globalSecond = resolveLocationEffects({ catalogId: "DDB-LOC-CORE-046" }, { ...satisfyingContext(demo), usedLocationEffectsAcrossPlayersThisRound: across });
+  const globalSecond = resolveLocationEffects({ catalogId: "DDB-LOC-CORE-046" }, { ...satisfyingContext(demo), usedLocationEffectsAcrossPlayersThisRound: across })
+    .filter((command) => command.effectId === demo.id);
   assert.equal(globalSecond.length, 0);
 });
 
