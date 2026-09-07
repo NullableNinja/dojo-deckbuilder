@@ -1,0 +1,178 @@
+name: Repair stale Quick Duel pending damage choices
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/repair-stale-pending-choice.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch saved-match recovery and pending-choice handlers
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path('app/playtest.tsx')
+          source = source_path.read_text(encoding='utf-8')
+
+          import_anchor = 'import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";\n'
+          recovery_import = 'import { normalizePendingDamageChoice } from "./playtest-state-recovery";\n'
+          if recovery_import not in source:
+              if import_anchor not in source:
+                  raise SystemExit('Could not find rules-client import anchor')
+              source = source.replace(import_anchor, import_anchor + recovery_import, 1)
+
+          old_loader = '''      const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
+      return saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;'''
+          new_loader = '''      const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
+      const validSavedMatch = saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;
+      return validSavedMatch ? normalizePendingDamageChoice(validSavedMatch) : null;'''
+          if old_loader not in source:
+              raise SystemExit('Could not find saved-match loader')
+          source = source.replace(old_loader, new_loader, 1)
+
+          old_use = '''    if (choice.kind === "prevent-combat-damage") {
+      return resolveDefenseState(current, choice.defenseId, {
+        sourceCardId: choice.sourceCardId,
+        reduce: choice.reduce,
+        readyAtHideMinBelt: choice.readyAtHideMinBelt,
+        readyAtHideMinDamage: choice.readyAtHideMinDamage,
+      }, true);
+    }'''
+          new_use = '''    if (choice.kind === "prevent-combat-damage") {
+      const recovered = normalizePendingDamageChoice(current);
+      const activeChoice = recovered.pendingChoice;
+      if (!activeChoice || activeChoice.kind !== "prevent-combat-damage") return recovered;
+      return resolveDefenseState(recovered, activeChoice.defenseId, {
+        sourceCardId: activeChoice.sourceCardId,
+        reduce: activeChoice.reduce,
+        readyAtHideMinBelt: activeChoice.readyAtHideMinBelt,
+        readyAtHideMinDamage: activeChoice.readyAtHideMinDamage,
+      }, true);
+    }'''
+          if old_use not in source:
+              raise SystemExit('Could not find usePendingEquipmentChoice damage branch')
+          source = source.replace(old_use, new_use, 1)
+
+          old_skip = '''    if (current.pendingChoice.kind === "prevent-combat-damage") {
+      const choice = current.pendingChoice;
+      return resolveDefenseState(current, choice.defenseId, null, true);
+    }'''
+          new_skip = '''    if (current.pendingChoice.kind === "prevent-combat-damage") {
+      const recovered = normalizePendingDamageChoice(current);
+      const activeChoice = recovered.pendingChoice;
+      if (!activeChoice || activeChoice.kind !== "prevent-combat-damage") return recovered;
+      return resolveDefenseState(recovered, activeChoice.defenseId, null, true);
+    }'''
+          if old_skip not in source:
+              raise SystemExit('Could not find skipPendingChoice damage branch')
+          source = source.replace(old_skip, new_skip, 1)
+
+          source_path.write_text(source, encoding='utf-8')
+
+          Path('app/playtest-state-recovery.ts').write_text('''type RecoverableChoice = { kind: string } | null | undefined;
+
+type RecoverableMatch = {
+  pendingChoice?: RecoverableChoice;
+  pendingStrike?: unknown | null;
+  phase: string;
+  log?: string[];
+};
+
+const STALE_PROMPT_RECOVERY_LOG = "Recovered a stale damage-prevention prompt left by an older Quick Duel build.";
+const PHASE_RECOVERY_LOG = "Recovered an interrupted damage-prevention decision window.";
+
+export function normalizePendingDamageChoice<T extends RecoverableMatch>(match: T): T {
+  if (match.pendingChoice?.kind !== "prevent-combat-damage") return match;
+
+  if (!match.pendingStrike) {
+    return {
+      ...match,
+      pendingChoice: null,
+      log: [STALE_PROMPT_RECOVERY_LOG, ...(match.log ?? [])],
+    } as T;
+  }
+
+  if (match.phase !== "defense-window") {
+    return {
+      ...match,
+      phase: "defense-window",
+      log: [PHASE_RECOVERY_LOG, ...(match.log ?? [])],
+    } as T;
+  }
+
+  return match;
+}
+''', encoding='utf-8')
+
+          Path('tests/pending-choice-recovery.test.mjs').write_text('''import test from "node:test";
+import assert from "node:assert/strict";
+import { normalizePendingDamageChoice } from "../app/playtest-state-recovery.ts";
+
+test("stale persisted damage prompt is cleared when its strike already resolved", () => {
+  const recovered = normalizePendingDamageChoice({
+    phase: "ai-ready",
+    pendingStrike: null,
+    pendingChoice: { kind: "prevent-combat-damage" },
+    log: ["existing"],
+  });
+
+  assert.equal(recovered.pendingChoice, null);
+  assert.equal(recovered.phase, "ai-ready");
+  assert.match(recovered.log[0], /Recovered a stale damage-prevention prompt/);
+});
+
+test("interrupted damage prompt restores the only phase in which it can resolve", () => {
+  const strike = { cardId: "attack" };
+  const recovered = normalizePendingDamageChoice({
+    phase: "ai-ready",
+    pendingStrike: strike,
+    pendingChoice: { kind: "prevent-combat-damage" },
+    log: [],
+  });
+
+  assert.equal(recovered.pendingStrike, strike);
+  assert.equal(recovered.phase, "defense-window");
+  assert.equal(recovered.pendingChoice?.kind, "prevent-combat-damage");
+});
+
+test("valid pending damage decision is unchanged", () => {
+  const current = {
+    phase: "defense-window",
+    pendingStrike: { cardId: "attack" },
+    pendingChoice: { kind: "prevent-combat-damage" },
+    log: [],
+  };
+  assert.equal(normalizePendingDamageChoice(current), current);
+});
+''', encoding='utf-8')
+
+          Path('.github/workflows/repair-stale-pending-choice.yml').unlink()
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run full repository test gate
+        run: npm test
+
+      - name: Commit repair
+        shell: bash
+        run: |
+          git config user.name "Thomas Bryant"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add -A
+          git commit -m "Recover stale Quick Duel damage prompts"
+          git push origin HEAD:main
