@@ -25,7 +25,15 @@ jobs:
           cache: npm
 
       - name: Apply guarded Character runtime integration
-        run: node scripts/apply-stage3d-character-runtime.mjs
+        run: |
+          node scripts/apply-stage3d-character-runtime.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("app/character-runtime.ts")
+          text = path.read_text()
+          text = text.replace('import cardEffectsJson from "./data/card-effects.json";', 'import cardEffectsJson from "./data/card-effects.json" with { type: "json" };')
+          path.write_text(text)
+          PY
 
       - name: Check patch whitespace
         run: git diff --check
