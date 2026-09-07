@@ -1,0 +1,56 @@
+/* Card Inspector host-lifecycle recovery -----------------------------------
+   The universal inspector is a portal overlay. It must never change the
+   lifetime, geometry, or visibility of the page that launched it.
+
+   This file intentionally loads after the playtest/card-inspector cascade so
+   the Library and Quick Duel share one final overlay contract. */
+
+/* Do not use the inspector as a global body scroll/layout switch. The modal
+   owns its own scrolling and overscroll containment; the host page stays
+   mounted exactly where it was so closing the inspector restores instantly. */
+body:has(.universal-card-inspector-backdrop) {
+  overflow-y: auto !important;
+}
+
+.universal-card-inspector-backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgba(15, 20, 17, .64);
+  backdrop-filter: blur(6px);
+}
+
+/* The pre-universal Quick Duel fighter/loadout dossier still has useful live
+   fighter state. Give it explicit dialog-layer authority instead of leaving it
+   underneath fixed HUD/desk layers introduced by later playtest passes. */
+.playtest-inspector-backdrop {
+  z-index: 15000 !important;
+  isolation: isolate;
+}
+
+/* The loadout tabs physically hang off the fighter dossier. Earlier cascade
+   layers deliberately put pointer-events:none on their container and only
+   re-enabled the buttons. That became fragile once later layout layers added
+   new stacking contexts. Make the complete loadout control an interaction
+   surface again. */
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs,
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy {
+  z-index: 120 !important;
+  pointer-events: auto !important;
+}
+
+.playtest-shell.playtest-shell--live .fighter-equipment-tabs button,
+.playtest-shell.playtest-shell--live .fighter-loadout-launch,
+.playtest-shell.playtest-shell--live .fighter-equipment-tab,
+.playtest-shell.playtest-shell--live .fighter-equipment-overflow {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto !important;
+}
+
+/* Side tabs must be allowed to receive a pointer outside the paper edge. */
+@media (min-width: 761px) {
+  .playtest-shell.playtest-shell--live .fighter-column,
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card {
+    overflow: visible !important;
+  }
+}
