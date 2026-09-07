@@ -7,6 +7,7 @@ import "../app/playtest-polish.css";
 import "../app/playtest-readability.css";
 import "../app/playtest-acquisition-desk.css";
 import "../app/playtest-hand-stage.css";
+import "../app/playtest-stability-pass.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
