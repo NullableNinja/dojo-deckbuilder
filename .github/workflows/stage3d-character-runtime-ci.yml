@@ -29,14 +29,21 @@ jobs:
           node scripts/apply-stage3d-character-runtime.mjs
           python3 - <<'PY'
           from pathlib import Path
-          path = Path("app/character-runtime.ts")
-          text = path.read_text()
+
+          runtime_path = Path("app/character-runtime.ts")
+          text = runtime_path.read_text()
           text = text.replace('import cardEffectsJson from "./data/card-effects.json";', 'import cardEffectsJson from "./data/card-effects.json" with { type: "json" };')
           text = text.replace('&& greenCharacterAbilityUnlocked(resolver, board.belt)', '&& (!resolver.startsWith("character.green.") || greenCharacterAbilityUnlocked(board.belt))')
           text = text.replace('effect.resolver === "character.cannotEquipWeapons" && greenCharacterAbilityUnlocked(String(effect.resolver), board.belt)', 'effect.resolver === "character.cannotEquipWeapons"')
           text = text.replace('  const choices: CharacterRuntimeChoice[] = [];\n  const notes: string[] = [];\n\n  for (const effect of effectsFor(self.fighterId)) {\n    if (!isAvailable(self, effect, event.type)) continue;\n    const resolver = String(effect.resolver ?? "");', '  const choices: CharacterRuntimeChoice[] = [];\n  const notes: string[] = [];\n  const processedResolvers = new Set<string>();\n\n  for (const effect of effectsFor(self.fighterId)) {\n    const resolver = String(effect.resolver ?? "");\n    if (processedResolvers.has(resolver) || !isAvailable(self, effect, event.type)) continue;\n    processedResolvers.add(resolver);')
           text = text.replace('opponent = { ...opponent, nextAttackBonus: opponent.nextAttackBonus - amount };', 'opponent = { ...opponent, nextAttackBonus: opponent.nextAttackBonus + amount };')
-          path.write_text(text)
+          runtime_path.write_text(text)
+
+          playtest_path = Path("app/playtest.tsx")
+          playtest = playtest_path.read_text()
+          playtest = playtest.replace('next = characterReduction.board;', 'next = characterReduction.board as Board;')
+          playtest = playtest.replace('applyHideReady(resetCharacterTurn(characterHide.self as Board))', 'applyHideReady(resetCharacterTurn(characterHide.self as Board) as Board)')
+          playtest_path.write_text(playtest)
           PY
 
       - name: Check patch whitespace
