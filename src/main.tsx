@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
 import MobileSitePolish from "../app/mobile-site-polish";
-import "../app/mobile-site-polish.css";
+import CardInspectorLoader from "../app/card-inspector-loader";
 import "../app/playtest-production-layout.css";
 import "../app/playtest-polish.css";
 import "../app/playtest-readability.css";
@@ -15,6 +15,8 @@ import "../app/playtest-final-fit.css";
 import "../app/playtest-refinement-pass.css";
 import "../app/playtest-overlay-fix.css";
 import "../app/playtest-functional-recovery.css";
+import "../app/card-inspector.css";
+import "../app/mobile-site-polish.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
@@ -48,6 +50,7 @@ createRoot(rootElement).render(
     <>
       <CompanionApp />
       <MobileSitePolish />
+      <CardInspectorLoader />
     </>
   </StrictMode>,
 );
