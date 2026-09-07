@@ -1,16 +1,266 @@
-/* Quick Duel overlay authority ------------------------------------------------
-   Modal/reference surfaces must sit above every live-play stacking context.
-   The board intentionally uses elevated HUD/arena layers for persistent HP and
-   utility chrome, so opening a modal temporarily demotes those layers instead of
-   asking modal children to out-z-index isolated parents. */
+/* Quick Duel overlay + HUD authority -----------------------------------------
+   This file loads last and owns only the browser-level surfaces that cannot be
+   allowed to lose a stacking-context fight: the versus HUD/HP tracks, Ascend,
+   nested inspectors, and the end-of-duel certificate. */
 
-body:has(.playtest-shell--live .ascend-desk-backdrop) {
+@media (min-width: 1200px) {
+  /* HUD FRAME + LIVE HP -----------------------------------------------------
+     The Paper-Fu frame is one layer below the live HP track. Both use the same
+     shell variables so they move and resize together. The bar never overlaps
+     YOU/COMPUTER because the label and bar occupy separate vertical bands. */
+  .playtest-shell.playtest-shell--live > .playtest-topbar {
+    position: fixed !important;
+    z-index: 2147481000 !important;
+    top: 0 !important;
+    left: var(--live-shell-edge) !important;
+    width: var(--live-content-width) !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    overflow: visible !important;
+    isolation: isolate !important;
+  }
+
+  .playtest-shell.playtest-shell--live .battle-versus-hud::before,
+  .playtest-shell.playtest-shell--live .battle-versus-hud::after {
+    position: relative !important;
+    z-index: 2147481001 !important;
+    height: 40px !important;
+    align-self: center !important;
+    overflow: hidden !important;
+    padding: 6px 12px 0 !important;
+    border: 2px solid rgba(255, 241, 198, .94) !important;
+    border-radius: 8px 16px 7px 14px !important;
+    color: #fff8df !important;
+    background: linear-gradient(180deg, rgba(38, 54, 44, .99), rgba(17, 34, 27, .99)) !important;
+    box-shadow: inset 0 0 0 2px rgba(10, 20, 15, .4), 0 3px 0 rgba(13, 9, 6, .38) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .versus-center {
+    z-index: 2147481003 !important;
+  }
+
+  /* The HP elements originate inside the arena, so the arena must be the layer
+     immediately above the HUD frame. Its normal content begins below the HUD and
+     therefore cannot cover it; only the fixed HP tracks occupy this band. */
+  .playtest-shell.playtest-shell--live > .playtest-arena {
+    z-index: 2147481002 !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column,
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card,
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy {
+    transform: none !important;
+    contain: none !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column--player .fighter-hp-track,
+  .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    position: fixed !important;
+    z-index: 2147481003 !important;
+    top: 34px !important;
+    width: calc(var(--live-hud-side-width) - 28px) !important;
+    height: 10px !important;
+    min-height: 10px !important;
+    display: block !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: rgba(119, 40, 34, .92) !important;
+    box-shadow:
+      inset 0 1px 2px rgba(0,0,0,.58),
+      0 0 0 1px rgba(255,239,194,.28) !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column--player .fighter-hp-track {
+    left: calc(var(--live-shell-edge) + 18px) !important;
+    right: auto !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    right: calc(var(--live-shell-edge) + 18px) !important;
+    left: auto !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-hp-track > i {
+    position: relative !important;
+    z-index: 2147481004 !important;
+    display: block !important;
+    height: 100% !important;
+    margin: 0 !important;
+    border-radius: inherit !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: linear-gradient(90deg, #62cd7c, #a3de75) !important;
+    box-shadow: inset 0 -1px 0 rgba(18,74,37,.34), inset 0 1px 0 rgba(255,255,255,.24) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track > i {
+    margin-left: auto !important;
+    background: linear-gradient(270deg, #62cd7c, #a3de75) !important;
+  }
+
+  /* INTEGRATED ASCEND ACQUISITION ----------------------------------------- */
+  .ascend-desk--integrated-acquisition .ascend-guide ol {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .ascend-desk--integrated-acquisition .ascend-guide li:nth-child(2) {
+    display: none !important;
+  }
+  .ascend-desk--integrated-acquisition .ascend-market {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px) !important;
+    grid-template-areas:
+      "heading combo"
+      "market combo" !important;
+    gap: 12px 16px !important;
+    align-items: start !important;
+  }
+  .ascend-desk--integrated-acquisition .ascend-market > header {
+    grid-area: heading !important;
+    margin: 0 !important;
+  }
+  .ascend-desk--integrated-acquisition .ascend-market-grid {
+    grid-area: market !important;
+    grid-template-columns: repeat(7, minmax(190px, 1fr)) !important;
+    align-items: start !important;
+    min-width: 0 !important;
+  }
+  .ascend-featured-combo {
+    grid-area: combo;
+    position: sticky;
+    top: 0;
+    min-height: 100%;
+    display: grid;
+    grid-template-rows: auto auto auto auto auto;
+    align-content: start;
+    gap: 10px;
+    border: 1px solid rgba(143, 93, 177, .62);
+    border-top: 7px solid #8d58ad;
+    border-radius: 12px 4px 14px 6px;
+    padding: 12px;
+    color: #eef5ef;
+    background: linear-gradient(155deg, rgba(72,45,83,.96), rgba(27,46,37,.98));
+    box-shadow: 5px 6px 0 rgba(83,49,97,.32), 0 14px 28px rgba(0,0,0,.22);
+  }
+  .ascend-featured-combo > header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .ascend-featured-combo h3 {
+    margin: 2px 0 0;
+    color: #fff;
+    font-size: 22px;
+    line-height: 1.05;
+  }
+  .ascend-featured-combo-state {
+    flex: 0 0 auto;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 999px;
+    padding: 5px 7px;
+    color: #dec4eb;
+    background: rgba(19,31,25,.46);
+    font-size: 9px;
+    font-weight: 950;
+  }
+  .ascend-featured-combo-card {
+    width: min(100%, 210px);
+    aspect-ratio: 5 / 7;
+    justify-self: center;
+    overflow: hidden;
+    border: 4px solid #efe2c6;
+    border-radius: 8px 3px 9px 4px;
+    background: #1a3027;
+    box-shadow: 3px 4px 0 rgba(214,165,40,.48), 0 10px 20px rgba(0,0,0,.3);
+  }
+  .ascend-featured-combo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .ascend-featured-combo-card.is-fallback {
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    color: #e7d8ef;
+    text-align: center;
+    font-weight: 950;
+  }
+  .ascend-featured-combo-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 10px;
+  }
+  .ascend-featured-combo-meta b { color: #f5d56b; }
+  .ascend-featured-combo-meta span { color: #bfcfc3; font-size: 8px; }
+  .ascend-featured-combo-copy {
+    display: grid;
+    gap: 8px;
+    border-block: 1px dashed rgba(255,255,255,.16);
+    padding: 9px 0;
+  }
+  .ascend-featured-combo-copy p {
+    display: grid;
+    gap: 3px;
+    margin: 0;
+    color: #d7e3da;
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+  .ascend-featured-combo-copy p b {
+    color: #cf9bea;
+    font-size: 9px;
+    letter-spacing: .12em;
+  }
+  .ascend-featured-combo-copy em {
+    color: #dbcbe1;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .ascend-featured-combo-actions {
+    display: grid;
+    gap: 7px;
+  }
+  .ascend-featured-combo-actions .button {
+    width: 100%;
+    min-height: 42px;
+    padding-inline: 10px;
+    font-size: 10.5px;
+  }
+  .ascend-featured-combo-filed {
+    border: 1px dashed rgba(255,255,255,.24);
+    padding: 10px;
+    color: #d3ded6;
+    font-size: 10px;
+  }
+  .ascend-desk--integrated-acquisition .ascend-desk-footer .ascend-guide-actions {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
+/* ASCEND AUTHORITY ----------------------------------------------------------- */
+body:has(.playtest-shell--live .ascend-desk-backdrop),
+body:has(.playtest-shell--live .match-result),
+body:has(.playtest-shell--live .playtest-inspector-backdrop) {
   overflow: hidden !important;
 }
 
 body:has(.playtest-shell--live .ascend-desk-backdrop) .site-frame,
 body:has(.playtest-shell--live .ascend-desk-backdrop) .view-stage,
-body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-shell.playtest-shell--live {
+body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-shell.playtest-shell--live,
+body:has(.playtest-shell--live .match-result) .site-frame,
+body:has(.playtest-shell--live .match-result) .view-stage,
+body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live {
   transform: none !important;
   filter: none !important;
   perspective: none !important;
@@ -18,7 +268,8 @@ body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-shell.playtest-s
   isolation: auto !important;
 }
 
-body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-shell.playtest-shell--live > :not(.ascend-desk-backdrop):not(.playtest-inspector-backdrop) {
+body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-shell.playtest-shell--live > :not(.ascend-desk-backdrop):not(.playtest-inspector-backdrop),
+body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live > :not(.match-result) {
   z-index: 0 !important;
 }
 
@@ -26,7 +277,12 @@ body:has(.playtest-shell--live .ascend-desk-backdrop) .fighter-hp-track,
 body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-acquisition-rail,
 body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-action-dock,
 body:has(.playtest-shell--live .ascend-desk-backdrop) .playtest-utility-dock,
-body:has(.playtest-shell--live .ascend-desk-backdrop) .battle-versus-hud {
+body:has(.playtest-shell--live .ascend-desk-backdrop) .battle-versus-hud,
+body:has(.playtest-shell--live .match-result) .fighter-hp-track,
+body:has(.playtest-shell--live .match-result) .playtest-acquisition-rail,
+body:has(.playtest-shell--live .match-result) .playtest-action-dock,
+body:has(.playtest-shell--live .match-result) .playtest-utility-dock,
+body:has(.playtest-shell--live .match-result) .battle-versus-hud {
   z-index: 0 !important;
 }
 
@@ -47,7 +303,7 @@ body:has(.playtest-shell--live .ascend-desk-backdrop) .battle-versus-hud {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
-  background: rgba(5, 10, 8, .82) !important;
+  background: rgba(5, 10, 8, .84) !important;
   backdrop-filter: blur(10px) saturate(.78) !important;
   -webkit-backdrop-filter: blur(10px) saturate(.78) !important;
   transform: none !important;
@@ -65,8 +321,56 @@ body:has(.playtest-shell--live .ascend-desk-backdrop) .battle-versus-hud {
   transform: none !important;
 }
 
-/* The same rule prevents the other true dialogs from regressing behind the mat. */
+/* Inspectors opened from Ascend are second-level dialogs and must sit ABOVE the
+   acquisition desk, not underneath it. */
 .playtest-shell.playtest-shell--live > .playtest-inspector-backdrop,
 .playtest-shell.playtest-shell--live .playtest-inspector-backdrop {
-  z-index: 2147482000 !important;
+  position: fixed !important;
+  z-index: 2147484000 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+.playtest-shell.playtest-shell--live .playtest-inspector-backdrop > * {
+  position: relative !important;
+  z-index: 2147484001 !important;
+}
+
+/* END-OF-DUEL CERTIFICATE ----------------------------------------------------
+   A finished fight is a top-level state transition, not another board card. */
+.playtest-shell.playtest-shell--live > .match-result,
+.playtest-shell.playtest-shell--live .match-result {
+  position: fixed !important;
+  z-index: 2147485000 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: auto !important;
+  margin: 0 !important;
+  padding: clamp(18px, 3vw, 42px) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background: rgba(8, 13, 10, .88) !important;
+  backdrop-filter: blur(12px) saturate(.75) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(.75) !important;
+  transform: none !important;
+  isolation: isolate !important;
+}
+.playtest-shell.playtest-shell--live .match-result .victory-certificate {
+  position: relative !important;
+  z-index: 2147485001 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+.playtest-shell.playtest-shell--live .match-result .victory-confetti {
+  z-index: 2147485002 !important;
 }
