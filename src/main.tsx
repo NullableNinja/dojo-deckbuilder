@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
+import MobileSitePolish from "../app/mobile-site-polish";
+import "../app/mobile-site-polish.css";
 import "../app/playtest-production-layout.css";
 import "../app/playtest-polish.css";
 import "../app/playtest-readability.css";
@@ -43,6 +45,9 @@ const rootElement = document.getElementById("root")!;
 
 createRoot(rootElement).render(
   <StrictMode>
-    <CompanionApp />
+    <>
+      <CompanionApp />
+      <MobileSitePolish />
+    </>
   </StrictMode>,
 );
