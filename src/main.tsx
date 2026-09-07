@@ -12,6 +12,7 @@ import "../app/playtest-stability-pass.css";
 import "../app/playtest-ui-overhaul.css";
 import "../app/playtest-final-fit.css";
 import "../app/playtest-refinement-pass.css";
+import "../app/playtest-overlay-fix.css";
 
 type PresentationCard = {
   name: string;
