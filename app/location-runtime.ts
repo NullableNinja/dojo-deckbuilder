@@ -1,4 +1,4 @@
-import { locationUsageScopes, type LocationCommand } from "./location-effect-resolvers";
+import { locationUsageScopes, type LocationCommand } from "./location-effect-resolvers.ts";
 
 export type LocationTrackedState = {
   locationUsedEffectsThisTurn?: string[];
