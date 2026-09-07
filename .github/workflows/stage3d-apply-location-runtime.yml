@@ -39,6 +39,7 @@ jobs:
               'fighter protection anchor',
               'player attack structured context',
               'reversal structured context',
+              'AI attack structured context',
           ]
           for label in labels:
               marker = f'  "{label}",'
