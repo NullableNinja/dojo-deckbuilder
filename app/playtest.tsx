@@ -1326,8 +1326,12 @@ function artistUrl(card: CardEntry) {
   return undefined;
 }
 
+function presentationSlug(value: string) {
+  return value.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function fighterIllustrationUrl(card: CardEntry) {
-  const slug = card.name.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const slug = presentationSlug(card.name);
   return FIGHTER_ILLUSTRATION_BY_SLUG[slug];
 }
 
@@ -1592,7 +1596,7 @@ function FighterEquipmentTabs({ board, enemy, onInspect }: { board: Board; enemy
   </section>;
 }
 
-function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void }) {
+function FighterPanel({ board, label, enemy, onInspect, onOpenCombo }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void; onOpenCombo?: () => void }) {
   const fighter = cardFor(board.fighterId)!;
   const art = fighterIllustrationUrl(fighter) ?? artistUrl(fighter) ?? cardPlaceholderUrl;
   const nextBelt = belts[board.belt + 1];
@@ -1607,9 +1611,9 @@ function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label:
     { stat: "SPD", label: "SPD", value: fighterStat(board, "Speed") },
   ];
 
-  return <section className={`fighter-panel fighter-dossier living-fighter-card paper-stack ${enemy ? "is-enemy" : ""}`} data-side={enemy ? "ai" : "player"}>
+  return <section className={`fighter-panel fighter-dossier living-fighter-card paper-stack ${enemy ? "is-enemy" : ""}`} data-side={enemy ? "ai" : "player"} data-fighter={presentationSlug(fighter.name)}>
     <i className="fighter-paperclip" aria-hidden="true" />
-    <header className="fighter-card-heading"><div><span>{label}</span><button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button></div><b className="fighter-belt-badge">{belts[board.belt].name}<small>BELT</small></b></header>
+    <header className="fighter-card-heading" data-flavor={fighter.flavorText ?? undefined}><div><span>{label}</span><button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button></div><b className="fighter-belt-badge" data-belt={presentationSlug(belts[board.belt].name)}>{belts[board.belt].name}<small>BELT</small></b></header>
     <div className="fighter-vitality" aria-label={`${fighter.name} has ${board.hp} of ${board.maxHp} HP`}>
       <div><StatGlyph stat="HP" /><b>{board.hp}</b><span>/ {board.maxHp} HP</span></div>
       <span className="fighter-hp-track" role="progressbar" aria-valuemin={0} aria-valuemax={board.maxHp} aria-valuenow={board.hp}><i style={{ width: `${hpProgress}%` }} /></span>
@@ -1629,6 +1633,7 @@ function FighterPanel({ board, label, enemy, onInspect }: { board: Board; label:
     <div className="fighter-status-tray" aria-label={`${fighter.name} current statuses`}>{statuses.length ? statuses.map((status) => <span key={status}>{status}</span>) : <span>Standing ready</span>}</div>
     <p className="fighter-ability"><b>Registered ability</b><span>{fighter.rulesText ?? "No additional ability."}</span></p>
     <FighterEquipmentTabs board={board} enemy={enemy} onInspect={onInspect} />
+    {onOpenCombo && <button type="button" className="fighter-combo-launch" onClick={onOpenCombo} aria-label={`Open Combo docket, ${board.learnedCombos.length} of 2 learned`}><span>∞ COMBOS</span><b>{board.learnedCombos.length}/2</b><small>Open docket</small></button>}
   </section>;
 }
 
@@ -1696,7 +1701,7 @@ function CombatStage({ match, currentLocation, selectedAttack, turnCoach, guided
   };
 
   return <section className={`playtest-combat-desk combat-stage paper-stack state-${match.phase}`}>
-    <header className="combat-stage-heading"><button type="button" onClick={() => currentLocation && onInspect(currentLocation)}><span>Current Location</span><b>{currentLocation?.name ?? "Tournament Mat"}</b><small>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</small></button><div><span>ROUND</span><b>{match.round}</b><small>{phaseLabel}</small></div></header>
+    <header className="combat-stage-heading"><button type="button" onClick={() => currentLocation && onInspect(currentLocation)}><span>Current Scene</span><b>{currentLocation?.name ?? "Tournament Mat"}</b><small><i>SCENE RULE</i>{currentLocation?.rulesText ?? "The Department finds no reason to intervene."}</small></button><div><span>ROUND</span><b>{match.round}</b><small>{phaseLabel}</small></div></header>
     <div className="clash-field" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop} aria-label="Combat stage. Drag a playable card here or use its button.">
       <StageCard cardId={playerStageCard} side="player" label={pendingAiAttack ? "Your response" : "Your declaration"} onInspect={onInspect} />
       <div className="clash-seal" aria-label={`${hotZone ?? "No"} combat zone`}><span>{exchange?.outcome === "hit" && !pendingAiAttack && !selectedAttack ? "HIT" : exchange?.outcome === "block" && !pendingAiAttack && !selectedAttack ? "BLOCK" : phaseLabel}</span><b>{(hotZone ?? "—").slice(0, 1)}</b><small>{hotZone ?? "Choose a card"}</small></div>
@@ -1722,6 +1727,25 @@ function AcquisitionRail({ match, focus, beltName, xp, onOpen }: { match: Match;
     })}</div>
     <div className="acquisition-dockets"><button type="button" onClick={() => onOpen("combo")}><span>∞ Combo docket</span><b>{cardFor(match.comboOfferId ?? "")?.name ?? "No offer"}</b><small>Learned {match.player.learnedCombos.length}/2</small></button><button type="button" onClick={() => onOpen("belt")}><span>Belt ledger</span><b>{beltName}</b><small>{xp} XP filed</small></button></div>
   </section>;
+}
+
+function FeaturedComboPanel({ card, focus, learnedCount, attempted, onLearn, onPass, onContinue, onInspect }: { card: CardEntry; focus: number; learnedCount: number; attempted: boolean; onLearn: () => void; onPass: () => void; onContinue: () => void; onInspect: () => void }) {
+  const art = artistUrl(card);
+  const cost = cardCost(card);
+  const headingId = `featured-combo-${presentationSlug(card.id)}`;
+  const requirement = String(card.details?.["Sequence / Requirement"] ?? "See the printed Combo requirement.");
+  const payoff = String(card.details?.Effect ?? card.rulesText ?? "See the printed Combo payoff.");
+  return <aside className="ascend-featured-combo" aria-labelledby={headingId}>
+    <header><div><span className="eyebrow">Featured Combo · same decision desk</span><h3 id={headingId}>{card.name}</h3></div><span className="ascend-featured-combo-state">{attempted ? "FILED" : `${learnedCount}/2 LEARNED`}</span></header>
+    <button type="button" className="ascend-featured-combo-card" onClick={onInspect} aria-label={`Inspect ${card.name}`}>
+      {art ? <img src={art} alt="" loading="lazy" /> : <NativeCardArt card={card} />}
+    </button>
+    <div className="ascend-featured-combo-meta"><b>{cost} FOCUS</b><span>{card.catalogId}</span></div>
+    <div className="ascend-featured-combo-copy"><p><b>REQUIREMENT</b>{requirement}</p><p><b>PAYOFF</b>{payoff}</p>{card.flavorText && <em>{card.flavorText}</em>}</div>
+    <div className="ascend-featured-combo-actions">
+      {attempted ? <><strong className="ascend-featured-combo-filed">Combo decision filed for this Ascend.</strong><button type="button" className="button primary" onClick={onContinue}>Continue to Belt Check →</button></> : <><button type="button" className="button primary" disabled={focus < cost || learnedCount >= 2} onClick={onLearn}>Learn {card.name}</button><button type="button" className="button ghost" onClick={onPass}>Pass Combo</button></>}
+    </div>
+  </aside>;
 }
 
 function MatLane({ label, cards: cardIds, activeId, onInspect }: { label: string; cards: string[]; activeId?: string | null; onInspect: (card: CardEntry) => void }) {
@@ -2347,8 +2371,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const advanceAscendReview = () => {
     if (match?.phase !== "player-ascend") return;
-    if (deskView === "market" || !deskView) setDeskView("combo");
-    else if (deskView === "combo") setDeskView("belt");
+    if (deskView === "market" || deskView === "combo" || !deskView) setDeskView("belt");
     else completeTurn();
   };
 
@@ -2709,14 +2732,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     return { combo, evaluation, triggered: player.triggeredCombos.includes(id) };
   }).filter(Boolean) as { combo: CardEntry; evaluation: ReturnType<typeof evaluateCombo> | null; triggered: boolean }[];
   const affordableNow = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= player.focus).length;
-  const ascendStepIndex = deskView === "combo" ? 1 : deskView === "belt" ? 2 : 0;
-  const ascendStepTitle = deskView === "combo" ? "Combo Docket" : deskView === "belt" ? "Belt Check" : "Shared Market";
+  const ascendStepIndex = deskView === "belt" ? 1 : 0;
+  const ascendStepTitle = deskView === "combo" ? "Combo Docket" : deskView === "belt" ? "Belt Check" : "Acquisition Desk";
   const ascendStepHelp = deskView === "combo"
     ? "Review the face-up Combo. Learn it if you can and want it, or pass it to the bottom of the docket. Then check your Belt."
     : deskView === "belt"
       ? "Check your XP and Belt Exam requirement. Promote if you qualify. This is the final review before Hide clears unspent Focus."
-      : "Spend Focus on any number of Market cards you want. When shopping is finished, continue to the Combo Docket before you Hide.";
-  const ascendNextLabel = deskView === "combo" ? "Continue to Belt Check →" : deskView === "belt" ? "Finish Ascend → Hide" : "Continue to Combo Docket →";
+      : "Spend Focus on Market cards and decide the face-up Combo from the same desk. Then continue to your Belt Check.";
+  const ascendNextLabel = deskView === "belt" ? "Finish Ascend → Hide" : "Continue to Belt Check →";
   const turnCoach = match.winner
     ? (match.winner === "player" ? "The opponent is folded. Enjoy the extremely temporary paperwork-based glory." : "This test is over, but the Department has approved an immediate and emotionally reckless rematch.")
     : match.phase === "player-initiate"
@@ -2724,7 +2747,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     : match.phase === "player-yell"
       ? (pendingAttack ? `You selected ${pendingAttack.name}. Confirm its zone, then declare the Attack.` : !player.badHabitFocusUsed && player.hand.some((id) => cardFor(id)?.catalogId === gameDefinition.economy.badHabitFocus.catalogId) ? "Discard one Bad Habit this turn for +1 Focus. It goes straight to your discard pile." : !player.defensePracticeUsed && player.hand.some((id) => isDefense(cardFor(id)!)) ? "Use one Defense for Defense Practice to gain its printed Focus without playing its Guard or rules text." : player.hand.some((id) => isAttack(cardFor(id)!)) ? "Play support cards for Focus or select any legal Attack remaining in your hand." : "Your useful cards are spent. Move to Ascend and turn that Focus into a better deck.")
       : match.phase === "player-ascend"
-        ? (deskView === "combo" ? "Ascend step 2: inspect the Combo offer. Learning is optional; reviewing it is not. Your remaining Focus can still buy it." : deskView === "belt" ? (canPromote ? `Ascend step 3: your ${nextBelt?.name} Belt certification is ready. Promote before Hide if you want the reward now.` : "Ascend step 3: review your XP and exam progress. After this check, Hide ends the turn and clears unspent Focus.") : `Ascend step 1: shop the Market with ${player.focus} Focus. When you are done buying, continue to the Combo Docket.`)
+        ? (deskView === "combo" ? "Ascend step 1: inspect the Combo offer. Learning is optional; your remaining Focus can still buy it." : deskView === "belt" ? (canPromote ? `Ascend step 2: your ${nextBelt?.name} Belt certification is ready. Promote before Hide if you want the reward now.` : "Ascend step 2: review your XP and exam progress. After this check, Hide ends the turn and clears unspent Focus.") : `Ascend step 1: shop the Market with ${player.focus} Focus and decide the face-up Combo from this same desk.`)
       : match.phase === "defense-window"
           ? (defenseOptions.length ? `A ${match.pendingStrike?.zone} Attack is incoming. Play a glowing matching Defense or pass.` : "No matching Defense is in hand. Base DEF still applies; pass the Reaction Window to resolve the hit.")
           : match.phase === "reversal-window"
@@ -2736,7 +2759,15 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   return <main className={`playtest-shell playtest-shell--live location-${locationTheme(currentLocation)} motion-${settings.motion} ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}><MobilePlaytestNotice />
     <header className="playtest-topbar battle-versus-hud">
+      <div className="battle-hud-fighter battle-hud-fighter--player">
+        <span>YOU · {belts[player.belt].name} BELT</span><b>{playerFighter.name}</b>
+        <div><strong>{player.hp}<small> / {player.maxHp} HP</small></strong><i role="progressbar" aria-label={`${playerFighter.name} health`} aria-valuemin={0} aria-valuemax={player.maxHp} aria-valuenow={player.hp}><em style={{ width: `${Math.max(0, Math.min(100, player.hp / player.maxHp * 100))}%` }} /></i></div>
+      </div>
       <div className="versus-center" aria-label={`Round ${match.round}`}><span>ROUND</span><b>{match.round}</b></div>
+      <div className="battle-hud-fighter battle-hud-fighter--ai">
+        <span>COMPUTER · {belts[ai.belt].name} BELT</span><b>{aiFighter.name}</b>
+        <div><strong>{ai.hp}<small> / {ai.maxHp} HP</small></strong><i role="progressbar" aria-label={`${aiFighter.name} health`} aria-valuemin={0} aria-valuemax={ai.maxHp} aria-valuenow={ai.hp}><em style={{ width: `${Math.max(0, Math.min(100, ai.hp / ai.maxHp * 100))}%` }} /></i></div>
+      </div>
     </header>
     {match.winner && <section className={`match-result paper-stack ${match.winner === "player" ? "is-victory" : "is-defeat"}`}>
       {match.winner === "player" && <div className="victory-confetti" aria-hidden="true">{Array.from({ length: 28 }, (_, index) => <i style={{ left: `${(index * 37) % 100}%`, animationDelay: `${(index % 8) * .11}s`, animationDuration: `${2.45 + (index % 5) * .2}s` }} key={index} />)}</div>}
@@ -2752,7 +2783,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     </section>}
     <section className="playtest-arena">
       <section className="playtest-table">
-        <div className="fighter-column fighter-column--player"><FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} /><LearnedComboRack states={learnedComboStates} onInspect={(card) => setInspectedId(card.id)} /></div>
+        <div className="fighter-column fighter-column--player"><FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} onOpenCombo={() => setDeskView("combo")} /><LearnedComboRack states={learnedComboStates} onInspect={(card) => setInspectedId(card.id)} /></div>
         <div className="combat-stage-column">
           <CombatStage match={match} currentLocation={currentLocation} selectedAttack={pendingAttack} turnCoach={turnCoach} guided={settings.guided} playerCards={player.playArea} aiCards={ai.playArea} onInspect={(card) => setInspectedId(card.id)} onDropCard={useHandCard} onOpenCoach={() => setCoachOpen(true)} />
           {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary run-opponent-turn" onClick={runAiTurn}>Run computer turn →</button>}
@@ -2762,6 +2793,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       </section>
       <AcquisitionRail match={match} focus={player.focus} beltName={belts[player.belt].name} xp={player.xp} onOpen={setDeskView} />
     </section>
+    {!match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action">
+      <div>
+        <span>{match.pendingDiscard ? "DISCARD" : match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span>
+        <b>{match.pendingDiscard ? "Choose a card from your hand" : match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn} attack${player.attacksThisTurn === 1 ? "" : "s"} played · no cap` : match.phase === "player-ascend" ? `${player.focus} Focus · Market + Combo → Belt` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b>
+      </div>
+      {match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}
+      {match.phase === "player-yell" && !match.pendingDiscard && <div className="dock-action-group">{pendingAttack && <button onClick={declareAttack}>Declare Attack →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={enterAscend}>{pendingAttack ? "Skip selected card · Ascend" : "Proceed to Ascend →"}</button></div>}
+      {match.phase === "player-ascend" && <button onClick={() => setDeskView(deskView ?? "market")}>{deskView === "belt" ? "Resume Belt Check" : deskView === "combo" ? "Resume Combo Review" : "Resume Ascend Review"} →</button>}
+      {match.phase === "defense-window" && !match.pendingChoice && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}
+      {match.phase === "reversal-window" && <div className="dock-action-group">{pendingAttack && <button onClick={resolveReversal}>Launch Reversal →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={declineReversal}>Decline Reversal</button></div>}
+      {match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}
+    </nav>}
     <section className="playtest-workspace playtest-workspace--hand">
       <section className="hand-panel paper-stack">
         <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.pendingChoice ? "Resolve the Equipment decision" : match.pendingDiscard ? `Choose ${match.pendingDiscard.remaining} card to discard` : match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks played {player.attacksThisTurn}</span><span>Flow {player.flowUsedThisTurn ? "used" : "ready"}</span><span>Practice {player.defensePracticeUsed ? "used" : "ready"}</span><span>Habit {player.badHabitFocusUsed ? "used" : "ready"}</span></div></header>
@@ -2784,42 +2827,30 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && (pendingAttack.zone?.includes("Any") || (playerFighter.name === "Whirlwind Wynn" && player.attacksThisTurn === 0 && hasTag(pendingAttack, "Spin"))) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
       </section>
     </section>
-    {!match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action">
-      <div>
-        <span>{match.pendingDiscard ? "DISCARD" : match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span>
-        <b>{match.pendingDiscard ? "Choose a card from your hand" : match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn} attack${player.attacksThisTurn === 1 ? "" : "s"} played · no cap` : match.phase === "player-ascend" ? `${player.focus} Focus · Market → Combo → Belt` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b>
-      </div>
-      {match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}
-      {match.phase === "player-yell" && !match.pendingDiscard && <div className="dock-action-group">{pendingAttack && <button onClick={declareAttack}>Declare Attack →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={enterAscend}>{pendingAttack ? "Skip selected card · Ascend" : "Proceed to Ascend →"}</button></div>}
-      {match.phase === "player-ascend" && <button onClick={() => setDeskView(deskView ?? "market")}>{deskView === "belt" ? "Resume Belt Check" : deskView === "combo" ? "Resume Combo Review" : "Resume Ascend Review"} →</button>}
-      {match.phase === "defense-window" && !match.pendingChoice && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}
-      {match.phase === "reversal-window" && <div className="dock-action-group">{pendingAttack && <button onClick={resolveReversal}>Launch Reversal →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={declineReversal}>Decline Reversal</button></div>}
-      {match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}
-    </nav>}
     <footer className="playtest-utility-dock" aria-label="Quick Duel utilities">
       <div className="playtest-utility-group"><button type="button" className={`utility-coach ${settings.guided ? "" : "is-off"}`} onClick={() => { if (!settings.guided) setSettings({ ...settings, guided: true }); setCoachOpen(true); }}>{settings.guided ? "Decision Coach" : "Coach Off · Re-enable"}</button><button type="button" onClick={() => setLogOpen(true)}>Fight Log <b>{match.log.length}</b></button><label className="utility-motion"><span>Motion</span><select value={settings.motion} onChange={(event) => setSettings({ ...settings, motion: event.target.value as MotionMode })}><option value="full">Full</option><option value="reduced">Reduced</option><option value="off">Off</option></select></label></div>
       <div className="playtest-utility-group playtest-utility-group--nav"><span className={`rules-sync rules-sync--${rulesSync.status}`}>{rulesSync.status === "update-available" ? `Rules ${rulesSync.latestVersion} ready` : rulesSync.status === "offline" ? "Rules offline" : "Rules synced"}</span>{rulesSync.status === "update-available" && <button onClick={() => window.location.reload()}>Reload</button>}<button onClick={() => setMatch(null)}>New Duel</button><button onClick={() => goTo("rules")}>Rules</button><button onClick={() => goTo("cards")}>Cards</button></div>
     </footer>
     {deskView && <div className="ascend-desk-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDeskView(null)}>
-      <section className="ascend-desk paper-stack" role="dialog" aria-modal="true" aria-labelledby="ascend-desk-title">
+      <section className={`ascend-desk paper-stack ${match.phase === "player-ascend" ? "ascend-desk--functional" : ""}`} role="dialog" aria-modal="true" aria-labelledby="ascend-desk-title">
         <header className="ascend-desk-header">
-          <div><span className="eyebrow">{match.phase === "player-ascend" ? `Ascend review · step ${ascendStepIndex + 1} of 3` : "Reference desk · inspection only"}</span><h2 id="ascend-desk-title">{ascendStepTitle}</h2><p>{match.phase === "player-ascend" ? ascendStepHelp : "Inspect this station without advancing the turn."}</p></div>
+          <div><span className="eyebrow">{match.phase === "player-ascend" ? `Ascend review · step ${ascendStepIndex + 1} of 2` : "Reference desk · inspection only"}</span><h2 id="ascend-desk-title">{ascendStepTitle}</h2><p>{match.phase === "player-ascend" ? ascendStepHelp : "Inspect this station without advancing the turn."}</p></div>
           <div className="ascend-desk-balance"><span>Available Focus</span><b>{player.focus}</b><small>{affordableNow} of {match.market.length} Market cards in reach</small></div>
           <button className="modal-close" onClick={() => setDeskView(null)} aria-label="Close Ascend Desk">×</button>
         </header>
         {match.phase === "player-ascend" && <section className="ascend-guide" aria-label="Ascend review path">
-          <div className="ascend-guide-kicker"><span>Do these in order</span><b>Shop → Combo → Belt → Hide</b></div>
+          <div className="ascend-guide-kicker"><span>Do these in order</span><b>Acquire → Belt → Hide</b></div>
           <ol>
-            <li className={ascendStepIndex === 0 ? "is-current" : ascendStepIndex > 0 ? "is-complete" : ""}><b>1</b><div><span>Shared Market</span><small>Spend Focus · buy any number</small></div></li>
-            <li className={ascendStepIndex === 1 ? "is-current" : ascendStepIndex > 1 ? "is-complete" : ""}><b>2</b><div><span>Combo Docket</span><small>Learn or pass once</small></div></li>
-            <li className={ascendStepIndex === 2 ? "is-current" : ""}><b>3</b><div><span>Belt Check</span><small>XP + exam + reward</small></div></li>
-            <li><b>4</b><div><span>Hide</span><small>Clear Focus · redraw</small></div></li>
+            <li className={ascendStepIndex === 0 ? "is-current" : "is-complete"} aria-current={ascendStepIndex === 0 ? "step" : undefined}><b>1</b><div><span>Acquisition Desk</span><small>Market + Combo decisions</small></div></li>
+            <li className={ascendStepIndex === 1 ? "is-current" : ""} aria-current={ascendStepIndex === 1 ? "step" : undefined}><b>2</b><div><span>Belt Check</span><small>XP + exam + reward</small></div></li>
+            <li><b>3</b><div><span>Hide</span><small>Clear Focus · redraw</small></div></li>
           </ol>
         </section>}
         <div className="ascend-desk-body">
           {match.phase === "player-ascend" && <aside className={`ascend-step-coach step-${ascendStepIndex + 1}`}><b>STEP {ascendStepIndex + 1}</b><span>{ascendStepHelp}</span></aside>}
           {deskView === "market" && <section className="ascend-market" aria-label="Seven-card Shared Market">
             <header><div><span className="eyebrow">Seven live records · full cards</span><h3>Choose with the text visible</h3></div><p>{match.phase === "player-ascend" ? "Buy any number you can afford. Each purchase is replaced immediately by the top Market card." : "The row persists between rounds. If nobody buys for a full round, Market Mercy refreshes all seven cards."}</p></header>
+            {match.phase === "player-ascend" && comboOffer && <FeaturedComboPanel card={comboOffer} focus={player.focus} learnedCount={player.learnedCombos.length} attempted={player.comboAttemptedTurn} onLearn={() => cycleCombo(true)} onPass={() => cycleCombo(false)} onContinue={() => setDeskView("belt")} onInspect={() => setInspectedId(comboOffer.id)} />}
             <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= cardCost(card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
           </section>}
           {deskView === "combo" && <section className="ascend-combo combo-panel">
@@ -2839,7 +2870,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
             {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : `${nextBelt.name}: ${nextBelt.xp} XP + completed task`}</button>}
           </section>}
         </div>
-        <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView !== "market" && <button className="button ghost" onClick={() => setDeskView(deskView === "belt" ? "combo" : "market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : `Next: ${deskView === "combo" ? "check Belt progress" : "review the Combo offer"}.`}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
+        <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView === "belt" && <button className="button ghost" onClick={() => setDeskView("market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : "Next: check Belt progress."}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
       </section>
     </div>}
     {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}

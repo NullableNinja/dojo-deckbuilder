@@ -75,27 +75,13 @@ function pulse(element: HTMLElement | null, className: string, duration = 520) {
   window.setTimeout(() => element.classList.remove(className), vfxMode() === "reduced" ? Math.min(duration, 180) : duration);
 }
 
-function anchoredPosition(side: FighterSide, offset: number) {
-  const anchor = fighterElement(side);
-  if (!anchor) return { x: side === "player" ? "28vw" : "72vw", y: "27vh" };
-  const rect = anchor.getBoundingClientRect();
-  const x = `${Math.max(90, Math.min(window.innerWidth - 90, rect.left + rect.width / 2))}px`;
-  const anchorIsUpperHalf = rect.top + rect.height / 2 < window.innerHeight / 2;
-  const rawY = anchorIsUpperHalf ? rect.bottom + offset : rect.top - offset;
-  const y = `${Math.max(74, Math.min(window.innerHeight - 74, rawY))}px`;
-  return { x, y };
-}
-
 function cueLabel(side: FighterSide, label: string, tone: string, duration: number, lane: "combat" | "summary" = "combat") {
   if (vfxMode() === "off") return;
   document.querySelectorAll(".playtest-vfx-cue").forEach((node) => node.remove());
   const layer = ensureLayer();
   const node = document.createElement("div");
-  node.className = `playtest-vfx-cue playtest-vfx-cue--${lane} playtest-vfx-cue--${tone}`;
+  node.className = `playtest-vfx-cue playtest-vfx-cue--${side} playtest-vfx-cue--${lane} playtest-vfx-cue--${tone}`;
   node.textContent = label;
-  const position = anchoredPosition(side, lane === "combat" ? 28 : 78);
-  node.style.setProperty("--vfx-x", position.x);
-  node.style.setProperty("--vfx-y", position.y);
   node.style.animationDuration = `${vfxMode() === "reduced" ? Math.min(duration, 300) : duration}ms`;
   layer.append(node);
   window.setTimeout(() => node.remove(), vfxMode() === "reduced" ? Math.min(duration, 320) : duration + 20);

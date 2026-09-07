@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("Ascend teaches Market then Combo then Belt before Hide", async () => {
+test("Ascend teaches combined acquisition, Belt, then Hide", async () => {
   const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
-  assert.match(source, /Shop → Combo → Belt → Hide/);
-  assert.match(source, /Continue to Combo Docket/);
+  assert.match(source, /Acquire → Belt → Hide/);
+  assert.match(source, /Market \+ Combo decisions/);
+  assert.match(source, /function FeaturedComboPanel/);
   assert.match(source, /Continue to Belt Check/);
   assert.match(source, /Finish Ascend → Hide/);
   assert.match(source, /advanceAscendReview/);

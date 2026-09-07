@@ -21,7 +21,7 @@
 
 .playtest-vfx-cue {
   --vfx-x: 50vw;
-  --vfx-y: 30vh;
+  --vfx-y: clamp(6.8rem, 13dvh, 8.25rem);
   --vfx-ink: #fff6d7;
   --vfx-edge: #17211d;
   position: fixed;
@@ -45,6 +45,17 @@
   will-change: transform, opacity;
 }
 
+/* Viewport lanes are deliberate: combat notices never inherit document scroll
+   or the current fighter-card rectangle. The same event always appears in the
+   same player, opponent, or center lane. */
+.playtest-vfx-cue--player {
+  --vfx-x: max(10rem, calc((100vw - 98.75rem) / 2 + 9.7rem));
+}
+
+.playtest-vfx-cue--ai {
+  --vfx-x: calc(100vw - max(10rem, calc((100vw - 98.75rem) / 2 + 9.7rem)));
+}
+
 .playtest-vfx-cue--combat {
   min-width: 7.5rem;
   padding: .48rem .78rem;
@@ -52,6 +63,7 @@
 }
 
 .playtest-vfx-cue--summary {
+  --vfx-y: clamp(10rem, 20dvh, 12rem);
   max-width: min(34rem, 58vw);
   padding: .5rem .8rem;
   background: rgba(255, 248, 226, .97);
@@ -72,7 +84,7 @@
 .playtest-vfx-banner {
   position: fixed;
   left: 50%;
-  top: 31%;
+  top: clamp(7.5rem, 18dvh, 10.5rem);
   min-width: min(72vw, 22rem);
   transform: translate(-50%, -50%) rotate(-1.5deg);
   padding: .72rem 1.2rem;
