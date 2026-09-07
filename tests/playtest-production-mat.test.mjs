@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [source, styles, runtime, events] = await Promise.all([
+const [source, styles, recovery, runtime, events] = await Promise.all([
   readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
   readFile(new URL("../app/playtest-production-mat.css", import.meta.url), "utf8"),
+  readFile(new URL("../app/playtest-functional-recovery.css", import.meta.url), "utf8"),
   readFile(new URL("../src/playtest-vfx-runtime.ts", import.meta.url), "utf8"),
   readFile(new URL("../src/playtest-events.ts", import.meta.url), "utf8"),
 ]);
@@ -34,10 +35,11 @@ test("cards support click-first play, optional drag, and inspectable hybrid reco
   assert.match(source, /className="play-card-inspect"/);
 });
 
-test("Market, Location, receipts, grouped logs, coaching, and motion remain visible systems", () => {
-  assert.match(source, /function AcquisitionRail/);
-  assert.match(source, /match\.market\.map\(\(id, index\)/);
-  assert.match(styles, /\.market-rail-cards \{[^}]*repeat\(7/);
+test("Ascend Market, Location, receipts, grouped logs, coaching, and motion remain visible systems", () => {
+  assert.doesNotMatch(source, /function AcquisitionRail|className="market-rail-cards"/);
+  assert.match(source, /className="ascend-market-grid"/);
+  assert.match(source, /match\.market\.map\(\(id\)/);
+  assert.match(recovery, /\.ascend-market-grid \{[\s\S]*?repeat\(7/);
   assert.match(source, /location-\$\{locationTheme\(currentLocation\)\}/);
   assert.match(source, /function ImpactReadout/);
   assert.match(source, /match\.lastExchange/);

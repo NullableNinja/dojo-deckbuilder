@@ -20,24 +20,24 @@ Scope: restore a playable, non-overlapping Quick Duel interface without changing
 11. **Show exact HP in both HUD summaries.** Current and maximum HP remain readable without hunting through the board.
 12. **Add proportional HUD health bars.** Each bar is a real progress indicator with accessible numeric values.
 13. **Make the HUD sticky without removing it from flow.** It stays useful while scrolling and still reserves its own space.
-14. **Return fighter HP tracks to their cards.** Fighter-card progress bars are no longer stolen and fixed against the viewport.
-15. **Protect fighter headings from clipping.** Long fighter names truncate inside their own heading instead of crossing the Belt badge.
-16. **Contain fighter art inside the illustration window.** Transparent character art scales by `object-fit` and cannot spill into adjacent panels.
-17. **Give long abilities an internal scroll area.** Rules copy remains available without changing fighter-card height.
-18. **Keep the Loadout launcher inside the fighter card.** Equipment access gets a dedicated bottom-row target and no hover panel can cover combat.
-19. **Make the Combo launcher a native React button.** It is keyboard reachable, exposes the learned count, and opens the existing docket directly.
+14. **Use the HUD as the only health-bar surface.** The duplicate card health track is suppressed while exact HP remains accessible in the full-width top bar.
+15. **Restore the fighter-card grid.** Name, art, ATK, DEF, SPD, Focus, XP, ability, and Loadout occupy dedicated non-overlapping rows.
+16. **Protect fighter headings from clipping.** Long fighter names truncate inside their own heading instead of crossing the Belt badge or flavor copy.
+17. **Contain fighter art inside the illustration window.** Transparent character art scales by `object-fit` and cannot spill into adjacent panels.
+18. **Give long abilities an internal scroll area.** Rules copy remains available without changing fighter-card height.
+19. **Keep the Loadout and Combo launchers inside the fighter card.** Both have dedicated bottom-row targets and no hover panel can cover combat.
 
 ## Arena, Scene, and combat record
 
 20. **Stabilize the three-column combat table.** Player, stage, and opponent use bounded columns with one shared height.
-21. **Use an adaptive but bounded arena height.** Fighter boards and the combat stage align without pushing into acquisition controls.
+21. **Use an adaptive but bounded arena height.** Fighter boards and the combat stage align, with a compact-height treatment for common laptop screens.
 22. **Remove accidental fighter-column scroll ownership.** Columns no longer create hidden independent page scroll traps.
 23. **Guard the center stage against min-content overflow.** Long card and Scene text cannot widen the whole page.
-24. **Return the acquisition rail to normal flow.** It no longer floats over the hand at the bottom-right of the viewport.
-25. **Restore a full-width persistent acquisition rail.** Market, Combo, and Belt remain neighboring board objects below the arena.
-26. **Keep all seven Market slots reachable.** The row has its own bounded horizontal scroll when the viewport is narrow.
-27. **Keep both Combo and Belt dockets visible.** Neither station is collapsed behind an unrelated panel.
-28. **Increase acquisition controls to usable targets.** Rail and docket actions have a minimum 40-pixel hit area.
+24. **Remove the persistent Market rail from live combat.** It no longer consumes the vertical space needed to see the playable hand and combat animation together.
+25. **Keep acquisition in the Ascend desk.** The complete seven-card Market, featured Combo, and Belt review remain available when the game asks for an Ascend decision.
+26. **Keep all seven Market slots reachable.** The Ascend desk has a bounded horizontal Market rail at narrow widths.
+27. **Keep both Combo and Belt dockets reachable from the board.** The player-side Combo launcher and Ascend review open the appropriate decision surface without a persistent middle panel.
+28. **Retain usable acquisition targets.** Ascend, Market, Combo, and Belt actions keep their minimum interactive sizes.
 29. **Rename the active label to “Current Scene.”** The board now uses the player's preferred, more vivid vocabulary.
 30. **Enlarge the active Scene name.** It now reads as a major state element rather than a muted subheading.
 31. **Place the Scene rule on a contrasting paper slip.** The active modifier is readable at a glance.
@@ -53,13 +53,13 @@ Scope: restore a playable, non-overlapping Quick Duel interface without changing
 
 ## Actions, hand, utilities, dialogs, and VFX
 
-41. **Move the primary action dock before the hand in DOM order.** Visual order, reading order, and keyboard order now agree.
-42. **Return the primary action dock to normal flow.** It can no longer cover playable cards at any scroll position.
-43. **Set primary action targets to at least 44 pixels tall.** Phase progression remains comfortable to click and tap.
-44. **Allow action groups to wrap.** Long phase labels and multiple legal actions remain reachable at narrower widths.
-45. **Return the hand and its counters to normal flow.** The hand header wraps and never sits beneath acquisition or command panels.
-46. **Give the hand a visible, snap-assisted horizontal rail.** Every card remains reachable without shrinking text into illegibility.
-47. **Return the utility bar to normal flow and allow wrapping.** Coach, log, motion, navigation, and sync controls cannot cover cards.
+41. **Place the phase action dock in the hand header.** Legal progression controls stay with the playable cards instead of taking a separate page row.
+42. **Keep the primary action dock in normal flow.** It cannot cover cards, fighter boards, or the Scene at any scroll position.
+43. **Use compact action targets in the hand header.** Phase progression stays comfortably clickable while preserving hand space.
+44. **Allow action groups to adapt.** Long phase labels and multiple legal actions remain reachable at narrower widths.
+45. **Make the hand visible immediately after combat.** Removing the live Market rail and shortening the desktop card rail reduces the scroll distance to a small handoff.
+46. **Give the hand a visible, snap-assisted horizontal rail.** Every card remains reachable while retaining its art, cost, Focus, zone, and rules summary.
+47. **Keep utilities and dark-theme contrast stable.** Coach, log, motion, navigation, and sync controls remain in flow, while dark surfaces preserve readable borders and disabled-card contrast.
 48. **Fit Ascend and inspectors to the viewport.** Dialogs own their scrolling, suppress horizontal spill, and retain reachable close/actions.
 49. **Give player and opponent combat cues fixed viewport lanes.** Attack, Block, damage, Tempo, and summary notices no longer use scrolled element rectangles.
 50. **Give milestone cues a fixed center lane and serialized replacement.** KO, Scene Change, Combo, and promotion stay centered while newer actions replace stale queued visuals.

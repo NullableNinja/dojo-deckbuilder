@@ -270,8 +270,8 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.match(playtest, /className="ascend-desk-backdrop"/);
   assert.match(playtest, /className="ascend-guide"/);
   assert.match(playtest, /advanceAscendReview/);
-  assert.match(playtest, /className=\{`acquisition-rail/);
-  assert.match(playtest, /className="market-rail-cards"/);
+  assert.doesNotMatch(playtest, /className=\{`acquisition-rail|className="market-rail-cards"/);
+  assert.match(playtest, /className="ascend-market-grid"/);
   assert.doesNotMatch(playtest, /className="playtest-side-stack"/);
   assert.match(styles, /\.ascend-desk-backdrop \{[^}]*position: fixed/);
   assert.match(styles, /\.ascend-market-grid \{[^}]*repeat\(7, minmax\(118px, 1fr\)\)/);
@@ -279,7 +279,7 @@ test("v2 engine upgrade keeps rules, play, and simulation on one versioned contr
   assert.match(productionMat, /\.playtest-shell--live \.play-card-row \{[^}]*display: flex[^}]*overflow-x: auto/);
   assert.match(productionMat, /\.playtest-action-dock \{[^}]*position: sticky/);
   assert.match(productionMat, /\.fighter-stats--combat \{[^}]*repeat\(3/);
-  assert.match(productionMat, /\.market-rail-cards \{[^}]*repeat\(7/);
+  assert.match(styles, /\.ascend-market-grid \{[^}]*repeat\(7, minmax\(118px, 1fr\)\)/);
 });
 
 

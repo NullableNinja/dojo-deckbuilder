@@ -1613,7 +1613,7 @@ function FighterPanel({ board, label, enemy, onInspect, onOpenCombo }: { board: 
 
   return <section className={`fighter-panel fighter-dossier living-fighter-card paper-stack ${enemy ? "is-enemy" : ""}`} data-side={enemy ? "ai" : "player"} data-fighter={presentationSlug(fighter.name)}>
     <i className="fighter-paperclip" aria-hidden="true" />
-    <header className="fighter-card-heading" data-flavor={fighter.flavorText ?? undefined}><div><span>{label}</span><button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button></div><b className="fighter-belt-badge" data-belt={presentationSlug(belts[board.belt].name)}>{belts[board.belt].name}<small>BELT</small></b></header>
+    <header className="fighter-card-heading"><div><span>{label}</span><button className="fighter-dossier-name" onClick={() => onInspect(fighter)}>{fighter.name}</button></div><b className="fighter-belt-badge" data-belt={presentationSlug(belts[board.belt].name)}>{belts[board.belt].name}<small>BELT</small></b></header>
     <div className="fighter-vitality" aria-label={`${fighter.name} has ${board.hp} of ${board.maxHp} HP`}>
       <div><StatGlyph stat="HP" /><b>{board.hp}</b><span>/ {board.maxHp} HP</span></div>
       <span className="fighter-hp-track" role="progressbar" aria-valuemin={0} aria-valuemax={board.maxHp} aria-valuenow={board.hp}><i style={{ width: `${hpProgress}%` }} /></span>
@@ -1714,18 +1714,6 @@ function CombatStage({ match, currentLocation, selectedAttack, turnCoach, guided
     </div>
     <ImpactReadout exchange={exchange} line={match.log[0]} />
     {guided && <button type="button" className="contextual-coach-slip" onClick={onOpenCoach}><span>Decision Coach</span><b>{turnCoach}</b><small>Open coach →</small></button>}
-  </section>;
-}
-
-function AcquisitionRail({ match, focus, beltName, xp, onOpen }: { match: Match; focus: number; beltName: string; xp: number; onOpen: (view: DeskView) => void }) {
-  return <section className={`acquisition-rail paper-stack ${match.phase === "player-ascend" ? "is-open" : ""}`} aria-label="Shared acquisition board">
-    <header><div><span>Shared Market</span><b>Seven live cards</b></div><button type="button" onClick={() => onOpen("market")}>{match.phase === "player-ascend" ? "Shop now" : "Inspect Market"} →</button></header>
-    <div className="market-rail-cards">{match.market.map((id, index) => {
-      const card = cardFor(id); if (!card) return null;
-      const art = artistUrl(card);
-      return <button type="button" className={cardCost(card) <= focus ? "is-affordable" : ""} onClick={() => onOpen("market")} aria-label={`Inspect Market slot ${index + 1}: ${card.name}, cost ${cardCost(card)}`} key={`${id}-${index}`}><span>{art ? <img src={art} alt="" loading="lazy" /> : <NativeCardArt card={card} />}</span><b>{card.name}</b><small>{cardCost(card)} Focus</small></button>;
-    })}</div>
-    <div className="acquisition-dockets"><button type="button" onClick={() => onOpen("combo")}><span>∞ Combo docket</span><b>{cardFor(match.comboOfferId ?? "")?.name ?? "No offer"}</b><small>Learned {match.player.learnedCombos.length}/2</small></button><button type="button" onClick={() => onOpen("belt")}><span>Belt ledger</span><b>{beltName}</b><small>{xp} XP filed</small></button></div>
   </section>;
 }
 
@@ -2756,6 +2744,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const winnerFighter = match.winner === "ai" ? aiFighter : playerFighter;
   const winnerArt = artistUrl(winnerFighter);
+  const phaseActionDock = !match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action">
+    <div>
+      <span>{match.pendingDiscard ? "DISCARD" : match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span>
+      <b>{match.pendingDiscard ? "Choose a card from your hand" : match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn} attack${player.attacksThisTurn === 1 ? "" : "s"} played · no cap` : match.phase === "player-ascend" ? `${player.focus} Focus · Market + Combo → Belt` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b>
+    </div>
+    {match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}
+    {match.phase === "player-yell" && !match.pendingDiscard && <div className="dock-action-group">{pendingAttack && <button onClick={declareAttack}>Declare Attack →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={enterAscend}>{pendingAttack ? "Skip selected card · Ascend" : "Proceed to Ascend →"}</button></div>}
+    {match.phase === "player-ascend" && <button onClick={() => setDeskView(deskView ?? "market")}>{deskView === "belt" ? "Resume Belt Check" : deskView === "combo" ? "Resume Combo Review" : "Resume Ascend Review"} →</button>}
+    {match.phase === "defense-window" && !match.pendingChoice && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}
+    {match.phase === "reversal-window" && <div className="dock-action-group">{pendingAttack && <button onClick={resolveReversal}>Launch Reversal →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={declineReversal}>Decline Reversal</button></div>}
+    {match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}
+  </nav>;
 
   return <main className={`playtest-shell playtest-shell--live location-${locationTheme(currentLocation)} motion-${settings.motion} ${settings.guided ? "playtest-shell--guided" : ""} ${match.winner ? "playtest-shell--finished" : ""} shell`}><MobilePlaytestNotice />
     <header className="playtest-topbar battle-versus-hud">
@@ -2791,23 +2791,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         </div>
         <div className="fighter-column fighter-column--enemy"><FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} /></div>
       </section>
-      <AcquisitionRail match={match} focus={player.focus} beltName={belts[player.belt].name} xp={player.xp} onOpen={setDeskView} />
     </section>
-    {!match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action">
-      <div>
-        <span>{match.pendingDiscard ? "DISCARD" : match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span>
-        <b>{match.pendingDiscard ? "Choose a card from your hand" : match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn} attack${player.attacksThisTurn === 1 ? "" : "s"} played · no cap` : match.phase === "player-ascend" ? `${player.focus} Focus · Market + Combo → Belt` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b>
-      </div>
-      {match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}
-      {match.phase === "player-yell" && !match.pendingDiscard && <div className="dock-action-group">{pendingAttack && <button onClick={declareAttack}>Declare Attack →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={enterAscend}>{pendingAttack ? "Skip selected card · Ascend" : "Proceed to Ascend →"}</button></div>}
-      {match.phase === "player-ascend" && <button onClick={() => setDeskView(deskView ?? "market")}>{deskView === "belt" ? "Resume Belt Check" : deskView === "combo" ? "Resume Combo Review" : "Resume Ascend Review"} →</button>}
-      {match.phase === "defense-window" && !match.pendingChoice && <button onClick={() => resolveDefense(null)}>Pass Reaction</button>}
-      {match.phase === "reversal-window" && <div className="dock-action-group">{pendingAttack && <button onClick={resolveReversal}>Launch Reversal →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={declineReversal}>Decline Reversal</button></div>}
-      {match.phase === "ai-ready" && !settings.autoAi && <button onClick={runAiTurn}>Run computer turn →</button>}
-    </nav>}
     <section className="playtest-workspace playtest-workspace--hand">
       <section className="hand-panel paper-stack">
-        <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.pendingChoice ? "Resolve the Equipment decision" : match.pendingDiscard ? `Choose ${match.pendingDiscard.remaining} card to discard` : match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks played {player.attacksThisTurn}</span><span>Flow {player.flowUsedThisTurn ? "used" : "ready"}</span><span>Practice {player.defensePracticeUsed ? "used" : "ready"}</span><span>Habit {player.badHabitFocusUsed ? "used" : "ready"}</span></div></header>
+        <header><div><span className="eyebrow">Your hand · {player.hand.length} cards</span><h2>{match.pendingChoice ? "Resolve the Equipment decision" : match.pendingDiscard ? `Choose ${match.pendingDiscard.remaining} card to discard` : match.phase === "player-initiate" ? "Equip before the yelling starts" : match.phase === "defense-window" ? `Defend ${match.pendingStrike?.zone} or let it land` : match.phase === "reversal-window" ? "Return the favor immediately" : "Choose your next card"}</h2></div><div className="hand-counters"><span>Deck {player.deck.length}</span><span>Discard {player.discard.length}</span><span>Attacks played {player.attacksThisTurn}</span><span>Flow {player.flowUsedThisTurn ? "used" : "ready"}</span><span>Practice {player.defensePracticeUsed ? "used" : "ready"}</span><span>Habit {player.badHabitFocusUsed ? "used" : "ready"}</span></div>{phaseActionDock}</header>
         {match.pendingDiscard && <div className="discard-choice-notice" role="status"><b>{cardFor(match.pendingDiscard.sourceCardId)?.name}</b><span>Select the card you want to discard. The engine will not choose for you.</span></div>}
         {equipmentReactions.length > 0 && <div className="equipment-reaction-strip" aria-label="Available Equipment reactions"><span>Equipment reactions</span>{equipmentReactions.map((item) => <button type="button" disabled={Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)} key={item.id}><b>Exhaust {item.name}</b><small>{equipmentActivationSummary(item)}</small></button>)}</div>}
         {equipmentActions.length > 0 && <div className="equipment-reaction-strip equipment-trigger-strip" aria-label="Available Equipment actions"><span>Equipment actions</span>{equipmentActions.map((item) => <button type="button" disabled={Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)} key={item.id}><b>Exhaust {item.name}</b><small>{equipmentActivationSummary(item)}</small></button>)}</div>}

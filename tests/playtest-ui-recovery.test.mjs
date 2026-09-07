@@ -23,11 +23,12 @@ test("functional recovery is the final bundled layout authority", () => {
 });
 
 test("ordinary gameplay panels participate in flow", () => {
-  assert.match(recovery, /\.acquisition-rail\s*\{[\s\S]*?position:\s*relative\s*!important/);
-  assert.match(recovery, /> \.playtest-action-dock[\s\S]*?position:\s*relative\s*!important/);
+  assert.match(recovery, /grid-row:\s*auto\s*!important/);
+  assert.doesNotMatch(source, /function AcquisitionRail|className="market-rail-cards"/);
+  assert.match(recovery, /\.hand-panel > header > \.playtest-action-dock[\s\S]*?position:\s*relative\s*!important/);
   assert.match(recovery, /> \.playtest-workspace--hand\s*\{[\s\S]*?position:\s*relative\s*!important/);
   assert.match(recovery, /> \.playtest-utility-dock\s*\{[\s\S]*?position:\s*relative\s*!important/);
-  assert.ok(source.indexOf("playtest-action-dock") < source.indexOf("playtest-workspace--hand"));
+  assert.match(source, /<header>[\s\S]*?\{phaseActionDock\}<\/header>/);
 });
 
 test("fighter and acquisition presentation is declarative React", () => {
@@ -36,6 +37,9 @@ test("fighter and acquisition presentation is declarative React", () => {
   assert.match(source, /function FeaturedComboPanel/);
   assert.match(source, /className="battle-hud-fighter battle-hud-fighter--player"/);
   assert.match(source, /className="battle-hud-fighter battle-hud-fighter--ai"/);
+  assert.doesNotMatch(source, /data-flavor=\{fighter\.flavorText/);
+  assert.match(recovery, /\.fighter-vitality,[\s\S]*?display:\s*none\s*!important/);
+  assert.match(recovery, /\.fighter-xp-meter,[\s\S]*?grid-area:\s*xp\s*!important/);
   assert.match(source, /aria-current=\{ascendStepIndex/);
 });
 
