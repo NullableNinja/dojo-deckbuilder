@@ -1,0 +1,82 @@
+/* Mobile site polish: keep rule prose inside the viewport and restore the freed
+   playtest shortcut with a useful Glossary/Terms destination. */
+
+@media (max-width: 840px) {
+  /* The mobile nav already reserves six equal columns. Keep Menu last and put
+     the injected Terms shortcut in the open fifth slot. */
+  .mobile-nav > button:nth-child(5):not(.mobile-nav-terms) {
+    order: 6;
+  }
+
+  .mobile-nav .mobile-nav-terms {
+    order: 5;
+  }
+
+  .mobile-nav .mobile-nav-terms > span {
+    font-family: var(--display);
+    font-size: 13px;
+    letter-spacing: -.04em;
+  }
+
+  /* Grid items default to an intrinsic min-width. The rules reader contains
+     deliberately wide tables, so explicitly allow the prose column to shrink
+     to the phone viewport instead of letting table min-content widen it. */
+  .rules-page,
+  .rules-page .rules-layout,
+  .rules-page .rules-layout > *,
+  .rules-page .rule-article,
+  .rules-page .rule-article > header,
+  .rules-page .rule-article > section,
+  .rules-page .rule-article > footer {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .rules-page .rules-layout,
+  .rules-page .rule-article {
+    width: 100%;
+  }
+
+  /* Do not clip ordinary prose. Wide content is constrained below, while
+     tables keep their own horizontal scroller. */
+  .rules-page .rule-article {
+    overflow: visible;
+  }
+
+  .rules-page .rule-article h1,
+  .rules-page .rule-article h2,
+  .rules-page .rule-article h3,
+  .rules-page .rule-article p,
+  .rules-page .rule-bullets,
+  .rules-page .rule-bullets li,
+  .rules-page .rule-callout {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .rules-page .rule-bullets {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .rules-page .chapter-art {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .rules-page .chapter-art > div {
+    max-width: 100%;
+  }
+
+  /* Preserve the intentional 640px rule-table canvas, but contain it inside
+     the article so only the table scrolls instead of widening the whole page. */
+  .rules-page .table-scroll {
+    width: calc(100% + 20px);
+    max-width: calc(100% + 20px);
+    margin-left: -20px;
+    margin-right: 0;
+  }
+}
