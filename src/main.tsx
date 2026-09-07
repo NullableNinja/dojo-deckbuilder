@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
+import cardsJson from "../app/data/cards.json";
 import "../app/playtest-production-layout.css";
 import "../app/playtest-polish.css";
 import "../app/playtest-readability.css";
@@ -10,6 +11,19 @@ import "../app/playtest-hand-stage.css";
 import "../app/playtest-stability-pass.css";
 import "../app/playtest-ui-overhaul.css";
 import "../app/playtest-final-fit.css";
+import "../app/playtest-refinement-pass.css";
+
+type PresentationCard = {
+  name: string;
+  cardType: string;
+  flavorText?: string | null;
+};
+
+const fighterFlavorByName = new Map(
+  ((cardsJson as unknown as { cards: PresentationCard[] }).cards ?? [])
+    .filter((card) => card.cardType === "Character" && card.flavorText)
+    .map((card) => [card.name, card.flavorText ?? ""]),
+);
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
@@ -74,11 +88,19 @@ function ensureComboLauncher(panel: HTMLElement) {
 /* Presentation metadata deliberately lives outside canonical game data. It lets
    the final CSS use printed Belt identity and fighter identity without changing
    card records or teaching layout concerns to the game engine. The Combo launch
-   is also presentation-only: it forwards to the existing canonical docket UI. */
+   is also presentation-only: it forwards to the existing canonical docket UI.
+   Fighter flavor is read from the generated canonical catalog and exposed as a
+   data attribute so the living card can display it without duplicating content. */
 function syncFighterPresentationMetadata() {
   rootElement.querySelectorAll<HTMLElement>(".fighter-panel.living-fighter-card").forEach((panel) => {
     const fighterName = panel.querySelector<HTMLElement>(".fighter-dossier-name")?.textContent?.trim();
-    if (fighterName) panel.dataset.fighter = presentationSlug(fighterName);
+    if (fighterName) {
+      panel.dataset.fighter = presentationSlug(fighterName);
+      const heading = panel.querySelector<HTMLElement>(".fighter-card-heading");
+      const flavor = fighterFlavorByName.get(fighterName);
+      if (heading && flavor) heading.dataset.flavor = flavor;
+      else if (heading) delete heading.dataset.flavor;
+    }
 
     ensureComboLauncher(panel);
 
