@@ -1,0 +1,246 @@
+/* Quick Duel critical hotfix -------------------------------------------------
+   This file is linked after the Vite bundle and is intentionally the final
+   browser-level authority for the handful of elements that must never lose a
+   stacking-context fight: top HP HUD, primary action control, and match result.
+
+   Do not add ordinary component styling here. Fix the underlying component CSS
+   elsewhere once these contracts are stable. */
+
+@media (min-width: 1200px) {
+  /* -----------------------------------------------------------------------
+     TOP HUD / HP
+     The previous layout promoted the entire Arena just so its fixed HP children
+     could clear the HUD. That made the board itself cover the HUD/certificate.
+     The Arena must NOT be a stacking context. Only the fixed HP track rises.
+     -------------------------------------------------------------------- */
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live > .playtest-arena,
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .playtest-table,
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-column,
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card,
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy {
+    z-index: auto !important;
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+    contain: none !important;
+    isolation: auto !important;
+  }
+
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live > .playtest-topbar.battle-versus-hud {
+    position: fixed !important;
+    z-index: 2147481000 !important;
+    top: 0 !important;
+    left: var(--live-shell-edge) !important;
+    width: var(--live-content-width) !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    overflow: visible !important;
+    isolation: isolate !important;
+    pointer-events: none !important;
+  }
+
+  html body .playtest-shell.playtest-shell--live .battle-versus-hud::before,
+  html body .playtest-shell.playtest-shell--live .battle-versus-hud::after {
+    position: relative !important;
+    z-index: 0 !important;
+    box-sizing: border-box !important;
+    height: 40px !important;
+    align-self: center !important;
+    overflow: hidden !important;
+    padding: 6px 12px 0 !important;
+    border: 2px solid rgba(255,241,198,.96) !important;
+    border-radius: 8px 16px 7px 14px !important;
+    color: #fff8df !important;
+    background: linear-gradient(180deg, rgba(38,54,44,.995), rgba(17,34,27,.995)) !important;
+    box-shadow: inset 0 0 0 2px rgba(10,20,15,.42), 0 3px 0 rgba(13,9,6,.38) !important;
+  }
+
+  html body .playtest-shell.playtest-shell--live .versus-center {
+    position: relative !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+  }
+
+  /* The HP outer track is exactly one root layer above the HUD frame. */
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-column--player .fighter-hp-track,
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    position: fixed !important;
+    z-index: 2147481001 !important;
+    top: 35px !important;
+    width: calc(var(--live-hud-side-width) - 28px) !important;
+    height: 10px !important;
+    min-height: 10px !important;
+    display: block !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: rgba(116,39,33,.96) !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.62), 0 0 0 1px rgba(255,239,194,.3) !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+  }
+
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-column--player .fighter-hp-track {
+    left: calc(var(--live-shell-edge) + 18px) !important;
+    right: auto !important;
+  }
+
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    right: calc(var(--live-shell-edge) + 18px) !important;
+    left: auto !important;
+  }
+
+  /* Green fill is top-most within the HP component, never behind its own track. */
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-hp-track > i {
+    position: relative !important;
+    z-index: 1 !important;
+    display: block !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    border-radius: inherit !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: linear-gradient(90deg,#62cd7c,#a3de75) !important;
+    box-shadow: inset 0 -1px 0 rgba(18,74,37,.34), inset 0 1px 0 rgba(255,255,255,.26) !important;
+  }
+
+  html body .site-frame .view-stage .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track > i {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    background: linear-gradient(270deg,#62cd7c,#a3de75) !important;
+  }
+
+  /* -----------------------------------------------------------------------
+     PRIMARY ACTION
+     Restore the canonical action dock as a compact contextual control. It is
+     deliberately smaller than the old giant floating shelf, but it must remain
+     reachable during Initiate/Yell/Reaction/Reversal/AI phases.
+     -------------------------------------------------------------------- */
+  body:not(:has(.ascend-desk-backdrop)):not(:has(.match-result)) .site-frame .view-stage .playtest-shell.playtest-shell--live > .playtest-action-dock {
+    position: fixed !important;
+    z-index: 2147481600 !important;
+    right: auto !important;
+    bottom: calc(54px + env(safe-area-inset-bottom)) !important;
+    left: 50% !important;
+    width: min(620px, calc(100vw - 420px)) !important;
+    min-width: 360px !important;
+    max-width: 620px !important;
+    min-height: 52px !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 14px !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    border: 1px solid rgba(239,220,166,.34) !important;
+    border-radius: 11px 4px 12px 5px !important;
+    padding: 6px 7px 6px 14px !important;
+    color: #f6f3e6 !important;
+    background: rgba(11,43,32,.965) !important;
+    box-shadow: 4px 5px 0 rgba(214,165,40,.78), 0 14px 30px rgba(0,0,0,.3) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    transform: translateX(-50%) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  body:not(:has(.ascend-desk-backdrop)):not(:has(.match-result)) .playtest-shell.playtest-shell--live > .playtest-action-dock > div:first-child {
+    min-width: 0 !important;
+    display: block !important;
+  }
+
+  body:not(:has(.ascend-desk-backdrop)):not(:has(.match-result)) .playtest-shell.playtest-shell--live > .playtest-action-dock > div:first-child > span {
+    display: none !important;
+  }
+
+  body:not(:has(.ascend-desk-backdrop)):not(:has(.match-result)) .playtest-shell.playtest-shell--live > .playtest-action-dock > div:first-child > b {
+    display: block !important;
+    overflow: hidden !important;
+    color: #f7f3e7 !important;
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  body:not(:has(.ascend-desk-backdrop)):not(:has(.match-result)) .playtest-shell.playtest-shell--live > .playtest-action-dock button {
+    flex: 0 0 auto !important;
+    min-height: 40px !important;
+    border-radius: 7px 3px 8px 4px !important;
+    padding: 0 14px !important;
+    font-size: 11.5px !important;
+    font-weight: 950 !important;
+  }
+
+  /* -----------------------------------------------------------------------
+     END OF DUEL
+     The certificate is the authoritative game state after a winner exists.
+     Nothing from the live board may remain in front of it.
+     -------------------------------------------------------------------- */
+  body:has(.playtest-shell--live .match-result) .site-frame,
+  body:has(.playtest-shell--live .match-result) .view-stage,
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+    contain: none !important;
+    isolation: auto !important;
+  }
+
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live > :not(.match-result) {
+    z-index: 0 !important;
+  }
+
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live .fighter-hp-track,
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live .playtest-action-dock,
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live .playtest-acquisition-rail,
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live .playtest-utility-dock,
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live .battle-versus-hud {
+    z-index: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live > .match-result,
+  body:has(.playtest-shell--live .match-result) .playtest-shell.playtest-shell--live .match-result {
+    position: fixed !important;
+    z-index: 2147483600 !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+    display: grid !important;
+    place-items: center !important;
+    overflow: auto !important;
+    margin: 0 !important;
+    padding: clamp(18px,3vw,38px) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    background: rgba(10,16,12,.9) !important;
+    backdrop-filter: blur(12px) saturate(.78) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(.78) !important;
+    isolation: isolate !important;
+  }
+
+  body:has(.playtest-shell--live .match-result) .match-result > .victory-certificate {
+    position: relative !important;
+    z-index: 1 !important;
+    max-height: calc(100dvh - 48px) !important;
+    overflow: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  body:has(.playtest-shell--live .match-result) .victory-confetti {
+    z-index: 2147483601 !important;
+  }
+}
