@@ -15,6 +15,7 @@ import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
+import { normalizePendingDamageChoice } from "./playtest-state-recovery";
 
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
 
@@ -1816,7 +1817,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const [match, setMatch] = useState<Match | null>(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
-      return saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;
+      const validSavedMatch = saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;
+      return validSavedMatch ? normalizePendingDamageChoice(validSavedMatch) : null;
     } catch { return null; }
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
@@ -2415,7 +2417,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   }, [match?.phase, match?.turnIndex, match?.winner, settings.autoAi]);
 
   const resolveDefenseState = (current: Match, defenseId: string | null, prevention: { sourceCardId: string; reduce: number; readyAtHideMinBelt: string; readyAtHideMinDamage: number } | null = null, skipOptionalPrompt = false): Match => {
-    if (!current?.pendingStrike || current.phase !== "defense-window") return current;
+    if (current?.pendingChoice?.kind === "prevent-combat-damage") {
+    current = normalizePendingDamageChoice(current);
+  }
+  if (!current?.pendingStrike || current.phase !== "defense-window") return current;
     const pending = current.pendingStrike;
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     const aiCard = cardFor(pending.cardId)!;
