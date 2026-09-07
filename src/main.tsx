@@ -42,6 +42,13 @@ const fighterFlavorByName = new Map(
     .filter((card) => card.cardType === "Character" && card.flavorText)
     .map((card) => [card.name, card.flavorText ?? ""]),
 );
+const comboArtModules = import.meta.glob<string>("../app/assets/cards/combos/*.webp", { eager: true, query: "?url", import: "default" });
+const comboArtByCatalogId = Object.fromEntries(
+  Object.entries(comboArtModules).flatMap(([path, url]) => {
+    const match = path.match(/(ddb-cmb-core-\d{3})_/i);
+    return match ? [[match[1].toUpperCase(), url]] : [];
+  }),
+);
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
@@ -82,7 +89,11 @@ function readPresentationMatch(): PresentationMatch | null {
   }
 }
 
-function waitForElement<T extends Element>(selector: string, attempts = 24): Promise<T | null> {
+function setTextIfChanged(element: Element | null, value: string) {
+  if (element && element.textContent !== value) element.textContent = value;
+}
+
+function waitForElement<T extends Element>(selector: string, attempts = 30): Promise<T | null> {
   return new Promise((resolve) => {
     const check = (remaining: number) => {
       const found = rootElement.querySelector<T>(selector);
@@ -132,12 +143,18 @@ function createTextElement<K extends keyof HTMLElementTagNameMap>(tag: K, classN
   return element;
 }
 
+async function openCanonicalComboStep() {
+  const next = rootElement.querySelector<HTMLButtonElement>(".ascend-next");
+  if (!next) return null;
+  next.click();
+  return waitForElement<HTMLElement>(".ascend-combo");
+}
+
 async function runIntegratedComboDecision(action: "learn" | "pass") {
   if (document.body.dataset.comboBridgeActive === "1") return;
   document.body.dataset.comboBridgeActive = "1";
   try {
-    rootElement.querySelector<HTMLButtonElement>(".ascend-next")?.click();
-    const comboPanel = await waitForElement<HTMLElement>(".ascend-combo");
+    const comboPanel = await openCanonicalComboStep();
     if (!comboPanel) return;
 
     const buttons = Array.from(comboPanel.querySelectorAll<HTMLButtonElement>(".combo-actions button"));
@@ -148,10 +165,21 @@ async function runIntegratedComboDecision(action: "learn" | "pass") {
     target.click();
 
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
-    const next = rootElement.querySelector<HTMLButtonElement>(".ascend-next");
-    if (next) next.click();
+    rootElement.querySelector<HTMLButtonElement>(".ascend-next")?.click();
   } finally {
-    window.setTimeout(() => { delete document.body.dataset.comboBridgeActive; }, 120);
+    window.setTimeout(() => { delete document.body.dataset.comboBridgeActive; }, 140);
+  }
+}
+
+async function continueIntegratedToBelt() {
+  if (document.body.dataset.comboBridgeActive === "1") return;
+  document.body.dataset.comboBridgeActive = "1";
+  try {
+    const comboPanel = await openCanonicalComboStep();
+    if (!comboPanel) return;
+    rootElement.querySelector<HTMLButtonElement>(".ascend-next")?.click();
+  } finally {
+    window.setTimeout(() => { delete document.body.dataset.comboBridgeActive; }, 140);
   }
 }
 
@@ -159,6 +187,10 @@ function buildFeaturedComboPanel(card: PresentationCard, match: PresentationMatc
   const panel = document.createElement("aside");
   panel.className = "ascend-featured-combo";
   panel.dataset.comboId = card.id;
+  const learned = match.player?.learnedCombos?.length ?? 0;
+  const focus = match.player?.focus ?? 0;
+  const attempted = Boolean(match.player?.comboAttemptedTurn);
+  panel.dataset.state = `${card.id}|${focus}|${learned}|${attempted ? 1 : 0}`;
 
   const heading = document.createElement("header");
   const headingCopy = document.createElement("div");
@@ -166,9 +198,21 @@ function buildFeaturedComboPanel(card: PresentationCard, match: PresentationMatc
     createTextElement("span", "eyebrow", "FEATURED COMBO · SAME DECISION DESK"),
     createTextElement("h3", "", card.name),
   );
-  const learned = match.player?.learnedCombos?.length ?? 0;
-  const state = createTextElement("span", "ascend-featured-combo-state", match.player?.comboAttemptedTurn ? "FILED" : `${learned}/2 LEARNED`);
+  const state = createTextElement("span", "ascend-featured-combo-state", attempted ? "FILED" : `${learned}/2 LEARNED`);
   heading.append(headingCopy, state);
+
+  const cardVisual = document.createElement("div");
+  cardVisual.className = "ascend-featured-combo-card";
+  const art = card.catalogId ? comboArtByCatalogId[String(card.catalogId).toUpperCase()] : undefined;
+  if (art) {
+    const image = document.createElement("img");
+    image.src = art;
+    image.alt = card.name;
+    cardVisual.append(image);
+  } else {
+    cardVisual.classList.add("is-fallback");
+    cardVisual.textContent = card.name;
+  }
 
   const metadata = document.createElement("div");
   metadata.className = "ascend-featured-combo-meta";
@@ -190,10 +234,15 @@ function buildFeaturedComboPanel(card: PresentationCard, match: PresentationMatc
 
   const actions = document.createElement("div");
   actions.className = "ascend-featured-combo-actions";
-  if (match.player?.comboAttemptedTurn) {
-    actions.append(createTextElement("strong", "ascend-featured-combo-filed", "Combo decision already filed this Ascend."));
+  if (attempted) {
+    actions.append(createTextElement("strong", "ascend-featured-combo-filed", "Combo decision filed for this Ascend."));
+    const continueButton = document.createElement("button");
+    continueButton.type = "button";
+    continueButton.className = "button primary";
+    continueButton.textContent = "Continue to Belt Check →";
+    continueButton.addEventListener("click", () => { void continueIntegratedToBelt(); });
+    actions.append(continueButton);
   } else {
-    const focus = match.player?.focus ?? 0;
     const cost = Number(card.fpCost ?? 0);
     const learn = document.createElement("button");
     learn.type = "button";
@@ -210,7 +259,7 @@ function buildFeaturedComboPanel(card: PresentationCard, match: PresentationMatc
     actions.append(learn, pass);
   }
 
-  panel.append(heading, metadata, copy, actions);
+  panel.append(heading, cardVisual, metadata, copy, actions);
   return panel;
 }
 
@@ -220,14 +269,15 @@ function syncAscendPresentation() {
   const match = readPresentationMatch();
 
   if (comboPanel && match?.phase === "player-ascend" && document.body.dataset.comboBridgeActive !== "1") {
-    const previous = rootElement.querySelector<HTMLButtonElement>(".ascend-guide-actions > button.button.ghost");
-    if (previous) {
-      previous.click();
-      return;
-    }
+    rootElement.querySelector<HTMLButtonElement>(".ascend-guide-actions > button.button.ghost")?.click();
+    return;
   }
 
-  if (!market || !match) return;
+  if (!market || !match) {
+    rootElement.querySelectorAll<HTMLElement>(".ascend-desk--integrated-acquisition").forEach((desk) => desk.classList.remove("ascend-desk--integrated-acquisition"));
+    return;
+  }
+
   const offer = match.comboOfferId ? presentationCardById.get(match.comboOfferId) : null;
   const existing = market.querySelector<HTMLElement>(".ascend-featured-combo");
   if (!offer) {
@@ -235,47 +285,48 @@ function syncAscendPresentation() {
     return;
   }
 
-  if (!existing || existing.dataset.comboId !== offer.id) {
-    existing?.remove();
+  const learned = match.player?.learnedCombos?.length ?? 0;
+  const focus = match.player?.focus ?? 0;
+  const attempted = Boolean(match.player?.comboAttemptedTurn);
+  const stateKey = `${offer.id}|${focus}|${learned}|${attempted ? 1 : 0}`;
+  if (!existing || existing.dataset.state !== stateKey) {
     const featured = buildFeaturedComboPanel(offer, match);
-    const marketHeader = market.querySelector(":scope > header");
-    if (marketHeader) marketHeader.insertAdjacentElement("afterend", featured);
-    else market.prepend(featured);
-  } else {
-    const fresh = buildFeaturedComboPanel(offer, match);
-    existing.replaceWith(fresh);
+    if (existing) existing.replaceWith(featured);
+    else {
+      const marketHeader = market.querySelector(":scope > header");
+      if (marketHeader) marketHeader.insertAdjacentElement("afterend", featured);
+      else market.prepend(featured);
+    }
   }
 
   const desk = market.closest<HTMLElement>(".ascend-desk");
   if (!desk) return;
   desk.classList.add("ascend-desk--integrated-acquisition");
-  const title = desk.querySelector<HTMLElement>("#ascend-desk-title");
-  if (title) title.textContent = "Acquisition Desk";
-  const help = desk.querySelector<HTMLElement>(".ascend-desk-header p");
-  if (help) help.textContent = "Compare the seven-card Shared Market with the face-up Combo offer, spend Focus once, then check your Belt.";
-  const eyebrow = desk.querySelector<HTMLElement>(".ascend-desk-header .eyebrow");
-  if (eyebrow) eyebrow.textContent = "ASCEND REVIEW · ACQUISITION + COMBO";
+  setTextIfChanged(desk.querySelector("#ascend-desk-title"), "Acquisition Desk");
+  setTextIfChanged(desk.querySelector(".ascend-desk-header p"), "Compare the seven-card Shared Market with the face-up Combo offer, spend Focus once, then check your Belt.");
+  setTextIfChanged(desk.querySelector(".ascend-desk-header .eyebrow"), "ASCEND REVIEW · ACQUISITION + COMBO");
 
   const guideItems = Array.from(desk.querySelectorAll<HTMLElement>(".ascend-guide li"));
   if (guideItems[0]) {
-    guideItems[0].querySelector("span")!.textContent = "ACQUISITION DESK";
-    const small = guideItems[0].querySelector("small");
-    if (small) small.textContent = "Market + Combo";
+    setTextIfChanged(guideItems[0].querySelector("b"), "1");
+    setTextIfChanged(guideItems[0].querySelector("span"), "ACQUISITION DESK");
+    setTextIfChanged(guideItems[0].querySelector("small"), "Market + Combo");
   }
   if (guideItems[2]) {
-    guideItems[2].querySelector("span")!.textContent = "BELT CHECK";
+    setTextIfChanged(guideItems[2].querySelector("b"), "2");
+    setTextIfChanged(guideItems[2].querySelector("span"), "BELT CHECK");
   }
-
-  const next = desk.querySelector<HTMLButtonElement>(".ascend-next");
-  if (next) next.tabIndex = -1;
+  if (guideItems[3]) {
+    setTextIfChanged(guideItems[3].querySelector("b"), "3");
+    setTextIfChanged(guideItems[3].querySelector("span"), "HIDE");
+  }
 }
 
 /* Presentation metadata deliberately lives outside canonical game data. It lets
    the final CSS use printed Belt identity and fighter identity without changing
-   card records or teaching layout concerns to the game engine. The Combo launch
-   is presentation-only: it forwards to the canonical docket UI. Ascend's visual
-   acquisition desk also forwards to the existing Learn/Pass handlers instead of
-   duplicating Combo rules in the presentation layer. */
+   card records or teaching layout concerns to the game engine. Ascend's visual
+   acquisition desk forwards to the existing canonical Combo Learn/Pass handlers
+   instead of duplicating Combo rules in the presentation layer. */
 function syncPresentationMetadata() {
   rootElement.querySelectorAll<HTMLElement>(".fighter-panel.living-fighter-card").forEach((panel) => {
     const fighterName = panel.querySelector<HTMLElement>(".fighter-dossier-name")?.textContent?.trim();
