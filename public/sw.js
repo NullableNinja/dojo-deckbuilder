@@ -1,4 +1,5 @@
-const CACHE_NAME = "dojo-deckbuilder-companion-v2";
+const CACHE_NAME = "dojo-deckbuilder-companion-v3";
+const CACHE_PREFIX = "dojo-deckbuilder-companion-";
 const scopeUrl = new URL(self.registration.scope);
 const scoped = (path) => new URL(path, scopeUrl).toString();
 const PRECACHE = [scoped("./"), scoped("favicon.svg")];
@@ -14,7 +15,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key.startsWith("dojo-deckbuilder-companion-") && key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
 });
@@ -25,6 +26,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !url.pathname.startsWith(scopeUrl.pathname)) return;
   if (url.pathname.endsWith("/build.json") || url.pathname.endsWith("/rules-manifest.json")) return;
+
+  // Vite bundles are content-addressed by filename. Never let our runtime cache
+  // serve an older JS/CSS chunk into a newer React application tree.
+  const isBundledAsset = url.pathname.startsWith(`${scopeUrl.pathname}assets/`);
+  if (isBundledAsset) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   if (request.mode === "navigate") {
     event.respondWith(

@@ -39,7 +39,16 @@ if (currentBuild && currentBuild !== "__DDB_BUILD__") {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
+    let refreshingForWorker = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshingForWorker) return;
+      refreshingForWorker = true;
+      window.location.reload();
+    });
+
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: "none" })
+      .then((registration) => registration.update())
+      .catch(() => undefined);
   }, { once: true });
 }
 
