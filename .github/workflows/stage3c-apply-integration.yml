@@ -20,4 +20,4 @@ jobs:
           fetch-depth: 0
 
       - name: Run Stage 3C finalizer
-        run: bash scripts/stage3c-finalize.sh
+        run: bash scripts/stage3c-finalize2.sh
