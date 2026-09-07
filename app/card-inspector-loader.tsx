@@ -19,7 +19,9 @@ export default function CardInspectorLoader() {
     const sync = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        setActive(Boolean(document.querySelector(".card-modal")));
+        const nextActive = Boolean(document.querySelector(".card-modal"));
+        document.body.classList.toggle("ddb-card-inspector-active", nextActive);
+        setActive(nextActive);
       });
     };
 
@@ -30,6 +32,7 @@ export default function CardInspectorLoader() {
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      document.body.classList.remove("ddb-card-inspector-active");
     };
   }, []);
 
