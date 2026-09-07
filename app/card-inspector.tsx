@@ -1,9 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
-import cardsJson from "./data/cards.json";
 import cardEffectsJson from "./data/card-effects.json";
 
 type CardEntry = {
@@ -62,16 +59,6 @@ type CardEffectRegistry = {
   cards?: Record<string, CardEffectEntry>;
 };
 
-type LegacyModalState = {
-  catalogId: string | null;
-  saved: boolean;
-  positionLabel: string;
-  previousName: string;
-  nextName: string;
-  previousDisabled: boolean;
-  nextDisabled: boolean;
-};
-
 export type CardInspectorProps = {
   card: CardEntry;
   imageUrl: string;
@@ -89,24 +76,7 @@ export type CardInspectorProps = {
   onClose: () => void;
 };
 
-const cardData = cardsJson as unknown as { cards: CardEntry[] };
 const effectRegistry = cardEffectsJson as unknown as CardEffectRegistry;
-const cardsByCatalogId = new Map(cardData.cards.map((card) => [card.catalogId.toUpperCase(), card]));
-
-const cardAssetModules = import.meta.glob<string>("./assets/cards/**/*.webp", {
-  eager: true,
-  query: "?url",
-  import: "default",
-});
-const CARD_ASSET_URLS = Object.fromEntries(
-  Object.entries(cardAssetModules).map(([path, url]) => [path.replace(/^\.\/assets/, ""), url]),
-);
-const COMPLETE_CARD_URLS_BY_CATALOG_ID = Object.fromEntries(
-  Object.entries(CARD_ASSET_URLS).flatMap(([path, url]) => {
-    const match = path.match(/\/(ddb-[a-z]+-core-\d{3})_/i);
-    return match ? [[match[1].toUpperCase(), url]] : [];
-  }),
-);
 
 const TRIGGER_LABELS: Record<string, string> = {
   passive: "Always active",
@@ -126,6 +96,7 @@ const TRIGGER_LABELS: Record<string, string> = {
   onAscend: "During Ascend",
   onHide: "During Hide",
 };
+
 const TARGET_LABELS: Record<string, string> = {
   source: "This card",
   self: "Your fighter",
@@ -136,6 +107,7 @@ const TARGET_LABELS: Record<string, string> = {
   "active-fighter": "Active fighter",
   "opposing-fighter": "Opposing fighter",
 };
+
 const DURATION_LABELS: Record<string, string> = {
   immediate: "Immediate",
   endOfTurn: "Until end of turn",
@@ -145,6 +117,7 @@ const DURATION_LABELS: Record<string, string> = {
   whileEquipped: "While equipped",
   permanent: "Permanent",
 };
+
 const ACTION_LABELS: Record<string, string> = {
   chooseZone: "Choose zone",
   modifyAttackPower: "Attack Power",
@@ -224,43 +197,7 @@ const conditionLabel = (condition: StructuredCondition) => {
 const triggerLabel = (trigger?: string) => trigger ? TRIGGER_LABELS[trigger] ?? sentenceCase(trigger) : "Effect";
 const targetLabel = (target?: string) => target ? TARGET_LABELS[target] ?? sentenceCase(target) : "—";
 const durationLabel = (duration?: string) => duration ? DURATION_LABELS[duration] ?? sentenceCase(duration) : "Immediate";
-
 const valueLabel = (value: string | number | null | undefined) => value === null || value === undefined || value === "" ? "—" : String(value);
-
-const cardImageUrl = (card: CardEntry) => {
-  const complete = COMPLETE_CARD_URLS_BY_CATALOG_ID[card.catalogId.toUpperCase()];
-  if (complete) return complete;
-  if (card.image) return CARD_ASSET_URLS[card.image] ?? card.image;
-  return cardPlaceholderUrl;
-};
-
-const readLegacyModalState = (): LegacyModalState => {
-  const legacyModal = document.querySelector<HTMLElement>(".card-modal");
-  if (!legacyModal) return { catalogId: null, saved: false, positionLabel: "", previousName: "", nextName: "", previousDisabled: true, nextDisabled: true };
-  const eyebrow = legacyModal.querySelector<HTMLElement>(".modal-heading .eyebrow")?.textContent ?? "";
-  const catalogId = eyebrow.split("·")[0]?.trim().toUpperCase() || null;
-  const binder = legacyModal.querySelector<HTMLButtonElement>(".binder-toggle--modal");
-  const navButtons = legacyModal.querySelectorAll<HTMLButtonElement>(".card-modal-nav > button");
-  return {
-    catalogId,
-    saved: binder?.getAttribute("aria-pressed") === "true",
-    positionLabel: legacyModal.querySelector<HTMLElement>(".card-modal-position")?.textContent?.trim() ?? "",
-    previousName: navButtons[0]?.querySelector("strong")?.textContent?.trim() ?? "",
-    nextName: navButtons[1]?.querySelector("strong")?.textContent?.trim() ?? "",
-    previousDisabled: navButtons[0]?.disabled ?? true,
-    nextDisabled: navButtons[1]?.disabled ?? true,
-  };
-};
-
-const clickLegacyModalControl = (kind: "previous" | "next" | "binder" | "close") => {
-  const legacyModal = document.querySelector<HTMLElement>(".card-modal");
-  if (!legacyModal) return;
-  if (kind === "binder") return void legacyModal.querySelector<HTMLButtonElement>(".binder-toggle--modal")?.click();
-  if (kind === "close") return void legacyModal.querySelector<HTMLButtonElement>(".modal-close")?.click();
-  const buttons = legacyModal.querySelectorAll<HTMLButtonElement>(".card-modal-nav > button");
-  const button = kind === "previous" ? buttons[0] : buttons[1];
-  if (button && !button.disabled) button.click();
-};
 
 function StructuredEffectBreakdown({ entry, revision }: { entry?: CardEffectEntry; revision?: string }) {
   const effects = entry?.effects ?? [];
@@ -313,7 +250,6 @@ export function CardInspector({
   onNext,
   onClose,
 }: CardInspectorProps) {
-  const dialogRef = useRef<HTMLElement>(null);
   const resolvedEffectEntry = effectEntry ?? effectRegistry.cards?.[card.catalogId];
   const resolvedEffectRevision = effectRevision ?? effectRegistry.rulesRevision ?? effectRegistry.rulesVersion;
   const statPairs = Object.entries(card.stats ?? {});
@@ -325,17 +261,8 @@ export function CardInspector({
     card.timing ? ["Timing", card.timing] : null,
   ].filter((entry): entry is string[] => Boolean(entry));
 
-  useEffect(() => {
-    dialogRef.current?.focus({ preventScroll: true });
-  }, [card.catalogId]);
-
-  useEffect(() => {
-    document.body.classList.add("ddb-card-inspector-active");
-    return () => document.body.classList.remove("ddb-card-inspector-active");
-  }, []);
-
   return createPortal(<div className="universal-card-inspector-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <article ref={dialogRef} className="universal-card-inspector" role="dialog" aria-modal="true" aria-labelledby="universal-card-inspector-title" tabIndex={-1}>
+    <article className="universal-card-inspector" role="dialog" aria-modal="true" aria-labelledby="universal-card-inspector-title" tabIndex={-1}>
       <button className="card-inspector-close" type="button" onClick={onClose} aria-label="Close card inspector">×</button>
       <nav className="card-inspector-nav" aria-label="Browse cards">
         <button type="button" onClick={onPrevious} disabled={previousDisabled} aria-label={previousDisabled ? "No previous card" : `Previous card: ${previousName}`}><span aria-hidden="true">←</span><span><small>Previous</small><b>{previousDisabled ? "First card" : previousName}</b></span></button>
@@ -367,7 +294,6 @@ export function CardInspector({
           </section>}
 
           {card.rulesText && <aside className="card-inspector-rules"><span>Printed rules text</span><p>{card.rulesText}</p></aside>}
-
           <StructuredEffectBreakdown entry={resolvedEffectEntry} revision={resolvedEffectRevision} />
 
           {(card.tags.length > 0 || card.buildPaths.length > 0) && <section className="card-inspector-taxonomy">
@@ -382,48 +308,11 @@ export function CardInspector({
   </div>, document.body);
 }
 
-export default function CardInspectorBridge() {
-  const [legacyState, setLegacyState] = useState<LegacyModalState>(() => typeof document === "undefined" ? { catalogId: null, saved: false, positionLabel: "", previousName: "", nextName: "", previousDisabled: true, nextDisabled: true } : readLegacyModalState());
-
-  useEffect(() => {
-    let frame = 0;
-    const sync = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const next = readLegacyModalState();
-        setLegacyState((current) => JSON.stringify(current) === JSON.stringify(next) ? current : next);
-      });
-    };
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); };
-  }, []);
-
-  const card = legacyState.catalogId ? cardsByCatalogId.get(legacyState.catalogId) ?? null : null;
-  const effectEntry = card ? effectRegistry.cards?.[card.catalogId] : undefined;
-  const imageUrl = useMemo(() => card ? cardImageUrl(card) : cardPlaceholderUrl, [card]);
-
-  useEffect(() => {
-    document.body.classList.toggle("ddb-card-inspector-active", Boolean(card));
-    return () => document.body.classList.remove("ddb-card-inspector-active");
-  }, [card]);
-
-  if (!card) return null;
-  return <CardInspector
-    card={card}
-    imageUrl={imageUrl}
-    effectEntry={effectEntry}
-    effectRevision={effectRegistry.rulesRevision ?? effectRegistry.rulesVersion}
-    saved={legacyState.saved}
-    positionLabel={legacyState.positionLabel}
-    previousName={legacyState.previousName}
-    nextName={legacyState.nextName}
-    previousDisabled={legacyState.previousDisabled}
-    nextDisabled={legacyState.nextDisabled}
-    onToggleSaved={() => clickLegacyModalControl("binder")}
-    onPrevious={() => clickLegacyModalControl("previous")}
-    onNext={() => clickLegacyModalControl("next")}
-    onClose={() => clickLegacyModalControl("close")}
-  />;
+/**
+ * Kept only so the obsolete compatibility loader still type-checks if it is
+ * referenced by an old build. Current Library and Quick Duel surfaces mount
+ * CardInspector directly and do not use this bridge.
+ */
+export default function DeprecatedCardInspectorBridge() {
+  return null;
 }
