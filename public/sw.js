@@ -1,4 +1,4 @@
-const CACHE_NAME = "dojo-deckbuilder-companion-v1";
+const CACHE_NAME = "dojo-deckbuilder-companion-v2";
 const scopeUrl = new URL(self.registration.scope);
 const scoped = (path) => new URL(path, scopeUrl).toString();
 const PRECACHE = [scoped("./"), scoped("favicon.svg")];
@@ -30,7 +30,14 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(scoped("./"), response.clone()));
+          if (response.ok) {
+            const cachedResponse = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME)
+                .then((cache) => cache.put(scoped("./"), cachedResponse))
+                .catch(() => undefined),
+            );
+          }
           return response;
         })
         .catch(() => caches.match(scoped("./"))),
@@ -40,11 +47,31 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(request).then((cached) => {
-      const network = fetch(request).then((response) => {
-        if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
-        return response;
-      }).catch(() => cached);
-      return cached || network;
+      if (cached) {
+        event.waitUntil(
+          fetch(request)
+            .then((response) => {
+              if (!response.ok) return;
+              const cachedResponse = response.clone();
+              return caches.open(CACHE_NAME).then((cache) => cache.put(request, cachedResponse));
+            })
+            .catch(() => undefined),
+        );
+        return cached;
+      }
+
+      return fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const cachedResponse = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME)
+                .then((cache) => cache.put(request, cachedResponse))
+                .catch(() => undefined),
+            );
+          }
+          return response;
+        });
     }),
   );
 });
