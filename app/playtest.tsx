@@ -1124,11 +1124,19 @@ function stage3cTakeDamagePrevention(board: Board, damage: number) {
 
 function stage3cCurrentDefensePrevention(defense: CardEntry | null | undefined, context: DefenseRuntimeContext) {
   if (!defense || !isCoreDefenseCard(defense)) return 0;
-  return defenseRuntimeCommands(defense, "afterResolve", context).filter((command) => command.effect === "combat.preventDamage" && !command.choice).reduce((total, command) => total + Math.max(0, command.amount), 0);
+  return (["onDefenseDeclared", "afterResolve"] as RuntimeTrigger[]).flatMap((trigger) => defenseRuntimeCommands(defense, trigger, context)).filter((command) => command.effect === "combat.preventDamage" && !command.choice).reduce((total, command) => total + Math.max(0, command.amount), 0);
 }
 
 function stage3cConsumePurchase(board: Board) {
   return expireStage3C(board, "nextPurchase");
+}
+
+function stage3cConsumeKata(board: Board) {
+  const statuses = (board.stage3cStatuses ?? []).filter((status) => status.duration === "nextKata");
+  let next = board;
+  for (const status of statuses) if (status.effect === "core.gainFocus" || status.resolver === "consumable.nextKataFocusBonus" || status.resolver === "defense.nextKataFocus") next = gainFocus(next, status.amount);
+  const ids = new Set(statuses.map((status) => status.sourceEffectId));
+  return { ...next, stage3cStatuses: (next.stage3cStatuses ?? []).filter((status) => !ids.has(status.sourceEffectId)) };
 }
 
 function returnResolvedConsumable(board: Board, card: CardEntry) {
@@ -1436,8 +1444,8 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   return next;
 }
 
-function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier) {
-  if (board.nextAttackHasFlow || combo.grantsFlow || stage3cAttackFlow(board, card, card.zone?.split(",")[0] ?? "High", Boolean(board.currentAttackIsReversal))) return true;
+function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {
+  if (board.nextAttackHasFlow || combo.grantsFlow || stage3cAttackFlow(board, card, zone, isReversal)) return true;
   const hasWeaponEquipped = board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
   const structuredFlow = structuredCurrentAttackFlow(card, { hasWeaponEquipped });
   if (structuredFlow.handled) return structuredFlow.hasFlow;
@@ -1464,7 +1472,7 @@ function bestDefense(board: Board, zone: string, attackPower = Number.POSITIVE_I
     const modifier = locationDefenseModifier(location, card, board, zone).value;
     const printed = incomingAttack && attacker ? defenseCardRuleModifier(board, attacker, card, incomingAttack).value : 0;
     const suppression = attacker ? equipmentSuppressionForZone(attacker, board, zone) : 0;
-    return { id, total: fighterStat(board, "DEF") + piercedArmorModifier(applyNextAttackArmorPenalty(equipmentDefenseModifier(board, zone), armorPenalty + suppression), piercing).value + cardPower(card) + (board.nextDefenseCardBonus ?? 0) + printed + modifier };
+    return { id, total: fighterStat(board, "DEF") + piercedArmorModifier(applyNextAttackArmorPenalty(equipmentDefenseModifier(board, zone), armorPenalty + suppression), piercing).value + cardPower(card) + (board.nextDefenseCardBonus ?? 0) + stage3cDefenseStatusBonus(board, card) + printed + modifier };
   }).sort((left, right) => left.total - right.total);
   const efficientBlock = ranked.find((entry) => entry.total >= attackPower);
   if (efficientBlock) return efficientBlock.id;
@@ -1494,7 +1502,12 @@ function aiAttackScore(card: CardEntry, attacker: Board, defender: Board, locati
 }
 
 function playAreaCleanup(board: Board) {
-  const readyBoard = stage3cEndTurn(applyHideReady(board));
+  let hideBoard = board;
+  for (const id of board.playArea) {
+    const sourceCard = cardFor(id);
+    if (sourceCard && isCoreConsumableCard(sourceCard)) hideBoard = applyStage3CTiming(hideBoard, sourceCard, "onHide", "ai", stage3cConsumableContext(hideBoard), "self");
+  }
+  const readyBoard = stage3cEndTurn(applyHideReady(hideBoard));
   const borrowed = readyBoard.borrowedEquipmentId;
   const equipment = borrowed ? readyBoard.equipment.filter((id) => id !== borrowed) : readyBoard.equipment;
   const exhaustedEquipment = borrowed ? (readyBoard.exhaustedEquipment ?? []).filter((id) => id !== borrowed) : (readyBoard.exhaustedEquipment ?? []);
@@ -1837,6 +1850,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const chooseAttack = (card: CardEntry) => setMatch((current) => {
     if (!current) return current;
+    if ((current.player.stage3cRestrictions ?? []).includes("attack")) return current;
     if (current.player.attackLockedThisTurn && current.player.attacksThisTurn > 0) return current;
     if (current.attackCostDecisionCardId && current.attackCostDecisionCardId !== card.id) return current;
     const zones = attackAllowedZones(current.player, card);
@@ -2019,8 +2033,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const penalizedArmorModifier = applyNextAttackArmorPenalty(rawArmorModifier, armorPenalty + persistentSuppression);
     const piercingModifier = attackPiercingModifier(current.player, aiIncomingReaction.board, card, zone, comboModifier.piercing + armedEquipment.piercing);
     const armorModifier = piercedArmorModifier(penalizedArmorModifier, piercingModifier.value);
-    const hasFlow = attackHasFlow(current.player, card, comboModifier);
-    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
+    const hasFlow = attackHasFlow(current.player, card, comboModifier, zone);
+    const stage3cAttackBonus = stage3cAttackPowerBonus(current.player, card, zone);
+    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
     const defenseScenarioPower = afterDefenseAttackPowerBonus(card, true);
     const defenseId = bestDefense(aiIncomingReaction.board, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value, armorPenalty);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
@@ -2029,13 +2044,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const aiDefenseReaction = defenseCard ? autoActivateAiDefenseGuardEquipment(aiIncomingReaction.board) : { board: aiIncomingReaction.board, guard: 0, notes: [] as string[] };
     const defenseModifier = locationDefenseModifier(location, defenseCard, aiDefenseReaction.board, zone);
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(aiDefenseReaction.board, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
-    const defensePower = Math.max(0, fighterStat(aiDefenseReaction.board, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) + (aiDefenseReaction.board.nextDefenseCardBonus ?? 0) + aiDefenseReaction.guard : 0) + defenseCardModifier.value + defenseModifier.value);
+    const defensePower = Math.max(0, fighterStat(aiDefenseReaction.board, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) + (aiDefenseReaction.board.nextDefenseCardBonus ?? 0) + stage3cDefenseStatusBonus(aiDefenseReaction.board, defenseCard) + aiDefenseReaction.guard : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
     const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
     const reduced = reduceDamageForFighter(aiDefenseReaction.board, rawDamage);
     const optionalReduced = applyOptionalCombatDamageReductionAi(reduced.board, reduced.damage);
     const damage = optionalReduced.damage;
-    const attackState = { ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage, lastAttackHit: hit, currentAttackIsReversal: false, attackLockedThisTurn: current.player.attackLockedThisTurn || finalAttackOnlyAttackLock(card, current.player.attacksThisTurn === 0) };
+    const attackState = { ...stage3cConsumeAttackStatuses(current.player, card, zone), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage, lastAttackHit: hit, currentAttackIsReversal: false, attackLockedThisTurn: current.player.attackLockedThisTurn || finalAttackOnlyAttackLock(card, current.player.attacksThisTurn === 0) };
     const completesActiveBeltExam = !beltTaskMet(current.player) && beltTaskMet(attackState);
     let nextPlayer = applyCardEffects({ ...attackState, completesActiveBeltExamThisAttack: completesActiveBeltExam }, card, "player");
     const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
@@ -2068,12 +2083,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const cycleDiscardCount = nextAi.hp ? Math.min(conditionalCycle.discard, nextPlayer.hand.length) : 0;
     let defenseFollowupNotes: string[] = [];
     if (defenseCard) {
-      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onPlay");
+      const familyDefenseContext = stage3cDefenseContext(nextAi, current.player, defenseCard, card, zone, attackPower, rawDamage, !hit);
+      nextAi = stage3cConsumeDefenseStatuses(nextAi);
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onPlay", familyDefenseContext);
       const followup = applyAfterDefenseEquipment(nextAi);
       nextAi = followup.board;
       defenseFollowupNotes = followup.notes;
-      if (!hit) nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onBlock");
-      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve");
+      if (!hit) {
+        nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onBlock", familyDefenseContext);
+        nextPlayer = applyStage3CTiming(nextPlayer, defenseCard, "onBlock", "player", familyDefenseContext, "opponent");
+      }
+      nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve", familyDefenseContext);
+      nextPlayer = applyStage3CTiming(nextPlayer, defenseCard, "afterResolve", "player", familyDefenseContext, "opponent");
     }
     const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
@@ -2107,8 +2128,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice) return current;
     const card = cardFor(id);
     if (!card || isAttack(card) || isDefense(card) || isPermanent(card)) return current;
+    if (isCoreConsumableCard(card) && (current.player.stage3cRestrictions ?? []).includes("consumable")) return current;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, current.player);
-    let nextPlayer = markCompletedTask(applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value, lastAttackHit: false }, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(current.player) : {}));
+    let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;
+    let nextPlayer = markCompletedTask(applyCardEffects({ ...supportBoard, hand: removeOne(supportBoard.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value, lastAttackHit: false }, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(current.player) : {}));
     if (isCoreConsumableCard(card)) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", stage3cConsumableContext(nextPlayer));
     const playerFastestFocus = structuredFocusIfFastest(card, fighterStat(nextPlayer, "Speed"), fighterStat(current.ai, "Speed"));
     if (playerFastestFocus) nextPlayer = { ...nextPlayer, focus: nextPlayer.focus + playerFastestFocus };
@@ -2364,9 +2387,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const locationModifier = locationDefenseModifier(cardFor(current.locationId), defenseCard, nextPlayer, pending.zone);
     if (defenseCard) {
       tempoBonus = settings.tempo && nextPlayer.tempo && fighterStat(nextPlayer, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
-      defensePower += cardPower(defenseCard) + (nextPlayer.nextDefenseCardBonus ?? 0) + (nextPlayer.equipmentDefenseGuard ?? 0) + defenseCardModifier.value + tempoBonus + locationModifier.value;
-      nextPlayer = markCompletedTask({ ...nextPlayer, hand: removeOne(nextPlayer.hand, defenseCard.id), discard: [...nextPlayer.discard, defenseCard.id], xp: nextPlayer.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, nextDefenseCardBonus: 0, tempo: tempoBonus ? false : nextPlayer.tempo });
-      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onPlay");
+      defensePower += cardPower(defenseCard) + (nextPlayer.nextDefenseCardBonus ?? 0) + stage3cDefenseStatusBonus(nextPlayer, defenseCard) + (nextPlayer.equipmentDefenseGuard ?? 0) + defenseCardModifier.value + tempoBonus + locationModifier.value;
+      const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, pending.attackPower);
+      nextPlayer = stage3cConsumeDefenseStatuses(markCompletedTask({ ...nextPlayer, hand: removeOne(nextPlayer.hand, defenseCard.id), discard: [...nextPlayer.discard, defenseCard.id], xp: nextPlayer.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, nextDefenseCardBonus: 0, tempo: tempoBonus ? false : nextPlayer.tempo }));
+      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onPlay", familyDefenseContext);
       const followup = applyAfterDefenseEquipment(nextPlayer);
       nextPlayer = followup.board;
     }
@@ -2376,7 +2400,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!hit) nextPlayer = { ...nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true };
     const reversalEquipmentBonus = !hit && defenseCard ? (nextPlayer.pendingReversalBonusOnBlock ?? 0) : 0;
     const rawDamage = hit ? Math.max(0, finalAttackPower - defensePower + (pending.damageModifier ?? 0)) : 0;
-    const reduced = reduceDamageForFighter(nextPlayer, rawDamage);
+    const failedBlockContext = defenseCard ? stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, finalAttackPower, rawDamage, !hit) : {};
+    const defensePrevention = hit && defenseCard ? stage3cCurrentDefensePrevention(defenseCard, failedBlockContext) : 0;
+    const reduced = reduceDamageForFighter(nextPlayer, Math.max(0, rawDamage - defensePrevention));
     const damageBeforeOptional = reduced.damage;
     const optionalReduction = !skipOptionalPrompt && damageBeforeOptional > 0 ? optionalCombatDamagePlan(current.player) : null;
     if (optionalReduction) {
@@ -2424,10 +2450,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     let blockDiscardChoice = 0;
     if (defenseCard) {
       if (!hit) {
-        nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onBlock");
+        const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, finalAttackPower, rawDamage, true);
+        nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onBlock", familyDefenseContext);
+        nextAi = applyStage3CTiming(nextAi, defenseCard, "onBlock", "ai", familyDefenseContext, "opponent");
         blockDiscardChoice = playerDiscardChoiceCount(defenseCard, "onBlock");
       }
-      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve");
+      const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, finalAttackPower, rawDamage, !hit);
+      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve", familyDefenseContext);
+      nextAi = applyStage3CTiming(nextAi, defenseCard, "afterResolve", "ai", familyDefenseContext, "opponent");
     }
     const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
     const lastExchange: PlaytestCombatExchange = {
@@ -2521,7 +2551,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const rawArmorModifier = equipmentDefenseModifier(current.ai, zone);
     const piercingModifier = attackPiercingModifier(current.player, current.ai, card, zone, comboModifier.piercing);
     const armorModifier = piercedArmorModifier(rawArmorModifier, piercingModifier.value);
-    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + (current.player.reversalAttackBonus ?? 0) + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power);
+    const stage3cReversalBonus = stage3cAttackPowerBonus(current.player, card, zone, true);
+    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cReversalBonus + (current.player.reversalAttackBonus ?? 0) + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power);
     const defenseScenarioPower = afterDefenseAttackPowerBonus(card, true);
     const defenseId = bestDefense(current.ai, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
@@ -2529,13 +2560,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const attackPower = Math.max(0, baseAttackPower + postDefensePower.amount);
     const defenseModifier = locationDefenseModifier(location, defenseCard, current.ai, zone);
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(current.ai, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
-    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) + (current.ai.nextDefenseCardBonus ?? 0) : 0) + defenseCardModifier.value + defenseModifier.value);
+    const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + (defenseCard ? cardPower(defenseCard) + (current.ai.nextDefenseCardBonus ?? 0) + stage3cDefenseStatusBonus(current.ai, defenseCard) : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
     const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
     const reduced = reduceDamageForFighter(current.ai, rawDamage);
     const optionalReduced = applyOptionalCombatDamageReductionAi(reduced.board, reduced.damage);
     const damage = optionalReduced.damage;
-    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], nextAttackAnyZone: false, reversalUsedRound: true, reversalAttackBonus: 0, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
+    let nextPlayer = applyCardEffects({ ...stage3cConsumeAttackStatuses(current.player, card, zone, true), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], nextAttackAnyZone: false, reversalUsedRound: true, reversalAttackBonus: 0, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
     nextPlayer.focus = Math.max(0, nextPlayer.focus - cardFocus(card));
     if (hit && comboModifier.focusOnHit) nextPlayer = gainFocus(nextPlayer, comboModifier.focusOnHit);
     if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
@@ -2878,9 +2909,11 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   const comboModifier = comboAttackModifier(current.ai, card, zone);
   const activeEquipment = autoActivateAiAttackEquipment(current.ai, zone);
   const piercingModifier = attackPiercingModifier(activeEquipment.board, current.player, card, zone, comboModifier.piercing + activeEquipment.piercing);
-  const hasFlow = attackHasFlow(activeEquipment.board, card, comboModifier);
-  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + activeEquipment.power);
-  let nextAi = applyCardEffects({ ...activeEquipment.board, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0 }, card, "ai");
+  const hasFlow = attackHasFlow(activeEquipment.board, card, comboModifier, zone);
+  const stage3cAttackBonus = stage3cAttackPowerBonus(activeEquipment.board, card, zone);
+  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + activeEquipment.power);
+  const consumedAttackBoard = stage3cConsumeAttackStatuses(activeEquipment.board, card, zone);
+  let nextAi = applyCardEffects({ ...consumedAttackBoard, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0 }, card, "ai");
   const flowDraw = hasFlow && !current.ai.flowUsedThisTurn;
   if (flowDraw) nextAi = drawCards({ ...nextAi, flowUsedThisTurn: true }, 1);
   if (current.ai.flowAfterFirstAttack && current.ai.attacksThisTurn === 0) nextAi = { ...nextAi, flowAfterFirstAttack: false, nextAttackHasFlow: true };
@@ -2975,6 +3008,7 @@ function prepareAiTurn(current: Match) {
     const card = cardFor(id);
     if (!card) continue;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, nextAi);
+    if (isKata(card)) nextAi = stage3cConsumeKata(nextAi);
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
     if (isCoreConsumableCard(card)) {
       nextAi = applyCardEffects(nextAi, card, "ai", "afterResolve", stage3cConsumableContext(nextAi));

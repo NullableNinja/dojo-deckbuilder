@@ -165,6 +165,7 @@ function qualifyDefenseCommand(catalogId: string, effect: StructuredRuntimeEffec
   if (!resolver) return command;
 
   if (effect.effect === "core.choice" || [
+    "defense.discardChoice",
     "defense.equipmentChoice",
     "defense.optionalDiscardDraw",
     "defense.forceNextAttackZone",

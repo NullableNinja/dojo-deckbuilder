@@ -184,11 +184,15 @@ test("Double Forearm Guard respects the incoming Attack Power threshold", () => 
   assert.equal(structuredDefenseGuardBonus(guard, { incomingAttackPower: 8 }).amount, 1);
 });
 
-test("Defense on-Block draw/discard changes gameplay state", () => {
+test("Defense on-Block draw applies immediately and explicit discard queues the choice", () => {
   const accordion = card("DDB-DEF-CORE-001");
   const state = applyDefenseRuntime(createFamilyRuntimeState(), accordion, "onBlock", { ...defenseBaseContext, blockSucceeded: true });
   assert.equal(state.self.draw, 1);
-  assert.equal(state.self.discard, 1);
+  assert.equal(state.self.discard, 0);
+  assert.ok(state.pendingChoices.some((choice) =>
+    choice.resolver === "defense.discardChoice"
+    && choice.sourceEffectId === "defense-accordion-folder-block-discard"
+  ));
 });
 
 test("next-round Defense effects arm without leaking into the current round", () => {
@@ -265,4 +269,74 @@ test("human and AI family execution share the same structured state semantics", 
   const humanConsumable = applyConsumableRuntime(createFamilyRuntimeState(), consumableCard, "onPlay", consumableBaseContext);
   const aiConsumable = applyConsumableRuntime(createFamilyRuntimeState(), consumableCard, "onPlay", consumableBaseContext);
   assert.deepEqual(aiConsumable, humanConsumable);
+});
+
+
+test("all explicit Defense choice resolvers queue a structured runtime choice", () => {
+  const choiceResolvers = new Set([
+    "defense.discardChoice",
+    "defense.equipmentChoice",
+    "defense.optionalDiscardDraw",
+    "defense.forceNextAttackZone",
+    "defense.blockChoice",
+    "defense.deckLookChoice",
+    "defense.stepBackCycle",
+  ]);
+  const failures = [];
+  for (const [catalogId, entry] of Object.entries(defenses)) {
+    for (const effect of entry.effects ?? []) {
+      if (!choiceResolvers.has(effect.resolver) && effect.effect !== "core.choice") continue;
+      const context = { ...defenseBaseContext, ...conditionContext(effect) };
+      const commands = defenseRuntimeCommands(card(catalogId), effect.trigger, context)
+        .filter((command) => command.sourceEffectId === effect.id);
+      if (!commands.some((command) => command.choice)) failures.push(`${catalogId}:${effect.id}:choice-not-queued`);
+      const state = applyDefenseRuntime(createFamilyRuntimeState(), card(catalogId), effect.trigger, context);
+      if (!state.pendingChoices.some((choice) => choice.sourceEffectId === effect.id)) failures.push(`${catalogId}:${effect.id}:choice-not-in-state`);
+    }
+  }
+  assert.deepEqual(failures, []);
+});
+
+test("every Consumable explicit-choice resolver queues at least one structured choice contract", () => {
+  const choiceResolvers = new Set([
+    "consumable.cancelReaction",
+    "consumable.chooseOpponentNextAttackPenalty",
+    "consumable.chooseFriendlyHealTarget",
+    "consumable.chooseOpponentDiscardReactionIfAble",
+    "consumable.optionalExhaustToCycle",
+    "consumable.raffleTicket",
+    "consumable.replaceDisarmWithSelfDestroy",
+    "consumable.zoneSpecificIncomingAttackPenalty",
+    "consumable.reorderTopThree",
+    "consumable.destroyJunkThenDrawTwo",
+    "consumable.healByChosenFriendlyPosition",
+    "consumable.destroyJunkFromHand",
+    "consumable.ascendPurchaseDiscount",
+    "consumable.removeTemporaryNegativeStatModifier",
+    "consumable.discardUpToForFocus",
+    "consumable.replaceRevealedMarketOrLocation",
+    "consumable.suppressChosenWeaponClause",
+    "consumable.exhaustEquipmentForFocus",
+    "consumable.optionalDestroyJunkFromHand",
+    "consumable.healAndRemoveStatus",
+    "consumable.topThreeAttackSelection",
+    "consumable.chooseOpponentSpeedPenalty",
+  ]);
+  const failures = [];
+  for (const resolver of choiceResolvers) {
+    let queued = false;
+    for (const [catalogId, entry] of Object.entries(consumables)) {
+      for (const effect of entry.effects ?? []) {
+        if (effect.resolver !== resolver) continue;
+        const context = { ...consumableBaseContext, ...conditionContext(effect) };
+        const commands = consumableRuntimeCommands(card(catalogId), effect.trigger, context);
+        if (commands.some((command) => command.resolver === resolver && command.choice)) {
+          const state = applyConsumableRuntime(createFamilyRuntimeState(), card(catalogId), effect.trigger, context);
+          if (state.pendingChoices.some((choice) => choice.resolver === resolver)) queued = true;
+        }
+      }
+    }
+    if (!queued) failures.push(`${resolver}:choice-not-queued`);
+  }
+  assert.deepEqual(failures, []);
 });
