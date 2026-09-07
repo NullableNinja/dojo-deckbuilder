@@ -2057,9 +2057,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const begin = (fighterId = selectedId) => {
     const choices = characters.filter((card) => card.id !== fighterId);
-    let player = { ...emptyBoard(fighterId), xp: 1, locationController: "player" as const };
+    let player: Board = { ...emptyBoard(fighterId), xp: 1, locationController: "player" }; // STAGE3D_LOCATION_COMPILE_FIX
     const challenge = DIFFICULTIES[settings.difficulty];
-    let ai = { ...emptyBoard(choices[Math.floor(Math.random() * choices.length)].id), xp: 1, hp: challenge.aiHp, maxHp: challenge.aiHp, statBoost: challenge.statBoost, locationController: "ai" as const };
+    let ai: Board = { ...emptyBoard(choices[Math.floor(Math.random() * choices.length)].id), xp: 1, hp: challenge.aiHp, maxHp: challenge.aiHp, statBoost: challenge.statBoost, locationController: "ai" };
     const locations = shuffle(quickDuelLocationPool.map((card) => card.id));
     const shuffledMarket = shuffle(marketPool.filter((card) => settings.openMarket || Boolean(artistUrl(card))).map((card) => card.id));
     const openingMarket = curateOpeningMarket(shuffledMarket, settings.balancedMarket);
@@ -3286,7 +3286,7 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string) {
   const marketState = current.marketPurchasedThisRound || keepUnbought
     ? { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard }
     : refreshMarketRow(current.market, current.marketDeck, current.marketDiscard);
-  const resetBoard = (board: Board, controller: "player" | "ai") => stage3cAdvanceRound(resetLocationRound({ ...board, xp: board.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, usedConsumableThisRound: false, lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [], locationEquipmentExhaustedThisRound: false, locationReadiedOutsideInitiateEquipmentIds: [], locationUsedEffectsAcrossPlayersThisRound: [], locationPendingChoice: null, locationController: controller }));
+  const resetBoard = (board: Board, controller: "player" | "ai"): Board => stage3cAdvanceRound(resetLocationRound({ ...board, xp: board.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, usedConsumableThisRound: false, lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [], locationEquipmentExhaustedThisRound: false, locationReadiedOutsideInitiateEquipmentIds: [], locationUsedEffectsAcrossPlayersThisRound: [], locationPendingChoice: null, locationController: controller }));
   let player = resetBoard(current.player, "player");
   let ai = resetBoard(current.ai, "ai");
   if (sceneChanges) { player = applyLocationSceneReveal(player, location, "player"); ai = applyLocationSceneReveal(ai, location, "ai"); }
@@ -3305,12 +3305,12 @@ function prepareAiTurn(current: Match) {
   const fighter = cardFor(current.ai.fighterId);
   const initiatedAi = applyInitiateCarryover(resetLocationTurn({ ...current.ai, usedEffectIdsThisTurn: [], locationOwnTurn: true, locationInInitiate: true }));
   const turnEquipment = autoActivateAiTurnEquipment(initiatedAi);
-  let aiStart = { ...turnEquipment.board, locationInInitiate: false };
+  let aiStart: Board = { ...turnEquipment.board, locationInInitiate: false };
   aiStart = applyLocationManualActionAi(aiStart);
   const practiceId = aiStart.defensePracticeUsed ? undefined : aiStart.hand
     .filter((id) => { const card = cardFor(id); return Boolean(card && isDefense(card)); })
     .sort((left, right) => cardFocus(cardFor(right)) - cardFocus(cardFor(left)))[0];
-  let nextAi = practiceId ? {
+  let nextAi: Board = practiceId ? {
     ...aiStart,
     hand: removeOne(current.ai.hand, practiceId),
     playArea: [...current.ai.playArea, practiceId],
@@ -3340,9 +3340,8 @@ function prepareAiTurn(current: Match) {
   for (const id of supportIds) {
     const card = cardFor(id);
     if (!card) continue;
-    const locationModifier = locationFocusModifier(cardFor(current.locationId), card, nextAi);
     if (isKata(card)) nextAi = stage3cConsumeKata(nextAi);
-    nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
+    nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
     if (isCoreConsumableCard(card)) {
       nextAi = applyCardEffects(nextAi, card, "ai", "afterResolve", stage3cConsumableContext(nextAi));
       nextPlayer = applyStage3CTiming(nextPlayer, card, "onPlay", "player", stage3cConsumableContext(nextAi), "opponent");
