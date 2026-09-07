@@ -284,7 +284,7 @@
   }
   .playtest-shell.playtest-shell--live .fighter-belt-badge small { color: #f6d879; font-size: 7px; }
   .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="white"] { --belt-accent: #f5f3e9; }
-  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="yellow"] { --belt-accent: #f0cf37; }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="gold"] { --belt-accent: #e0b42b; }
   .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="orange"] { --belt-accent: #e88a32; }
   .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="green"] { --belt-accent: #4f9d61; }
   .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="blue"] { --belt-accent: #4f83bf; }

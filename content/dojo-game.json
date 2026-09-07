@@ -150,7 +150,81 @@
       "xpPerHonor": 1,
       "attackXpOnHit": 1,
       "defenseXpOnBlock": 1,
-      "quickDuelUsesFullBeltRewards": false
+      "quickDuelUsesFullBeltRewards": false,
+      "belts": [
+        {
+          "id": "white",
+          "name": "White",
+          "color": "#f5f0df",
+          "xp": 0,
+          "exam": { "kind": "starting", "title": "Orientation", "summary": "Exist. Try not to sprain anything while shuffling." },
+          "reward": { "id": "none", "summary": "No perk yet. The clipboard is merely observing." }
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "color": "#e0b42b",
+          "xp": 3,
+          "exam": { "kind": "three-zones", "title": "Three-Gate Orientation", "summary": "Make one legal High, Mid, and Low Attack across any number of turns." },
+          "reward": { "id": "promotion-focus", "onPromotionFocus": 2, "summary": "Certification stipend: gain 2 Focus when promoted." }
+        },
+        {
+          "id": "orange",
+          "name": "Orange",
+          "color": "#e88939",
+          "xp": 6,
+          "exam": { "kind": "two-attacks-hit", "title": "Controlled Combination", "summary": "Play two legal Attacks in one Yell and make at least one Hit." },
+          "reward": { "id": "attack-bonus", "stat": "ATK", "amount": 1, "summary": "+1 ATK permanently." }
+        },
+        {
+          "id": "green",
+          "name": "Green",
+          "color": "#58a86a",
+          "xp": 9,
+          "exam": { "kind": "attack-and-defend", "title": "Safety Demonstration", "summary": "In one Honor, make a legal Attack and Block an opposing Attack." },
+          "reward": { "id": "speed-bonus", "stat": "Speed", "amount": 1, "summary": "+1 SPD permanently." }
+        },
+        {
+          "id": "purple",
+          "name": "Purple",
+          "color": "#8055a2",
+          "xp": 13,
+          "exam": { "kind": "market-types", "title": "Stockroom Fieldwork", "summary": "Buy Market cards from two different card types across Ascends." },
+          "reward": { "id": "market-discount", "amount": 1, "summary": "First Market card each Ascend costs 1 less Focus." }
+        },
+        {
+          "id": "blue",
+          "name": "Blue",
+          "color": "#4f83bf",
+          "xp": 17,
+          "exam": { "kind": "equipment-count", "title": "Field Loadout", "summary": "Have two permanent Equipment cards attached at the same time." },
+          "reward": { "id": "hand-size", "amount": 1, "summary": "+1 card in every new hand." }
+        },
+        {
+          "id": "red",
+          "name": "Red",
+          "color": "#c94a3d",
+          "xp": 22,
+          "exam": { "kind": "combo", "title": "Public Demonstration", "summary": "Trigger one learned Combo." },
+          "reward": { "id": "impact-focus", "amount": 1, "summary": "First 3+ damage Hit each turn gains 1 Focus." }
+        },
+        {
+          "id": "brown",
+          "name": "Brown",
+          "color": "#7f5233",
+          "xp": 28,
+          "exam": { "kind": "mixed-turn", "title": "Full Curriculum", "summary": "Play four cards in one Yell including an Attack, Kata, and Equipment or Consumable." },
+          "reward": { "id": "defense-bonus", "stat": "DEF", "amount": 1, "summary": "+1 DEF permanently." }
+        },
+        {
+          "id": "black",
+          "name": "Black",
+          "color": "#171b18",
+          "xp": 35,
+          "exam": { "kind": "ko", "title": "Licensing Final", "summary": "While Brown Belt, KO an opposing fighter." },
+          "reward": { "id": "licensed-win", "summary": "Win the duel and receive the very serious certificate." }
+        }
+      ]
     }
   }
 }

@@ -11,12 +11,18 @@ body.ddb-card-inspector-active .modal-backdrop:has(.card-modal) {
 .universal-card-inspector-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 900;
+  /* The same inspector is used above the Quick Duel Ascend desk, whose
+     controls intentionally sit above normal page overlays. */
+  z-index: 14000;
   display: grid;
   place-items: center;
   padding: 20px;
   background: rgba(15, 20, 17, .76);
   backdrop-filter: blur(10px);
+}
+
+body:has(.universal-card-inspector-backdrop) {
+  overflow: hidden;
 }
 
 .universal-card-inspector {

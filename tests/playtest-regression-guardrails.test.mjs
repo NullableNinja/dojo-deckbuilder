@@ -25,6 +25,6 @@ test("player discard effects remain explicit choices instead of silent auto-disc
 
 test("Quick Duel belt promotion changes rank without changing current or Max HP", () => {
   const promotion = playtest.match(/function applyBeltPromotion\(board: Board, beltIndex: number\) \{[\s\S]*?\n\}/)?.[0] ?? "";
-  assert.match(promotion, /return \{ \.\.\.board, belt: beltIndex \};/);
+  assert.match(promotion, /return gainFocus\(\{ \.\.\.board, belt: beltIndex \}, rank\?\.reward\.onPromotionFocus \?\? 0\);/);
   assert.doesNotMatch(promotion, /maxHpIncrease|board\.hp \+ 5|maxHp,/);
 });

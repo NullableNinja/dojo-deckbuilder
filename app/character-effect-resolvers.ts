@@ -50,7 +50,7 @@ export type CharacterRuntimeState = {
   marks: Record<string, unknown>;
 };
 
-const BELT_ORDER = ["White", "Yellow", "Orange", "Green", "Blue", "Purple", "Brown", "Red", "Black"];
+const BELT_ORDER = ["White", "Gold", "Orange", "Green", "Purple", "Blue", "Red", "Brown", "Black"];
 const GREEN_BELT_INDEX = 3;
 
 const TURN_RESOLVERS = new Set([

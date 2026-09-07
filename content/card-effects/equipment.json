@@ -3017,13 +3017,13 @@
           "duration": "immediate",
           "conditions": [
             {
-              "kind": "yellowBeltExamThirdZone",
+              "kind": "goldBeltExamThirdZone",
               "operator": "eq",
               "value": true
             },
             {
               "kind": "minimumBelt",
-              "value": "Yellow"
+              "value": "Gold"
             }
           ],
           "resolver": "equipment.structured"

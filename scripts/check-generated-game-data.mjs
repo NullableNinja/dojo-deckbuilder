@@ -240,7 +240,7 @@ const beltSection = (canonicalRules.chapters ?? [])
   .flatMap((chapter) => chapter.sections ?? [])
   .find((section) => section.id === "belt-table");
 const beltRows = beltSection?.content?.find((entry) => entry.kind === "table")?.rows ?? [];
-const expectedBelts = ["white", "yellow", "orange", "green", "purple", "blue", "red", "brown", "black"];
+const expectedBelts = ["white", "gold", "orange", "green", "purple", "blue", "red", "brown", "black"];
 if (beltRows.length !== expectedBelts.length + 1) fail(`Belt Table should contain one header plus nine belts; found ${beltRows.length}`);
 const beltNames = beltRows.slice(1).map((row) => normalized(row[0]));
 for (const belt of expectedBelts) {

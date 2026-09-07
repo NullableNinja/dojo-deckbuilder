@@ -314,6 +314,8 @@ export function CardInspector({
   onClose,
 }: CardInspectorProps) {
   const dialogRef = useRef<HTMLElement>(null);
+  const resolvedEffectEntry = effectEntry ?? effectRegistry.cards?.[card.catalogId];
+  const resolvedEffectRevision = effectRevision ?? effectRegistry.rulesRevision ?? effectRegistry.rulesVersion;
   const statPairs = Object.entries(card.stats ?? {});
   const primaryFacts = [
     card.fpCost !== null && card.fpCost !== undefined ? ["Focus Cost", valueLabel(card.fpCost)] : null,
@@ -326,6 +328,11 @@ export function CardInspector({
   useEffect(() => {
     dialogRef.current?.focus({ preventScroll: true });
   }, [card.catalogId]);
+
+  useEffect(() => {
+    document.body.classList.add("ddb-card-inspector-active");
+    return () => document.body.classList.remove("ddb-card-inspector-active");
+  }, []);
 
   return createPortal(<div className="universal-card-inspector-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <article ref={dialogRef} className="universal-card-inspector" role="dialog" aria-modal="true" aria-labelledby="universal-card-inspector-title" tabIndex={-1}>
@@ -361,14 +368,14 @@ export function CardInspector({
 
           {card.rulesText && <aside className="card-inspector-rules"><span>Printed rules text</span><p>{card.rulesText}</p></aside>}
 
-          <StructuredEffectBreakdown entry={effectEntry} revision={effectRevision} />
+          <StructuredEffectBreakdown entry={resolvedEffectEntry} revision={resolvedEffectRevision} />
 
           {(card.tags.length > 0 || card.buildPaths.length > 0) && <section className="card-inspector-taxonomy">
             {card.tags.length > 0 && <div><span>Tags</span><p>{card.tags.map((tag) => <b key={tag}>{tag}</b>)}</p></div>}
             {card.buildPaths.length > 0 && <div><span>Build paths</span><p>{card.buildPaths.map((path) => <b key={path}>{path}</b>)}</p></div>}
           </section>}
 
-          <DesignNotes card={card} entry={effectEntry} />
+          <DesignNotes card={card} entry={resolvedEffectEntry} />
         </section>
       </div>
     </article>

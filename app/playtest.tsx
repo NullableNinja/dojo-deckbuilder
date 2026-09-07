@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState, type DragEvent } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent } from "react";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
-import rulesJson from "./data/rules.json";
 import { compileCardEffects, describeEffectPlan, effectPlanForCard } from "./card-effects";
 import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
@@ -17,6 +16,8 @@ import "./combo-rack.css";
 import "./playtest-production-mat.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 
+const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
+
 type CardEntry = {
   id: string;
   name: string;
@@ -24,16 +25,23 @@ type CardEntry = {
   subtype: string;
   category?: string | null;
   catalogId: string;
+  catalogOrder: number;
   deck: string;
+  lineage?: string | null;
+  availability?: string | null;
   fpCost?: string | number | null;
+  chiCost?: string | number | null;
   focusValue?: string | number | null;
   zone?: string | null;
   timing?: string | null;
   rulesText?: string | null;
   flavorText?: string | null;
   tags: string[];
+  buildPaths: string[];
   stats: Record<string, string | number>;
   image?: string | null;
+  sourceSheet: string;
+  sourceRulesVersion?: string | null;
   details: Record<string, string | number>;
 };
 
@@ -194,6 +202,18 @@ type MotionMode = "full" | "reduced" | "off";
 type HouseSettings = { tempo: boolean; locations: boolean; openMarket: boolean; guided: boolean; autoAi: boolean; balancedMarket: boolean; difficulty: Difficulty; motion: MotionMode };
 type DeskView = "market" | "combo" | "belt";
 
+const BINDER_STORAGE_KEY = "dojo-binder-v1";
+
+function readBinderIds() {
+  if (typeof window === "undefined") return new Set<string>();
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(BINDER_STORAGE_KEY) ?? "[]");
+    return new Set<string>(Array.isArray(raw) ? raw.filter((entry): entry is string => typeof entry === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
 const cards = (cardsJson as unknown as { cards: CardEntry[] }).cards;
 const byId = new Map(cards.map((card) => [card.id, card]));
 const byCatalogId = new Map(cards.map((card) => [card.catalogId, card]));
@@ -204,6 +224,15 @@ const gameDefinition = gameDefinitionJson as unknown as {
   turn: { handSize: number };
   starterDeck: { catalogId: string; copies: number }[];
   economy: { defensePractice: { usesPerTurn: number }; badHabitFocus: { usesPerTurn: number; catalogId: string; focusGain: number; discardFromHand: boolean }; market: { rowSize: number; refill: string; stagnationRefresh: string } };
+  progression: { belts: BeltDefinition[] };
+};
+type BeltDefinition = {
+  id: string;
+  name: string;
+  color: string;
+  xp: number;
+  exam: { kind: "starting" | "three-zones" | "two-attacks-hit" | "attack-and-defend" | "market-types" | "equipment-count" | "combo" | "mixed-turn" | "ko"; title: string; summary: string };
+  reward: { id: string; summary: string; amount?: number; stat?: "ATK" | "DEF" | "Speed"; onPromotionFocus?: number };
 };
 const activeRulesRevision = gameDefinition.rulesRevision;
 const characters = cards.filter((card) => card.cardType === "Character");
@@ -229,11 +258,7 @@ const QUICK_DUEL_LOCATION_NAMES = new Set([
   "Yoga Studio",
 ]);
 const quickDuelLocationPool = locationPool.filter((card) => QUICK_DUEL_LOCATION_NAMES.has(card.name));
-const beltTable = (rulesJson as unknown as { chapters: { sections?: { id: string; content: { kind: string; rows?: (string | number)[][] }[] }[] }[] }).chapters
-  .flatMap((chapter) => chapter.sections ?? [])
-  .find((section) => section.id === "belt-table")?.content
-  .find((entry) => entry.kind === "table")?.rows ?? [];
-const belts = beltTable.slice(1).map(([name, xp, task, reward]) => ({ name: String(name), xp: Number(xp), task: String(task), reward: String(reward) }));
+const belts = gameDefinition.progression.belts;
 const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail: string; aiHp: number; statBoost: number }> = {
   student: { label: "Student", eyebrow: "Learn the mat", detail: "A shorter duel with a less ruthless opponent.", aiHp: 20, statBoost: 0 },
   certified: { label: "Certified", eyebrow: "Core test", detail: "The intended Quick Duel pressure with the complete hand economy.", aiHp: 25, statBoost: 0 },
@@ -293,7 +318,8 @@ function spendFocus(board: Board, amount: number) {
 }
 function marketPriceFor(board: Board, card: CardEntry | undefined) {
   if (!card) return Number.POSITIVE_INFINITY;
-  return Math.max(0, cardCost(card) + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === "Item" ? (board.nextItemCostPenalty ?? 0) : 0));
+  const certificationDiscount = beltHasReward(board, "market-discount") && !board.boughtCardThisAscend ? 1 : 0;
+  return Math.max(0, cardCost(card) + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === "Item" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount);
 }
 function equipmentSuppressionForZone(attacker: Board, defender: Board, zone: string) {
   const penalties = attacker.targetEquipmentDefPenalties ?? {};
@@ -526,7 +552,7 @@ function structuredAttackCyclePlan(board: Board, card: CardEntry, zone: string, 
   const finalCycle = finalAttackCycle(card, {
     timing: "afterResolve",
     nonHonorSceneChangedThisRound,
-    yellowBeltExamThirdZone: board.belt === 0 && priorZones.size === 2 && !priorZones.has(zone.toLocaleLowerCase()),
+    goldBeltExamThirdZone: board.belt === 0 && priorZones.size === 2 && !priorZones.has(zone.toLocaleLowerCase()),
   });
   return { handled: existing.handled || finalCycle.handled, draw: existing.draw + finalCycle.draw, discard: existing.discard + finalCycle.discard };
 }
@@ -569,6 +595,10 @@ function readyEquipment(board: Board, id: string) {
 function beltAtLeast(board: Board, beltName: string) {
   const index = belts.findIndex((belt) => belt.name.toLocaleLowerCase() === beltName.toLocaleLowerCase());
   return index >= 0 && board.belt >= index;
+}
+
+function beltHasReward(board: Board, rewardId: string) {
+  return belts.slice(0, board.belt + 1).some((belt) => belt.reward.id === rewardId);
 }
 
 function applyInitiateCarryover(board: Board) {
@@ -1228,7 +1258,9 @@ function resolveAiDeckLook(board: Board, source: CardEntry) {
 
 function fighterStat(board: Board, stat: "ATK" | "DEF" | "Speed") {
   const fighter = cardFor(board.fighterId);
-  const beltBonus = stat === "ATK" && board.belt >= 2 ? 1 : stat === "DEF" && board.belt >= 7 ? 1 : 0;
+  const beltBonus = belts.slice(0, board.belt + 1)
+    .filter((belt) => belt.reward.stat === stat)
+    .reduce((total, belt) => total + Number(belt.reward.amount ?? 0), 0);
   const base = numberValue(fighter?.stats[stat]);
   const equipment = board.equipment.reduce((total, id) => {
     const card = cardFor(id);
@@ -1516,7 +1548,7 @@ function playAreaCleanup(board: Board) {
   const equipment = borrowed ? readyBoard.equipment.filter((id) => id !== borrowed) : readyBoard.equipment;
   const exhaustedEquipment = borrowed ? (readyBoard.exhaustedEquipment ?? []).filter((id) => id !== borrowed) : (readyBoard.exhaustedEquipment ?? []);
   const discard = [...readyBoard.discard, ...readyBoard.hand, ...readyBoard.playArea.filter((id) => !readyBoard.equipment.includes(id)), ...(borrowed ? [borrowed] : [])];
-  return drawCards({ ...readyBoard, hand: [], playArea: [], equipment, exhaustedEquipment, equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, borrowedEquipmentId: null, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (readyBoard.belt >= 5 ? 1 : 0));
+  return drawCards({ ...readyBoard, hand: [], playArea: [], equipment, exhaustedEquipment, equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, borrowedEquipmentId: null, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (beltHasReward(readyBoard, "hand-size") ? 1 : 0));
 }
 
 function cardLabel(card: CardEntry) { return `${card.name} · ${card.catalogId}`; }
@@ -1789,6 +1821,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
   const [inspectorZoomed, setInspectorZoomed] = useState(false);
+  const [savedCardIds, setSavedCardIds] = useState<Set<string>>(() => readBinderIds());
   const [logOpen, setLogOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [deskView, setDeskView] = useState<DeskView | null>(() => {
@@ -1812,6 +1845,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       window.localStorage.removeItem("ddb-field-match");
     }
   }, [match]);
+  useEffect(() => {
+    window.localStorage.setItem(BINDER_STORAGE_KEY, JSON.stringify([...savedCardIds]));
+  }, [savedCardIds]);
   useEffect(() => {
     const controller = new AbortController();
     const check = () => fetchRulesManifest(controller.signal)
@@ -2110,7 +2146,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
-    if (damage >= 3 && nextPlayer.belt >= 6) nextPlayer = gainFocus(nextPlayer, 1);
+    if (damage >= 3 && beltHasReward(nextPlayer, "impact-focus")) nextPlayer = gainFocus(nextPlayer, 1);
     if (!nextAi.hp) nextPlayer.xp += 2;
     nextPlayer = markCompletedTask(nextPlayer);
     const result = hit
@@ -2343,7 +2379,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (current.player.xp < next.xp || !current.player.completedTasks.includes(current.player.belt + 1)) return current;
     const nextPlayer = applyBeltPromotion(current.player, current.player.belt + 1);
     const vitality = nextPlayer.maxHp > current.player.maxHp ? ` Max HP ${current.player.maxHp} → ${nextPlayer.maxHp}; current HP ${current.player.hp} → ${nextPlayer.hp}.` : "";
-    return write(current, `Certification approved: ${next.name} Belt. ${next.reward}.${vitality}`, { player: nextPlayer });
+    return write(current, `Certification approved: ${next.name} Belt. ${next.reward.summary}${next.reward.onPromotionFocus ? ` +${next.reward.onPromotionFocus} Focus.` : ""}${vitality}`, { player: nextPlayer });
   });
 
   const completeTurn = () => {
@@ -2851,9 +2887,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           </section>}
           {deskView === "belt" && <section className="ascend-belt belt-panel">
             <span className="eyebrow">Certification ledger</span><h3>{belts[player.belt].name} Belt · {player.xp} XP</h3>
-            <p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBelt.xp} XP.</b> {nextBelt.task}</> : "Every available Belt has been certified."}</p>
-            <div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name} title={`${belt.name} Belt · ${belt.xp} XP`}>{belt.name.slice(0, 1)}</span>)}</div>
-            <div className="belt-ledger-list">{belts.map((belt, index) => <article className={index === player.belt ? "is-current" : index < player.belt ? "is-earned" : ""} key={belt.name}><span>{index < player.belt ? "✓" : index === player.belt ? "●" : index + 1}</span><div><b>{belt.name} Belt</b><small>{belt.xp} XP · {belt.task || "Starting certification"}</small></div></article>)}</div>
+            <p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBelt.xp} XP.</b> {nextBelt.exam.summary} <em>{nextBelt.reward.summary}</em></> : "Every available Belt has been certified."}</p>
+            <div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name} style={{ "--belt-rank": belt.color } as CSSProperties} title={`${belt.name} Belt · ${belt.xp} XP · ${belt.exam.title}`}>{belt.name.slice(0, 1)}</span>)}</div>
+            <div className="belt-ledger-list">{belts.map((belt, index) => <article className={index === player.belt ? "is-current" : index < player.belt ? "is-earned" : ""} key={belt.name} style={{ "--belt-rank": belt.color } as CSSProperties}><span>{index < player.belt ? "✓" : index === player.belt ? "●" : index + 1}</span><div><b>{belt.name} Belt · {belt.exam.title}</b><small>{belt.xp} XP · {belt.exam.summary}</small><small>{belt.reward.summary}</small></div></article>)}</div>
             {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : `${nextBelt.name}: ${nextBelt.xp} XP + completed task`}</button>}
           </section>}
         </div>
@@ -2863,7 +2899,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
     {coachOpen && !match.winner && <div className="playtest-inspector-backdrop coach-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setCoachOpen(false)}><section className="coach-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="coach-dialog-title"><button className="modal-close" onClick={() => setCoachOpen(false)} aria-label="Close Decision Coach">×</button><span className="eyebrow">Decision coach · optional guidance</span><h2 id="coach-dialog-title">What should I do now?</h2><div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Recommended next step</span><p>{turnCoach}</p></div><div className="coach-dialog-actions"><button className="button primary" onClick={() => setCoachOpen(false)}>Back to the mat →</button><button className="button ghost" onClick={() => { setSettings({ ...settings, guided: false }); setCoachOpen(false); }}>Turn coach off</button></div><small>You can re-enable the Coach from the utility bar at any time.</small></section></div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><div className="fight-log-groups">{groupedFightLog(match.log).map((group, groupIndex) => <section key={`${group.label}-${groupIndex}`}><h3>{group.label}</h3><ol>{group.lines.map((line, index) => <li key={`${line}-${index}`}><b>{group.lines.length - index}</b><span>{line}</span></li>)}</ol></section>)}</div></section></div>}
-    {inspected && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
+    {inspected && inspectedBoard && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
       <article className={`playtest-inspector paper-stack ${inspectorZoomed ? "is-zoomed" : ""} ${inspectedBoard ? "is-fighter-dossier" : ""}`} role="dialog" aria-modal="true" aria-labelledby="playtest-inspector-title">
         <button className="modal-close" onClick={() => setInspectedId(null)} aria-label="Close Card Inspector">×</button>
         <div className="inspector-heading">
@@ -2881,21 +2917,36 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         <footer>{inspectedBoard ? "Click an equipped card to inspect it. " : `${cardEffectNote(inspected)} `}Click the card image to magnify it. Press Escape to close.</footer>
       </article>
     </div>}
+    {inspected && !inspectedBoard && <Suspense fallback={null}><CardInspector
+      card={inspected}
+      imageUrl={artistUrl(inspected) ?? cardPlaceholderUrl}
+      saved={savedCardIds.has(inspected.catalogId)}
+      positionLabel="Quick Duel card"
+      onToggleSaved={() => setSavedCardIds((current) => {
+        const next = new Set(current);
+        if (next.has(inspected.catalogId)) next.delete(inspected.catalogId); else next.add(inspected.catalogId);
+        return next;
+      })}
+      onClose={() => setInspectedId(null)}
+    /></Suspense>}
   </main>;
 }
 
 function beltTaskMet(board: Board) {
-  const next = board.belt + 1;
-  if (next === 1) return ["High", "Mid", "Low"].every((zone) => board.zonesPlayed.some((played) => played.toLocaleLowerCase() === zone.toLocaleLowerCase()));
-  if (next === 2) return board.attacksThisTurn >= 2 && board.hitThisTurn;
-  if (next === 3) return board.defendedThisRound && board.attackedThisRound;
-  if (next === 4) return new Set(board.purchasedTypes).size >= 2;
-  if (next === 5) return board.equipment.length >= 2;
-  if (next === 6) return board.comboTriggered;
-  if (next === 7) {
+  const exam = belts[board.belt + 1]?.exam;
+  if (!exam) return false;
+  if (exam.kind === "three-zones") return ["High", "Mid", "Low"].every((zone) => board.zonesPlayed.some((played) => played.toLocaleLowerCase() === zone.toLocaleLowerCase()));
+  if (exam.kind === "two-attacks-hit") return board.attacksThisTurn >= 2 && board.hitThisTurn;
+  if (exam.kind === "attack-and-defend") return board.defendedThisRound && board.attackedThisRound && board.blockedThisRound;
+  if (exam.kind === "market-types") return new Set(board.purchasedTypes).size >= 2;
+  if (exam.kind === "equipment-count") return board.equipment.length >= 2;
+  if (exam.kind === "combo") return board.comboTriggered;
+  if (exam.kind === "mixed-turn") {
     const playTypes = board.cardsThisTurn.map(cardFor).filter(Boolean) as CardEntry[];
     return playTypes.length >= 4 && playTypes.some(isAttack) && playTypes.some(isKata) && playTypes.some((card) => isPermanent(card) || card.subtype === "Consumable");
   }
+  // Quick Duel's Licensing Final is resolved by the KO victory itself, rather
+  // than by a post-KO Ascend that players never get to take.
   return false;
 }
 
@@ -2906,8 +2957,9 @@ function markCompletedTask(board: Board) {
 }
 
 function applyBeltPromotion(board: Board, beltIndex: number) {
-  // Quick Duel uses fixed HP: promotion changes rank/perks, never current or Max HP.
-  return { ...board, belt: beltIndex };
+  const rank = belts[beltIndex];
+  // Certification perks are canonical data. Quick Duel retains its fixed HP.
+  return gainFocus({ ...board, belt: beltIndex }, rank?.reward.onPromotionFocus ?? 0);
 }
 
 function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string[], useTempo: boolean) {

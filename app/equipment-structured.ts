@@ -28,7 +28,7 @@ export type EquipmentRegistryEffect = {
 
 type Registry = { cards?: Record<string, { name?: string; effects?: EquipmentRegistryEffect[] }> };
 const registry = cardEffectsJson as unknown as Registry;
-const BELT_ORDER = ["White", "Yellow", "Orange", "Green", "Blue", "Purple", "Brown", "Red", "Black"];
+const BELT_ORDER = ["White", "Gold", "Orange", "Green", "Purple", "Blue", "Red", "Brown", "Black"];
 const beltAtLeast = (actual: unknown, required: unknown) => {
   const actualIndex = BELT_ORDER.findIndex((belt) => belt.toLocaleLowerCase() === String(actual ?? "").toLocaleLowerCase());
   const requiredIndex = BELT_ORDER.findIndex((belt) => belt.toLocaleLowerCase() === String(required ?? "").toLocaleLowerCase());

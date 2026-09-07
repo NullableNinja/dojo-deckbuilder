@@ -1662,7 +1662,7 @@
             },
             {
               "kind": "bullet",
-              "text": "When a promotion grants +10 Max HP, every Character on that player's roster increases Max HP by 10. Then only the active Character heals 5 HP, up to its new maximum. KO'd Characters remain KO'd and never heal from promotion. Quick Duel ignores every promotion's Max HP increase and healing; all other printed Belt rewards still apply."
+              "text": "Belt rewards are the printed certification perks in the Belt Table. They change rank and future play; they do not change current or maximum HP. Surplus XP is retained, but a player may not skip Belts or promote twice in one turn."
             }
           ]
         },
@@ -1686,52 +1686,52 @@
                   "None"
                 ],
                 [
-                  "Yellow",
-                  5,
-                  "While White, play at least one legal High, Mid, and Low Attack across one or more turns.",
-                  "+10 Max HP; active heals 5"
+                  "Gold",
+                  3,
+                  "Three-Gate Orientation: play one legal High, Mid, and Low Attack across one or more turns.",
+                  "Certification stipend: gain 2 Focus when promoted"
                 ],
                 [
                   "Orange",
-                  10,
-                  "During one turn, play at least 2 legal Attacks and Hit with at least 1.",
-                  "+1 ATK; +10 Max HP; active heals 5"
+                  6,
+                  "Controlled Combination: during one Yell, play 2 legal Attacks and Hit with at least 1.",
+                  "+1 ATK permanently"
                 ],
                 [
                   "Green",
-                  15,
-                  "During one round, play a legal Attack on your turn and a legal Defense outside your turn.",
-                  "Unlock Green Ability; +10 Max HP; active heals 5"
+                  9,
+                  "Safety Demonstration: in one Honor, make a legal Attack and Block an opposing Attack.",
+                  "+1 SPD permanently"
                 ],
                 [
                   "Purple",
-                  21,
-                  "While Green, buy at least one Market card from two different card types across one or more Ascend Phases.",
-                  "Once per turn, your second card played or Equipped from hand generates +1 Focus; +10 Max HP; active heals 5"
+                  13,
+                  "Stockroom Fieldwork: buy Market cards from 2 different card types across Ascends.",
+                  "First Market card each Ascend costs 1 less Focus"
                 ],
                 [
                   "Blue",
-                  28,
-                  "Have at least 2 permanent Equipment cards Equipped at the same time.",
-                  "+1 Hand Size; +10 Max HP; active heals 5"
+                  17,
+                  "Field Loadout: have 2 permanent Equipment cards Equipped at the same time.",
+                  "+1 card in every new hand"
                 ],
                 [
                   "Red",
-                  36,
-                  "Trigger a learned Combo.",
-                  "First 3+ damage Hit each turn: +1 Focus; +10 Max HP; active heals 5"
+                  22,
+                  "Public Demonstration: trigger a learned Combo.",
+                  "First 3+ damage Hit each turn gains 1 Focus"
                 ],
                 [
                   "Brown",
-                  45,
-                  "During one turn, play at least 4 cards including an Attack, a Kata, and an Equipment or Consumable.",
-                  "+1 DEF; +10 Max HP; active heals 5"
+                  28,
+                  "Full Curriculum: during one Yell, play 4 cards including an Attack, Kata, and Equipment or Consumable.",
+                  "+1 DEF permanently"
                 ],
                 [
                   "Black",
-                  55,
-                  "While Brown Belt, KO an opposing fighter.",
-                  "+10 Max HP; win"
+                  35,
+                  "Licensing Final: while Brown Belt, KO an opposing fighter.",
+                  "Win the duel and receive the very serious certificate"
                 ]
               ]
             }
@@ -1743,7 +1743,7 @@
           "content": [
             {
               "kind": "bullet",
-              "text": "Three Zones (Yellow): Track High, Mid, and Low separately. An Any Attack counts as the declared zone."
+              "text": "Three-Gate Orientation (Gold): Track High, Mid, and Low separately. An Any Attack counts as the declared zone."
             },
             {
               "kind": "bullet",
@@ -1751,7 +1751,7 @@
             },
             {
               "kind": "bullet",
-              "text": "Attack and Defend (Green): Both cards must be legal and played in the same round. The Defense must be played outside your own turn."
+              "text": "Safety Demonstration (Green): Both cards must be legal and occur in the same Honor. The Defense must Block an opposing Attack."
             },
             {
               "kind": "bullet",
@@ -2717,7 +2717,7 @@
     },
     {
       "term": "Max HP",
-      "meaning": "The highest current HP a Character may have. Promotions normally raise it, but Quick Duel ignores promotion Max-HP increases and promotion healing."
+      "meaning": "The highest current HP a Character may have. Belt certification does not raise it or heal a fighter."
     },
     {
       "term": "Modifier Combo",
@@ -2846,7 +2846,7 @@
       "name": "Fast Belts",
       "category": "Short Game",
       "summary": "Later promotions arrive three XP sooner.",
-      "rule": "Use the normal Yellow threshold. Reduce every later Belt threshold by 3, to a minimum of 1 XP above the previous Belt. Tasks and the one-promotion-per-turn limit remain unchanged.",
+      "rule": "Use the normal Gold threshold. Reduce every later Belt threshold by 3, to a minimum of 1 XP above the previous Belt. Tasks and the one-promotion-per-turn limit remain unchanged.",
       "notes": "Best for demos and weeknight games."
     },
     {

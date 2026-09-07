@@ -103,11 +103,11 @@ export function finalAttackFocusReward(card: FinalAttackCardLike, context: {
 export function finalAttackCycle(card: FinalAttackCardLike, context: {
   timing: "onPlay" | "onHit" | "onBlock" | "afterResolve";
   nonHonorSceneChangedThisRound?: boolean;
-  yellowBeltExamThirdZone?: boolean;
+  goldBeltExamThirdZone?: boolean;
 }) {
   const values = {
     nonHonorSceneChangedThisRound: Boolean(context.nonHonorSceneChangedThisRound),
-    yellowBeltExamThirdZone: Boolean(context.yellowBeltExamThirdZone),
+    goldBeltExamThirdZone: Boolean(context.goldBeltExamThirdZone),
   };
   let draw = 0;
   let discard = 0;

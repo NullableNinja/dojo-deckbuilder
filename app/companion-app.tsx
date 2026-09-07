@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import brandEmblemUrl from "./assets/art/brand-emblem.webp";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
@@ -38,6 +38,8 @@ import rulesJson from "./data/rules.json";
 import gameDefinitionJson from "./data/game-definition.json";
 
 import PlaytestView from "./playtest";
+
+const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
 
 const characterCardModules = import.meta.glob<string>("./assets/cards/characters/*.webp", {
   eager: true,
@@ -673,7 +675,11 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
   useEffect(() => { setSelectedCard(initialCard ?? null); }, [initialCard]);
   const openCard = (card: CardEntry) => { setSelectedCard(card); window.history.pushState(null, "", dojoHash("cards", card.catalogId)); };
   const stepCard = (card: CardEntry | null) => { if (!card) return; setSelectedCard(card); window.history.replaceState(null, "", dojoHash("cards", card.catalogId)); };
-  const closeCard = () => { setSelectedCard(null); clearInitialCard(); window.history.replaceState(null, "", dojoHash("cards")); };
+  const closeCard = () => {
+    setSelectedCard(null);
+    clearInitialCard();
+    window.history.replaceState(null, "", dojoHash("cards"));
+  };
   const types = ["All", ...Object.keys(cardData.counts)];
   const cardsInScope = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
@@ -713,7 +719,7 @@ function CardsView({ initialCard, clearInitialCard }: { initialCard: CardEntry |
     <div className="type-filters" role="group" aria-label="Filter by card type">{types.map((entry) => <button className={type === entry ? "active" : ""} onClick={() => { setType(entry); resetSecondaryFilters(); setVisible(24); }} key={entry}>{entry}<span>{entry === "All" ? cardsInScope.length : typeCounts[entry] ?? 0}</span></button>)}</div>
     <div className="result-line"><p><strong>{filtered.length}</strong> results</p>{(query || type !== "All" || deck !== "All" || subtype !== "All" || timing !== "All" || focusCost !== "All") && <button onClick={resetFilters}>Reset filters</button>}</div>
     {filtered.length ? <><section className="card-grid">{filtered.slice(0, visible).map((card) => <CardTile key={card.id} card={card} saved={savedIds.has(card.catalogId)} onOpen={() => openCard(card)} />)}</section>{visible < filtered.length && <button className="button load-more" onClick={() => setVisible((count) => count + 24)}>Load 24 more <span>{filtered.length - visible} remaining</span></button>}</> : <div className="empty-state"><strong>No cards match that search.</strong><p>Clear a filter or try a broader rules term.</p><button className="button ghost" onClick={resetFilters}>Reset filters</button></div>}
-    {activeCard && <CardModal card={activeCard} previousCard={previousCard} nextCard={nextCard} position={Math.max(1, activeIndex + 1)} total={filtered.length} saved={savedIds.has(activeCard.catalogId)} onToggleSaved={() => toggleSaved(activeCard)} onPrevious={() => stepCard(previousCard)} onNext={() => stepCard(nextCard)} onClose={closeCard} />}
+    {activeCard && <Suspense fallback={null}><CardInspector card={activeCard} imageUrl={cardImageUrl(activeCard)} saved={savedIds.has(activeCard.catalogId)} positionLabel={`${Math.max(1, activeIndex + 1)} of ${filtered.length}`} previousName={previousCard?.name} nextName={nextCard?.name} previousDisabled={!previousCard} nextDisabled={!nextCard} onToggleSaved={() => toggleSaved(activeCard)} onPrevious={() => stepCard(previousCard)} onNext={() => stepCard(nextCard)} onClose={closeCard} /></Suspense>}
   </main>;
 }
 

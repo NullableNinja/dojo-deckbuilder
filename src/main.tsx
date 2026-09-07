@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
 import MobileSitePolish from "../app/mobile-site-polish";
-import CardInspectorLoader from "../app/card-inspector-loader";
 import "../app/playtest-production-layout.css";
 import "../app/playtest-polish.css";
 import "../app/playtest-readability.css";
@@ -50,7 +49,6 @@ createRoot(rootElement).render(
     <>
       <CompanionApp />
       <MobileSitePolish />
-      <CardInspectorLoader />
     </>
   </StrictMode>,
 );

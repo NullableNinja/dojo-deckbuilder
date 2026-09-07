@@ -47,7 +47,8 @@ test("Quick Duel stays in the proven main bundle and missing artwork is presente
   ]);
   assert.match(source, /import PlaytestView from "\.\/playtest"/);
   assert.doesNotMatch(source, /const PlaytestView = lazy/);
-  assert.doesNotMatch(source, /<Suspense fallback=/);
+  assert.match(source, /const CardInspector = lazy/);
+  assert.match(source, /<Suspense fallback=\{null\}><CardInspector/);
   assert.match(source, /card-art--pending/);
   assert.match(css, /ARTWORK PENDING · FORM 37-B/);
 });

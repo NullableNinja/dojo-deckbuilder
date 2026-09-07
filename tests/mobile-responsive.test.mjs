@@ -45,7 +45,7 @@ test("card viewer preserves the library position and navigates the filtered resu
     readFile(appUrl, "utf8"),
     readFile(cssUrl, "utf8"),
   ]);
-  assert.match(app, /body\.style\.overflow = "hidden"/);
+  assert.match(app, /const CardInspector = lazy/);
   assert.doesNotMatch(app, /body\.style\.position = "fixed"/);
   assert.doesNotMatch(app, /body\.style\.top = `-\$\{scrollY\}px`/);
   assert.match(app, /window\.scrollTo\(scrollX, scrollY\)/);
@@ -55,8 +55,8 @@ test("card viewer preserves the library position and navigates the filtered resu
   assert.match(app, /aria-label="Browse filtered cards"/);
   assert.match(app, /import \{ createPortal \} from "react-dom"/);
   assert.match(app, /return createPortal\(<div className="modal-backdrop"[\s\S]*document\.body\)/);
-  assert.match(app, /previousCard=\{previousCard\}/);
-  assert.match(app, /nextCard=\{nextCard\}/);
+  assert.match(app, /previousName=\{previousCard\?\.name\}/);
+  assert.match(app, /nextName=\{nextCard\?\.name\}/);
   assert.match(css, /\.card-modal-nav/);
   assert.match(css, /\.modal-backdrop \{ position: fixed; inset: 0;/);
   assert.match(css, /overscroll-behavior: contain/);

@@ -31,7 +31,7 @@ export type KataCommand = {
   params?: Record<string, unknown>;
 };
 
-const BELT_ORDER = ["White", "Yellow", "Orange", "Green", "Blue", "Purple", "Brown", "Red", "Black"];
+const BELT_ORDER = ["White", "Gold", "Orange", "Green", "Purple", "Blue", "Red", "Brown", "Black"];
 
 const PREDICATE_KINDS = new Set([
   "beltAtLeast",
