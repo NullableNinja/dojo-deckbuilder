@@ -51,6 +51,7 @@ jobs:
               if start < 0 or end < 0:
                   raise SystemExit(f'Could not isolate optional patch block: {label}')
               text = text[:start] + text[end + 3:]
+          text = text.replace('${card.name} · \\${card.catalogId}', '\\${card.name} · \\${card.catalogId}')
           path.write_text(text)
           PY
 
