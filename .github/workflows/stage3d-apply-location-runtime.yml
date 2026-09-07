@@ -29,6 +29,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           path = Path('scripts/stage3d-apply-location-runtime.mjs')
           text = path.read_text()
           labels = [
@@ -51,7 +52,10 @@ jobs:
               if start < 0 or end < 0:
                   raise SystemExit(f'Could not isolate optional patch block: {label}')
               text = text[:start] + text[end + 3:]
-          text = text.replace('${card.name} · \\${card.catalogId}', '\\${card.name} · \\${card.catalogId}')
+          patch_start = text.find('source = source.replace("locationAttackRuleModifiers')
+          head, tail = text[:patch_start], text[patch_start:]
+          tail = re.sub(r'(?<!\\)\$\{', r'\\${', tail)
+          text = head + tail
           path.write_text(text)
           PY
 
