@@ -74,6 +74,78 @@ body:has(.universal-card-inspector-backdrop) {
   pointer-events: auto !important;
 }
 
+/* Equipment loadout thumbnails sometimes use NativeCardArt when a finished
+   card image is unavailable. NativeCardArt is globally absolute/inset:0, so
+   the thumbnail itself must be its containing block. Without this, fallback
+   art anchors to a much larger ancestor and can cover the entire loadout. */
+.playtest-shell.playtest-shell--live .equipment-slot-art {
+  position: relative !important;
+  display: block;
+  width: 43px;
+  min-width: 43px;
+  max-width: 43px;
+  height: 59px;
+  min-height: 59px;
+  max-height: 59px;
+  overflow: hidden !important;
+  contain: strict;
+  isolation: isolate;
+}
+
+.playtest-shell.playtest-shell--live .equipment-slot-art > .native-card-art {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  grid-template-rows: auto 1fr auto;
+  gap: 2px;
+  overflow: hidden;
+  padding: 3px;
+  contain: strict;
+}
+
+.playtest-shell.playtest-shell--live .equipment-slot-art > .native-card-art .native-card-ribbon {
+  overflow: hidden;
+  padding: 1px 2px;
+  font-size: 4px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playtest-shell.playtest-shell--live .equipment-slot-art > .native-card-art > b {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.playtest-shell.playtest-shell--live .equipment-slot-art > .native-card-art > strong {
+  overflow: hidden;
+  align-self: end;
+  font-size: 6px;
+  line-height: 1;
+  text-overflow: ellipsis;
+}
+
+.playtest-shell.playtest-shell--live .equipment-slot-art > .native-card-art > small,
+.playtest-shell.playtest-shell--live .equipment-slot-art > .native-card-art > em {
+  display: none;
+}
+
+.playtest-shell.playtest-shell--live .equipment-slot-art > .native-card-art::before {
+  inset: 2px;
+}
+
+.playtest-shell.playtest-shell--live .equipment-slot-art > .native-card-art::after {
+  right: 4px;
+  bottom: 5px;
+  width: 12px;
+  height: 4px;
+}
+
 /* Side tabs must be allowed to receive a pointer outside the paper edge. */
 @media (min-width: 761px) {
   .playtest-shell.playtest-shell--live .fighter-column,
