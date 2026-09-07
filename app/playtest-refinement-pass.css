@@ -1,0 +1,554 @@
+/* Quick Duel screenshot refinement pass ------------------------------------
+   Final desktop cascade for the post-overhaul visual QA pass. This file is
+   intentionally presentation-only: no rules, card semantics, or runtime state
+   are changed here. */
+
+@media (min-width: 1200px) {
+  .playtest-shell.playtest-shell--live {
+    --live-rail-width: 0px;
+    --live-content-width: var(--live-shell-width);
+    position: relative;
+  }
+
+  /* 01-03: The old vertical HIYAH decoration came back through the later
+     cascade. Remove it for real and reclaim the full mat width. */
+  .playtest-shell.playtest-shell--live > .playtest-arena {
+    padding-left: 0 !important;
+  }
+  .playtest-shell.playtest-shell--live > .playtest-arena::before,
+  .playtest-shell.playtest-shell--live > .playtest-arena::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* 04-08: Top fight HUD. Keep the exact HP tracks over their paper containers
+     and make the ROUND label readable without inflating the number. */
+  .playtest-shell.playtest-shell--live > .playtest-topbar {
+    left: var(--live-shell-edge) !important;
+    width: var(--live-content-width) !important;
+    padding-inline: 8px !important;
+  }
+  .playtest-shell.playtest-shell--live .battle-versus-hud::before,
+  .playtest-shell.playtest-shell--live .battle-versus-hud::after {
+    position: relative;
+    z-index: 1;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: .14em;
+  }
+  .playtest-shell.playtest-shell--live .versus-center {
+    z-index: 5;
+    width: 76px;
+  }
+  .playtest-shell.playtest-shell--live .versus-center > span {
+    top: 1px;
+    z-index: 3;
+    font-size: 12px;
+    font-weight: 1000;
+    letter-spacing: .08em;
+    line-height: 1;
+  }
+  .playtest-shell.playtest-shell--live .versus-center > b {
+    z-index: 2;
+    font-size: 30px;
+  }
+
+  /* The green fill was painting beneath the HUD container. Make the track and
+     fill an explicit local stacking context; preserve the inline percentage. */
+  .playtest-shell.playtest-shell--live .fighter-column--player .fighter-hp-track,
+  .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    z-index: 610 !important;
+    isolation: isolate;
+    overflow: hidden !important;
+    border: 1px solid rgba(244, 231, 185, .44) !important;
+    background: rgba(92, 35, 31, .9) !important;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.08) !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-hp-track > i {
+    position: absolute !important;
+    z-index: 612 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    display: block !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: linear-gradient(90deg, #5fc276, #9bd56e) !important;
+    box-shadow: inset 0 -2px 0 rgba(18,74,37,.24), inset 0 1px 0 rgba(255,255,255,.18) !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-column--enemy .fighter-hp-track > i {
+    right: 0 !important;
+    left: auto !important;
+    background: linear-gradient(270deg, #5fc276, #9bd56e) !important;
+  }
+
+  /* 09-21: Living fighter cards. Spend less space on bureaucracy and more on
+     identity/state. The flavor text comes from canonical card data via a data
+     attribute attached by src/main.tsx. */
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card,
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+  .playtest-shell.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card {
+    grid-template-rows: 76px 44px minmax(230px, 1fr) 50px 40px 82px !important;
+    gap: 5px !important;
+    padding: 9px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-card-heading {
+    position: relative;
+    min-height: 76px !important;
+    align-items: flex-start !important;
+    gap: 7px !important;
+    padding: 0 0 27px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-card-heading > div {
+    min-width: 0;
+  }
+  .playtest-shell.playtest-shell--live .fighter-card-heading > div > span {
+    color: rgba(227,239,231,.68);
+    font-size: 9px !important;
+    font-weight: 900;
+    letter-spacing: .12em;
+  }
+  .playtest-shell.playtest-shell--live .fighter-dossier-name {
+    margin-top: 1px;
+    font-size: clamp(20px, 1.25vw, 25px) !important;
+    line-height: 1 !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-card-heading[data-flavor]::after {
+    content: attr(data-flavor);
+    position: absolute;
+    right: 72px;
+    bottom: 2px;
+    left: 0;
+    display: -webkit-box;
+    overflow: hidden;
+    color: rgba(229, 217, 181, .82);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 9px;
+    font-style: italic;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-card-heading[data-flavor]::after {
+    right: 0;
+    left: 72px;
+    text-align: right;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-belt-badge {
+    min-width: 60px !important;
+    padding: 5px 7px 4px !important;
+    font-size: 10px !important;
+    line-height: 1.05;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge small {
+    margin-top: 2px;
+    font-size: 7px !important;
+    letter-spacing: .08em;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-vitality,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality {
+    width: 48% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    display: grid !important;
+    grid-template-rows: 30px 8px;
+    gap: 3px;
+    align-content: center;
+    overflow: visible;
+  }
+  .playtest-shell.playtest-shell--live .fighter-vitality > div {
+    height: 30px !important;
+    min-height: 30px !important;
+    gap: 5px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-vitality > div .fighter-stat-glyph {
+    width: 18px;
+    height: 18px;
+  }
+  .playtest-shell.playtest-shell--live .fighter-vitality > div b {
+    font-size: 21px !important;
+    line-height: 1;
+  }
+  .playtest-shell.playtest-shell--live .fighter-vitality > div span {
+    align-self: center;
+    font-size: 9px !important;
+    font-weight: 800;
+  }
+  .playtest-shell.playtest-shell--live .fighter-status-tray {
+    width: 49% !important;
+    max-width: 49% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    gap: 4px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-status-tray span {
+    padding: 5px 7px !important;
+    font-size: 8.5px !important;
+    font-weight: 900;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-panel-art.fighter-card-illustration,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration {
+    border-radius: 14px 6px 15px 6px;
+    padding: 2px 6px 0 !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-art-halo {
+    inset: 13% 25% !important;
+    opacity: .38 !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-panel-art.fighter-card-illustration img,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration img {
+    max-width: 92% !important;
+    filter: drop-shadow(0 6px 5px rgba(20,14,9,.22)) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs,
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy {
+    top: 151px !important;
+    width: 72px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-loadout-launch {
+    min-height: 36px;
+    padding: 5px 6px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-loadout-launch span {
+    font-size: 7px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-loadout-launch b {
+    font-size: 16px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-stats.fighter-stats--combat,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-stats.fighter-stats--combat {
+    height: 50px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-stats--combat > b {
+    min-height: 50px !important;
+    padding: 5px 6px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-stats--combat small,
+  .playtest-shell.playtest-shell--live .fighter-focus-seal small {
+    font-size: 8.5px !important;
+    letter-spacing: .06em;
+  }
+  .playtest-shell.playtest-shell--live .fighter-focus-seal {
+    height: 50px !important;
+    min-height: 50px !important;
+    padding: 5px 6px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-xp-meter {
+    width: 62% !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 5px 7px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-xp-meter b {
+    font-size: 9.5px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-xp-meter small {
+    font-size: 8px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-xp-meter > i {
+    height: 7px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-combo-launch {
+    width: 35% !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 5px 7px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-combo-launch > span {
+    font-size: 8.5px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-combo-launch > b {
+    font-size: 16px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-ability,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-ability {
+    min-height: 82px !important;
+    max-height: 82px !important;
+    height: 82px !important;
+    padding: 7px 9px !important;
+    font-size: clamp(9px, .58vw, 10px) !important;
+    line-height: 1.22 !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-ability b {
+    margin-bottom: 4px !important;
+    color: rgba(119, 201, 151, .92);
+    font-size: 8.5px !important;
+    letter-spacing: .08em;
+  }
+
+  /* 22-34: Center mat. Remove the duplicate internal round filing, compress
+     location/clash/live-mat bureaucracy, and cut Impact Certified roughly in
+     half so the primary action gets a permanent home inside the mat. */
+  .playtest-shell.playtest-shell--live .playtest-combat-desk.combat-stage {
+    position: relative;
+    height: 590px !important;
+    min-height: 590px !important;
+    grid-template-rows: 74px 168px 36px 82px 74px !important;
+    align-content: start;
+    gap: 6px !important;
+    padding: 9px 10px !important;
+  }
+  .playtest-shell.playtest-shell--live .combat-stage-heading {
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 74px !important;
+  }
+  .playtest-shell.playtest-shell--live .combat-stage-heading > div {
+    display: none !important;
+  }
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button {
+    min-height: 74px !important;
+    height: 74px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    gap: 2px !important;
+    padding: 8px 11px !important;
+  }
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button > span {
+    writing-mode: horizontal-tb !important;
+    transform: none !important;
+    font-size: 9px !important;
+    letter-spacing: .1em;
+  }
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button b {
+    font-size: 20px !important;
+  }
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button small {
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+    -webkit-line-clamp: 1 !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-field {
+    height: 168px !important;
+    min-height: 168px !important;
+    gap: 8px !important;
+    padding: 7px !important;
+  }
+  .playtest-shell.playtest-shell--live .clash-card-art {
+    height: 92px !important;
+    min-height: 92px !important;
+  }
+  .playtest-shell.playtest-shell--live .clash-card-slot > span {
+    font-size: 8.5px !important;
+    letter-spacing: .08em;
+  }
+  .playtest-shell.playtest-shell--live .clash-card-copy b {
+    font-size: 11px !important;
+  }
+  .playtest-shell.playtest-shell--live .clash-card-empty {
+    min-height: 104px !important;
+  }
+  .playtest-shell.playtest-shell--live .clash-card-empty small {
+    font-size: 8.5px !important;
+  }
+  .playtest-shell.playtest-shell--live .clash-seal {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-zone-board {
+    height: 36px !important;
+    min-height: 36px !important;
+    gap: 6px !important;
+  }
+  .playtest-shell.playtest-shell--live .combat-zone-board span {
+    min-height: 34px !important;
+    padding: 3px 8px !important;
+    font-size: 10px !important;
+  }
+  .playtest-shell.playtest-shell--live .combat-zone-board span b {
+    width: 23px !important;
+    height: 23px !important;
+    font-size: 12px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage {
+    height: 82px !important;
+    min-height: 82px !important;
+    gap: 6px !important;
+  }
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane > header {
+    min-height: 22px !important;
+    padding: 3px 7px !important;
+  }
+  .playtest-shell.playtest-shell--live .mat-lane header span,
+  .playtest-shell.playtest-shell--live .mat-lane header b {
+    font-size: 8.5px !important;
+  }
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane-cards {
+    height: 58px !important;
+    min-height: 58px !important;
+    padding: 3px 5px !important;
+  }
+  .playtest-shell.playtest-shell--live .mat-card-copy b {
+    font-size: 9px !important;
+  }
+  .playtest-shell.playtest-shell--live .mat-card-copy small {
+    font-size: 7.5px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .impact-readout,
+  .playtest-shell.playtest-shell--live .impact-readout.exchange-receipt {
+    min-height: 74px !important;
+    height: 74px !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: 2px 12px !important;
+    overflow: hidden !important;
+    padding: 7px 10px !important;
+  }
+  .playtest-shell.playtest-shell--live .impact-readout header {
+    grid-column: 1 / -1;
+    min-height: 14px;
+  }
+  .playtest-shell.playtest-shell--live .impact-readout > span,
+  .playtest-shell.playtest-shell--live .impact-readout header span,
+  .playtest-shell.playtest-shell--live .impact-readout header b {
+    font-size: 8px !important;
+    letter-spacing: .08em;
+  }
+  .playtest-shell.playtest-shell--live .impact-readout p {
+    align-self: center;
+    margin: 0 !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .playtest-shell.playtest-shell--live .impact-readout > div {
+    align-self: center;
+    justify-self: end;
+    gap: 5px !important;
+  }
+  .playtest-shell.playtest-shell--live .impact-readout > div b,
+  .playtest-shell.playtest-shell--live .impact-readout > div strong {
+    font-size: 18px !important;
+  }
+  .playtest-shell.playtest-shell--live .impact-readout > div small {
+    font-size: 7px !important;
+  }
+  .playtest-shell.playtest-shell--live .impact-readout > small {
+    display: none !important;
+  }
+
+  /* 35-38: The legal-action control now lives in the deliberately freed bottom
+     shelf of the central mat instead of hovering over the hand. */
+  .playtest-shell.playtest-shell--live > .playtest-action-dock {
+    position: absolute !important;
+    z-index: 720 !important;
+    top: 548px !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
+    width: min(720px, calc(var(--live-content-width) - 720px)) !important;
+    min-width: 560px !important;
+    height: 62px !important;
+    min-height: 62px !important;
+    margin: 0 !important;
+    padding: 7px 9px 7px 14px !important;
+    transform: translateX(-50%) !important;
+    box-shadow: 4px 5px 0 var(--mat-gold), 0 12px 24px rgba(17,10,6,.32) !important;
+  }
+  .playtest-shell.playtest-shell--live .playtest-action-dock > div > span {
+    font-size: 8px !important;
+  }
+  .playtest-shell.playtest-shell--live .playtest-action-dock b {
+    font-size: 15px !important;
+  }
+  .playtest-shell.playtest-shell--live .playtest-action-dock > button,
+  .playtest-shell.playtest-shell--live .playtest-action-dock .dock-action-group > button {
+    min-height: 44px !important;
+    padding-inline: 14px !important;
+    font-size: 10px !important;
+  }
+
+  /* 39-42: Shared Market is viewport chrome, not hand content. Raise its stack,
+     keep its complete label visible, and keep it clickable no matter hand size. */
+  .playtest-shell.playtest-shell--live .acquisition-rail {
+    position: fixed !important;
+    z-index: 910 !important;
+    right: max(14px, calc(var(--live-shell-edge) + 8px)) !important;
+    bottom: calc(54px + env(safe-area-inset-bottom)) !important;
+    left: auto !important;
+    width: 258px !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+    isolation: isolate;
+  }
+  .playtest-shell.playtest-shell--live .acquisition-rail > header {
+    gap: 7px !important;
+  }
+  .playtest-shell.playtest-shell--live .acquisition-rail > header b {
+    overflow: visible !important;
+    font-size: 13px !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+  }
+  .playtest-shell.playtest-shell--live .acquisition-rail > header button {
+    min-width: 84px !important;
+    min-height: 44px !important;
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+  }
+
+  /* 43-48: Hand/chrome readability. Keep supporting controls compact, but stop
+     making ordinary desktop labels look like microprint. */
+  .playtest-shell.playtest-shell--live .hand-panel > header {
+    min-height: 52px !important;
+    margin-bottom: 5px !important;
+  }
+  .playtest-shell.playtest-shell--live .hand-panel .eyebrow {
+    font-size: 10px !important;
+  }
+  .playtest-shell.playtest-shell--live .hand-counters span {
+    font-size: 9px !important;
+  }
+  .playtest-shell.playtest-shell--live > .playtest-utility-dock {
+    z-index: 920 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    padding-block: 6px !important;
+  }
+  .playtest-shell.playtest-shell--live .playtest-utility-dock button,
+  .playtest-shell.playtest-shell--live .playtest-utility-dock label,
+  .playtest-shell.playtest-shell--live .playtest-utility-dock select,
+  .playtest-shell.playtest-shell--live .rules-sync {
+    min-height: 30px;
+    font-size: 9.5px !important;
+  }
+  .playtest-shell.playtest-shell--live .rules-sync {
+    padding-inline: 9px;
+  }
+
+  /* Keep normal cards readable while reducing the exaggerated hover jump that
+     made the hand feel less stable during rapid actions. */
+  .playtest-shell.playtest-shell--live.motion-full .play-card-row .play-card:hover:not(.is-disabled),
+  .playtest-shell.playtest-shell--live .play-card-row .play-card:focus-within {
+    transform: translateY(-3px) !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1499px) {
+  .playtest-shell.playtest-shell--live > .playtest-action-dock {
+    width: min(640px, calc(var(--live-content-width) - 620px)) !important;
+    min-width: 500px !important;
+  }
+  .playtest-shell.playtest-shell--live .fighter-card-heading[data-flavor]::after {
+    font-size: 8px;
+  }
+}
