@@ -20,12 +20,38 @@ body:has(.universal-card-inspector-backdrop) {
   backdrop-filter: blur(6px);
 }
 
-/* The pre-universal Quick Duel fighter/loadout dossier still has useful live
-   fighter state. Give it explicit dialog-layer authority instead of leaving it
-   underneath fixed HUD/desk layers introduced by later playtest passes. */
+/* Quick Duel dialogs must remain above the fixed HUD, arena, Ascend desk,
+   acquisition rail, and VFX layers. A previous recovery pass lowered every
+   playtest dialog to z-index 15000, which left the dialog visible but allowed
+   higher transparent/fixed playtest surfaces to intercept pointer input. */
 .playtest-inspector-backdrop {
-  z-index: 15000 !important;
+  z-index: 2147483500 !important;
   isolation: isolate;
+  pointer-events: auto !important;
+}
+
+/* Printed-effect decisions are blocking gameplay choices. Keep them at the
+   absolute top of the Quick Duel interaction stack and make the complete
+   choice surface interactive so Reduce/Skip cannot be trapped behind another
+   fixed layer. */
+.playtest-shell.playtest-shell--live .effect-choice-backdrop {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  inset: 0 !important;
+  pointer-events: auto !important;
+  isolation: isolate !important;
+}
+
+.playtest-shell.playtest-shell--live .effect-choice-backdrop .effect-choice-dialog,
+.playtest-shell.playtest-shell--live .effect-choice-backdrop .effect-choice-options,
+.playtest-shell.playtest-shell--live .effect-choice-backdrop .effect-choice-options > button,
+.playtest-shell.playtest-shell--live .effect-choice-backdrop footer,
+.playtest-shell.playtest-shell--live .effect-choice-backdrop footer .button {
+  pointer-events: auto !important;
+}
+
+.playtest-shell.playtest-shell--live .effect-choice-backdrop button {
+  touch-action: manipulation;
 }
 
 /* The loadout tabs physically hang off the fighter dossier. Earlier cascade
