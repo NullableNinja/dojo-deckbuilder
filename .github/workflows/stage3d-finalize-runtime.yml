@@ -26,6 +26,27 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Scope ambiguous normal-Attack finalizer anchor
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/stage3d-finalize-runtime.py')
+          text = path.read_text()
+          old = '''replace_once(
+              '    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";\\n    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;',
+              '    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";\\n    const locationComboChoice = pendingLocationComboChoice(current.player, card, zone);\\n    if (locationComboChoice) return write(current, "Location decision: choose which printed Combo number receives the scene modifier.", { pendingChoice: locationComboChoice });\\n    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;',
+              'normal Attack Combo Location choice',
+          )'''
+          new = '''replace_once(
+              '  const declareAttack = () => setMatch((current) => {\\n    if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice) return current;\\n    const card = cardFor(current.selectedAttackId);\\n    if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;\\n    const anyZone = attackHasFlexibleZone(current.player, card);\\n    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";\\n    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;',
+              '  const declareAttack = () => setMatch((current) => {\\n    if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice) return current;\\n    const card = cardFor(current.selectedAttackId);\\n    if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;\\n    const anyZone = attackHasFlexibleZone(current.player, card);\\n    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";\\n    const locationComboChoice = pendingLocationComboChoice(current.player, card, zone);\\n    if (locationComboChoice) return write(current, "Location decision: choose which printed Combo number receives the scene modifier.", { pendingChoice: locationComboChoice });\\n    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;',
+              'normal Attack Combo Location choice',
+          )'''
+          if old not in text:
+              raise SystemExit('Could not find ambiguous normal-Attack finalizer block to harden')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Apply final Location runtime integration
         run: python scripts/stage3d-finalize-runtime.py
 
