@@ -1,0 +1,127 @@
+name: Stage 3D Final Location Gate
+
+on:
+  push:
+    branches:
+      - stage3d-location-runtime
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3d-location-runtime
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Scope ambiguous normal-Attack finalizer anchor
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/stage3d-finalize-runtime.py')
+          text = path.read_text()
+          old = '''replace_once(
+              '    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";\\n    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;',
+              '    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";\\n    const locationComboChoice = pendingLocationComboChoice(current.player, card, zone);\\n    if (locationComboChoice) return write(current, "Location decision: choose which printed Combo number receives the scene modifier.", { pendingChoice: locationComboChoice });\\n    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;',
+              'normal Attack Combo Location choice',
+          )'''
+          new = '''replace_once(
+              '  const declareAttack = () => setMatch((current) => {\\n    if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice) return current;\\n    const card = cardFor(current.selectedAttackId);\\n    if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;\\n    const anyZone = attackHasFlexibleZone(current.player, card);\\n    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";\\n    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;',
+              '  const declareAttack = () => setMatch((current) => {\\n    if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice) return current;\\n    const card = cardFor(current.selectedAttackId);\\n    if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;\\n    const anyZone = attackHasFlexibleZone(current.player, card);\\n    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";\\n    const locationComboChoice = pendingLocationComboChoice(current.player, card, zone);\\n    if (locationComboChoice) return write(current, "Location decision: choose which printed Combo number receives the scene modifier.", { pendingChoice: locationComboChoice });\\n    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;',
+              'normal Attack Combo Location choice',
+          )'''
+          if old not in text:
+              raise SystemExit('Could not find ambiguous normal-Attack finalizer block to harden')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Apply final Location runtime integration
+        run: python scripts/stage3d-finalize-runtime.py
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate canonical game data
+        run: npm run game:generate
+
+      - name: Check canonical generated data
+        run: npm run game:check
+
+      - name: Stage 3D targeted Location tests
+        run: node --experimental-strip-types --test tests/stage3d-location-runtime.test.mjs
+
+      - name: TypeScript compile
+        run: npx tsc --noEmit
+
+      - name: Full Node test inventory
+        run: node --experimental-strip-types --test tests/*.test.mjs
+
+      - name: Direct Vite production build
+        run: npx vite build
+
+      - name: Full repository test suite
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Commit validated runtime changes and generated output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx content/card-effects.json app/data/card-effects.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Stage 3D: finalize Core Location Quick Duel runtime"
+          fi
+
+      - name: Remove temporary Stage 3D patch machinery
+        run: |
+          rm -f \
+            .github/workflows/stage3d-apply-location-runtime.yml \
+            .github/workflows/stage3d-context-audit.yml \
+            .github/workflows/stage3d-fix-location-runtime-compile.yml \
+            .github/workflows/stage3d-location-runtime-ci.yml \
+            .github/workflows/stage3d-runtime-fixup-v2.yml \
+            .github/workflows/stage3d-sync-main.yml \
+            .github/workflows/stage3d-finalize-runtime.yml \
+            scripts/stage3d-apply-location-runtime.mjs \
+            scripts/stage3d-finalize-runtime.py \
+            scripts/stage3d-fix-location-runtime-compile.mjs \
+            scripts/stage3d-runtime-fixup-v2.py
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Stage 3D: remove temporary Location migration tooling"
+          fi
+
+      - name: Final canonical regeneration
+        run: npm run game:generate
+
+      - name: Final canonical drift check
+        run: npm run game:check
+
+      - name: Final targeted Location tests
+        run: node --experimental-strip-types --test tests/stage3d-location-runtime.test.mjs
+
+      - name: Final repository tests
+        run: npm test
+
+      - name: Final production build
+        run: npm run build
+
+      - name: Verify clean working tree
+        run: git diff --exit-code
+
+      - name: Push only fully validated final branch
+        run: git push origin HEAD:stage3d-location-runtime

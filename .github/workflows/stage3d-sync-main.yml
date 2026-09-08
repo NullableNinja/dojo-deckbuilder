@@ -1,0 +1,33 @@
+name: Stage 3D Sync Main
+
+on:
+  push:
+    branches:
+      - stage3d-location-runtime
+
+permissions:
+  contents: write
+
+jobs:
+  sync-main:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3d-location-runtime
+          fetch-depth: 0
+
+      - name: Merge latest main into Stage 3D
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "Latest main is already contained in this branch."
+            exit 0
+          fi
+          git merge --no-edit origin/main
+          git push origin HEAD:stage3d-location-runtime

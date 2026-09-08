@@ -1,0 +1,46 @@
+name: Stage 3D Runtime Fixup V2
+
+on:
+  push:
+    branches:
+      - stage3d-location-runtime
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fixup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3d-location-runtime
+          fetch-depth: 0
+      - name: Harden fixup occurrence guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/stage3d-runtime-fixup-v2.py')
+          text = path.read_text()
+          old = "replace_once('applyLocationBlock(nextAi);', 'applyLocationBlock(nextAi, zone);', 'player Attack block hook')\nreplace_once('applyLocationBlock(nextPlayer);', 'applyLocationBlock(nextPlayer, pending.zone);', 'AI Attack block hook')\nreplace_once('applyLocationBlock(nextAi);', 'applyLocationBlock(nextAi, zone);', 'reversal block hook')"
+          new = "count = source.count('applyLocationBlock(nextAi);')\nif count != 2:\n    raise SystemExit(f'player/reversal block hooks: expected 2 matches, found {count}')\nsource = source.replace('applyLocationBlock(nextAi);', 'applyLocationBlock(nextAi, zone);')\nreplace_once('applyLocationBlock(nextPlayer);', 'applyLocationBlock(nextPlayer, pending.zone);', 'AI Attack block hook')"
+          if old not in text:
+              raise SystemExit('Could not find the original duplicate Block hook guard.')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Apply runtime fixup
+        run: python scripts/stage3d-runtime-fixup-v2.py
+      - name: Commit runtime fixup
+        run: |
+          if git diff --quiet -- app/playtest.tsx; then
+            echo "No runtime fixup changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx
+          git commit -m "Stage 3D: fix missed Location runtime state paths"
+          git push origin HEAD:stage3d-location-runtime
