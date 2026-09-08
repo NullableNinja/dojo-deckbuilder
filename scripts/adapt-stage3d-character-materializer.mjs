@@ -46,5 +46,12 @@ replaceBlock("initial Character Initiate", `source = replaceRegexOnce(
   "initial Character Initiate",
 );`);
 
+replaceBlock("block Yell while Character choice pending", `source = replaceOnce(
+  source,
+  '  const beginYell = () => setMatch((current) => current?.phase === "player-initiate" ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: resetLocationTurn({ ...current.player, usedEffectIdsThisTurn: [], locationOwnTurn: true, locationInInitiate: false }) }) : current);',
+  '  const beginYell = () => setMatch((current) => current?.phase === "player-initiate" && !current.pendingChoice ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: resetLocationTurn({ ...current.player, usedEffectIdsThisTurn: [], locationOwnTurn: true, locationInInitiate: false }) }) : current);',
+  "block Yell while Character choice pending",
+);`);
+
 fs.writeFileSync(path, script);
 console.log("Adapted legacy Character materializer for current Location/playmat source.");
