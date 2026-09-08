@@ -39,7 +39,7 @@ jobs:
       - name: Apply targeting integration
         run: node scripts/apply-stage3c-smoke-targeting-batch.mjs
       - name: Remove one-shot scaffolding before certification
-        run: git rm scripts/apply-stage3c-smoke-targeting-batch.mjs .github/workflows/apply-stage3c-smoke-targeting-batch.yml
+        run: git rm -f scripts/apply-stage3c-smoke-targeting-batch.mjs .github/workflows/apply-stage3c-smoke-targeting-batch.yml
       - name: Targeted Smoke Bomb certification
         run: node --experimental-strip-types --test tests/stage3c-consumable-reaction-ai.test.mjs tests/stage3c-smoke-bomb-play-surface.test.mjs
       - name: Full clean-branch test suite
