@@ -220,7 +220,7 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       command.duration = "nextAttack";
       break;
     case "consumable.nextDamagePrevention":
-      command.qualifier = { nextDamageEvent: true };
+      command.qualifier = { nextDamageEvent: true, ...(effect.duration === "endOfRound" ? { expires: "endOfRound" } : {}) };
       command.duration = "nextDamage";
       break;
     case "consumable.nextIncomingAttackDefense":
@@ -241,7 +241,7 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       command.qualifier = { directDamage: true };
       break;
     case "consumable.revealTopFocusValue":
-      if (command.effect === "core.gainFocus") command.amount = Math.max(command.amount, Number(context.revealedFocusValue ?? command.amount));
+      if (command.effect === "core.gainFocus") command.amount = Number(context.revealedFocusValue ?? 0) >= 2 ? 2 : 1;
       break;
     case "consumable.zoneSpecificIncomingAttackPenalty":
       command.qualifier = { chosenIncomingZone: true, expires: "endOfRound" };
@@ -406,8 +406,8 @@ export function structuredConsumableDestroyJunkCount(card: RuntimeCardLike) {
   return structuredConsumableDestroyJunkPlan(card)?.count ?? 0;
 }
 
-export function structuredConsumableMandatoryDiscard(card: RuntimeCardLike) {
-  return consumableRuntimeCommands(card, "onPlay")
+export function structuredConsumableMandatoryDiscard(card: RuntimeCardLike, context: ConsumableRuntimeContext = {}) {
+  return consumableRuntimeCommands(card, "onPlay", context)
     .filter((command) => command.effect === "core.discard" && command.target === "self" && !command.choice)
     .reduce((total, command) => total + Math.max(0, command.amount), 0);
 }

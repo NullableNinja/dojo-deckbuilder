@@ -9,7 +9,8 @@ import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, co
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
-import { consumableRuntimeCommands, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";
+import { consumableRuntimeCommands, structuredConsumableMandatoryDiscard, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";
+import { canPlayCoreConsumableInPhase, stage3cRestrictionBlocks } from "./stage3c-consumable-play-window.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
@@ -962,6 +963,7 @@ function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {
     temporaryNegativeModifierPresent: board.tempSpeed < 0 || board.nextAttackBonus < 0 || (board.nextDefenseCardBonus ?? 0) < 0,
     removedTemporaryNegativeModifier: false,
     sameTurnSourceActive: true,
+    revealedFocusValue: board.deck.length ? cardFocus(cardFor(board.deck[board.deck.length - 1])) : 0,
   };
 }
 
@@ -2088,7 +2090,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
 
   const declareAttack = () => setMatch((current) => {
-    if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice) return current;
+    if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice || stage3cRestrictionBlocks(current.player.stage3cRestrictions, "attack")) return current;
     const card = cardFor(current.selectedAttackId);
     if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
     const anyZone = attackHasFlexibleZone(current.player, card);
@@ -2204,9 +2206,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
 
   const playSupport = (id: string) => setMatch((current) => {
-    if (!current || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice) return current;
+    if (!current || current.winner || current.pendingDiscard || current.pendingChoice) return current;
     const card = cardFor(id);
     if (!card || isAttack(card) || isDefense(card) || isPermanent(card)) return current;
+    const legalSupportPhase = current.phase === "player-yell"
+      ? (!isCoreConsumableCard(card) || canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(current.player)))
+      : current.phase === "defense-window" && isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(current.player));
+    if (!legalSupportPhase) return current;
     if (isCoreConsumableCard(card) && (current.player.stage3cRestrictions ?? []).includes("consumable")) return current;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, current.player);
     let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;
@@ -2222,7 +2228,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const pendingDiscard = null;
     const junkPlan = destroyJunkChoicePlan(card);
     const junkCount = junkPlan?.count ?? destroyJunkChoiceCount(card);
-    const mandatoryDiscard = mandatoryDiscardChoiceCount(card);
+    const mandatoryDiscard = isCoreConsumableCard(card)
+      ? structuredConsumableMandatoryDiscard(card, stage3cConsumableContext(supportEntryBoard))
+      : mandatoryDiscardChoiceCount(card);
     const junkSources = junkPlan?.sources ?? ["hand", "discard"];
     const hasJunk = (junkSources.includes("hand") ? nextPlayer.hand : []).concat(junkSources.includes("discard") ? nextPlayer.discard : []).some((candidate) => isJunk(cardFor(candidate)));
     let pendingChoice: PendingChoice | null = junkCount && hasJunk
@@ -2442,7 +2450,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const runAiTurn = () => setMatch((current) => {
     if (!current || current.phase !== "ai-ready" || current.winner) return current;
     const prepared = prepareAiTurn(current);
-    const availableAttacks = prepared.ai.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
+    const availableAttacks = stage3cRestrictionBlocks(prepared.ai.stage3cRestrictions, "attack")
+      ? []
+      : prepared.ai.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
     const aiAttackIds = settings.difficulty === "student" ? shuffle(availableAttacks) : availableAttacks.sort((left, right) => aiAttackScore(cardFor(right)!, prepared.ai, prepared.player, cardFor(prepared.locationId)) - aiAttackScore(cardFor(left)!, prepared.ai, prepared.player, cardFor(prepared.locationId)));
     if (!aiAttackIds.length) return finishAiTurn(prepared, "Computer finds no Attack and files an awkward report.", settings.locations);
     return openAiStrike(prepared, aiAttackIds[0], aiAttackIds.slice(1), settings.tempo);
@@ -2627,7 +2637,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
 
   const resolveReversal = () => setMatch((current) => {
-    if (!current || current.phase !== "reversal-window" || !current.selectedAttackId || current.player.reversalUsedRound) return current;
+    if (!current || current.phase !== "reversal-window" || !current.selectedAttackId || current.player.reversalUsedRound || stage3cRestrictionBlocks(current.player.stage3cRestrictions, "attack")) return current;
     const card = cardFor(current.selectedAttackId);
     if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
     const zone = attackHasFlexibleZone(current.player, card) ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
@@ -2711,7 +2721,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return;
     }
     if (match.phase === "defense-window") {
-      if (match.pendingStrike && legalDefenseIds(match.player, match.pendingStrike.zone).includes(id)) resolveDefense(id);
+      if (isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(match.player))) playSupport(id);
+      else if (match.pendingStrike && legalDefenseIds(match.player, match.pendingStrike.zone).includes(id)) resolveDefense(id);
       return;
     }
     if (match.phase === "reversal-window") {
@@ -2885,10 +2896,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const choosingDiscard = Boolean(match.pendingDiscard);
           const choosingEffect = Boolean(match.pendingChoice);
           const canInitiate = match.phase === "player-initiate" && permanent && !(playerFighter.name === "Knuckleton the Brawler" && isWeapon(card));
-          const canUse = match.phase === "player-yell" && (attack || (defense ? !player.defensePracticeUsed : !permanent));
+          const attackAllowed = !stage3cRestrictionBlocks(player.stage3cRestrictions, "attack");
+          const consumableAllowed = !isCoreConsumableCard(card) || (!stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(player)));
+          const canUse = match.phase === "player-yell" && (attack ? attackAllowed : (defense ? !player.defensePracticeUsed : !permanent && consumableAllowed));
           const canDefend = match.phase === "defense-window" && defenseOptions.includes(id);
-          const canReverse = match.phase === "reversal-window" && attack;
-          return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !canDefend : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={() => useHandCard(id)} onInspect={() => setInspectedId(id)} />;
+          const canReactConsumable = match.phase === "defense-window" && isCoreConsumableCard(card) && !stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(player));
+          const canReverse = match.phase === "reversal-window" && attack && attackAllowed;
+          return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !(canDefend || canReactConsumable) : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={() => useHandCard(id)} onInspect={() => setInspectedId(id)} />;
         })}</div>
         {match.phase === "player-initiate" && playerFighter.name === "Sensei Ducktape" && !player.abilityUsedRound && player.discard.some((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }) && <div className="ducktape-tray"><span>Sensei Ducktape · emergency repair</span>{player.discard.filter((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }).slice(0, 3).map((id) => <button onClick={() => borrowEquipment(id)} key={id}>Jury-rig {cardFor(id)?.name}</button>)}</div>}
         {match.phase === "reversal-window" && pendingAttack?.zone?.includes("Any") && <div className="hand-context-strip"><span>Choose reversal zone</span><fieldset className="zone-picker"><legend className="sr-only">Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
@@ -3113,7 +3127,9 @@ function prepareAiTurn(current: Match) {
   }
   const supportIds = nextAi.hand.filter((id) => {
     const card = cardFor(id);
-    return Boolean(card && !isAttack(card) && !isDefense(card) && card.subtype !== "Junk" && !(fighter?.name === "Knuckleton the Brawler" && isWeapon(card)));
+    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || (fighter?.name === "Knuckleton the Brawler" && isWeapon(card))) return false;
+    if (isCoreConsumableCard(card)) return canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(nextAi));
+    return true;
   });
   if (!supportIds.length && !practiceId && !badHabitId && !turnEquipment.notes.length) return current;
   const played: string[] = [];
@@ -3122,6 +3138,7 @@ function prepareAiTurn(current: Match) {
   for (const id of supportIds) {
     const card = cardFor(id);
     if (!card) continue;
+    if (isCoreConsumableCard(card) && stage3cRestrictionBlocks(nextAi.stage3cRestrictions, "consumable")) continue;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, nextAi);
     if (isKata(card)) nextAi = stage3cConsumeKata(nextAi);
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});

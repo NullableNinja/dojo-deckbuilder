@@ -15,6 +15,7 @@ import {
   isSupportedConsumableResolver,
   structuredConsumableLifecycle,
   structuredConsumableDestroyJunkPlan,
+  structuredConsumableMandatoryDiscard,
 } from "../app/consumable-effect-resolvers.ts";
 import {
   createFamilyRuntimeState,
@@ -440,3 +441,4 @@ test("structured this-turn and this-round Consumable statuses carry explicit exp
     assert.equal(command.qualifier?.expires, expires, `${catalogId} must expire at ${expires}`);
   }
 });
+\n\ntest("Stage 3C batch: reveal rewards, round-bounded prevention, and Tempo cycling", () => {\n  const cookie = card("DDB-CON-CORE-020");\n  for (const [revealedFocusValue, expected] of [[0, 1], [1, 1], [2, 2], [3, 2]]) {\n    const command = consumableRuntimeCommands(cookie, "onPlay", { ...consumableBaseContext, revealedFocusValue })\n      .find((entry) => entry.sourceEffectId === "consumable-fine-print-fortune-focus");\n    assert.equal(command?.amount, expected);\n  }\n\n  const painkiller = consumableRuntimeCommands(card("DDB-CON-CORE-041"), "onPlay", consumableBaseContext)\n    .find((entry) => entry.sourceEffectId === "consumable-painkiller-prevent");\n  assert.equal(painkiller?.duration, "nextDamage");\n  assert.equal(painkiller?.qualifier?.expires, "endOfRound");\n\n  assert.equal(structuredConsumableMandatoryDiscard(card("DDB-CON-CORE-040"), { ...consumableBaseContext, hasTempo: true }), 1);\n  assert.equal(structuredConsumableMandatoryDiscard(card("DDB-CON-CORE-040"), { ...consumableBaseContext, hasTempo: false }), 0);\n});\n
