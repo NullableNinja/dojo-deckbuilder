@@ -158,4 +158,13 @@ test("Quick Duel applies nextIncomingAttack DEF without requiring a Defense card
   assert.match(source, /nextPlayer = stage3cConsumeIncomingAttackStatuses\(nextPlayer\)/);
   assert.match(source, /stage3cConsumeDefenseStatuses\(\{ \.\.\.nextAi/);
 });
-\n\ntest("Quick Duel gates Consumable timing and attack restrictions through shared Stage 3C helpers", async () => {\n  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");\n  assert.match(source, /canPlayCoreConsumableInPhase\(card, "defense-window"/);\n  assert.match(source, /stage3cRestrictionBlocks\(current\.player\.stage3cRestrictions, "attack"\)/);\n  assert.match(source, /stage3cRestrictionBlocks\(prepared\.ai\.stage3cRestrictions, "attack"\)/);\n  assert.match(source, /structuredConsumableMandatoryDiscard\(card, stage3cConsumableContext\(supportEntryBoard\)\)/);\n  assert.match(source, /revealedFocusValue: board\.deck\.length \? cardFocus\(cardFor\(board\.deck\[board\.deck\.length - 1\]\)\) : 0/);\n});\n
+
+
+test("Quick Duel gates Consumable timing and attack restrictions through shared Stage 3C helpers", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /canPlayCoreConsumableInPhase\(card, "defense-window"/);
+  assert.match(source, /stage3cRestrictionBlocks\(current\.player\.stage3cRestrictions, "attack"\)/);
+  assert.match(source, /stage3cRestrictionBlocks\(prepared\.ai\.stage3cRestrictions, "attack"\)/);
+  assert.match(source, /structuredConsumableMandatoryDiscard\(card, stage3cConsumableContext\(supportEntryBoard\)\)/);
+  assert.match(source, /revealedFocusValue: board\.deck\.length \? cardFocus\(cardFor\(board\.deck\[board\.deck\.length - 1\]\)\) : 0/);
+});
