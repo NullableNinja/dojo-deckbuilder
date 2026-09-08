@@ -27,6 +27,17 @@ jobs:
               'if (text.indexOf(search, index + search.length) >= 0) throw new Error(`Stage 3D patch anchor is not unique: ${label}`);',
               'if (text.indexOf(search, index + search.length) >= 0 && label !== "player Attack cardPlayed and AI Block Character event") throw new Error(`Stage 3D patch anchor is not unique: ${label}`);'
           )
+          board_start = "source = replaceOnce(\n  source,\n  '  stage3cPurchaseCostModifier?: number;\\n};',"
+          board_label = '  "Board Character runtime state",\n);'
+          start = script.index(board_start)
+          end = script.index(board_label, start) + len(board_label)
+          block = '''source = replaceOnce(
+  source,
+  '  locationPendingChoice?: { kind: "location-choice"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string } | null;\\n};',
+  '  locationPendingChoice?: { kind: "location-choice"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string } | null;\\n  usedCharacterEffectIdsThisTurn?: string[];\\n  usedCharacterEffectIdsThisRound?: string[];\\n  usedCharacterEffectIdsThisGame?: string[];\\n  characterMarks?: Record<string, unknown>;\\n  dealtCombatDamageThisTurn?: number;\\n  dealtCombatDamagePreviousTurn?: boolean | null;\\n};',
+  "Board Character runtime state",
+);'''
+          script = script[:start] + block + script[end:]
           path.write_text(script)
           PY
 
