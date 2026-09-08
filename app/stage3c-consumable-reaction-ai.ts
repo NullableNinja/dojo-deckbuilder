@@ -30,9 +30,11 @@ export function aiDefensiveConsumableScore(card: AiReactionCard, context: AiDefe
     .reduce((total, command) => total + Math.max(0, command.amount), 0);
   const healing = Math.min(Math.max(0, Number(context.missingHp ?? 0)), healingAvailable);
   const attackLock = commands.some((command) => command.qualifier?.restriction === "attack") ? 1 : 0;
+  const invalidatesTarget = commands.some((command) => command.qualifier?.untargetable === true);
   const expectedDamage = Math.max(0, Number(context.expectedIncomingDamage ?? 0));
   const usefulPrevention = expectedDamage ? Math.min(prevention, expectedDamage) : prevention;
-  return usefulPrevention * 8 + defense * 6 + healing * 3 - attackLock * 2;
+  const targetInvalidationValue = invalidatesTarget ? 48 + Math.min(20, expectedDamage * 4) : 0;
+  return targetInvalidationValue + usefulPrevention * 8 + defense * 6 + healing * 3 - attackLock * 2;
 }
 
 export function chooseAiDefensiveConsumable(cards: AiReactionCard[], context: AiDefensiveConsumableContext = {}) {

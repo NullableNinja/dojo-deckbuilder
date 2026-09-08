@@ -1,4 +1,5 @@
 import { consumableRuntimeCommands, type ConsumableRuntimeContext } from "./consumable-effect-resolvers.ts";
+import { isTargetInvalidationReaction } from "./stage3c-consumable-event-reactions.ts";
 import type { RuntimeCardLike } from "./family-effect-runtime.ts";
 
 export type ConsumableSurfacePhase = "player-yell" | "defense-window" | "player-ascend" | "player-initiate" | "reversal-window" | "ai-ready";
@@ -17,7 +18,8 @@ export function canPlayCoreConsumableInPhase(card: TimedRuntimeCard, phase: Cons
     friendlyTargetCount: context.friendlyTargetCount ?? 1,
     opponentTargetCount: context.opponentTargetCount ?? 1,
   });
-  return commands.some((command) => command.effect === "combat.preventDamage" || command.effect === "combat.modifyDefense");
+  return isTargetInvalidationReaction(card)
+    || commands.some((command) => command.effect === "combat.preventDamage" || command.effect === "combat.modifyDefense");
 }
 
 export function stage3cRestrictionBlocks(restrictions: string[] | undefined, kind: "attack" | "consumable") {
