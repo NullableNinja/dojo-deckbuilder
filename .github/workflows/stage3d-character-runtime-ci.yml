@@ -38,6 +38,9 @@ jobs:
           PY
           node scripts/apply-stage3d-character-runtime.mjs
 
+      - name: Show patched syntax-error context
+        run: nl -ba app/playtest.tsx | sed -n '3128,3139p'
+
       - name: Check patch whitespace
         run: git diff --check
 
