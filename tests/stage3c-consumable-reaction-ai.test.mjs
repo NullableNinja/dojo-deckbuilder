@@ -25,3 +25,8 @@ test("AI deterministically selects the highest-value legal defensive Consumable 
   const wounded = chooseAiDefensiveConsumable(hand, { missingHp: 5, expectedIncomingDamage: 1, friendlyTargetCount: 1, opponentTargetCount: 1 });
   assert.equal(wounded?.catalogId, "DDB-CON-CORE-016");
 });
+
+test("AI passes instead of wasting a defensive Consumable when no legal card has positive value", () => {
+  const hand = [card("DDB-CON-CORE-001"), card("DDB-CON-CORE-017"), card("DDB-CON-CORE-033")];
+  assert.equal(chooseAiDefensiveConsumable(hand, { missingHp: 0, expectedIncomingDamage: 0, friendlyTargetCount: 1, opponentTargetCount: 1 }), null);
+});
