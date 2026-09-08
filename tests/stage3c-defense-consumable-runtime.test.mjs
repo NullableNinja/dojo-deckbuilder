@@ -97,6 +97,7 @@ const consumableBaseContext = {
   revealedFocusValue: 2,
   revealedDifferentTypeCount: 3,
   friendlyTargetCount: 2,
+  opponentTargetCount: 2,
   selectedEquipmentSubtype: "Gear",
 };
 
@@ -220,6 +221,26 @@ test("end-of-round Consumable modifiers apply now and expire cleanly", () => {
   const expired = expireRuntimeStatuses(state, "endOfRound");
   assert.equal(expired.self.speed, 0);
   assert.equal(expired.statuses.some((status) => status.sourceEffectId === effect.id), false);
+});
+
+test("single-opponent target selection auto-resolves in Quick Duel semantics", () => {
+  const cases = [
+    ["DDB-CON-CORE-002", "consumable.chooseOpponentNextAttackPenalty", "combat.modifyAttackPower", -2, "nextAttack"],
+    ["DDB-CON-CORE-059", "consumable.chooseOpponentSpeedPenalty", "combat.modifySpeed", -2, "endOfRound"],
+  ];
+  for (const [catalogId, resolver, effect, amount, duration] of cases) {
+    const duelCommands = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 });
+    const duelCommand = duelCommands.find((candidate) => candidate.resolver === resolver);
+    assert.ok(duelCommand, `${catalogId} must produce its structured command`);
+    assert.equal(duelCommand.choice, undefined, `${catalogId} must not queue an unreachable opponent choice in a duel`);
+    assert.equal(duelCommand.effect, effect);
+    assert.equal(duelCommand.amount, amount);
+    assert.equal(duelCommand.duration, duration);
+
+    const multiplayerCommands = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 2 });
+    const multiplayerCommand = multiplayerCommands.find((candidate) => candidate.resolver === resolver);
+    assert.ok(multiplayerCommand?.choice, `${catalogId} must preserve explicit target choice when multiple opponents exist`);
+  }
 });
 
 test("solo-friendly healing resolves into HP instead of an unreachable target choice", () => {
