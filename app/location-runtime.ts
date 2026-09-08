@@ -10,6 +10,7 @@ export type LocationTrackedState = {
   locationReadiedEquipmentPenalty?: number;
   locationChosenCounterZone?: string | null;
   locationChosenCounterRound?: number | null;
+  locationComboNumericChoice?: string | null;
   locationActiveBeltExam?: boolean;
 };
 
@@ -156,7 +157,13 @@ export function usedAcrossPlayersAfter(commands: LocationCommand[], current: rea
 }
 
 export function resetLocationTurn<T extends LocationTrackedState>(state: T): T {
-  return { ...state, locationUsedEffectsThisTurn: [] };
+  return {
+    ...state,
+    locationUsedEffectsThisTurn: [],
+    locationChosenCounterZone: null,
+    locationChosenCounterRound: null,
+    locationComboNumericChoice: null,
+  };
 }
 
 export function resetLocationRound<T extends LocationTrackedState>(state: T): T {
@@ -168,6 +175,9 @@ export function resetLocationRound<T extends LocationTrackedState>(state: T): T 
     locationNextRoundSpeed: 0,
     locationStandingAttack: 0,
     locationStandingDefense: 0,
+    locationChosenCounterZone: null,
+    locationChosenCounterRound: null,
+    locationComboNumericChoice: null,
     ...(delayedSpeed ? { tempSpeed: Number((state as Record<string, unknown>).tempSpeed ?? 0) + delayedSpeed } : {}),
   };
 }
