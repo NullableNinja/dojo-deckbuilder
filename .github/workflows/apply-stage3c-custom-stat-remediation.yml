@@ -55,9 +55,9 @@ jobs:
           from pathlib import Path
           p=Path('app/playtest.tsx')
           t=p.read_text()
-          anchor='import {\n  consumableRuntimeCommands,'
+          anchor='import { consumableRuntimeCommands, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";'
           if anchor not in t: raise SystemExit('playtest import anchor missing')
-          t=t.replace(anchor, 'import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";\n'+anchor,1)
+          t=t.replace(anchor, anchor+'\nimport { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";',1)
 
           old='  stage3cDefenseModifier?: number;\n  stage3cPurchaseCostModifier?: number;'
           new='  stage3cDefenseModifier?: number;\n  stage3cAttackModifier?: number;\n  stage3cSpeedOverride?: number | null;\n  stage3cPurchaseCostModifier?: number;'
@@ -113,7 +113,7 @@ jobs:
           });
           EOF
 
-          rm .github/workflows/audit-stage3c-custom-runtime.yml
+          rm -f .github/workflows/audit-stage3c-custom-runtime.yml .github/workflows/fix-custom-stat-remediation-anchor.yml
       - name: Remove one-shot workflow and commit
         run: |
           git config user.name "github-actions[bot]"
