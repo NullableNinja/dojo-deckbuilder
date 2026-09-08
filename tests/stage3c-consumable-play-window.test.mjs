@@ -13,10 +13,10 @@ test("Consumable surface timing distinguishes Yell, Anytime, incoming Reaction, 
   assert.equal(canPlayCoreConsumableInPhase(card("DDB-CON-CORE-030"), "player-yell"), false); // Ascend
   assert.equal(canPlayCoreConsumableInPhase(card("DDB-CON-CORE-005"), "player-yell"), false); // Reaction
 
-  for (const catalogId of ["DDB-CON-CORE-005", "DDB-CON-CORE-016", "DDB-CON-CORE-036", "DDB-CON-CORE-041", "DDB-CON-CORE-047"]) {
+  for (const catalogId of ["DDB-CON-CORE-005", "DDB-CON-CORE-016", "DDB-CON-CORE-036", "DDB-CON-CORE-041", "DDB-CON-CORE-047", "DDB-CON-CORE-049"]) {
     assert.equal(canPlayCoreConsumableInPhase(card(catalogId), "defense-window"), true, `${catalogId} should be legal in an incoming Attack Reaction Window`);
   }
-  for (const catalogId of ["DDB-CON-CORE-001", "DDB-CON-CORE-017", "DDB-CON-CORE-033", "DDB-CON-CORE-049"]) {
+  for (const catalogId of ["DDB-CON-CORE-001", "DDB-CON-CORE-017", "DDB-CON-CORE-033"]) {
     assert.equal(canPlayCoreConsumableInPhase(card(catalogId), "defense-window"), false, `${catalogId} needs its specific event hook instead of the generic incoming-Attack window`);
   }
   assert.equal(canPlayCoreConsumableInPhase(card("DDB-CON-CORE-057"), "defense-window"), true); // Anytime
