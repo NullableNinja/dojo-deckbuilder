@@ -16,22 +16,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Add Pocket Sand to explicit opponent choices
+      - name: Apply Pocket Sand target-choice fix
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('app/consumable-effect-resolvers.ts')
-          text = p.read_text()
-          old = '''    "consumable.chooseOpponentNextAttackPenalty",
-    "consumable.chooseFriendlyHealTarget",'''
-          new = '''    "consumable.chooseOpponentNextAttackPenalty",
-    "consumable.chooseOpponentNextDefenseGuardPenalty",
-    "consumable.chooseFriendlyHealTarget",'''
-          if old not in text:
-              raise SystemExit('choice resolver anchor missing')
-          p.write_text(text.replace(old, new, 1))
-          PY
+          python3 .github/scripts/fix-stage3c-pocket-sand-choice.py
           git diff --check
 
       - name: Commit product fix
@@ -39,7 +27,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/fix-stage3c-pocket-sand-choice.yml
+          git rm .github/workflows/fix-stage3c-pocket-sand-choice.yml .github/scripts/fix-stage3c-pocket-sand-choice.py
           git add app/consumable-effect-resolvers.ts
           git commit -m "fix: preserve Pocket Sand target choice outside Quick Duel"
           git push origin HEAD:stage3c-play-surface-remediation
