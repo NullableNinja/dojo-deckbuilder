@@ -1,0 +1,30 @@
+name: Apply Stage 3C Test Newline Repair Once
+
+on:
+  push:
+    branches:
+      - stage3c-play-surface-remediation
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Repair test file newlines
+        run: |
+          python3 scripts/_stage3c_test_newline_repair.py
+          git diff --check
+      - name: Commit repaired tests
+        run: |
+          rm scripts/_stage3c_test_newline_repair.py
+          rm .github/workflows/apply-stage3c-test-newline-repair.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/stage3c-defense-consumable-runtime.test.mjs tests/playtest-effect-integration.test.mjs tests/stage3c-consumable-play-window.test.mjs scripts/_stage3c_test_newline_repair.py .github/workflows/apply-stage3c-test-newline-repair.yml
+          git commit -m "test: repair Stage 3C batch test formatting"
+          git push origin HEAD:stage3c-play-surface-remediation
