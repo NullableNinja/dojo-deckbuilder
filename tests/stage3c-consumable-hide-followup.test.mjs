@@ -21,6 +21,22 @@ test("Overtime Espresso persists its 1 HP Hide loss after leaving the play area"
   assert.equal(resolveConsumableHideStatuses(armed).directSelfDamage, 1);
 });
 
+test("Hide followup resolution preserves unrelated structured statuses", () => {
+  const unrelated = {
+    sourceEffectId: "unrelated-round-status",
+    effect: "combat.modifySpeed",
+    target: "self",
+    amount: 1,
+    duration: "endOfRound",
+    qualifier: {},
+    appliedImmediately: true,
+  };
+  const armed = armConsumableHideStatuses([unrelated], card("DDB-CON-CORE-019"));
+  const resolved = resolveConsumableHideStatuses(armed);
+  assert.equal(resolved.statuses.some((status) => status.sourceEffectId === unrelated.sourceEffectId), true);
+  assert.equal(resolved.statuses.some(isConsumableHideStatus), false);
+});
+
 test("Warranty-Approved Ice Pop bonus is driven by Reaction Item history context", () => {
   const noReaction = consumableRuntimeCommands(card("DDB-CON-CORE-058"), "onPlay", { reactionItemUsedSinceLastTurn: false, friendlyTargetCount: 1 });
   const afterReaction = consumableRuntimeCommands(card("DDB-CON-CORE-058"), "onPlay", { reactionItemUsedSinceLastTurn: true, friendlyTargetCount: 1 });
