@@ -55,8 +55,11 @@ function satisfyingContext(effect) {
   return context;
 }
 
-function commandFor(catalogId, effectId) {
-  const effect = source.cards[catalogId].effects.find((candidate) => candidate.id === effectId);
+function commandForEffect(effectId) {
+  const owner = Object.entries(source.cards).find(([, entry]) => entry.effects.some((candidate) => candidate.id === effectId));
+  assert.ok(owner, `${effectId} missing canonical Location owner`);
+  const [catalogId, entry] = owner;
+  const effect = entry.effects.find((candidate) => candidate.id === effectId);
   assert.ok(effect, `${catalogId}/${effectId} missing canonical effect`);
   const command = resolveLocationEffects({ catalogId }, satisfyingContext(effect)).find((candidate) => candidate.effectId === effect.id);
   assert.ok(command, `${catalogId}/${effectId} did not resolve`);
@@ -158,22 +161,22 @@ test("Location lifecycle preserves scene-delayed state across Scene Change but e
 });
 
 test("representative structured Location effects mutate Quick Duel numeric state as printed", () => {
-  const healing = locationRuntimeDelta([commandFor("DDB-LOC-CORE-003", "location-003-healing-penalty")]);
+  const healing = locationRuntimeDelta([commandForEffect("location-003-healing-penalty")]);
   assert.equal(Math.max(healing.healingMinimum, 3 + healing.healing), 2, "Back Alley reduces healing 3 to 2");
 
-  const xp = locationRuntimeDelta([commandFor("DDB-LOC-CORE-004", "location-004-first-attack-defense-xp")]);
+  const xp = locationRuntimeDelta([commandForEffect("location-004-first-attack-defense-xp")]);
   assert.equal(1 + xp.xpGain, 2, "Backyard Belt Mill adds 1 XP to the first matching Attack/Defense XP award");
 
-  const kata = locationRuntimeDelta([commandFor("DDB-LOC-CORE-037", "location-037-kata-focus-zero")]);
+  const kata = locationRuntimeDelta([commandForEffect("location-037-kata-focus-zero")]);
   assert.equal(kata.kataFocusSet, 0, "Parking Lot sets printed Kata Focus generation to zero");
 
-  const ko = locationRuntimeDelta([commandFor("DDB-LOC-CORE-050", "location-050-ko-xp-plus")]);
+  const ko = locationRuntimeDelta([commandForEffect("location-050-ko-xp-plus")]);
   assert.equal(2 + ko.koXp, 3, "Underground Fight Club raises the standard KO XP award from 2 to 3");
 
-  const reduction = locationRuntimeDelta([commandFor("DDB-LOC-CORE-019", "location-019-first-damage-reduction-plus")]);
+  const reduction = locationRuntimeDelta([commandForEffect("location-019-first-damage-reduction-plus")]);
   assert.equal(Math.max(0, 4 - (1 + reduction.damageReduction)), 2, "Furniture Showroom Maze adds 1 to a qualifying reduction");
 
-  const combo = locationRuntimeDelta([commandFor("DDB-LOC-CORE-002", "location-002-first-combo-numeric-plus")]);
+  const combo = locationRuntimeDelta([commandForEffect("location-002-first-combo-numeric-plus")]);
   assert.equal(combo.comboNumeric, 1, "Astral Training Plane exposes a +1 Combo numeric mutation");
 });
 
