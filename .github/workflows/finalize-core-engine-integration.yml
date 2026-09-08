@@ -1,0 +1,69 @@
+name: Finalize Core Runtime Integration Cleanup
+
+on:
+  push:
+    branches:
+      - core-engine-runtime-integration
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update stale integration assertions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          content_test = Path("tests/content-integrity.test.mjs")
+          text = content_test.read_text()
+          old = '  assert.match(playtest, /QUICK_DUEL_LOCATION_NAMES/, "Quick Duel must use locations whose rules are automated by the engine");'
+          new = '  assert.match(playtest, /const quickDuelLocationPool = locationPool\\.filter/, "Quick Duel must source the full Core Location pool from the structured catalog");'
+          if old not in text:
+              raise SystemExit("stale QUICK_DUEL_LOCATION_NAMES assertion not found")
+          content_test.write_text(text.replace(old, new, 1))
+
+          effects_test = Path("tests/playtest-effect-integration.test.mjs")
+          text = effects_test.read_text()
+          old = '  assert.match(source, /locationAttackRuleModifiers/);'
+          new = '  assert.match(source, /structuredLocationAttackModifiers/);'
+          if old not in text:
+              raise SystemExit("stale locationAttackRuleModifiers assertion not found")
+          effects_test.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Remove Stage 3D installer and repair scaffolding
+        run: |
+          git rm \
+            .github/workflows/stage3d-apply-location-runtime.yml \
+            .github/workflows/stage3d-context-audit.yml \
+            .github/workflows/stage3d-fix-location-runtime-compile.yml \
+            .github/workflows/stage3d-location-runtime-ci.yml \
+            .github/workflows/stage3d-runtime-fixup-v2.yml \
+            .github/workflows/stage3d-sync-main.yml \
+            scripts/stage3d-apply-location-runtime.mjs \
+            scripts/stage3d-fix-location-runtime-compile.mjs \
+            scripts/stage3d-runtime-fixup-v2.py \
+            .github/workflows/finalize-core-engine-integration.yml
+
+      - name: Verify no mutating Stage 3D workflow remains
+        run: |
+          ! grep -R "contents: write" .github/workflows
+          ! grep -R -E "git (commit|push)" .github/workflows
+          ! test -e scripts/apply-stage3d-character-runtime.mjs
+          ! test -e scripts/stage3d-apply-location-runtime.mjs
+
+      - name: Commit cleaned production tree
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/content-integrity.test.mjs tests/playtest-effect-integration.test.mjs
+          git commit -m "refactor: remove Stage 3D runtime installer scaffolding"
+          git push origin HEAD:core-engine-runtime-integration
