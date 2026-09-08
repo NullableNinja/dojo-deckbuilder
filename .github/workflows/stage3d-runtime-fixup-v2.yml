@@ -19,6 +19,18 @@ jobs:
         with:
           ref: stage3d-location-runtime
           fetch-depth: 0
+      - name: Harden fixup occurrence guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/stage3d-runtime-fixup-v2.py')
+          text = path.read_text()
+          old = "replace_once('applyLocationBlock(nextAi);', 'applyLocationBlock(nextAi, zone);', 'player Attack block hook')\nreplace_once('applyLocationBlock(nextPlayer);', 'applyLocationBlock(nextPlayer, pending.zone);', 'AI Attack block hook')\nreplace_once('applyLocationBlock(nextAi);', 'applyLocationBlock(nextAi, zone);', 'reversal block hook')"
+          new = "count = source.count('applyLocationBlock(nextAi);')\nif count != 2:\n    raise SystemExit(f'player/reversal block hooks: expected 2 matches, found {count}')\nsource = source.replace('applyLocationBlock(nextAi);', 'applyLocationBlock(nextAi, zone);')\nreplace_once('applyLocationBlock(nextPlayer);', 'applyLocationBlock(nextPlayer, pending.zone);', 'AI Attack block hook')"
+          if old not in text:
+              raise SystemExit('Could not find the original duplicate Block hook guard.')
+          path.write_text(text.replace(old, new, 1))
+          PY
       - name: Apply runtime fixup
         run: python scripts/stage3d-runtime-fixup-v2.py
       - name: Commit runtime fixup
