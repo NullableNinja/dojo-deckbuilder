@@ -1,9 +1,9 @@
-import cardEffectsJson from "./data/card-effects.json";
+import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
 import {
   characterUsageScope,
   greenCharacterAbilityUnlocked,
   type CharacterStructuredEffect,
-} from "./character-effect-resolvers";
+} from "./character-effect-resolvers.ts";
 
 export type CharacterRuntimeActor = "player" | "ai";
 export type CharacterRuntimeZone = "High" | "Mid" | "Low";
@@ -101,6 +101,7 @@ export type CharacterRuntimeChoice = {
   prompt: string;
   options: string[];
   optional: boolean;
+  selectionField: "selectedId" | "selectedZone" | "selectedMode" | "optionalAccepted";
 };
 
 export type CharacterRuntimeResult = {
@@ -184,6 +185,7 @@ const hasTag = (card: CharacterRuntimeCard | null | undefined, tag: string) => (
 const markMap = (board: CharacterRuntimeBoard) => ({ ...(board.characterMarks ?? {}) });
 const hasMark = (board: CharacterRuntimeBoard, key: string) => Boolean(markMap(board)[key]);
 const mark = (board: CharacterRuntimeBoard, key: string, value: unknown = true) => ({ ...board, characterMarks: { ...markMap(board), [key]: value } });
+const clearMark = (board: CharacterRuntimeBoard, key: string) => { const next = markMap(board); delete next[key]; return { ...board, characterMarks: next }; };
 
 function draw(board: CharacterRuntimeBoard, amount: number) {
   const deck = [...board.deck];
@@ -218,7 +220,7 @@ function isAvailable(board: CharacterRuntimeBoard, effect: CharacterStructuredEf
   const resolver = String(effect.resolver ?? "");
   return Boolean(resolver)
     && (resolverEvents[resolver] ?? []).includes(event)
-    && greenCharacterAbilityUnlocked(resolver, board.belt)
+    && (!resolver.startsWith("character.green.") || greenCharacterAbilityUnlocked(board.belt))
     && !usage(board, effect).includes(idFor(effect));
 }
 
@@ -231,8 +233,20 @@ function consume(board: CharacterRuntimeBoard, effect: CharacterStructuredEffect
   return { ...board, [key]: current.includes(id) ? current : [...current, id] };
 }
 
-function makeChoice(effect: CharacterStructuredEffect, prompt: string, options: string[], optional = true): CharacterRuntimeChoice {
-  return { resolver: String(effect.resolver ?? ""), effectId: idFor(effect), prompt, options, optional };
+function makeChoice(effect: CharacterStructuredEffect, prompt: string, options: string[], optional = true, selectionField: CharacterRuntimeChoice["selectionField"] = "selectedId"): CharacterRuntimeChoice {
+  return { resolver: String(effect.resolver ?? ""), effectId: idFor(effect), prompt, options, optional, selectionField };
+}
+
+function cycleWithPlayerChoice(board: CharacterRuntimeBoard, effect: CharacterStructuredEffect, resolver: string, actor: CharacterRuntimeActor, choices: CharacterRuntimeChoice[], selectedId?: string | null, drawAmount = 1, discardAmount = 1, selectionField: CharacterRuntimeChoice["selectionField"] = "selectedId") {
+  if (actor !== "player") return { board: cycle(board, drawAmount, discardAmount, selectedId), resolved: true };
+  const pendingKey = `pending:${resolver}`;
+  if (hasMark(board, pendingKey)) {
+    if (!selectedId || !board.hand.includes(selectedId)) { choices.push(makeChoice(effect, `Choose ${discardAmount} card${discardAmount === 1 ? "" : "s"} to discard.`, board.hand, false, selectionField)); return { board, resolved: false }; }
+    return { board: clearMark(discard(board, discardAmount, selectedId), pendingKey), resolved: true };
+  }
+  const drawn = draw(board, drawAmount);
+  if (!selectedId || !drawn.hand.includes(selectedId)) { choices.push(makeChoice(effect, `Choose ${discardAmount} card${discardAmount === 1 ? "" : "s"} to discard after drawing ${drawAmount}.`, drawn.hand, false, selectionField)); return { board: mark(drawn, pendingKey), resolved: false }; }
+  return { board: discard(drawn, discardAmount, selectedId), resolved: true };
 }
 
 function conditionalPowerSatisfied(effect: CharacterStructuredEffect, board: CharacterRuntimeBoard, event: Partial<CharacterRuntimeEvent>) {
@@ -256,7 +270,7 @@ export function resetCharacterRound(board: CharacterRuntimeBoard) {
 }
 
 export function characterCanEquip(board: CharacterRuntimeBoard, card: CharacterRuntimeCard) {
-  const restricted = effectsFor(board.fighterId).some((effect) => effect.resolver === "character.cannotEquipWeapons" && greenCharacterAbilityUnlocked(String(effect.resolver), board.belt));
+  const restricted = effectsFor(board.fighterId).some((effect) => effect.resolver === "character.cannotEquipWeapons");
   return !(restricted && (card.subtype === "Weapon" || hasTag(card, "Weapon")));
 }
 
@@ -322,10 +336,12 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
   let event = { ...eventInput };
   const choices: CharacterRuntimeChoice[] = [];
   const notes: string[] = [];
+  const processedResolvers = new Set<string>();
 
   for (const effect of effectsFor(self.fighterId)) {
-    if (!isAvailable(self, effect, event.type)) continue;
     const resolver = String(effect.resolver ?? "");
+    if (processedResolvers.has(resolver) || !isAvailable(self, effect, event.type)) continue;
+    processedResolvers.add(resolver);
     const amount = Number(effect.amount ?? 1);
     let activated = false;
 
@@ -339,12 +355,12 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
         break;
       case "character.incomingAttackSlowChoice": {
         const accept = event.optionalAccepted ?? (actor === "ai" ? true : undefined);
-        if (accept === undefined) choices.push(makeChoice(effect, "Lose 1 Speed until end of round to reduce this Attack by 1 Power?", ["accept", "skip"]));
+        if (accept === undefined) choices.push(makeChoice(effect, "Lose 1 Speed until end of round to reduce this Attack by 1 Power?", ["accept", "skip"], true, "optionalAccepted"));
         else if (accept) { self = mark({ ...self, tempSpeed: self.tempSpeed - 1 }, "round:reducedIncomingAttack"); event.attackPower = Math.max(0, Number(event.attackPower ?? 0) - 1); activated = true; }
         break;
       }
       case "character.green.linkedReducedAttackBlockCycle":
-        if ((event.blocked ?? true) && hasMark(self, "round:reducedIncomingAttack")) { self = cycle(self, 1, 1, event.selectedId); activated = true; }
+        if ((event.blocked ?? true) && hasMark(self, "round:reducedIncomingAttack")) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; }
         break;
       case "character.discardOutsideHideNextAttack":
         if (event.discardedOutsideHide) { self = mark({ ...self, nextAttackBonus: self.nextAttackBonus + amount }, "turn:discardPoweredAttack"); activated = true; }
@@ -353,7 +369,7 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
         if (hasMark(self, "turn:discardPoweredAttack") && event.selectedId && self.discard.includes(event.selectedId)) { const pile = [...self.discard]; pile.splice(pile.indexOf(event.selectedId), 1); self = { ...self, discard: pile, deck: [event.selectedId, ...self.deck] }; activated = true; }
         break;
       case "character.opponentModificationCycle":
-        if (event.opponentModifiedCard) { self = mark(cycle(self, 1, 1, event.selectedId), "round:modifiedCardType", event.card?.cardType ?? ""); activated = true; }
+        if (event.opponentModifiedCard) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.resolved ? mark(cycled.board, "round:modifiedCardType", event.card?.cardType ?? "") : cycled.board; activated = cycled.resolved; }
         break;
       case "character.green.repeatModifiedCardTypeBonus":
         if (markMap(self)["round:modifiedCardType"] === event.card?.cardType) {
@@ -378,12 +394,12 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
       case "character.discardJunkDestroyChoice": {
         if (!event.discardedJunk || !event.selectedId) break;
         const accept = event.optionalAccepted ?? (actor === "ai" ? true : undefined);
-        if (accept === undefined) choices.push(makeChoice(effect, "Destroy the Junk instead of discarding it?", [event.selectedId, "skip"]));
+        if (accept === undefined) choices.push(makeChoice(effect, "Destroy the Junk instead of discarding it?", ["accept", "skip"], true, "optionalAccepted"));
         else if (accept) { const pile = [...self.discard]; const index = pile.indexOf(event.selectedId); if (index >= 0) pile.splice(index, 1); self = mark({ ...self, discard: pile, destroyed: [...(self.destroyed ?? []), event.selectedId] }, "round:destroyedJunk"); activated = true; }
         break;
       }
       case "character.green.linkedJunkDestroyCycle":
-        if (event.destroyedJunk || hasMark(self, "round:destroyedJunk")) { self = cycle(self, 1, 1, event.selectedId); activated = true; }
+        if (event.destroyedJunk || hasMark(self, "round:destroyedJunk")) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; }
         break;
       case "character.twoZoneSpeed": {
         const zones = new Set([...self.zonesPlayed, String(event.zone ?? "")].filter(Boolean));
@@ -418,14 +434,14 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
         if ((event.firstAttackThisTurn ?? self.attacksThisTurn === 0) && (event.usedConsumableThisTurn ?? self.usedConsumableThisRound)) { event.attackPower = Number(event.attackPower ?? 0) + amount; self = mark(self, "turn:consumableAttack"); activated = true; }
         break;
       case "character.green.linkedAttackHitPenalty":
-        if (hasMark(self, "turn:consumableAttack")) { opponent = { ...opponent, nextAttackBonus: opponent.nextAttackBonus - amount }; activated = true; }
+        if (hasMark(self, "turn:consumableAttack")) { opponent = { ...opponent, nextAttackBonus: opponent.nextAttackBonus + amount }; activated = true; }
         break;
       case "character.green.linkedChangedAttackHitCycle":
-        if (event.changedZone || hasMark(self, "turn:changedAttack")) { self = cycle(self, 1, 1, event.selectedId); activated = true; }
+        if (event.changedZone || hasMark(self, "turn:changedAttack")) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; }
         break;
       case "character.ignoreTemporaryAttackBonusesOnceGame": {
         const accept = event.optionalAccepted ?? (actor === "ai" ? true : undefined);
-        if (accept === undefined) choices.push(makeChoice(effect, "Ignore temporary Attack bonuses for this strike?", ["accept", "skip"]));
+        if (accept === undefined) choices.push(makeChoice(effect, "Ignore temporary Attack bonuses for this strike?", ["accept", "skip"], true, "optionalAccepted"));
         else if (accept) { event.attackPower = Math.max(0, Number(event.attackPower ?? 0) - Math.max(0, Number(event.modifierBonus ?? 0))); activated = true; }
         break;
       }
@@ -436,7 +452,7 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
         if (hasMark(self, "turn:noNumericAttack")) { self = { ...self, focus: self.focus + amount }; activated = true; }
         break;
       case "character.junkDiscardToBottomCycle":
-        if (event.discardedJunk && event.selectedId && self.discard.includes(event.selectedId)) { const pile = [...self.discard]; pile.splice(pile.indexOf(event.selectedId), 1); self = mark(cycle({ ...self, discard: pile, deck: [event.selectedId, ...self.deck] }, 1, 1, event.selectedMode), "turn:recycledJunk"); activated = true; }
+        if (event.discardedJunk && event.selectedId && self.discard.includes(event.selectedId)) { const pile = [...self.discard]; pile.splice(pile.indexOf(event.selectedId), 1); const recycled = mark({ ...self, discard: pile, deck: [event.selectedId, ...self.deck] }, "turn:recycledJunk"); const cycled = cycleWithPlayerChoice(recycled, effect, resolver, actor, choices, event.selectedMode, 1, 1, "selectedMode"); self = cycled.board; activated = cycled.resolved; }
         break;
       case "character.green.linkedRecycleLowAttack":
         if (hasMark(self, "turn:recycledJunk") && event.zone === "Low") { event.attackPower = Number(event.attackPower ?? 0) + amount; activated = true; }
@@ -451,47 +467,47 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
       case "character.firstUnarmedAttack":
         if ((event.firstAttackThisTurn ?? self.attacksThisTurn === 0) && !event.hasWeaponEquipped) { event.attackPower = Number(event.attackPower ?? 0) + amount; activated = true; }
         break;
-      case "character.speedChangeCycle": self = cycle(self, 1, 1, event.selectedId); activated = true; break;
+      case "character.speedChangeCycle": { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; break; }
       case "character.comboRevealChoice": {
         const options = event.revealIds ?? [];
         if (options.length >= 2) { const selected = event.selectedId ?? (actor === "ai" ? options[0] : null); if (!selected) choices.push(makeChoice(effect, "Choose one revealed Combo to attempt to learn.", options, false)); else { event.selectedId = selected; activated = true; } }
         break;
       }
       case "character.firstKataDefenseZone":
-        if (event.firstKataThisTurn) { const zone = event.selectedZone ?? (actor === "ai" ? "Mid" : null); if (!zone) choices.push(makeChoice(effect, "Choose the additional zone for your next Defense.", ["High", "Mid", "Low"], false)); else { self = mark(self, "turn:nextDefenseExtraZone", zone); activated = true; } }
+        if (event.firstKataThisTurn) { const zone = event.selectedZone ?? (actor === "ai" ? "Mid" : null); if (!zone) choices.push(makeChoice(effect, "Choose the additional zone for your next Defense.", ["High", "Mid", "Low"], false, "selectedZone")); else { self = mark(self, "turn:nextDefenseExtraZone", zone); activated = true; } }
         break;
       case "character.revealConsumableCycle": {
         const options = event.candidateIds ?? [];
         const selected = event.selectedId ?? (actor === "ai" ? options[0] : null);
         if (options.length && !selected) choices.push(makeChoice(effect, "Reveal a Consumable to draw 1 then discard 1?", [...options, "skip"]));
-        else if (selected && selected !== "skip") { self = cycle(self, 1, 1, event.selectedMode); activated = true; }
+        else if (selected && selected !== "skip") { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedMode, 1, 1, "selectedMode"); self = cycled.board; activated = cycled.resolved; }
         break;
       }
       case "character.noWeaponOffenseDefenseChoice": {
         if (event.hasWeaponEquipped) break;
         const selected = event.selectedMode ?? (actor === "ai" ? "attack" : null);
-        if (!selected) choices.push(makeChoice(effect, "Choose your first-card bonus this round.", ["attack", "defense"], false));
+        if (!selected) choices.push(makeChoice(effect, "Choose your first-card bonus this round.", ["attack", "defense"], false, "selectedMode"));
         else { self = mark(self, "round:mimenMode", selected); self = selected === "attack" ? { ...self, nextAttackBonus: self.nextAttackBonus + 1 } : { ...self, nextDefenseCardBonus: (self.nextDefenseCardBonus ?? 0) + 1 }; activated = true; }
         break;
       }
       case "character.green.linkedChosenCardOutcomeCycle": {
         const mode = markMap(self)["round:mimenMode"];
-        if (mode === "attack" && event.type === "hit" || mode === "defense" && event.type === "block") { self = cycle(self, 1, 1, event.selectedId); activated = true; }
+        if (mode === "attack" && event.type === "hit" || mode === "defense" && event.type === "block") { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; }
         break;
       }
       case "character.equipFromHandNextDefense": self = mark({ ...self, nextDefenseCardBonus: (self.nextDefenseCardBonus ?? 0) + amount }, "round:clipEquip"); activated = true; break;
-      case "character.linkedDefenseBlockCycle": if (hasMark(self, "round:clipEquip") && (event.blocked ?? true)) { self = cycle(self, 1, 1, event.selectedId); activated = true; } break;
+      case "character.linkedDefenseBlockCycle": if (hasMark(self, "round:clipEquip") && (event.blocked ?? true)) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; } break;
       case "character.firstKataSpeed": if (event.firstKataThisTurn) { self = { ...self, tempSpeed: self.tempSpeed + amount }; activated = true; } break;
-      case "character.green.secondKataCycle": if (event.secondKataThisTurn) { self = { ...cycle(self, 1, 1, event.selectedId), focus: self.focus + 1 }; activated = true; } break;
+      case "character.green.secondKataCycle": if (event.secondKataThisTurn) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.resolved ? { ...cycled.board, focus: cycled.board.focus + 1 } : cycled.board; activated = cycled.resolved; } break;
       case "character.conditionalAttackPower":
         if (conditionalPowerSatisfied(effect, self, event)) { event.attackPower = Number(event.attackPower ?? 0) + amount; self = mark(self, "turn:conditionalAttack"); activated = true; }
         break;
       case "character.green.linkedAttackHitRewardChoice":
-        if (hasMark(self, "turn:conditionalAttack")) { const mode = event.selectedMode ?? (actor === "ai" ? "focus" : null); if (!mode) choices.push(makeChoice(effect, "Choose the Hit reward.", ["cycle", "focus"], false)); else if (mode === "focus") { self = { ...self, focus: self.focus + 1 }; activated = true; } else { self = cycle(self, 1, 1, event.selectedId); activated = true; } }
+        if (hasMark(self, "turn:conditionalAttack")) { const mode = event.selectedMode ?? (actor === "ai" ? "focus" : null); if (!mode) choices.push(makeChoice(effect, "Choose the Hit reward.", ["cycle", "focus"], false, "selectedMode")); else if (mode === "focus") { self = { ...self, focus: self.focus + 1 }; activated = true; } else { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; } }
         break;
       case "character.revealReplacementOnceGame": {
         const accept = event.optionalAccepted ?? (actor === "ai" ? true : undefined);
-        if (accept === undefined) choices.push(makeChoice(effect, "Discard this reveal and replace it from the same deck?", ["accept", "skip"]));
+        if (accept === undefined) choices.push(makeChoice(effect, "Discard this reveal and replace it from the same deck?", ["accept", "skip"], true, "optionalAccepted"));
         else if (accept && event.replacementId) { event.selectedId = event.replacementId; activated = true; }
         break;
       }
@@ -506,9 +522,9 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
       case "character.secondKickNextKickFlow": {
         const count = Number(markMap(self)["turn:kickCount"] ?? 0) + (hasTag(event.card, "Kick") ? 1 : 0); self = mark(self, "turn:kickCount", count); if (count === 2) { self = { ...self, nextAttackHasFlow: true }; activated = true; } break;
       }
-      case "character.noCombatDamagePreviousTurnCycle": if (event.noCombatDamagePreviousTurn) { self = cycle(self, 1, 1, event.selectedId); activated = true; } break;
+      case "character.noCombatDamagePreviousTurnCycle": if (event.noCombatDamagePreviousTurn) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; } break;
       case "character.examRequirementSpeed": if (event.completedBeltExam) { self = { ...self, tempSpeed: self.tempSpeed + amount }; activated = true; } break;
-      case "character.green.promotionCycle": self = cycle(self, 2, 1, event.selectedId); activated = true; break;
+      case "character.green.promotionCycle": { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId, 2, 1); self = cycled.board; activated = cycled.resolved; break; }
       case "character.reduceLargeAttackModifier": if (Number(event.modifierBonus ?? 0) >= 2) { event.attackPower = Math.max(0, Number(event.attackPower ?? 0) - amount); self = mark(self, "round:nerfhammerReduced"); activated = true; } break;
       case "character.green.linkedReductionRetaliation": if (hasMark(self, "round:nerfhammerReduced")) { self = { ...self, nextAttackBonus: self.nextAttackBonus + amount }; activated = true; } break;
       case "character.exhaustReadyEquipmentLock": {
@@ -517,14 +533,15 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
         else if (selected && self.equipment.includes(selected)) { self = mark(self, `turn:rebootLocked:${selected}`); activated = true; }
         break;
       }
-      case "character.green.linkedRebootCycle": if (Object.keys(markMap(self)).some((key) => key.startsWith("turn:rebootLocked:"))) { self = cycle(self, 1, 1, event.selectedMode); activated = true; } break;
-      case "character.thirdDifferentCardTypeCycle": if (event.thirdDifferentCardTypeThisTurn) { self = cycle(self, 1, 1, event.selectedId); activated = true; } break;
+      case "character.green.linkedRebootCycle": if (Object.keys(markMap(self)).some((key) => key.startsWith("turn:rebootLocked:"))) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedMode, 1, 1, "selectedMode"); self = cycled.board; activated = cycled.resolved; } break;
+      case "character.thirdDifferentCardTypeCycle": if (event.thirdDifferentCardTypeThisTurn) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; } break;
       case "character.afterAttackDifferentZone": if (event.card?.cardType === "Attack") { self = { ...self, nextAttackAnyZone: true }; activated = true; } break;
-      case "character.sceneChangeCycle": if (event.sceneChanged !== false) { self = cycle(self, 1, 1, event.selectedId); activated = true; } break;
+      case "character.sceneChangeCycle": if (event.sceneChanged !== false) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; } break;
       default: break;
     }
 
     if (activated) { self = consume(self, effect); notes.push(resolver); }
+    if (choices.length && !activated) break;
   }
 
   if (event.type === "hide" && self.borrowedEquipmentId) {
@@ -534,6 +551,8 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
 
   return { self, opponent, event, choices, notes };
 }
+
+export function characterHasResolver(fighterId: string, resolver: string) { return effectsFor(fighterId).some((effect) => effect.resolver === resolver); }
 
 export function characterRuntimeCoverage() {
   return Object.entries(registry.cards ?? {})
