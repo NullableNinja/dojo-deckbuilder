@@ -42,7 +42,7 @@ jobs:
         run: git rm -f scripts/apply-stage3c-smoke-targeting-batch.mjs .github/workflows/apply-stage3c-smoke-targeting-batch.yml
       - name: Targeted Smoke Bomb certification
         run: node --experimental-strip-types --test tests/stage3c-consumable-reaction-ai.test.mjs tests/stage3c-smoke-bomb-play-surface.test.mjs
-      - name: Full clean-branch test suite
+      - name: Full clean-branch test suite after stale-test repair
         run: npm test
       - name: Verify patch hygiene
         run: git diff --check
