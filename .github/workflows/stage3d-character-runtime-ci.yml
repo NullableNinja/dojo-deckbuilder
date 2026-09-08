@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   character-runtime:
@@ -24,7 +24,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Apply guarded Character runtime integration
+      - name: Apply guarded Character runtime integration in the CI workspace
         run: |
           node scripts/apply-stage3d-character-runtime.mjs
           python3 - <<'PY'
@@ -66,19 +66,3 @@ jobs:
 
       - name: Production build
         run: npm run build
-
-      - name: Commit validated integration patch
-        if: github.event_name == 'push'
-        run: |
-          if git diff --quiet; then
-            echo "No generated integration patch remains to commit."
-            exit 0
-          fi
-          git config user.name "Dojo Runtime CI"
-          git config user.email "actions@users.noreply.github.com"
-          git add app/character-runtime.ts app/playtest.tsx
-          git commit -m "Stage 3D: wire Character runtime into Quick Duel [skip ci]"
-          git push origin HEAD:stage3d-character-runtime
-
-      - name: Verify clean working tree
-        run: test -z "$(git status --porcelain)"
