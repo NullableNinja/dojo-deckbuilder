@@ -11,6 +11,9 @@ export type LocationTrackedState = {
   locationChosenCounterZone?: string | null;
   locationChosenCounterRound?: number | null;
   locationComboNumericChoice?: string | null;
+  locationEquipmentExhaustCountThisRound?: number;
+  locationKataFlowGrantsThisTurn?: number;
+  locationNextAttackFlowFromKata?: boolean;
   locationActiveBeltExam?: boolean;
 };
 
@@ -163,6 +166,8 @@ export function resetLocationTurn<T extends LocationTrackedState>(state: T): T {
     locationChosenCounterZone: null,
     locationChosenCounterRound: null,
     locationComboNumericChoice: null,
+    locationKataFlowGrantsThisTurn: 0,
+    locationNextAttackFlowFromKata: false,
   };
 }
 
@@ -178,6 +183,9 @@ export function resetLocationRound<T extends LocationTrackedState>(state: T): T 
     locationChosenCounterZone: null,
     locationChosenCounterRound: null,
     locationComboNumericChoice: null,
+    locationEquipmentExhaustCountThisRound: 0,
+    locationKataFlowGrantsThisTurn: 0,
+    locationNextAttackFlowFromKata: false,
     ...(delayedSpeed ? { tempSpeed: Number((state as Record<string, unknown>).tempSpeed ?? 0) + delayedSpeed } : {}),
   };
 }
