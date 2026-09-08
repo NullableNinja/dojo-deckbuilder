@@ -14,6 +14,7 @@ import {
   consumableRuntimeCommands,
   isSupportedConsumableResolver,
   structuredConsumableLifecycle,
+  structuredConsumableDestroyJunkPlan,
 } from "../app/consumable-effect-resolvers.ts";
 import {
   createFamilyRuntimeState,
@@ -98,6 +99,7 @@ const consumableBaseContext = {
   revealedDifferentTypeCount: 3,
   friendlyTargetCount: 2,
   opponentTargetCount: 2,
+  junkDestroyed: true,
   selectedEquipmentSubtype: "Gear",
 };
 
@@ -221,6 +223,22 @@ test("end-of-round Consumable modifiers apply now and expire cleanly", () => {
   const expired = expireRuntimeStatuses(state, "endOfRound");
   assert.equal(expired.self.speed, 0);
   assert.equal(expired.statuses.some((status) => status.sourceEffectId === effect.id), false);
+});
+
+test("structured Junk choices preserve source, optionality, and contingent follow-up semantics", () => {
+  assert.deepEqual(structuredConsumableDestroyJunkPlan(card("DDB-CON-CORE-024")), {
+    resolver: "consumable.destroyJunkThenDrawTwo", count: 1, sources: ["hand", "discard"], optional: false, drawAfterSuccess: 2,
+  });
+  assert.deepEqual(structuredConsumableDestroyJunkPlan(card("DDB-CON-CORE-029")), {
+    resolver: "consumable.destroyJunkFromHand", count: 1, sources: ["hand"], optional: false, drawAfterSuccess: 0,
+  });
+  assert.deepEqual(structuredConsumableDestroyJunkPlan(card("DDB-CON-CORE-048")), {
+    resolver: "consumable.optionalDestroyJunkFromHand", count: 1, sources: ["hand"], optional: true, drawAfterSuccess: 0,
+  });
+  const giBeforeChoice = consumableRuntimeCommands(card("DDB-CON-CORE-024"), "onPlay", { ...consumableBaseContext, junkDestroyed: false });
+  assert.equal(giBeforeChoice.some((command) => command.effect === "core.draw"), false, "Fresh Martial Arts Gi must not draw before Junk is destroyed");
+  const giAfterChoice = consumableRuntimeCommands(card("DDB-CON-CORE-024"), "onPlay", { ...consumableBaseContext, junkDestroyed: true });
+  assert.equal(giAfterChoice.find((command) => command.effect === "core.draw")?.amount, 2);
 });
 
 test("single-opponent target selection auto-resolves in Quick Duel semantics", () => {

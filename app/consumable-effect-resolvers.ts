@@ -30,6 +30,7 @@ export type ConsumableRuntimeContext = {
   revealedDifferentTypeCount?: number;
   friendlyTargetCount?: number;
   opponentTargetCount?: number;
+  junkDestroyed?: boolean;
   selectedEquipmentSubtype?: string;
 };
 
@@ -129,6 +130,8 @@ function resolverConditionMatches(_catalogId: string, effect: StructuredRuntimeE
       return true;
     case "consumable.healByChosenFriendlyPosition":
       return !context.chosenFriendlyIsBenched || Boolean(context.chosenFriendlyIsConscious);
+    case "consumable.destroyJunkThenDrawTwo":
+      return effect.effect !== "core.draw" || Boolean(context.junkDestroyed);
     default:
       return true;
   }
@@ -359,10 +362,41 @@ export function structuredConsumableSpeedPenalty(card: RuntimeCardLike) {
     .reduce((total, command) => total + Math.abs(command.amount), 0);
 }
 
+export type StructuredConsumableJunkChoicePlan = {
+  resolver: "consumable.destroyJunkThenDrawTwo" | "consumable.destroyJunkFromHand" | "consumable.optionalDestroyJunkFromHand";
+  count: number;
+  sources: ("hand" | "discard")[];
+  optional: boolean;
+  drawAfterSuccess: number;
+};
+
+export function structuredConsumableDestroyJunkPlan(card: RuntimeCardLike): StructuredConsumableJunkChoicePlan | null {
+  const effects = structuredRuntimeEffects(card);
+  const destroy = effects.find((effect) =>
+    effect.effect === "core.destroy"
+    && effect.target === "chosen-card"
+    && new Set([
+      "consumable.destroyJunkThenDrawTwo",
+      "consumable.destroyJunkFromHand",
+      "consumable.optionalDestroyJunkFromHand",
+    ]).has(String(effect.resolver ?? ""))
+  );
+  if (!destroy) return null;
+  const resolver = String(destroy.resolver) as StructuredConsumableJunkChoicePlan["resolver"];
+  const drawAfterSuccess = resolver === "consumable.destroyJunkThenDrawTwo"
+    ? effects.filter((effect) => effect.resolver === resolver && effect.effect === "core.draw").reduce((total, effect) => total + Math.max(0, Number(effect.amount ?? 0)), 0)
+    : 0;
+  return {
+    resolver,
+    count: Math.max(1, Number(destroy.amount ?? 1)),
+    sources: resolver === "consumable.destroyJunkThenDrawTwo" ? ["hand", "discard"] : ["hand"],
+    optional: resolver === "consumable.optionalDestroyJunkFromHand",
+    drawAfterSuccess,
+  };
+}
+
 export function structuredConsumableDestroyJunkCount(card: RuntimeCardLike) {
-  return consumableRuntimeCommands(card, "onPlay")
-    .filter((command) => command.effect === "core.destroy" && command.target === "chosen-card")
-    .reduce((total, command) => total + Math.max(1, command.amount), 0);
+  return structuredConsumableDestroyJunkPlan(card)?.count ?? 0;
 }
 
 export function structuredConsumableMandatoryDiscard(card: RuntimeCardLike) {

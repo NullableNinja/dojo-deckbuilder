@@ -5,7 +5,7 @@ import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
 import { compileCardEffects, describeEffectPlan, effectPlanForCard } from "./card-effects";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroyJunkChoicePlan, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
@@ -148,7 +148,7 @@ type PendingDiscard = {
 };
 
 type PendingChoice =
-  | { kind: "destroy-junk"; sourceCardId: string; remaining: number }
+  | { kind: "destroy-junk"; sourceCardId: string; remaining: number; sources?: ("hand" | "discard")[]; optional?: boolean; drawAfterSuccess?: number }
   | { kind: "discard-draw"; sourceCardId: string; remaining: number; draw: number }
   | { kind: "discard-hand"; sourceCardId: string; remaining: number; afterChoice?: "resume-defense"; sourceFollowup?: boolean }
   | { kind: "deck-pick"; sourceCardId: string; revealed: string[]; filter: "defense-or-kata" | "technique" | "item"; optional: boolean; restAction: "discard" | "reorder" | "shuffle" }
@@ -2192,11 +2192,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (destroyedAfterUse) nextPlayer = destroyResolvedConsumable(nextPlayer, card);
     else if (returnedAfterUse) nextPlayer = returnResolvedConsumable(nextPlayer, card);
     const pendingDiscard = null;
-    const junkCount = destroyJunkChoiceCount(card);
+    const junkPlan = destroyJunkChoicePlan(card);
+    const junkCount = junkPlan?.count ?? destroyJunkChoiceCount(card);
     const mandatoryDiscard = mandatoryDiscardChoiceCount(card);
-    const hasJunk = [...nextPlayer.hand, ...nextPlayer.discard].some((candidate) => isJunk(cardFor(candidate)));
+    const junkSources = junkPlan?.sources ?? ["hand", "discard"];
+    const hasJunk = (junkSources.includes("hand") ? nextPlayer.hand : []).concat(junkSources.includes("discard") ? nextPlayer.discard : []).some((candidate) => isJunk(cardFor(candidate)));
     let pendingChoice: PendingChoice | null = junkCount && hasJunk
-      ? { kind: "destroy-junk", sourceCardId: id, remaining: junkCount }
+      ? { kind: "destroy-junk", sourceCardId: id, remaining: junkCount, sources: junkSources, optional: Boolean(junkPlan?.optional), drawAfterSuccess: junkPlan?.drawAfterSuccess ?? 0 }
       : mandatoryDiscard && nextPlayer.hand.length
         ? { kind: "discard-hand", sourceCardId: id, remaining: Math.min(mandatoryDiscard, nextPlayer.hand.length) }
         : null;
@@ -2241,15 +2243,19 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!selected) return current;
 
     if (choice.kind === "destroy-junk") {
+      const allowedSources = choice.sources ?? ["hand", "discard"];
+      if (!allowedSources.includes(source as "hand" | "discard")) return current;
       const sourceCards = source === "discard" ? current.player.discard : current.player.hand;
       if (!sourceCards.includes(cardId) || !isJunk(selected)) return current;
-      const player = source === "hand"
+      let player: Board = source === "hand"
         ? { ...current.player, hand: removeOne(current.player.hand, cardId), destroyed: [...(current.player.destroyed ?? []), cardId] }
         : { ...current.player, discard: removeOne(current.player.discard, cardId), destroyed: [...(current.player.destroyed ?? []), cardId] };
       const remaining = choice.remaining - 1;
-      const junkRemains = [...player.hand, ...player.discard].some((id) => isJunk(cardFor(id)));
+      const availableJunk = (allowedSources.includes("hand") ? player.hand : []).concat(allowedSources.includes("discard") ? player.discard : []);
+      const junkRemains = availableJunk.some((id) => isJunk(cardFor(id)));
       const pendingChoice = remaining > 0 && junkRemains ? { ...choice, remaining } : null;
-      return write(current, `${selected.name} destroyed from your ${source === "hand" ? "hand" : "discard pile"}.${pendingChoice ? ` Choose ${remaining} more Junk.` : " Choice resolved."}`, { player, pendingChoice });
+      if (!pendingChoice && (choice.drawAfterSuccess ?? 0) > 0) player = drawCards(player, choice.drawAfterSuccess ?? 0);
+      return write(current, `${selected.name} destroyed from your ${source === "hand" ? "hand" : "discard pile"}.${pendingChoice ? ` Choose ${remaining} more Junk.` : `${choice.drawAfterSuccess ? ` ${choice.drawAfterSuccess} card${choice.drawAfterSuccess === 1 ? "" : "s"} drawn by the structured follow-up.` : ""} Choice resolved.`}`, { player, pendingChoice });
     }
 
     if (choice.kind === "discard-hand") {
@@ -2319,6 +2325,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return resolveDefenseState(current, choice.defenseId, null, true);
     }
     if (current.pendingChoice.kind === "post-block-cycle") return resumeAfterDefense(write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional Equipment"}: post-Block cycle declined.`, { pendingChoice: null }));
+    if (current.pendingChoice.kind === "destroy-junk" && current.pendingChoice.optional) return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: Junk destruction declined.`, { pendingChoice: null });
     if (current.pendingChoice.kind === "discard-draw") return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: discard/draw declined.`, { pendingChoice: null });
     if (current.pendingChoice.kind === "ready-equipment" && current.pendingChoice.optional) return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: ready effect declined.`, { pendingChoice: null });
     if (current.pendingChoice.kind === "deck-pick" && current.pendingChoice.optional) {
@@ -2710,8 +2717,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     : [];
   const pendingChoiceOptions = match.pendingChoice?.kind === "destroy-junk"
     ? [
-        ...player.hand.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => isJunk(cardFor(entry.id))),
-        ...player.discard.map((id, index) => ({ id, source: "discard" as const, index })).filter((entry) => isJunk(cardFor(entry.id))),
+        ...((match.pendingChoice.sources ?? ["hand", "discard"]).includes("hand") ? player.hand.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => isJunk(cardFor(entry.id))) : []),
+        ...((match.pendingChoice.sources ?? ["hand", "discard"]).includes("discard") ? player.discard.map((id, index) => ({ id, source: "discard" as const, index })).filter((entry) => isJunk(cardFor(entry.id))) : []),
       ]
     : match.pendingChoice?.kind === "discard-draw" || match.pendingChoice?.kind === "discard-hand"
       ? player.hand.map((id, index) => ({ id, source: "hand" as const, index }))
@@ -2742,7 +2749,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} can exhaust now to reduce ${match.pendingChoice.damage} combat damage by ${match.pendingChoice.reduce}. Declining still consumes this round's first-damage timing window.`
                   : match.pendingChoice?.kind === "post-block-cycle" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} triggered after the Block. Exhaust it to draw ${match.pendingChoice.draw}, then choose ${match.pendingChoice.discard} discard${match.pendingChoice.discard === 1 ? "" : "s"}, or decline and continue combat.`
                     : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
-  const effectChoiceCanSkip = match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
+  const effectChoiceCanSkip = (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
   const inspectedBoard = inspected
     ? inspected.id === player.fighterId ? player : inspected.id === ai.fighterId ? ai : null
     : null;
