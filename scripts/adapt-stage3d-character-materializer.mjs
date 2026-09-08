@@ -67,5 +67,17 @@ replaceBlock("pause AI strike for player incoming Character choice", `source = r
   "pause AI strike for player incoming Character choice",
 );`);
 
+replaceBlock("round player Character reset", `source = replaceOnce(
+  source,
+  'triggeredCombos: [], locationEquipmentExhaustedThisRound: false, locationReadiedOutsideInitiateEquipmentIds: [], locationUsedEffectsAcrossPlayersThisRound: [], locationPendingChoice: null, locationController: controller }));',
+  'triggeredCombos: [], usedCharacterEffectIdsThisTurn: [], usedCharacterEffectIdsThisRound: [], characterMarks: Object.fromEntries(Object.entries(board.characterMarks ?? {}).filter(([key]) => !key.startsWith("turn:") && !key.startsWith("round:"))), locationEquipmentExhaustedThisRound: false, locationReadiedOutsideInitiateEquipmentIds: [], locationUsedEffectsAcrossPlayersThisRound: [], locationPendingChoice: null, locationController: controller }));',
+  "round player Character reset",
+);`);
+
+script = script.replace(
+  "source = source.replace('pendingDiscard: null, pendingChoice: null, pendingCombatContinuation:', 'pendingDiscard: null, pendingChoice: characterRoundChoice, pendingCombatContinuation:');",
+  "source = source.replace('pendingDiscard: null, pendingChoice: initiatedPlayer.locationPendingChoice ?? null, pendingCombatContinuation:', 'pendingDiscard: null, pendingChoice: characterRoundChoice ?? initiatedPlayer.locationPendingChoice ?? null, pendingCombatContinuation:');",
+);
+
 fs.writeFileSync(path, script);
 console.log("Adapted legacy Character materializer for current Location/playmat source.");
