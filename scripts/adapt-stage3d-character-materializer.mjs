@@ -53,5 +53,12 @@ replaceBlock("block Yell while Character choice pending", `source = replaceOnce(
   "block Yell while Character choice pending",
 );`);
 
+replaceBlock("AI Initiate and Rebooter", `source = replaceOnce(
+  source,
+  '  const fighter = cardFor(current.ai.fighterId);\\n  const initiatedAi = applyInitiateCarryover(resetLocationTurn({ ...current.ai, usedEffectIdsThisTurn: [], locationOwnTurn: true, locationInInitiate: true }));\\n  const turnEquipment = autoActivateAiTurnEquipment(initiatedAi);\\n  let aiStart: Board = { ...turnEquipment.board, locationInInitiate: false };\\n  aiStart = applyLocationManualActionAi(aiStart);',
+  '  const fighter = cardFor(current.ai.fighterId);\\n  const initiatedAi = applyInitiateCarryover(resetLocationTurn({ ...current.ai, usedEffectIdsThisTurn: [], locationOwnTurn: true, locationInInitiate: true }));\\n  const characterInitiate = applyCharacterInitiate(initiatedAi, current.player, "ai");\\n  let characterAi = characterInitiate.self; let characterPlayer = characterInitiate.opponent;\\n  if (characterHasResolver(characterAi.fighterId, "character.exhaustReadyEquipmentLock") && characterAi.equipment.length) { const reboot = runCharacterEvent(characterAi, characterPlayer, { type: "reboot", candidateIds: characterAi.equipment }, "ai"); characterAi = reboot.self; characterPlayer = reboot.opponent; }\\n  const turnEquipment = autoActivateAiTurnEquipment(characterAi);\\n  let aiStart: Board = { ...turnEquipment.board, locationInInitiate: false };\\n  aiStart = applyLocationManualActionAi(aiStart);',
+  "AI Initiate and Rebooter",
+);`);
+
 fs.writeFileSync(path, script);
 console.log("Adapted legacy Character materializer for current Location/playmat source.");
