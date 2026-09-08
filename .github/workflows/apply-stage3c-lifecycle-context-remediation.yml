@@ -1,155 +1,30 @@
 name: Apply Stage 3C Lifecycle Context Remediation Once
+
 on:
   push:
-    branches: [stage3c-play-surface-remediation]
+    branches:
+      - stage3c-play-surface-remediation
+
 permissions:
   contents: write
+
 jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - name: Patch structured Consumable lifecycle and play context
+        with:
+          fetch-depth: 0
+
+      - name: Apply product patch
+        shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          resolver = Path('app/consumable-effect-resolvers.ts')
-          t = resolver.read_text()
-          replacements = [
-            (
-              '      "consumable.chooseOpponentNextAttackPenalty",\n      "consumable.chooseOpponentSpeedPenalty",',
-              '      "consumable.chooseOpponentNextAttackPenalty",\n      "consumable.chooseOpponentNextDefenseGuardPenalty",\n      "consumable.chooseOpponentSpeedPenalty",'
-            ),
-            (
-              '    case "consumable.chooseOpponentNextAttackPenalty":\n      command.qualifier = { nextAttack: true };\n      command.duration = "nextAttack";\n      break;',
-              '    case "consumable.chooseOpponentNextAttackPenalty":\n      command.qualifier = { nextAttack: true, expires: "endOfRound" };\n      command.duration = "nextAttack";\n      break;'
-            ),
-            (
-              '    case "consumable.nextIncomingAttackDefense":\n      command.qualifier = { nextIncomingAttack: true };\n      command.duration = "nextIncomingAttack";\n      break;',
-              '    case "consumable.nextIncomingAttackDefense":\n      command.qualifier = { nextIncomingAttack: true, expires: "endOfRound" };\n      command.duration = "nextIncomingAttack";\n      break;'
-            ),
-            (
-              '    case "consumable.zoneSpecificIncomingAttackPenalty":\n      command.qualifier = { chosenIncomingZone: true };\n      command.duration = "nextIncomingAttack";\n      break;',
-              '    case "consumable.zoneSpecificIncomingAttackPenalty":\n      command.qualifier = { chosenIncomingZone: true, expires: "endOfRound" };\n      command.duration = "nextIncomingAttack";\n      break;'
-            ),
-            (
-              '    case "consumable.ascendPurchaseDiscount":\n      command.duration = "nextPurchase";\n      command.qualifier = { minPrintedCost: 5, minimumFinalCost: 4 };\n      break;',
-              '    case "consumable.ascendPurchaseDiscount":\n      command.duration = "nextPurchase";\n      command.qualifier = { minPrintedCost: 5, minimumFinalCost: 4, expires: "endOfTurn" };\n      break;'
-            ),
-            (
-              '    case "consumable.pepTalkConditionalAttackBonus":\n      command.duration = "nextAttack";\n      break;',
-              '    case "consumable.pepTalkConditionalAttackBonus":\n      command.duration = "nextAttack";\n      command.qualifier = { nextAttack: true, expires: "endOfTurn" };\n      break;'
-            ),
-            (
-              '    case "consumable.blockedAttackBacklash":\n      if (command.trigger === "passive") command.effect = "combat.dealDamage";\n      command.duration = command.trigger === "passive" ? "immediate" : "nextAttack";\n      command.qualifier = { watchedAttack: "nextAttack" };\n      break;',
-              '    case "consumable.blockedAttackBacklash":\n      if (command.trigger === "passive") command.effect = "combat.dealDamage";\n      command.duration = command.trigger === "passive" ? "immediate" : "nextAttack";\n      command.qualifier = command.trigger === "passive" ? { watchedAttack: "nextAttack" } : { watchedAttack: "nextAttack", expires: "endOfTurn" };\n      break;'
-            ),
-            (
-              '    case "consumable.preventInterfereOnNextAttack":\n      command.duration = "nextAttack";\n      command.qualifier = { prevent: "interfere" };\n      break;',
-              '    case "consumable.preventInterfereOnNextAttack":\n      command.duration = "nextAttack";\n      command.qualifier = { prevent: "interfere", expires: "endOfTurn" };\n      break;'
-            ),
-            (
-              '    case "consumable.nextKataFocusBonus":\n      command.duration = "nextKata";\n      command.qualifier = { nextKata: true };\n      break;',
-              '    case "consumable.nextKataFocusBonus":\n      command.duration = "nextKata";\n      command.qualifier = { nextKata: true, expires: "endOfTurn" };\n      break;'
-            ),
-            (
-              '    case "consumable.pocketYoyo":\n      if (command.trigger === "passive") command.qualifier = { afterPenalizedDefenseBlocks: true };\n      break;',
-              '    case "consumable.pocketYoyo":\n      command.qualifier = command.trigger === "passive" ? { afterPenalizedDefenseBlocks: true } : { nextDefense: true, expires: "endOfRound" };\n      break;\n    case "consumable.chooseOpponentNextDefenseGuardPenalty":\n      command.duration = "nextDefense";\n      command.qualifier = { nextDefense: true, expires: "endOfRound" };\n      break;'
-            ),
-          ]
-          for old, new in replacements:
-            if old not in t:
-              raise SystemExit(f'resolver anchor missing: {old[:80]}')
-            t = t.replace(old, new, 1)
-          resolver.write_text(t)
-
-          playtest = Path('app/playtest.tsx')
-          p = playtest.read_text()
-          old = '''function stage3cEndTurn(board: Board) {\n  return expireStage3C(board, "endOfTurn");\n}\n\nfunction stage3cAdvanceRound(board: Board) {\n  let next = expireStage3C(expireStage3C(board, "endOfRound"), "nextHonor");'''
-          new = '''function expireStage3CQualified(board: Board, expires: "endOfTurn" | "endOfRound") {\n  const expiringIds = new Set((board.stage3cStatuses ?? []).filter((status) => status.qualifier?.expires === expires).map((status) => status.sourceEffectId));\n  if (!expiringIds.size) return board;\n  return { ...board, stage3cStatuses: (board.stage3cStatuses ?? []).filter((status) => !expiringIds.has(status.sourceEffectId)) };\n}\n\nfunction stage3cEndTurn(board: Board) {\n  return expireStage3CQualified(expireStage3C(board, "endOfTurn"), "endOfTurn");\n}\n\nfunction stage3cAdvanceRound(board: Board) {\n  let next = expireStage3CQualified(expireStage3C(expireStage3C(board, "endOfRound"), "nextHonor"), "endOfRound");'''
-          if old not in p:
-            raise SystemExit('playtest lifecycle anchor missing')
-          p = p.replace(old, new, 1)
-
-          old = '''    let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;\n    let nextPlayer = markCompletedTask(applyCardEffects({ ...supportBoard, hand: removeOne(supportBoard.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value, lastAttackHit: false }, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(current.player) : {}));'''
-          new = '''    let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;\n    const supportEntryBoard = { ...supportBoard, hand: removeOne(supportBoard.hand, id), playArea: [...supportBoard.playArea, id], cardsThisTurn: [...supportBoard.cardsThisTurn, id], focus: supportBoard.focus + locationModifier.value, lastAttackHit: false };\n    let nextPlayer = markCompletedTask(applyCardEffects(supportEntryBoard, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(supportEntryBoard) : {}));'''
-          if old not in p:
-            raise SystemExit('playSupport context anchor missing')
-          p = p.replace(old, new, 1)
-
-          old = '    const choiceNote = pendingChoice?.kind === "destroy-junk" ? `Choose ${junkCount} Junk card${junkCount === 1 ? "" : "s"} from your hand or discard pile to destroy.` : pendingChoice?.kind === "discard-hand" ? `Choose ${pendingChoice.remaining} card${pendingChoice.remaining === 1 ? "" : "s"} from your hand to discard.` : deckNote || cardEffectNote(card);'
-          new = '    const junkSourceLabel = junkSources.length === 2 ? "hand or discard pile" : junkSources[0] === "discard" ? "discard pile" : "hand";\n    const choiceNote = pendingChoice?.kind === "destroy-junk" ? `Choose ${junkCount} Junk card${junkCount === 1 ? "" : "s"} from your ${junkSourceLabel} to destroy.` : pendingChoice?.kind === "discard-hand" ? `Choose ${pendingChoice.remaining} card${pendingChoice.remaining === 1 ? "" : "s"} from your hand to discard.` : deckNote || cardEffectNote(card);'
-          if old not in p:
-            raise SystemExit('choice-note anchor missing')
-          p = p.replace(old, new, 1)
-          playtest.write_text(p)
-
-          test_file = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
-          q = test_file.read_text()
-          addition = r'''
-
-test("Quick Duel auto-resolves single-opponent Guard penalties and preserves round expiry", () => {
-  const sand = consumableRuntimeCommands(card("DDB-CON-CORE-043"), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 })
-    .find((command) => command.resolver === "consumable.chooseOpponentNextDefenseGuardPenalty");
-  assert.ok(sand);
-  assert.equal(sand.choice, undefined);
-  assert.equal(sand.duration, "nextDefense");
-  assert.equal(sand.qualifier?.expires, "endOfRound");
-
-  const multiplayer = consumableRuntimeCommands(card("DDB-CON-CORE-043"), "onPlay", { ...consumableBaseContext, opponentTargetCount: 2 })
-    .find((command) => command.resolver === "consumable.chooseOpponentNextDefenseGuardPenalty");
-  assert.ok(multiplayer?.choice);
-});
-
-test("structured this-turn and this-round Consumable statuses carry explicit expiry metadata", () => {
-  const cases = [
-    ["DDB-CON-CORE-002", "consumable.chooseOpponentNextAttackPenalty", "endOfRound"],
-    ["DDB-CON-CORE-004", "consumable.nextQualifyingAttackModifier", "endOfTurn"],
-    ["DDB-CON-CORE-007", "consumable.nextAttackUntilEndOfTurn", "endOfTurn"],
-    ["DDB-CON-CORE-013", "consumable.nextAttackFlowUntilEndOfTurn", "endOfTurn"],
-    ["DDB-CON-CORE-016", "consumable.nextIncomingAttackDefense", "endOfRound"],
-    ["DDB-CON-CORE-031", "consumable.pepTalkConditionalAttackBonus", "endOfTurn"],
-    ["DDB-CON-CORE-037", "consumable.blockedAttackBacklash", "endOfTurn"],
-    ["DDB-CON-CORE-043", "consumable.chooseOpponentNextDefenseGuardPenalty", "endOfRound"],
-    ["DDB-CON-CORE-046", "consumable.preventInterfereOnNextAttack", "endOfTurn"],
-    ["DDB-CON-CORE-047", "consumable.nextIncomingAttackDefense", "endOfRound"],
-    ["DDB-CON-CORE-052", "consumable.nextAttackUntilEndOfTurn", "endOfTurn"],
-    ["DDB-CON-CORE-054", "consumable.nextKataFocusBonus", "endOfTurn"],
-    ["DDB-CON-CORE-062", "consumable.pocketYoyo", "endOfRound"],
-  ];
-  for (const [catalogId, resolver, expires] of cases) {
-    const command = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 })
-      .find((candidate) => candidate.resolver === resolver && candidate.trigger === "onPlay");
-    assert.ok(command, `${catalogId} must produce ${resolver}`);
-    assert.equal(command.qualifier?.expires, expires, `${catalogId} must expire at ${expires}`);
-  }
-});
-'''
-          if 'Quick Duel auto-resolves single-opponent Guard penalties and preserves round expiry' not in q:
-            q += addition
-          test_file.write_text(q)
-
-          integration = Path('tests/playtest-effect-integration.test.mjs')
-          r = integration.read_text()
-          addition2 = r'''
-
-test("Quick Duel evaluates Consumable onPlay context after the played card leaves hand and expires qualified statuses", async () => {
-  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
-  assert.match(source, /const supportEntryBoard = \{ \.\.\.supportBoard, hand: removeOne\(supportBoard\.hand, id\)/);
-  assert.match(source, /stage3cConsumableContext\(supportEntryBoard\)/);
-  assert.match(source, /function expireStage3CQualified\(board: Board, expires: "endOfTurn" \| "endOfRound"\)/);
-  assert.match(source, /status\.qualifier\?\.expires === expires/);
-});
-'''
-          if 'Quick Duel evaluates Consumable onPlay context after the played card leaves hand' not in r:
-            r += addition2
-          integration.write_text(r)
-          PY
-
+          printf '%s' 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAoKcmVzb2x2ZXIgPSBQYXRoKCJhcHAvY29uc3VtYWJsZS1lZmZlY3QtcmVzb2x2ZXJzLnRzIikKdCA9IHJlc29sdmVyLnJlYWRfdGV4dCgpCnJlcGxhY2VtZW50cyA9IFsKICAgICgKICAgICAgICAnICAgICAgImNvbnN1bWFibGUuY2hvb3NlT3Bwb25lbnROZXh0QXR0YWNrUGVuYWx0eSIsXG4gICAgICAiY29uc3VtYWJsZS5jaG9vc2VPcHBvbmVudFNwZWVkUGVuYWx0eSIsJywKICAgICAgICAnICAgICAgImNvbnN1bWFibGUuY2hvb3NlT3Bwb25lbnROZXh0QXR0YWNrUGVuYWx0eSIsXG4gICAgICAiY29uc3VtYWJsZS5jaG9vc2VPcHBvbmVudE5leHREZWZlbnNlR3VhcmRQZW5hbHR5IixcbiAgICAgICJjb25zdW1hYmxlLmNob29zZU9wcG9uZW50U3BlZWRQZW5hbHR5IiwnCiAgICApLAogICAgKAogICAgICAgICcgICAgY2FzZSAiY29uc3VtYWJsZS5jaG9vc2VPcHBvbmVudE5leHRBdHRhY2tQZW5hbHR5IjpcbiAgICAgIGNvbW1hbmQucXVhbGlmaWVyID0geyBuZXh0QXR0YWNrOiB0cnVlIH07XG4gICAgICBjb21tYW5kLmR1cmF0aW9uID0gIm5leHRBdHRhY2siO1xuICAgICAgYnJlYWs7JywKICAgICAgICAnICAgIGNhc2UgImNvbnN1bWFibGUuY2hvb3NlT3Bwb25lbnROZXh0QXR0YWNrUGVuYWx0eSI6XG4gICAgICBjb21tYW5kLnF1YWxpZmllciA9IHsgbmV4dEF0dGFjazogdHJ1ZSwgZXhwaXJlczogImVuZE9mUm91bmQiIH07XG4gICAgICBjb21tYW5kLmR1cmF0aW9uID0gIm5leHRBdHRhY2siO1xuICAgICAgYnJlYWs7JwogICAgKSwKICAgICgKICAgICAgICAnICAgIGNhc2UgImNvbnN1bWFibGUubmV4dEluY29taW5nQXR0YWNrRGVmZW5zZSI6XG4gICAgICBjb21tYW5kLnF1YWxpZmllciA9IHsgbmV4dEluY29taW5nQXR0YWNrOiB0cnVlIH07XG4gICAgICBjb21tYW5kLmR1cmF0aW9uID0gIm5leHRJbmNvbWluZ0F0dGFjayI7XG4gICAgICBicmVhazsnLAogICAgICAgICcgICAgY2FzZSAiY29uc3VtYWJsZS5uZXh0SW5jb21pbmdBdHRhY2tEZWZlbnNlIjpcbiAgICAgIGNvbW1hbmQucXVhbGlmaWVyID0geyBuZXh0SW5jb21pbmdBdHRhY2s6IHRydWUsIGV4cGlyZXM6ICJlbmRPZlJvdW5kIiB9O1xuICAgICAgY29tbWFuZC5kdXJhdGlvbiA9ICJuZXh0SW5jb21pbmdBdHRhY2siO1xuICAgICAgYnJlYWs7JwogICAgKSwKICAgICgKICAgICAgICAnICAgIGNhc2UgImNvbnN1bWFibGUuem9uZVNwZWNpZmljSW5jb21pbmdBdHRhY2tQZW5hbHR5IjpcbiAgICAgIGNvbW1hbmQucXVhbGlmaWVyID0geyBjaG9zZW5JbmNvbWluZ1pvbmU6IHRydWUgfTtcbiAgICAgIGNvbW1hbmQuZHVyYXRpb24gPSAibmV4dEluY29taW5nQXR0YWNrIjtcbiAgICAgIGJyZWFrOycsCiAgICAgICAgJyAgICBjYXNlICJjb25zdW1hYmxlLnpvbmVTcGVjaWZpY0luY29taW5nQXR0YWNrUGVuYWx0eSI6XG4gICAgICBjb21tYW5kLnF1YWxpZmllciA9IHsgY2hvc2VuSW5jb21pbmdab25lOiB0cnVlLCBleHBpcmVzOiAiZW5kT2ZSb3VuZCIgfTtcbiAgICAgIGNvbW1hbmQuZHVyYXRpb24gPSAibmV4dEluY29taW5nQXR0YWNrIjtcbiAgICAgIGJyZWFrOycKICAgICksCiAgICAoCiAgICAgICAgJyAgICBjYXNlICJjb25zdW1hYmxlLmFzY2VuZFB1cmNoYXNlRGlzY291bnQiOlxuICAgICAgY29tbWFuZC5kdXJhdGlvbiA9ICJuZXh0UHVyY2hhc2UiO1xuICAgICAgY29tbWFuZC5xdWFsaWZpZXIgPSB7IG1pblByaW50ZWRDb3N0OiA1LCBtaW5pbXVtRmluYWxDb3N0OiA0IH07XG4gICAgICBicmVhazsnLAogICAgICAgICcgICAgY2FzZSAiY29uc3VtYWJsZS5hc2NlbmRQdXJjaGFzZURpc2NvdW50IjpcbiAgICAgIGNvbW1hbmQuZHVyYXRpb24gPSAibmV4dFB1cmNoYXNlIjtcbiAgICAgIGNvbW1hbmQucXVhbGlmaWVyID0geyBtaW5QcmludGVkQ29zdDogNSwgbWluaW11bUZpbmFsQ29zdDogNCwgZXhwaXJlczogImVuZE9mVHVybiIgfTtcbiAgICAgIGJyZWFrOycKICAgICksCiAgICAoCiAgICAgICAgJyAgICBjYXNlICJjb25zdW1hYmxlLnBlcFRhbGtDb25kaXRpb25hbEF0dGFja0JvbnVzIjpcbiAgICAgIGNvbW1hbmQuZHVyYXRpb24gPSAibmV4dEF0dGFjayI7XG4gICAgICBicmVhazsnLAogICAgICAgICcgICAgY2FzZSAiY29uc3VtYWJsZS5wZXBUYWxrQ29uZGl0aW9uYWxBdHRhY2tCb251cyI6XG4gICAgICBjb21tYW5kLmR1cmF0aW9uID0gIm5leHRBdHRhY2siO1xuICAgICAgY29tbWFuZC5xdWFsaWZpZXIgPSB7IG5leHRBdHRhY2s6IHRydWUsIGV4cGlyZXM6ICJlbmRPZlR1cm4iIH07XG4gICAgICBicmVhazsnCiAgICApLAogICAgKAogICAgICAgICcgICAgY2FzZSAiY29uc3VtYWJsZS5ibG9ja2VkQXR0YWNrQmFja2xhc2giOlxuICAgICAgaWYgKGNvbW1hbmQudHJpZ2dlciA9PT0gInBhc3NpdmUiKSBjb21tYW5kLmVmZmVjdCA9ICJjb21iYXQuZGVhbERhbWFnZSI7XG4gICAgICBjb21tYW5kLmR1cmF0aW9uID0gY29tbWFuZC50cmlnZ2VyID09PSAicGFzc2l2ZSIgPyAiaW1tZWRpYXRlIiA6ICJuZXh0QXR0YWNrIjtcbiAgICAgIGNvbW1hbmQucXVhbGlmaWVyID0geyB3YXRjaGVkQXR0YWNrOiAibmV4dEF0dGFjayIgfTtcbiAgICAgIGJyZWFrOycsCiAgICAgICAgJyAgICBjYXNlICJjb25zdW1hYmxlLmJsb2NrZWRBdHRhY2tCYWNrbGFzaCI6XG4gICAgICBpZiAoY29tbWFuZC50cmlnZ2VyID09PSAicGFzc2l2ZSIpIGNvbW1hbmQuZWZmZWN0ID0gImNvbWJhdC5kZWFsRGFtYWdlIjtcbiAgICAgIGNvbW1hbmQuZHVyYXRpb24gPSBjb21tYW5kLnRyaWdnZXIgPT09ICJwYXNzaXZlIiA/ICJpbW1lZGlhdGUiIDogIm5leHRBdHRhY2siO1xuICAgICAgY29tbWFuZC5xdWFsaWZpZXIgPSBjb21tYW5kLnRyaWdnZXIgPT09ICJwYXNzaXZlIiA/IHsgd2F0Y2hlZEF0dGFjazogIm5leHRBdHRhY2siIH0gOiB7IHdhdGNoZWRBdHRhY2s6ICJuZXh0QXR0YWNrIiwgZXhwaXJlczogImVuZE9mVHVybiIgfTtcbiAgICAgIGJyZWFrOycKICAgICksCiAgICAoCiAgICAgICAgJyAgICBjYXNlICJjb25zdW1hYmxlLnByZXZlbnRJbnRlcmZlcmVPbk5leHRBdHRhY2siOlxuICAgICAgY29tbWFuZC5kdXJhdGlvbiA9ICJuZXh0QXR0YWNrIjtcbiAgICAgIGNvbW1hbmQucXVhbGlmaWVyID0geyBwcmV2ZW50OiAiaW50ZXJmZXJlIiB9O1xuICAgICAgYnJlYWs7JywKICAgICAgICAnICAgIGNhc2UgImNvbnN1bWFibGUucHJldmVudEludGVyZmVyZU9uTmV4dEF0dGFjayI6XG4gICAgICBjb21tYW5kLmR1cmF0aW9uID0gIm5leHRBdHRhY2siO1xuICAgICAgY29tbWFuZC5xdWFsaWZpZXIgPSB7IHByZXZlbnQ6ICJpbnRlcmZlcmUiLCBleHBpcmVzOiAiZW5kT2ZUdXJuIiB9O1xuICAgICAgYnJlYWs7JwogICAgKSwKICAgICgKICAgICAgICAnICAgIGNhc2UgImNvbnN1bWFibGUubmV4dEthdGFGb2N1c0JvbnVzIjpcbiAgICAgIGNvbW1hbmQuZHVyYXRpb24gPSAibmV4dEthdGEiO1xuICAgICAgY29tbWFuZC5xdWFsaWZpZXIgPSB7IG5leHRLYXRhOiB0cnVlIH07XG4gICAgICBicmVhazsnLAogICAgICAgICcgICAgY2FzZSAiY29uc3VtYWJsZS5uZXh0S2F0YUZvY3VzQm9udXMiOlxuICAgICAgY29tbWFuZC5kdXJhdGlvbiA9ICJuZXh0S2F0YSI7XG4gICAgICBjb21tYW5kLnF1YWxpZmllciA9IHsgbmV4dEthdGE6IHRydWUsIGV4cGlyZXM6ICJlbmRPZlR1cm4iIH07XG4gICAgICBicmVhazsnCiAgICApLAogICAgKAogICAgICAgICcgICAgY2FzZSAiY29uc3VtYWJsZS5wb2NrZXRZb3lvIjpcbiAgICAgIGlmIChjb21tYW5kLnRyaWdnZXIgPT09ICJwYXNzaXZlIikgY29tbWFuZC5xdWFsaWZpZXIgPSB7IGFmdGVyUGVuYWxpemVkRGVmZW5zZUJsb2NrczogdHJ1ZSB9O1xuICAgICAgYnJlYWs7JywKICAgICAgICAnICAgIGNhc2UgImNvbnN1bWFibGUucG9ja2V0WW95byI6XG4gICAgICBjb21tYW5kLnF1YWxpZmllciA9IGNvbW1hbmQudHJpZ2dlciA9PT0gInBhc3NpdmUiID8geyBhZnRlclBlbmFsaXplZERlZmVuc2VCbG9ja3M6IHRydWUgfSA6IHsgbmV4dERlZmVuc2U6IHRydWUsIGV4cGlyZXM6ICJlbmRPZlJvdW5kIiB9O1xuICAgICAgYnJlYWs7XG4gICAgY2FzZSAiY29uc3VtYWJsZS5jaG9vc2VPcHBvbmVudE5leHREZWZlbnNlR3VhcmRQZW5hbHR5IjpcbiAgICAgIGNvbW1hbmQuZHVyYXRpb24gPSAibmV4dERlZmVuc2UiO1xuICAgICAgY29tbWFuZC5xdWFsaWZpZXIgPSB7IG5leHREZWZlbnNlOiB0cnVlLCBleHBpcmVzOiAiZW5kT2ZSb3VuZCIgfTtcbiAgICAgIGJyZWFrOycKICAgICksCl0KZm9yIG9sZCwgbmV3IGluIHJlcGxhY2VtZW50czoKICAgIGlmIG9sZCBub3QgaW4gdDoKICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KGYicmVzb2x2ZXIgYW5jaG9yIG1pc3Npbmc6IHtvbGRbOjEwMF19IikKICAgIHQgPSB0LnJlcGxhY2Uob2xkLCBuZXcsIDEpCnJlc29sdmVyLndyaXRlX3RleHQodCkKCnBsYXl0ZXN0ID0gUGF0aCgiYXBwL3BsYXl0ZXN0LnRzeCIpCnAgPSBwbGF5dGVzdC5yZWFkX3RleHQoKQpvbGQgPSAnJydmdW5jdGlvbiBzdGFnZTNjRW5kVHVybihib2FyZDogQm9hcmQpIHsKICByZXR1cm4gZXhwaXJlU3RhZ2UzQyhib2FyZCwgImVuZE9mVHVybiIpOwp9CgpmdW5jdGlvbiBzdGFnZTNjQWR2YW5jZVJvdW5kKGJvYXJkOiBCb2FyZCkgewogIGxldCBuZXh0ID0gZXhwaXJlU3RhZ2UzQyhleHBpcmVTdGFnZTNDKGJvYXJkLCAiZW5kT2ZSb3VuZCIpLCAibmV4dEhvbm9yIik7JycnCm5ldyA9ICcnJ2Z1bmN0aW9uIGV4cGlyZVN0YWdlM0NRdWFsaWZpZWQoYm9hcmQ6IEJvYXJkLCBleHBpcmVzOiAiZW5kT2ZUdXJuIiB8ICJlbmRPZlJvdW5kIikgewogIGNvbnN0IGV4cGlyaW5nSWRzID0gbmV3IFNldCgoYm9hcmQuc3RhZ2UzY1N0YXR1c2VzID8/IFtdKS5maWx0ZXIoKHN0YXR1cykgPT4gc3RhdHVzLnF1YWxpZmllcj8uZXhwaXJlcyA9PT0gZXhwaXJlcykubWFwKChzdGF0dXMpID0+IHN0YXR1cy5zb3VyY2VFZmZlY3RJZCkpOwogIGlmICghZXhwaXJpbmdJZHMuc2l6ZSkgcmV0dXJuIGJvYXJkOwogIHJldHVybiB7IC4uLmJvYXJkLCBzdGFnZTNjU3RhdHVzZXM6IChib2FyZC5zdGFnZTNjU3RhdHVzZXMgPz8gW10pLmZpbHRlcigoc3RhdHVzKSA9PiAhZXhwaXJpbmdJZHMuaGFzKHN0YXR1cy5zb3VyY2VFZmZlY3RJZCkpIH07Cn0KCmZ1bmN0aW9uIHN0YWdlM2NFbmRUdXJuKGJvYXJkOiBCb2FyZCkgewogIHJldHVybiBleHBpcmVTdGFnZTNDUXVhbGlmaWVkKGV4cGlyZVN0YWdlM0MoYm9hcmQsICJlbmRPZlR1cm4iKSwgImVuZE9mVHVybiIpOwp9CgpmdW5jdGlvbiBzdGFnZTNjQWR2YW5jZVJvdW5kKGJvYXJkOiBCb2FyZCkgewogIGxldCBuZXh0ID0gZXhwaXJlU3RhZ2UzQ1F1YWxpZmllZChleHBpcmVTdGFnZTNDKGV4cGlyZVN0YWdlM0MoYm9hcmQsICJlbmRPZlJvdW5kIiksICJuZXh0SG9ub3IiKSwgImVuZE9mUm91bmQiKTsnJycKaWYgb2xkIG5vdCBpbiBwOgogICAgcmFpc2UgU3lzdGVtRXhpdCgicGxheXRlc3QgbGlmZWN5Y2xlIGFuY2hvciBtaXNzaW5nIikKcCA9IHAucmVwbGFjZShvbGQsIG5ldywgMSkKCm9sZCA9ICcnJyAgICBsZXQgc3VwcG9ydEJvYXJkID0gaXNLYXRhKGNhcmQpID8gc3RhZ2UzY0NvbnN1bWVLYXRhKGN1cnJlbnQucGxheWVyKSA6IGN1cnJlbnQucGxheWVyOwogICAgbGV0IG5leHRQbGF5ZXIgPSBtYXJrQ29tcGxldGVkVGFzayhhcHBseUNhcmRFZmZlY3RzKHsgLi4uc3VwcG9ydEJvYXJkLCBoYW5kOiByZW1vdmVPbmUoc3VwcG9ydEJvYXJkLmhhbmQsIGlkKSwgcGxheUFyZWE6IFsuLi5jdXJyZW50LnBsYXllci5wbGF5QXJlYSwgaWRdLCBjYXJkc1RoaXNUdXJuOiBbLi4uY3VycmVudC5wbGF5ZXIuY2FyZHNUaGlzVHVybiwgaWRdLCBmb2N1czogY3VycmVudC5wbGF5ZXIuZm9jdXMgKyBsb2NhdGlvbk1vZGlmaWVyLnZhbHVlLCBsYXN0QXR0YWNrSGl0OiBmYWxzZSB9LCBjYXJkLCAicGxheWVyIiwgIm9uUGxheSIsIGlzQ29yZUNvbnN1bWFibGVDYXJkKGNhcmQpID8gc3RhZ2UzY0NvbnN1bWFibGVDb250ZXh0KGN1cnJlbnQucGxheWVyKSA6IHt9KSk7JycnCm5ldyA9ICcnJyAgICBsZXQgc3VwcG9ydEJvYXJkID0gaXNLYXRhKGNhcmQpID8gc3RhZ2UzY0NvbnN1bWVLYXRhKGN1cnJlbnQucGxheWVyKSA6IGN1cnJlbnQucGxheWVyOwogICAgY29uc3Qgc3VwcG9ydEVudHJ5Qm9hcmQgPSB7IC4uLnN1cHBvcnRCb2FyZCwgaGFuZDogcmVtb3ZlT25lKHN1cHBvcnRCb2FyZC5oYW5kLCBpZCksIHBsYXlBcmVhOiBbLi4uc3VwcG9ydEJvYXJkLnBsYXlBcmVhLCBpZF0sIGNhcmRzVGhpc1R1cm46IFsuLi5zdXBwb3J0Qm9hcmQuY2FyZHNUaGlzVHVybiwgaWRdLCBmb2N1czogc3VwcG9ydEJvYXJkLmZvY3VzICsgbG9jYXRpb25Nb2RpZmllci52YWx1ZSwgbGFzdEF0dGFja0hpdDogZmFsc2UgfTsKICAgIGxldCBuZXh0UGxheWVyID0gbWFya0NvbXBsZXRlZFRhc2soYXBwbHlDYXJkRWZmZWN0cyhzdXBwb3J0RW50cnlCb2FyZCwgY2FyZCwgInBsYXllciIsICJvblBsYXkiLCBpc0NvcmVDb25zdW1hYmxlQ2FyZChjYXJkKSA/IHN0YWdlM2NDb25zdW1hYmxlQ29udGV4dChzdXBwb3J0RW50cnlCb2FyZCkgOiB7fSkpOycnJwppZiBvbGQgbm90IGluIHA6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJwbGF5U3VwcG9ydCBjb250ZXh0IGFuY2hvciBtaXNzaW5nIikKcCA9IHAucmVwbGFjZShvbGQsIG5ldywgMSkKCm9sZCA9ICcgICAgY29uc3QgY2hvaWNlTm90ZSA9IHBlbmRpbmdDaG9pY2U/LmtpbmQgPT09ICJkZXN0cm95LWp1bmsiID8gYENob29zZSAke2p1bmtDb3VudH0gSnVuayBjYXJkJHtqdW5rQ291bnQgPT09IDEgPyAiIiA6ICJzIn0gZnJvbSB5b3VyIGhhbmQgb3IgZGlzY2FyZCBwaWxlIHRvIGRlc3Ryb3kuYCA6IHBlbmRpbmdDaG9pY2U/LmtpbmQgPT09ICJkaXNjYXJkLWhhbmQiID8gYENob29zZSAke3BlbmRpbmdDaG9pY2UucmVtYWluaW5nfSBjYXJkJHtwZW5kaW5nQ2hvaWNlLnJlbWFpbmluZyA9PT0gMSA/ICIiIDogInMifSBmcm9tIHlvdXIgaGFuZCB0byBkaXNjYXJkLmAgOiBkZWNrTm90ZSB8fCBjYXJkRWZmZWN0Tm90ZShjYXJkKTsnCm5ldyA9ICcgICAgY29uc3QganVua1NvdXJjZUxhYmVsID0ganVua1NvdXJjZXMubGVuZ3RoID09PSAyID8gImhhbmQgb3IgZGlzY2FyZCBwaWxlIiA6IGp1bmtTb3VyY2VzWzBdID09PSAiZGlzY2FyZCIgPyAiZGlzY2FyZCBwaWxlIiA6ICJoYW5kIjtcbiAgICBjb25zdCBjaG9pY2VOb3RlID0gcGVuZGluZ0Nob2ljZT8ua2luZCA9PT0gImRlc3Ryb3ktanVuayIgPyBgQ2hvb3NlICR7anVua0NvdW50fSBKdW5rIGNhcmQke2p1bmtDb3VudCA9PT0gMSA/ICIiIDogInMifSBmcm9tIHlvdXIgJHtqdW5rU291cmNlTGFiZWx9IHRvIGRlc3Ryb3kuYCA6IHBlbmRpbmdDaG9pY2U/LmtpbmQgPT09ICJkaXNjYXJkLWhhbmQiID8gYENob29zZSAke3BlbmRpbmdDaG9pY2UucmVtYWluaW5nfSBjYXJkJHtwZW5kaW5nQ2hvaWNlLnJlbWFpbmluZyA9PT0gMSA/ICIiIDogInMifSBmcm9tIHlvdXIgaGFuZCB0byBkaXNjYXJkLmAgOiBkZWNrTm90ZSB8fCBjYXJkRWZmZWN0Tm90ZShjYXJkKTsnCmlmIG9sZCBub3QgaW4gcDoKICAgIHJhaXNlIFN5c3RlbUV4aXQoImNob2ljZS1ub3RlIGFuY2hvciBtaXNzaW5nIikKcCA9IHAucmVwbGFjZShvbGQsIG5ldywgMSkKcGxheXRlc3Qud3JpdGVfdGV4dChwKQoKdGVzdF9maWxlID0gUGF0aCgidGVzdHMvc3RhZ2UzYy1kZWZlbnNlLWNvbnN1bWFibGUtcnVudGltZS50ZXN0Lm1qcyIpCnEgPSB0ZXN0X2ZpbGUucmVhZF90ZXh0KCkKYWRkaXRpb24gPSByJycnCgp0ZXN0KCJRdWljayBEdWVsIGF1dG8tcmVzb2x2ZXMgc2luZ2xlLW9wcG9uZW50IEd1YXJkIHBlbmFsdGllcyBhbmQgcHJlc2VydmVzIHJvdW5kIGV4cGlyeSIsICgpID0+IHsKICBjb25zdCBzYW5kID0gY29uc3VtYWJsZVJ1bnRpbWVDb21tYW5kcyhjYXJkKCJEREItQ09OLUNPUkUtMDQzIiksICJvblBsYXkiLCB7IC4uLmNvbnN1bWFibGVCYXNlQ29udGV4dCwgb3Bwb25lbnRUYXJnZXRDb3VudDogMSB9KQogICAgLmZpbmQoKGNvbW1hbmQpID0+IGNvbW1hbmQucmVzb2x2ZXIgPT09ICJjb25zdW1hYmxlLmNob29zZU9wcG9uZW50TmV4dERlZmVuc2VHdWFyZFBlbmFsdHkiKTsKICBhc3NlcnQub2soc2FuZCk7CiAgYXNzZXJ0LmVxdWFsKHNhbmQuY2hvaWNlLCB1bmRlZmluZWQpOwogIGFzc2VydC5lcXVhbChzYW5kLmR1cmF0aW9uLCAibmV4dERlZmVuc2UiKTsKICBhc3NlcnQuZXF1YWwoc2FuZC5xdWFsaWZpZXI/LmV4cGlyZXMsICJlbmRPZlJvdW5kIik7CgogIGNvbnN0IG11bHRpcGxheWVyID0gY29uc3VtYWJsZVJ1bnRpbWVDb21tYW5kcyhjYXJkKCJEREItQ09OLUNPUkUtMDQzIiksICJvblBsYXkiLCB7IC4uLmNvbnN1bWFibGVCYXNlQ29udGV4dCwgb3Bwb25lbnRUYXJnZXRDb3VudDogMiB9KQogICAgLmZpbmQoKGNvbW1hbmQpID0+IGNvbW1hbmQucmVzb2x2ZXIgPT09ICJjb25zdW1hYmxlLmNob29zZU9wcG9uZW50TmV4dERlZmVuc2VHdWFyZFBlbmFsdHkiKTsKICBhc3NlcnQub2sobXVsdGlwbGF5ZXI/LmNob2ljZSk7Cn0pOwoKdGVzdCgic3RydWN0dXJlZCB0aGlzLXR1cm4gYW5kIHRoaXMtcm91bmQgQ29uc3VtYWJsZSBzdGF0dXNlcyBjYXJyeSBleHBsaWNpdCBleHBpcnkgbWV0YWRhdGEiLCAoKSA9PiB7CiAgY29uc3QgY2FzZXMgPSBbCiAgICBbIkREQi1DT04tQ09SRS0wMDIiLCAiY29uc3VtYWJsZS5jaG9vc2VPcHBvbmVudE5leHRBdHRhY2tQZW5hbHR5IiwgImVuZE9mUm91bmQiXSwKICAgIFsiRERCLUNPTi1DT1JFLTAwNCIsICJjb25zdW1hYmxlLm5leHRRdWFsaWZ5aW5nQXR0YWNrTW9kaWZpZXIiLCAiZW5kT2ZUdXJuIl0sCiAgICBbIkREQi1DT04tQ09SRS0wMDciLCAiY29uc3VtYWJsZS5uZXh0QXR0YWNrVW50aWxFbmRPZlR1cm4iLCAiZW5kT2ZUdXJuIl0sCiAgICBbIkREQi1DT04tQ09SRS0wMTMiLCAiY29uc3VtYWJsZS5uZXh0QXR0YWNrRmxvd1VudGlsRW5kT2ZUdXJuIiwgImVuZE9mVHVybiJdLAogICAgWyJEREItQ09OLUNPUkUtMDE2IiwgImNvbnN1bWFibGUubmV4dEluY29taW5nQXR0YWNrRGVmZW5zZSIsICJlbmRPZlJvdW5kIl0sCiAgICBbIkREQi1DT04tQ09SRS0wMzEiLCAiY29uc3VtYWJsZS5wZXBUYWxrQ29uZGl0aW9uYWxBdHRhY2tCb251cyIsICJlbmRPZlR1cm4iXSwKICAgIFsiRERCLUNPTi1DT1JFLTAzNyIsICJjb25zdW1hYmxlLmJsb2NrZWRBdHRhY2tCYWNrbGFzaCIsICJlbmRPZlR1cm4iXSwKICAgIFsiRERCLUNPTi1DT1JFLTA0MyIsICJjb25zdW1hYmxlLmNob29zZU9wcG9uZW50TmV4dERlZmVuc2VHdWFyZFBlbmFsdHkiLCAiZW5kT2ZSb3VuZCJdLAogICAgWyJEREItQ09OLUNPUkUtMDQ2IiwgImNvbnN1bWFibGUucHJldmVudEludGVyZmVyZU9uTmV4dEF0dGFjayIsICJlbmRPZlR1cm4iXSwKICAgIFsiRERCLUNPTi1DT1JFLTA0NyIsICJjb25zdW1hYmxlLm5leHRJbmNvbWluZ0F0dGFja0RlZmVuc2UiLCAiZW5kT2ZSb3VuZCJdLAogICAgWyJEREItQ09OLUNPUkUtMDUyIiwgImNvbnN1bWFibGUubmV4dEF0dGFja1VudGlsRW5kT2ZUdXJuIiwgImVuZE9mVHVybiJdLAogICAgWyJEREItQ09OLUNPUkUtMDU0IiwgImNvbnN1bWFibGUubmV4dEthdGFGb2N1c0JvbnVzIiwgImVuZE9mVHVybiJdLAogICAgWyJEREItQ09OLUNPUkUtMDYyIiwgImNvbnN1bWFibGUucG9ja2V0WW95byIsICJlbmRPZlJvdW5kIl0sCiAgXTsKICBmb3IgKGNvbnN0IFtjYXRhbG9nSWQsIHJlc29sdmVyLCBleHBpcmVzXSBvZiBjYXNlcykgewogICAgY29uc3QgY29tbWFuZCA9IGNvbnN1bWFibGVSdW50aW1lQ29tbWFuZHMoY2FyZChjYXRhbG9nSWQpLCAib25QbGF5IiwgeyAuLi5jb25zdW1hYmxlQmFzZUNvbnRleHQsIG9wcG9uZW50VGFyZ2V0Q291bnQ6IDEgfSkKICAgICAgLmZpbmQoKGNhbmRpZGF0ZSkgPT4gY2FuZGlkYXRlLnJlc29sdmVyID09PSByZXNvbHZlciAmJiBjYW5kaWRhdGUudHJpZ2dlciA9PT0gIm9uUGxheSIpOwogICAgYXNzZXJ0Lm9rKGNvbW1hbmQsIGAke2NhdGFsb2dJZH0gbXVzdCBwcm9kdWNlICR7cmVzb2x2ZXJ9YCk7CiAgICBhc3NlcnQuZXF1YWwoY29tbWFuZC5xdWFsaWZpZXI/LmV4cGlyZXMsIGV4cGlyZXMsIGAke2NhdGFsb2dJZH0gbXVzdCBleHBpcmUgYXQgJHtleHBpcmVzfWApOwogIH0KfSk7CicnJwppZiAiUXVpY2sgRHVlbCBhdXRvLXJlc29sdmVzIHNpbmdsZS1vcHBvbmVudCBHdWFyZCBwZW5hbHRpZXMgYW5kIHByZXNlcnZlcyByb3VuZCBleHBpcnkiIG5vdCBpbiBxOgogICAgcSArPSBhZGRpdGlvbgp0ZXN0X2ZpbGUud3JpdGVfdGV4dChxKQoKaW50ZWdyYXRpb24gPSBQYXRoKCJ0ZXN0cy9wbGF5dGVzdC1lZmZlY3QtaW50ZWdyYXRpb24udGVzdC5tanMiKQpyID0gaW50ZWdyYXRpb24ucmVhZF90ZXh0KCkKYWRkaXRpb24yID0gcicnJwoKdGVzdCgiUXVpY2sgRHVlbCBldmFsdWF0ZXMgQ29uc3VtYWJsZSBvblBsYXkgY29udGV4dCBhZnRlciB0aGUgcGxheWVkIGNhcmQgbGVhdmVzIGhhbmQgYW5kIGV4cGlyZXMgcXVhbGlmaWVkIHN0YXR1c2VzIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IHNvdXJjZSA9IGF3YWl0IHJlYWRGaWxlKG5ldyBVUkwoIi4uL2FwcC9wbGF5dGVzdC50c3giLCBpbXBvcnQubWV0YS51cmwpLCAidXRmOCIpOwogIGFzc2VydC5tYXRjaChzb3VyY2UsIC9jb25zdCBzdXBwb3J0RW50cnlCb2FyZCA9IFx7IFwuXC5cLnN1cHBvcnRCb2FyZCwgaGFuZDogcmVtb3ZlT25lXChzdXBwb3J0Qm9hcmRcLmhhbmQsIGlkXCkvKTsKICBhc3NlcnQubWF0Y2goc291cmNlLCAvc3RhZ2UzY0NvbnN1bWFibGVDb250ZXh0XChzdXBwb3J0RW50cnlCb2FyZFwpLyk7CiAgYXNzZXJ0Lm1hdGNoKHNvdXJjZSwgL2Z1bmN0aW9uIGV4cGlyZVN0YWdlM0NRdWFsaWZpZWRcKGJvYXJkOiBCb2FyZCwgZXhwaXJlczogImVuZE9mVHVybiIgXHwgImVuZE9mUm91bmQiXCkvKTsKICBhc3NlcnQubWF0Y2goc291cmNlLCAvc3RhdHVzXC5xdWFsaWZpZXJcP1wuZXhwaXJlcyA9PT0gZXhwaXJlcy8pOwp9KTsKJycnCmlmICJRdWljayBEdWVsIGV2YWx1YXRlcyBDb25zdW1hYmxlIG9uUGxheSBjb250ZXh0IGFmdGVyIHRoZSBwbGF5ZWQgY2FyZCBsZWF2ZXMgaGFuZCIgbm90IGluIHI6CiAgICByICs9IGFkZGl0aW9uMgppbnRlZ3JhdGlvbi53cml0ZV90ZXh0KHIpCg==' | base64 -d > /tmp/stage3c-patch.py
+          python3 /tmp/stage3c-patch.py
           git diff --check
-      - name: Remove one-shot workflow, test, and commit product changes
+
+      - name: Commit product changes
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
