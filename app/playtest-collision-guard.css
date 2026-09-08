@@ -1,0 +1,561 @@
+/* Quick Duel collision guard ------------------------------------------------
+   Final desktop geometry pass for the live mat. This file intentionally loads
+   after the historical playtest layers so the active production layout has one
+   explicit authority for collision/containment fixes. */
+
+@media (min-width: 761px) {
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card > *,
+  .playtest-shell.playtest-shell--live .playtest-combat-desk.combat-stage > * {
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Fighter headings ---------------------------------------------------- */
+  .playtest-shell.playtest-shell--live .fighter-card-heading {
+    overflow: visible !important;
+    padding-inline: 2px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-card-heading > div {
+    min-width: 0 !important;
+    max-width: calc(100% - 70px) !important;
+    overflow: hidden !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-belt-badge {
+    min-width: 58px !important;
+    max-width: 66px !important;
+    margin-inline: 2px !important;
+    border: 2px solid var(--belt-edge, #b8ad92) !important;
+    padding: 5px 7px !important;
+    overflow: hidden !important;
+    color: var(--belt-fg, #17211d) !important;
+    background: var(--belt-bg, #f5f0df) !important;
+    box-shadow: 2px 3px 0 rgba(15, 15, 11, .28) !important;
+    line-height: 1 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    transform: none !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-belt-badge small,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-belt-badge small {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    color: var(--belt-sub, currentColor) !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* Canonical belt colors from game-definition.json. Applies to BOTH sides. */
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="white"] {
+    --belt-bg: #f5f0df; --belt-fg: #17211d; --belt-sub: #5e5c52; --belt-edge: #c9c1aa;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="gold"] {
+    --belt-bg: #e0b42b; --belt-fg: #211b0c; --belt-sub: #4e3b08; --belt-edge: #f4d763;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="orange"] {
+    --belt-bg: #e88939; --belt-fg: #24170c; --belt-sub: #5b2f0d; --belt-edge: #f4ae69;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="green"] {
+    --belt-bg: #58a86a; --belt-fg: #102417; --belt-sub: #173c23; --belt-edge: #85c692;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="purple"] {
+    --belt-bg: #8055a2; --belt-fg: #fff8e7; --belt-sub: #ead9f6; --belt-edge: #ad87ca;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="blue"] {
+    --belt-bg: #4f83bf; --belt-fg: #fffaf0; --belt-sub: #dbeaff; --belt-edge: #80a9d8;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="red"] {
+    --belt-bg: #c94a3d; --belt-fg: #fff7e8; --belt-sub: #ffd9d3; --belt-edge: #e67a6e;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="brown"] {
+    --belt-bg: #7f5233; --belt-fg: #fff7e8; --belt-sub: #ead5c4; --belt-edge: #aa7957;
+  }
+  .playtest-shell.playtest-shell--live .fighter-belt-badge[data-belt="black"] {
+    --belt-bg: #171b18; --belt-fg: #fff8e7; --belt-sub: #d7ddd9; --belt-edge: #626a64;
+  }
+
+  /* Stats + Focus ------------------------------------------------------- */
+  /* Do not overlay two percentage-width blocks in the same grid cell. The
+     Focus seal owns a fixed safe width; the three stats receive the remainder. */
+  .playtest-shell.playtest-shell--live .fighter-stats.fighter-stats--combat,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-stats.fighter-stats--combat {
+    width: calc(100% - 78px) !important;
+    max-width: calc(100% - 78px) !important;
+    min-width: 0 !important;
+    justify-self: start !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-focus-seal,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-focus-seal {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    grid-template-columns: 17px minmax(0, 1fr) !important;
+    column-gap: 3px !important;
+    justify-self: end !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 4px 6px !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-focus-seal svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-focus-seal > span {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    font-size: clamp(14px, 1.2vw, 18px) !important;
+    text-overflow: clip !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-focus-seal small {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    font-size: 5px !important;
+    letter-spacing: .025em !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* Ability + Loadout --------------------------------------------------- */
+  .playtest-shell.playtest-shell--live .fighter-ability,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-ability {
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-gutter: stable !important;
+    padding: 6px 9px 8px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-ability::-webkit-scrollbar { width: 5px; }
+  .playtest-shell.playtest-shell--live .fighter-ability::-webkit-scrollbar-track { background: transparent; }
+  .playtest-shell.playtest-shell--live .fighter-ability::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: var(--mat-gold);
+    background-clip: padding-box;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs,
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: auto !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-loadout-launch,
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy .fighter-loadout-launch {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    border: 1px solid #877858 !important;
+    border-radius: 6px 2px 7px 3px !important;
+    padding: 4px 7px !important;
+    box-shadow: none !important;
+  }
+
+  /* Scene slip ---------------------------------------------------------- */
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button {
+    min-width: 0 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto minmax(0, 1fr) !important;
+    align-content: stretch !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button > span {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    align-self: start !important;
+    justify-self: start !important;
+    padding-right: 66px !important;
+    writing-mode: horizontal-tb !important;
+    transform: none !important;
+    white-space: nowrap !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button > b {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    align-self: center !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 58px) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button > small {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+  }
+
+  /* Clash / Your Response / Opponent card ------------------------------ */
+  .playtest-shell.playtest-shell--live .clash-field {
+    min-height: 0 !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: 14px minmax(0, 1fr) !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot > span {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    line-height: 14px !important;
+    white-space: nowrap !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot > button,
+  .playtest-shell.playtest-shell--live .clash-card-empty {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    align-self: stretch !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    box-shadow: inset 0 -2px 0 rgba(69, 54, 31, .10) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot--player > button {
+    grid-template-columns: 72px minmax(0, 1fr) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot--ai > button {
+    grid-template-columns: minmax(0, 1fr) 72px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: min(86px, 100%) !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    align-self: center !important;
+    overflow: hidden !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art > img,
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
+    object-position: top center !important;
+    overflow: hidden !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-copy {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-copy b,
+  .playtest-shell.playtest-shell--live .clash-card-copy small {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Zone row owns its own hard boundary. Nothing from clash may paint here. */
+  .playtest-shell.playtest-shell--live .combat-zone-board {
+    position: relative !important;
+    z-index: 3 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    align-self: stretch !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-zone-board span,
+  .playtest-shell.playtest-shell--live .combat-zone-board span.is-hot {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  /* Filed-card lanes ---------------------------------------------------- */
+  .playtest-shell.playtest-shell--live .live-mat-play--stage {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: 18px minmax(0, 1fr) !important;
+    overflow: hidden !important;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane > header {
+    height: 18px !important;
+    min-height: 18px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane-cards {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-gutter: auto !important;
+    padding: 3px 4px 4px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane-cards::-webkit-scrollbar { height: 5px; }
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane-cards::-webkit-scrollbar-track { background: transparent; }
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane-cards::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: var(--mat-gold);
+    background-clip: padding-box;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane-cards > button {
+    height: 100% !important;
+    max-height: 48px !important;
+    min-height: 38px !important;
+    box-sizing: border-box !important;
+    align-self: start !important;
+  }
+}
+
+/* Compact desktop/laptop layout -------------------------------------------- */
+@media (min-width: 1200px) and (max-height: 1050px) {
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card,
+  .playtest-shell.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+  .playtest-shell.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card {
+    grid-template-rows: 42px minmax(126px, 1fr) 42px 38px 21px minmax(60px, 1fr) 34px !important;
+    gap: 5px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-ability,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-ability {
+    min-height: 60px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs,
+  .playtest-shell.playtest-shell--live .fighter-equipment-tabs.is-enemy,
+  .playtest-shell.playtest-shell--live .fighter-loadout-launch {
+    height: 34px !important;
+    min-height: 34px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-stats.fighter-stats--combat,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-stats.fighter-stats--combat {
+    width: calc(100% - 76px) !important;
+    max-width: calc(100% - 76px) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-focus-seal,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-focus-seal {
+    width: 70px !important;
+    min-width: 70px !important;
+    max-width: 70px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .playtest-combat-desk.combat-stage {
+    grid-template-rows: 76px minmax(118px, 1fr) 34px 76px minmax(58px, auto) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading {
+    height: 76px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button {
+    grid-template-rows: 9px 23px minmax(24px, 1fr) !important;
+    gap: 2px !important;
+    padding: 5px 10px 6px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button > span {
+    font-size: 7px !important;
+    line-height: 1 !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button > b {
+    font-size: clamp(18px, 1.8vw, 24px) !important;
+    line-height: .95 !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button > small {
+    min-height: 0 !important;
+    max-height: 26px !important;
+    padding: 3px 6px !important;
+    font-size: 8px !important;
+    line-height: 1.15 !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-stage-heading > button > small i {
+    font-size: 6px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art {
+    height: min(78px, 100%) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage {
+    min-height: 76px !important;
+    max-height: 76px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .live-mat-play--stage .mat-lane-cards > button {
+    max-height: 46px !important;
+  }
+}
+
+/* Stage-card containment ----------------------------------------------------
+   The generic NativeCardArt component is position:absolute/inset:0 by default.
+   That is useful for full cards, but inside the clash thumbnail it causes a
+   Starter fallback to fill the entire declaration button. Lock the thumbnail
+   to its own box and reserve visible air above the combat-zone row. */
+@media (min-width: 761px) {
+  .playtest-shell.playtest-shell--live .clash-field {
+    box-sizing: border-box !important;
+    padding: 8px 9px 14px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot {
+    height: 100% !important;
+    max-height: 100% !important;
+    grid-template-rows: 14px minmax(0, 1fr) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot > span {
+    grid-row: 1 !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot > button,
+  .playtest-shell.playtest-shell--live .clash-card-empty {
+    grid-row: 2 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot--player > button {
+    grid-template-columns: 60px minmax(0, 1fr) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-slot--ai > button {
+    grid-template-columns: minmax(0, 1fr) 60px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art {
+    position: relative !important;
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    height: min(82px, 100%) !important;
+    max-height: 82px !important;
+    overflow: hidden !important;
+    contain: layout paint !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    gap: 2px !important;
+    overflow: hidden !important;
+    padding: 4px !important;
+    contain: strict !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art::before {
+    inset: 2px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art::after {
+    display: none !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art .native-card-ribbon {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    padding: 2px 4px !important;
+    font-size: 5px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art > b {
+    min-height: 0 !important;
+    font-size: 22px !important;
+    line-height: .8 !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art > strong {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    align-self: end !important;
+    font-size: 6px !important;
+    line-height: 1 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art > small,
+  .playtest-shell.playtest-shell--live .clash-card-art > .native-card-art > em {
+    display: none !important;
+  }
+
+  .playtest-shell.playtest-shell--live .combat-zone-board {
+    z-index: 1 !important;
+    margin-top: 2px !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-height: 1050px) {
+  .playtest-shell.playtest-shell--live .playtest-combat-desk.combat-stage {
+    row-gap: 8px !important;
+    grid-template-rows: 76px minmax(120px, 1fr) 34px 76px minmax(58px, auto) !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-field {
+    padding-bottom: 16px !important;
+  }
+
+  .playtest-shell.playtest-shell--live .clash-card-art {
+    height: min(76px, 100%) !important;
+    max-height: 76px !important;
+  }
+}
