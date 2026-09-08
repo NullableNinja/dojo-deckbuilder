@@ -35,7 +35,6 @@ jobs:
         run: npm run game:check
 
       - name: Location runtime certification
-        id: location_tests
         shell: bash
         run: |
           set +e
@@ -56,7 +55,21 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Full repository tests
-        run: npm test
+        shell: bash
+        run: |
+          set +e
+          npm test > full-repository-test.log 2>&1
+          code=$?
+          cat full-repository-test.log
+          exit $code
+
+      - name: Upload full-test diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-repository-test-log
+          path: full-repository-test.log
+          if-no-files-found: ignore
 
       - name: Production build
         run: npm run build
