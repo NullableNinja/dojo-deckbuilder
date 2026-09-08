@@ -28,6 +28,7 @@ export type ConsumableRuntimeContext = {
   discardedCount?: number;
   revealedFocusValue?: number;
   revealedDifferentTypeCount?: number;
+  friendlyTargetCount?: number;
   selectedEquipmentSubtype?: string;
 };
 
@@ -164,7 +165,16 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
   const resolver = effect.resolver;
   if (!resolver) return command;
 
-  if (choiceResolver(resolver) && [
+  const autoResolveSoloFriendlyHeal = command.effect === "core.heal"
+    && command.target === "self"
+    && Number(context.friendlyTargetCount ?? 0) === 1
+    && new Set([
+      "consumable.chooseFriendlyHealTarget",
+      "consumable.healByChosenFriendlyPosition",
+      "consumable.healAndRemoveStatus",
+    ]).has(resolver);
+
+  if (!autoResolveSoloFriendlyHeal && choiceResolver(resolver) && [
     "core.custom",
     "core.choice",
     "core.destroy",
