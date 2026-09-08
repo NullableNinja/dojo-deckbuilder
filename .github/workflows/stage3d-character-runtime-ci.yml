@@ -37,9 +37,17 @@ jobs:
           path.write_text(script)
           PY
           node scripts/apply-stage3d-character-runtime.mjs
-
-      - name: Show patched syntax-error context
-        run: nl -ba app/playtest.tsx | sed -n '3128,3139p'
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("app/playtest.tsx")
+          text = path.read_text()
+          old = 'characterMarks: Object.fromEntries(Object.entries(current.player.characterMarks ?? {}).filter(([key]) => !key.startsWith("turn:") && !key.startsWith("round:"))) });\n  const marketState'
+          new = 'characterMarks: Object.fromEntries(Object.entries(current.ai.characterMarks ?? {}).filter(([key]) => !key.startsWith("turn:") && !key.startsWith("round:"))) }) as unknown as Board);\n  const marketState'
+          if old not in text:
+              raise SystemExit("AI round-reset repair anchor missing")
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
 
       - name: Check patch whitespace
         run: git diff --check
