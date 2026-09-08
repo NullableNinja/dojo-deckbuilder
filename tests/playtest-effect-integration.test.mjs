@@ -188,3 +188,14 @@ test("Quick Duel persists Consumable Hide effects and Reaction Item history afte
   assert.match(source, /reactionItemUsedSinceLastTurn: Boolean\(board\.reactionItemUsedSinceLastTurn\)/);
   assert.match(source, /reactionItemUsedSinceLastTurn: false/);
 });
+
+
+test("Quick Duel gives AI the same incoming-combat Consumable Reaction semantics without off-turn printed Focus", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /chooseAiDefensiveConsumable\(candidates/);
+  assert.match(source, /applyCardEffects\(entry, selected, "ai", "onPlay", stage3cConsumableContext\(entry\), false\)/);
+  assert.match(source, /const ownTurnPlay = current\.phase === "player-yell"/);
+  assert.match(source, /cardsThisTurn: ownTurnPlay \?/);
+  assert.match(source, /if \(grantPrintedFocus\) next = gainFocus/);
+  assert.match(source, /aiConsumableReaction\.notes/);
+});
