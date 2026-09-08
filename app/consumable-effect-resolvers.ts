@@ -141,6 +141,7 @@ function choiceResolver(resolver?: string) {
   return new Set([
     "consumable.cancelReaction",
     "consumable.chooseOpponentNextAttackPenalty",
+    "consumable.chooseOpponentNextDefenseGuardPenalty",
     "consumable.chooseFriendlyHealTarget",
     "consumable.chooseOpponentDiscardReactionIfAble",
     "consumable.optionalExhaustToCycle",
