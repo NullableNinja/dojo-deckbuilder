@@ -60,5 +60,12 @@ replaceBlock("AI Initiate and Rebooter", `source = replaceOnce(
   "AI Initiate and Rebooter",
 );`);
 
+replaceBlock("pause AI strike for player incoming Character choice", `source = replaceOnce(
+  source,
+  '  return { ...current, player: { ...current.player, locationOwnTurn: false, locationInInitiate: false, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingStrike:',
+  '  const pendingCharacterChoice = playerIncoming.choice ? characterPendingChoice(playerIncoming.choice, playerIncoming.event, "incoming-strike") : null;\\n  return { ...current, player: { ...playerIncoming.self, locationOwnTurn: false, locationInInitiate: false, attacksReceivedThisRound: (playerIncoming.self.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingChoice: pendingCharacterChoice, pendingStrike:',
+  "pause AI strike for player incoming Character choice",
+);`);
+
 fs.writeFileSync(path, script);
 console.log("Adapted legacy Character materializer for current Location/playmat source.");
