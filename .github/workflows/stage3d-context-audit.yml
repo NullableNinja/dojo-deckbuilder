@@ -1,0 +1,38 @@
+name: Stage 3D Context Audit
+
+on:
+  push:
+    branches:
+      - stage3d-location-runtime
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage3d-location-runtime
+      - name: Print Location event predicate inventory
+        run: |
+          python - <<'PY'
+          import json
+          from collections import defaultdict
+          data=json.load(open('content/card-effects/locations.json'))
+          meta={'locationEvent','locationOperation','minimumFinalValue','maximumFinalValue','choiceOptions','discardCount','destroyCount','drawCount','focusGain','hpLoss','fixedValue','maximumLoss','appliesNextRound'}
+          events=defaultdict(set)
+          effects=defaultdict(list)
+          for cid,entry in data['cards'].items():
+            for effect in entry['effects']:
+              conds=effect.get('conditions',[])
+              event=next((c.get('value') for c in conds if c.get('kind')=='locationEvent'),'UNKNOWN')
+              preds=[c.get('kind') for c in conds if c.get('kind') not in meta]
+              events[event].update(preds)
+              effects[event].append((cid,effect['id'],preds))
+          for event in sorted(events):
+            print(f'## {event}: {", ".join(sorted(events[event]))}')
+            for cid,eid,preds in effects[event]: print(f'  {cid} {eid}: {", ".join(preds)}')
+          PY
