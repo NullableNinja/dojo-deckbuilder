@@ -11,6 +11,7 @@ import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReaction
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
 import { consumableRuntimeCommands, structuredConsumableMandatoryDiscard, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";
 import { canPlayCoreConsumableInPhase, stage3cRestrictionBlocks } from "./stage3c-consumable-play-window.ts";
+import { armConsumableAttackFollowupStatuses, isConsumableAttackFollowupStatus, resolveConsumableAttackFollowupStatuses } from "./stage3c-consumable-attack-followup.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
@@ -1149,7 +1150,7 @@ function stage3cAttackFlow(board: Board, card: CardEntry, zone: string, isRevers
 }
 
 function stage3cConsumeAttackStatuses(board: Board, card: CardEntry, zone: string, isReversal = false) {
-  const consumed = new Set((board.stage3cStatuses ?? []).filter((status) => stage3cAttackStatusMatches(status, card, zone, isReversal)).map((status) => status.sourceEffectId));
+  const consumed = new Set((board.stage3cStatuses ?? []).filter((status) => stage3cAttackStatusMatches(status, card, zone, isReversal) && !isConsumableAttackFollowupStatus(status)).map((status) => status.sourceEffectId));
   const alsoExpiresOnAttack = new Set((board.stage3cStatuses ?? []).filter((status) => status.qualifier?.expiresOnAttack).map((status) => status.sourceEffectId));
   return { ...board, stage3cStatuses: (board.stage3cStatuses ?? []).filter((status) => !consumed.has(status.sourceEffectId) && !alsoExpiresOnAttack.has(status.sourceEffectId)) };
 }
@@ -2158,6 +2159,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };
     nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
     if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
+    const consumableAttackFollowup = resolveConsumableAttackFollowupStatuses(nextPlayer.stage3cStatuses ?? [], { blocked: !hit, interferencePrevented: false });
+    nextPlayer = {
+      ...nextPlayer,
+      stage3cStatuses: consumableAttackFollowup.statuses,
+      hp: Math.max(0, nextPlayer.hp - consumableAttackFollowup.directSelfDamage),
+      damageTaken: nextPlayer.damageTaken + consumableAttackFollowup.directSelfDamage,
+    };
+    if (consumableAttackFollowup.focus) nextPlayer = gainFocus(nextPlayer, consumableAttackFollowup.focus);
     const armorPenaltyGrant = hit ? nextAttackArmorPenalty(card) : 0;
     if (armorPenaltyGrant) nextPlayer = { ...nextPlayer, nextAttackArmorPenalty: (nextPlayer.nextAttackArmorPenalty ?? 0) + armorPenaltyGrant };
     if (conditionalCycle.draw) nextPlayer = drawCards(nextPlayer, conditionalCycle.draw);
@@ -2200,9 +2209,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       ? { kind: "ready-equipment", sourceCardId: card.id, optional: true }
       : cycleDiscardCount ? { kind: "discard-hand", sourceCardId: card.id, remaining: cycleDiscardCount, sourceFollowup: false }
       : optionalCycle && nextPlayer.hand.length ? { kind: "discard-draw", sourceCardId: card.id, remaining: optionalCycle.discard, draw: optionalCycle.draw } : null;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
-    return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: nextAi.hp ? null : "player" });
+    return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
   });
 
   const playSupport = (id: string) => setMatch((current) => {
@@ -2218,7 +2227,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;
     const supportEntryBoard = { ...supportBoard, hand: removeOne(supportBoard.hand, id), playArea: [...supportBoard.playArea, id], cardsThisTurn: [...supportBoard.cardsThisTurn, id], focus: supportBoard.focus + locationModifier.value, lastAttackHit: false };
     let nextPlayer = markCompletedTask(applyCardEffects(supportEntryBoard, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(supportEntryBoard) : {}));
-    if (isCoreConsumableCard(card)) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", stage3cConsumableContext(nextPlayer));
+    if (isCoreConsumableCard(card)) {
+      nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", stage3cConsumableContext(nextPlayer));
+      nextPlayer = { ...nextPlayer, stage3cStatuses: armConsumableAttackFollowupStatuses(nextPlayer.stage3cStatuses ?? [], card) };
+    }
     const playerFastestFocus = structuredFocusIfFastest(card, fighterStat(nextPlayer, "Speed"), fighterStat(current.ai, "Speed"));
     if (playerFastestFocus) nextPlayer = { ...nextPlayer, focus: nextPlayer.focus + playerFastestFocus };
     const destroyedAfterUse = destroysAfterUse(card);
@@ -2529,6 +2541,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     let nextAi = markCompletedTask({ ...current.ai, damageDealt: current.ai.damageDealt + damage, hitThisTurn: current.ai.hitThisTurn || hit, lastAttackHit: hit });
     nextAi = applyCardEffects(nextAi, aiCard, "ai", hit ? "onHit" : "afterResolve");
     if (hit) nextAi = applyCardEffects(nextAi, aiCard, "ai", "afterResolve");
+    const aiConsumableAttackFollowup = resolveConsumableAttackFollowupStatuses(nextAi.stage3cStatuses ?? [], { blocked: !hit, interferencePrevented: false });
+    nextAi = {
+      ...nextAi,
+      stage3cStatuses: aiConsumableAttackFollowup.statuses,
+      hp: Math.max(0, nextAi.hp - aiConsumableAttackFollowup.directSelfDamage),
+      damageTaken: nextAi.damageTaken + aiConsumableAttackFollowup.directSelfDamage,
+    };
+    if (aiConsumableAttackFollowup.focus) nextAi = gainFocus(nextAi, aiConsumableAttackFollowup.focus);
     const armorPenaltyGrant = hit ? nextAttackArmorPenalty(aiCard) : 0;
     if (armorPenaltyGrant) nextAi = { ...nextAi, nextAttackArmorPenalty: (nextAi.nextAttackArmorPenalty ?? 0) + armorPenaltyGrant };
     const aiCycleNotes: string[] = [];
@@ -2560,7 +2580,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve", familyDefenseContext);
       nextAi = applyStage3CTiming(nextAi, defenseCard, "afterResolve", "ai", familyDefenseContext, "opponent");
     }
-    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
+    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...aiConsumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "ai", aiCard.id),
       actor: "ai",
@@ -2609,8 +2629,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : defenseCard
         ? `${defenseCard.name} blocks ${aiCard.name} and is discarded. Attack ${finalAttackPower} vs Defense ${defensePower}.`
         : `No Defense card was played; your standing DEF/Equipment blocks ${aiCard.name}. Attack ${finalAttackPower} vs Defense ${defensePower}.`;
-    const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " : ""}${message}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingStrike: null, pendingChoice: null, pendingCombatContinuation: null, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: nextPlayer.hp ? null : "ai" });
-    if (!nextPlayer.hp) return resolved;
+    const resolved = write(current, `${tempoBonus ? "Tempo +1 Guard. " : ""}${message}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingStrike: null, pendingChoice: null, pendingCombatContinuation: null, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextAi.hp ? "player" : nextPlayer.hp ? null : "ai" });
+    if (!nextPlayer.hp || !nextAi.hp) return resolved;
     const forcedTargetDiscard = hit ? targetDiscardOnHitCount(aiCard) : 0;
     if (forcedTargetDiscard && nextPlayer.hand.length) {
       const discardCount = Math.min(forcedTargetDiscard, nextPlayer.hand.length);
@@ -3144,6 +3164,7 @@ function prepareAiTurn(current: Match) {
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
     if (isCoreConsumableCard(card)) {
       nextAi = applyCardEffects(nextAi, card, "ai", "afterResolve", stage3cConsumableContext(nextAi));
+      nextAi = { ...nextAi, stage3cStatuses: armConsumableAttackFollowupStatuses(nextAi.stage3cStatuses ?? [], card) };
       nextPlayer = applyStage3CTiming(nextPlayer, card, "onPlay", "player", stage3cConsumableContext(nextAi), "opponent");
       nextPlayer = applyStage3CTiming(nextPlayer, card, "afterResolve", "player", stage3cConsumableContext(nextAi), "opponent");
     }

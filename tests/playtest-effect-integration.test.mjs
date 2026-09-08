@@ -168,3 +168,13 @@ test("Quick Duel gates Consumable timing and attack restrictions through shared 
   assert.match(source, /structuredConsumableMandatoryDiscard\(card, stage3cConsumableContext\(supportEntryBoard\)\)/);
   assert.match(source, /revealedFocusValue: board\.deck\.length \? cardFocus\(cardFor\(board\.deck\[board\.deck\.length - 1\]\)\) : 0/);
 });
+
+
+test("Quick Duel resolves structured Consumable watched-Attack followups for both fighters", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /armConsumableAttackFollowupStatuses\(nextPlayer\.stage3cStatuses/);
+  assert.match(source, /armConsumableAttackFollowupStatuses\(nextAi\.stage3cStatuses/);
+  assert.match(source, /resolveConsumableAttackFollowupStatuses\(nextPlayer\.stage3cStatuses/);
+  assert.match(source, /resolveConsumableAttackFollowupStatuses\(nextAi\.stage3cStatuses/);
+  assert.match(source, /!isConsumableAttackFollowupStatus\(status\)/);
+});
