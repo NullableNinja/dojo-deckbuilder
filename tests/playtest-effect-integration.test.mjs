@@ -178,3 +178,13 @@ test("Quick Duel resolves structured Consumable watched-Attack followups for bot
   assert.match(source, /resolveConsumableAttackFollowupStatuses\(nextAi\.stage3cStatuses/);
   assert.match(source, /!isConsumableAttackFollowupStatus\(status\)/);
 });
+
+
+test("Quick Duel persists Consumable Hide effects and Reaction Item history after source cards leave play", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /armConsumableHideStatuses\(armConsumableAttackFollowupStatuses/);
+  assert.match(source, /resolveConsumableHideStatuses\(board\.stage3cStatuses/);
+  assert.match(source, /reactionItemUsedSinceLastTurn: Boolean\(next\.reactionItemUsedSinceLastTurn\)/);
+  assert.match(source, /reactionItemUsedSinceLastTurn: Boolean\(board\.reactionItemUsedSinceLastTurn\)/);
+  assert.match(source, /reactionItemUsedSinceLastTurn: false/);
+});

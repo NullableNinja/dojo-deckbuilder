@@ -12,6 +12,7 @@ import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-ef
 import { consumableRuntimeCommands, structuredConsumableMandatoryDiscard, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";
 import { canPlayCoreConsumableInPhase, stage3cRestrictionBlocks } from "./stage3c-consumable-play-window.ts";
 import { armConsumableAttackFollowupStatuses, isConsumableAttackFollowupStatus, resolveConsumableAttackFollowupStatuses } from "./stage3c-consumable-attack-followup.ts";
+import { armConsumableHideStatuses, resolveConsumableHideStatuses } from "./stage3c-consumable-hide-followup.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
@@ -74,6 +75,7 @@ type Board = {
   readyAtHide?: string[];
   combatDamageEventsThisRound?: number;
   usedConsumableThisRound?: boolean;
+  reactionItemUsedSinceLastTurn?: boolean;
   lastAttackHit?: boolean;
   playedDefenseSinceLastTurn?: boolean;
   blockedSinceLastTurn?: boolean;
@@ -964,6 +966,7 @@ function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {
     temporaryNegativeModifierPresent: board.tempSpeed < 0 || board.nextAttackBonus < 0 || (board.nextDefenseCardBonus ?? 0) < 0,
     removedTemporaryNegativeModifier: false,
     sameTurnSourceActive: true,
+    reactionItemUsedSinceLastTurn: Boolean(board.reactionItemUsedSinceLastTurn),
     revealedFocusValue: board.deck.length ? cardFocus(cardFor(board.deck[board.deck.length - 1])) : 0,
   };
 }
@@ -1374,7 +1377,7 @@ function emptyBoard(fighterId: string): Board {
   return drawCards({
     fighterId, hp: gameDefinition.mode.startingHp, maxHp: gameDefinition.mode.startingHp, xp: 0, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, belt: 0,
     deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, nextInitiateFocus: 0, readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, lastAttackHit: false,
-    tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false,
+    tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false, reactionItemUsedSinceLastTurn: false,
     defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
     damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false, completedBeltExamThisRound: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false, boughtCardThisAscend: false, boughtCardLastAscend: false, targetEquipmentDefPenalties: {}, nextItemCostPenalty: 0, attackLockedThisTurn: false,
     reversalUsedRound: false, learnedCombos: [], triggeredCombos: [], comboAttemptedTurn: false,
@@ -1454,7 +1457,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   const migratedFamily = isCoreDefenseCard(card) || isCoreConsumableCard(card);
   if (timing === "onPlay") {
     next = gainFocus(next, numberValue(card.focusValue));
-    if (card.subtype === "Consumable") next = { ...next, usedConsumableThisRound: true };
+    if (card.subtype === "Consumable") next = { ...next, usedConsumableThisRound: true, reactionItemUsedSinceLastTurn: Boolean(next.reactionItemUsedSinceLastTurn) || String(card.timing ?? "").toLocaleLowerCase() === "reaction" };
     if (isPermanent(card)) {
       next.equipment = [...next.equipment, card.id];
       if (equipmentSpeedModifier(card)) next.speedChangedThisRound = true;
@@ -1570,17 +1573,20 @@ function aiAttackScore(card: CardEntry, attacker: Board, defender: Board, locati
 }
 
 function playAreaCleanup(board: Board) {
-  let hideBoard = board;
-  for (const id of board.playArea) {
-    const sourceCard = cardFor(id);
-    if (sourceCard && isCoreConsumableCard(sourceCard)) hideBoard = applyStage3CTiming(hideBoard, sourceCard, "onHide", "ai", stage3cConsumableContext(hideBoard), "self");
-  }
+  const hideResolution = resolveConsumableHideStatuses(board.stage3cStatuses ?? []);
+  let hideBoard: Board = {
+    ...board,
+    stage3cStatuses: hideResolution.statuses,
+    hp: Math.max(0, board.hp - hideResolution.directSelfDamage),
+    damageTaken: board.damageTaken + hideResolution.directSelfDamage,
+  };
+  if (hideResolution.focus) hideBoard = gainFocus(hideBoard, hideResolution.focus);
   const readyBoard = stage3cEndTurn(applyHideReady(hideBoard));
   const borrowed = readyBoard.borrowedEquipmentId;
   const equipment = borrowed ? readyBoard.equipment.filter((id) => id !== borrowed) : readyBoard.equipment;
   const exhaustedEquipment = borrowed ? (readyBoard.exhaustedEquipment ?? []).filter((id) => id !== borrowed) : (readyBoard.exhaustedEquipment ?? []);
   const discard = [...readyBoard.discard, ...readyBoard.hand, ...readyBoard.playArea.filter((id) => !readyBoard.equipment.includes(id)), ...(borrowed ? [borrowed] : [])];
-  return drawCards({ ...readyBoard, hand: [], playArea: [], equipment, exhaustedEquipment, equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, borrowedEquipmentId: null, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (beltHasReward(readyBoard, "hand-size") ? 1 : 0));
+  return drawCards({ ...readyBoard, hand: [], playArea: [], equipment, exhaustedEquipment, equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, borrowedEquipmentId: null, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, reactionItemUsedSinceLastTurn: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (beltHasReward(readyBoard, "hand-size") ? 1 : 0));
 }
 
 function cardLabel(card: CardEntry) { return `${card.name} · ${card.catalogId}`; }
@@ -2229,7 +2235,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     let nextPlayer = markCompletedTask(applyCardEffects(supportEntryBoard, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(supportEntryBoard) : {}));
     if (isCoreConsumableCard(card)) {
       nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", stage3cConsumableContext(nextPlayer));
-      nextPlayer = { ...nextPlayer, stage3cStatuses: armConsumableAttackFollowupStatuses(nextPlayer.stage3cStatuses ?? [], card) };
+      nextPlayer = { ...nextPlayer, stage3cStatuses: armConsumableHideStatuses(armConsumableAttackFollowupStatuses(nextPlayer.stage3cStatuses ?? [], card), card) };
     }
     const playerFastestFocus = structuredFocusIfFastest(card, fighterStat(nextPlayer, "Speed"), fighterStat(current.ai, "Speed"));
     if (playerFastestFocus) nextPlayer = { ...nextPlayer, focus: nextPlayer.focus + playerFastestFocus };
@@ -2447,7 +2453,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     setMatch((current) => {
       if (!current || current.phase !== "player-ascend") return current;
       const nextPlayer = playAreaCleanup(current.player);
-      const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer });
+      const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? current.winner : "ai" });
+      if (!nextPlayer.hp) return hidden;
       if (current.turnIndex === 0) return write(hidden, "The computer is second in this round's initiative order.", { phase: "ai-ready", turnIndex: 1 });
       return advanceRound(hidden, settings.locations, "Both fighters have completed the round.");
     });
@@ -3093,7 +3100,8 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
   }
   const nextAi = playAreaCleanup(aiAfterPurchase);
   const purchaseLog = purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing.";
-  const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
+  const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
+  if (!nextAi.hp) return finished;
   if (current.turnIndex === 0) {
     const player = applyInitiateCarryover(finished.player);
     const carryover = player.focus - finished.player.focus;
@@ -3164,7 +3172,7 @@ function prepareAiTurn(current: Match) {
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
     if (isCoreConsumableCard(card)) {
       nextAi = applyCardEffects(nextAi, card, "ai", "afterResolve", stage3cConsumableContext(nextAi));
-      nextAi = { ...nextAi, stage3cStatuses: armConsumableAttackFollowupStatuses(nextAi.stage3cStatuses ?? [], card) };
+      nextAi = { ...nextAi, stage3cStatuses: armConsumableHideStatuses(armConsumableAttackFollowupStatuses(nextAi.stage3cStatuses ?? [], card), card) };
       nextPlayer = applyStage3CTiming(nextPlayer, card, "onPlay", "player", stage3cConsumableContext(nextAi), "opponent");
       nextPlayer = applyStage3CTiming(nextPlayer, card, "afterResolve", "player", stage3cConsumableContext(nextAi), "opponent");
     }
