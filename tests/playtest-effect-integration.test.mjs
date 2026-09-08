@@ -18,7 +18,7 @@ test("Quick Duel wires printed Attack/Defense modifiers and flexible zones into 
   assert.match(source, /printedAttackRuleModifier/);
   assert.match(source, /defenseCardRuleModifier/);
   assert.match(source, /attackHasFlexibleZone/);
-  assert.match(source, /locationAttackRuleModifiers/);
+  assert.match(source, /structuredLocationAttackModifiers/);
   assert.match(source, /conditionalHealAfterHit/);
 });
 
