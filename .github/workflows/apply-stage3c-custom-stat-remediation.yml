@@ -1,0 +1,125 @@
+name: Apply Stage 3C Custom Stat Remediation Once
+on:
+  push:
+    branches: [stage3c-play-surface-remediation]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Add shared Board custom-command semantics and wire playtest
+        run: |
+          cat > app/stage3c-board-command-semantics.ts <<'EOF'
+          import type { RuntimeCommand, RuntimeStatus } from "./family-effect-runtime.ts";
+
+          export type Stage3CBoardCustomModifiers = {
+            attackModifier: number;
+            defenseModifier: number;
+            speedOverride: number | null;
+          };
+
+          export function applyStage3CBoardCustomCommand(
+            state: Stage3CBoardCustomModifiers,
+            command: Pick<RuntimeCommand, "effect" | "amount" | "resolver" | "qualifier">,
+            direction: 1 | -1 = 1,
+          ): { state: Stage3CBoardCustomModifiers; handled: boolean } {
+            const next = { ...state };
+            if (command.effect !== "core.custom") return { state: next, handled: false };
+            if (command.qualifier?.setValue !== undefined && command.resolver?.includes("setSpeedToValue")) {
+              next.speedOverride = direction > 0 ? Number(command.qualifier.setValue) : null;
+              return { state: next, handled: true };
+            }
+            if (command.qualifier?.stat === "ATK") {
+              next.attackModifier += Number(command.amount ?? 0) * direction;
+              return { state: next, handled: true };
+            }
+            if (command.qualifier?.stat === "DEF") {
+              next.defenseModifier += Number(command.amount ?? 0) * direction;
+              return { state: next, handled: true };
+            }
+            return { state: next, handled: false };
+          }
+
+          export function revertStage3CBoardCustomStatus(
+            state: Stage3CBoardCustomModifiers,
+            status: Pick<RuntimeStatus, "effect" | "amount" | "resolver" | "qualifier">,
+          ) {
+            return applyStage3CBoardCustomCommand(state, status, -1);
+          }
+          EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/playtest.tsx')
+          t=p.read_text()
+          anchor='import {\n  consumableRuntimeCommands,'
+          if anchor not in t: raise SystemExit('playtest import anchor missing')
+          t=t.replace(anchor, 'import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";\n'+anchor,1)
+
+          old='  stage3cDefenseModifier?: number;\n  stage3cPurchaseCostModifier?: number;'
+          new='  stage3cDefenseModifier?: number;\n  stage3cAttackModifier?: number;\n  stage3cSpeedOverride?: number | null;\n  stage3cPurchaseCostModifier?: number;'
+          if old not in t: raise SystemExit('Board Stage3C field anchor missing')
+          t=t.replace(old,new,1)
+
+          old='    damageDealt: 0, damageTaken: 0, cardsBought: 0, destroyed: [], returnedToSupply: [], stage3cStatuses: [], stage3cChoices: [], stage3cRestrictions: [], stage3cDefenseModifier: 0, stage3cPurchaseCostModifier: 0,'
+          new='    damageDealt: 0, damageTaken: 0, cardsBought: 0, destroyed: [], returnedToSupply: [], stage3cStatuses: [], stage3cChoices: [], stage3cRestrictions: [], stage3cDefenseModifier: 0, stage3cAttackModifier: 0, stage3cSpeedOverride: null, stage3cPurchaseCostModifier: 0,'
+          if old not in t: raise SystemExit('emptyBoard Stage3C init anchor missing')
+          t=t.replace(old,new,1)
+
+          old='  return base + beltBonus + equipment + challengeBonus + (stat === "Speed" ? board.tempSpeed : 0) + (stat === "DEF" ? (board.stage3cDefenseModifier ?? 0) : 0);'
+          new='  if (stat === "Speed" && board.stage3cSpeedOverride !== null && board.stage3cSpeedOverride !== undefined) return board.stage3cSpeedOverride;\n  return base + beltBonus + equipment + challengeBonus + (stat === "Speed" ? board.tempSpeed : 0) + (stat === "ATK" ? (board.stage3cAttackModifier ?? 0) : 0) + (stat === "DEF" ? (board.stage3cDefenseModifier ?? 0) : 0);'
+          if old not in t: raise SystemExit('fighterStat return anchor missing')
+          t=t.replace(old,new,1)
+
+          old='''      const standingSpeed = command.effect === "combat.modifySpeed" && ["endOfTurn", "endOfRound", "nextHonor"].includes(command.duration);\n      const standingDefense = command.effect === "combat.modifyDefense" && ["endOfTurn", "endOfRound", "nextHonor", "nextTurn"].includes(command.duration);\n      const standingCost = command.effect === "economy.modifyCost" && ["endOfTurn", "nextTurn", "nextPurchase"].includes(command.duration);\n      if (standingSpeed) next = { ...next, tempSpeed: next.tempSpeed + command.amount, speedChangedThisRound: next.speedChangedThisRound || command.amount !== 0 };\n      if (standingDefense) next = { ...next, stage3cDefenseModifier: (next.stage3cDefenseModifier ?? 0) + command.amount };\n      if (standingCost) next = { ...next, stage3cPurchaseCostModifier: (next.stage3cPurchaseCostModifier ?? 0) + command.amount };\n      if (command.effect === "core.gainFocus" && command.qualifier?.spendOnlyOn) next = gainFocus(next, command.amount);\n      next = addStage3CStatus(next, command, standingSpeed || standingDefense || standingCost);'''
+          new='''      const standingSpeed = command.effect === "combat.modifySpeed" && ["endOfTurn", "endOfRound", "nextHonor"].includes(command.duration);\n      const standingDefense = command.effect === "combat.modifyDefense" && ["endOfTurn", "endOfRound", "nextHonor", "nextTurn"].includes(command.duration);\n      const standingCost = command.effect === "economy.modifyCost" && ["endOfTurn", "nextTurn", "nextPurchase"].includes(command.duration);\n      if (standingSpeed) next = { ...next, tempSpeed: next.tempSpeed + command.amount, speedChangedThisRound: next.speedChangedThisRound || command.amount !== 0 };\n      if (standingDefense) next = { ...next, stage3cDefenseModifier: (next.stage3cDefenseModifier ?? 0) + command.amount };\n      if (standingCost) next = { ...next, stage3cPurchaseCostModifier: (next.stage3cPurchaseCostModifier ?? 0) + command.amount };\n      const custom = applyStage3CBoardCustomCommand({ attackModifier: next.stage3cAttackModifier ?? 0, defenseModifier: next.stage3cDefenseModifier ?? 0, speedOverride: next.stage3cSpeedOverride ?? null }, command);\n      if (custom.handled) next = { ...next, stage3cAttackModifier: custom.state.attackModifier, stage3cDefenseModifier: custom.state.defenseModifier, stage3cSpeedOverride: custom.state.speedOverride, speedChangedThisRound: next.speedChangedThisRound || custom.state.speedOverride !== null };\n      if (command.effect === "core.gainFocus" && command.qualifier?.spendOnlyOn) next = gainFocus(next, command.amount);\n      next = addStage3CStatus(next, command, standingSpeed || standingDefense || standingCost || custom.handled);'''
+          if old not in t: raise SystemExit('persistent Stage3C command block missing')
+          t=t.replace(old,new,1)
+
+          old='''    else if (command.effect === "combat.preventDamage") next = addStage3CStatus(next, { ...command, duration: "nextDamage" });\n    else if (command.effect === "core.custom" && command.resolver) next = { ...next, stage3cRestrictions: [...new Set([...(next.stage3cRestrictions ?? []), command.resolver])] };'''
+          new='''    else if (command.effect === "combat.preventDamage") next = addStage3CStatus(next, { ...command, duration: "nextDamage" });\n    else if (command.effect === "core.custom" && command.resolver) {\n      const custom = applyStage3CBoardCustomCommand({ attackModifier: next.stage3cAttackModifier ?? 0, defenseModifier: next.stage3cDefenseModifier ?? 0, speedOverride: next.stage3cSpeedOverride ?? null }, command);\n      next = custom.handled ? { ...next, stage3cAttackModifier: custom.state.attackModifier, stage3cDefenseModifier: custom.state.defenseModifier, stage3cSpeedOverride: custom.state.speedOverride } : { ...next, stage3cRestrictions: [...new Set([...(next.stage3cRestrictions ?? []), command.resolver])] };\n    }'''
+          if old not in t: raise SystemExit('immediate core.custom block missing')
+          t=t.replace(old,new,1)
+
+          old='''    if (status.effect === "combat.modifySpeed") next = { ...next, tempSpeed: next.tempSpeed - status.amount };\n    if (status.effect === "combat.modifyDefense") next = { ...next, stage3cDefenseModifier: (next.stage3cDefenseModifier ?? 0) - status.amount };\n    if (status.effect === "economy.modifyCost") next = { ...next, stage3cPurchaseCostModifier: (next.stage3cPurchaseCostModifier ?? 0) - status.amount };'''
+          new='''    if (status.effect === "combat.modifySpeed") next = { ...next, tempSpeed: next.tempSpeed - status.amount };\n    if (status.effect === "combat.modifyDefense") next = { ...next, stage3cDefenseModifier: (next.stage3cDefenseModifier ?? 0) - status.amount };\n    if (status.effect === "economy.modifyCost") next = { ...next, stage3cPurchaseCostModifier: (next.stage3cPurchaseCostModifier ?? 0) - status.amount };\n    if (status.effect === "core.custom") {\n      const reverted = revertStage3CBoardCustomStatus({ attackModifier: next.stage3cAttackModifier ?? 0, defenseModifier: next.stage3cDefenseModifier ?? 0, speedOverride: next.stage3cSpeedOverride ?? null }, status);\n      if (reverted.handled) next = { ...next, stage3cAttackModifier: reverted.state.attackModifier, stage3cDefenseModifier: reverted.state.defenseModifier, stage3cSpeedOverride: reverted.state.speedOverride };\n    }'''
+          if old not in t: raise SystemExit('expireStage3C custom revert anchor missing')
+          t=t.replace(old,new,1)
+          p.write_text(t)
+          PY
+
+          cat > tests/stage3c-board-command-semantics.test.mjs <<'EOF'
+          import assert from "node:assert/strict";
+          import test from "node:test";
+          import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "../app/stage3c-board-command-semantics.ts";
+
+          const base = () => ({ attackModifier: 0, defenseModifier: 0, speedOverride: null });
+          test("Quick Duel Board semantics execute structured set-Speed and temporary ATK/DEF custom commands", () => {
+            const burrito = applyStage3CBoardCustomCommand(base(), { effect: "core.custom", amount: 1, resolver: "consumable.setSpeedToValue", qualifier: { setValue: 1 } });
+            assert.equal(burrito.handled, true);
+            assert.equal(burrito.state.speedOverride, 1);
+            assert.equal(revertStage3CBoardCustomStatus(burrito.state, { effect: "core.custom", amount: 1, resolver: "consumable.setSpeedToValue", qualifier: { setValue: 1 } }).state.speedOverride, null);
+
+            const shake = applyStage3CBoardCustomCommand(base(), { effect: "core.custom", amount: 3, resolver: "consumable.modifyAttackStat", qualifier: { stat: "ATK" } });
+            assert.equal(shake.state.attackModifier, 3);
+            assert.equal(revertStage3CBoardCustomStatus(shake.state, { effect: "core.custom", amount: 3, resolver: "consumable.modifyAttackStat", qualifier: { stat: "ATK" } }).state.attackModifier, 0);
+
+            const wine = applyStage3CBoardCustomCommand(base(), { effect: "core.custom", amount: -1, resolver: "consumable.modifyDefenseUntilNextTurn", qualifier: { stat: "DEF" } });
+            assert.equal(wine.state.defenseModifier, -1);
+            assert.equal(revertStage3CBoardCustomStatus(wine.state, { effect: "core.custom", amount: -1, resolver: "consumable.modifyDefenseUntilNextTurn", qualifier: { stat: "DEF" } }).state.defenseModifier, 0);
+          });
+          EOF
+
+          rm .github/workflows/audit-stage3c-custom-runtime.yml
+      - name: Remove one-shot workflow and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-stage3c-custom-stat-remediation.yml
+          git add -A
+          git diff --check
+          git commit -m "fix: execute structured Consumable custom stat semantics on the play surface"
+          git push origin HEAD:stage3c-play-surface-remediation
