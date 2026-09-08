@@ -10,6 +10,7 @@ import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-en
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
 import { consumableRuntimeCommands, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";
+import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
@@ -123,6 +124,8 @@ type Board = {
   stage3cChoices?: RuntimeChoice[];
   stage3cRestrictions?: string[];
   stage3cDefenseModifier?: number;
+  stage3cAttackModifier?: number;
+  stage3cSpeedOverride?: number | null;
   stage3cPurchaseCostModifier?: number;
 };
 
@@ -1034,8 +1037,10 @@ function applyStage3CCommands(board: Board, commands: RuntimeCommand[], controll
       if (standingSpeed) next = { ...next, tempSpeed: next.tempSpeed + command.amount, speedChangedThisRound: next.speedChangedThisRound || command.amount !== 0 };
       if (standingDefense) next = { ...next, stage3cDefenseModifier: (next.stage3cDefenseModifier ?? 0) + command.amount };
       if (standingCost) next = { ...next, stage3cPurchaseCostModifier: (next.stage3cPurchaseCostModifier ?? 0) + command.amount };
+      const custom = applyStage3CBoardCustomCommand({ attackModifier: next.stage3cAttackModifier ?? 0, defenseModifier: next.stage3cDefenseModifier ?? 0, speedOverride: next.stage3cSpeedOverride ?? null }, command);
+      if (custom.handled) next = { ...next, stage3cAttackModifier: custom.state.attackModifier, stage3cDefenseModifier: custom.state.defenseModifier, stage3cSpeedOverride: custom.state.speedOverride, speedChangedThisRound: next.speedChangedThisRound || custom.state.speedOverride !== null };
       if (command.effect === "core.gainFocus" && command.qualifier?.spendOnlyOn) next = gainFocus(next, command.amount);
-      next = addStage3CStatus(next, command, standingSpeed || standingDefense || standingCost);
+      next = addStage3CStatus(next, command, standingSpeed || standingDefense || standingCost || custom.handled);
       continue;
     }
     if (command.effect === "core.draw") next = drawCards(next, command.amount);
@@ -1059,7 +1064,10 @@ function applyStage3CCommands(board: Board, commands: RuntimeCommand[], controll
     else if (command.effect === "combat.chooseZone") next = { ...next, nextAttackAnyZone: true };
     else if (command.effect === "economy.modifyCost") next = { ...next, stage3cPurchaseCostModifier: (next.stage3cPurchaseCostModifier ?? 0) + command.amount };
     else if (command.effect === "combat.preventDamage") next = addStage3CStatus(next, { ...command, duration: "nextDamage" });
-    else if (command.effect === "core.custom" && command.resolver) next = { ...next, stage3cRestrictions: [...new Set([...(next.stage3cRestrictions ?? []), command.resolver])] };
+    else if (command.effect === "core.custom" && command.resolver) {
+      const custom = applyStage3CBoardCustomCommand({ attackModifier: next.stage3cAttackModifier ?? 0, defenseModifier: next.stage3cDefenseModifier ?? 0, speedOverride: next.stage3cSpeedOverride ?? null }, command);
+      next = custom.handled ? { ...next, stage3cAttackModifier: custom.state.attackModifier, stage3cDefenseModifier: custom.state.defenseModifier, stage3cSpeedOverride: custom.state.speedOverride } : { ...next, stage3cRestrictions: [...new Set([...(next.stage3cRestrictions ?? []), command.resolver])] };
+    }
   }
   return next;
 }
@@ -1077,6 +1085,10 @@ function expireStage3C(board: Board, duration: string) {
     if (status.effect === "combat.modifySpeed") next = { ...next, tempSpeed: next.tempSpeed - status.amount };
     if (status.effect === "combat.modifyDefense") next = { ...next, stage3cDefenseModifier: (next.stage3cDefenseModifier ?? 0) - status.amount };
     if (status.effect === "economy.modifyCost") next = { ...next, stage3cPurchaseCostModifier: (next.stage3cPurchaseCostModifier ?? 0) - status.amount };
+    if (status.effect === "core.custom") {
+      const reverted = revertStage3CBoardCustomStatus({ attackModifier: next.stage3cAttackModifier ?? 0, defenseModifier: next.stage3cDefenseModifier ?? 0, speedOverride: next.stage3cSpeedOverride ?? null }, status);
+      if (reverted.handled) next = { ...next, stage3cAttackModifier: reverted.state.attackModifier, stage3cDefenseModifier: reverted.state.defenseModifier, stage3cSpeedOverride: reverted.state.speedOverride };
+    }
   }
   const ids = new Set(expiring.map((status) => status.sourceEffectId));
   next = { ...next, stage3cStatuses: (next.stage3cStatuses ?? []).filter((status) => !ids.has(status.sourceEffectId)) };
@@ -1274,7 +1286,8 @@ function fighterStat(board: Board, stat: "ATK" | "DEF" | "Speed") {
     return total;
   }, 0);
   const challengeBonus = stat === "ATK" || stat === "DEF" ? board.statBoost ?? 0 : 0;
-  return base + beltBonus + equipment + challengeBonus + (stat === "Speed" ? board.tempSpeed : 0) + (stat === "DEF" ? (board.stage3cDefenseModifier ?? 0) : 0);
+  if (stat === "Speed" && board.stage3cSpeedOverride !== null && board.stage3cSpeedOverride !== undefined) return board.stage3cSpeedOverride;
+  return base + beltBonus + equipment + challengeBonus + (stat === "Speed" ? board.tempSpeed : 0) + (stat === "ATK" ? (board.stage3cAttackModifier ?? 0) : 0) + (stat === "DEF" ? (board.stage3cDefenseModifier ?? 0) : 0);
 }
 
 function incomingAttackEquipmentModifier(defender: Board): AttackModifier {
@@ -1349,7 +1362,7 @@ function emptyBoard(fighterId: string): Board {
     defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
     damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false, completedBeltExamThisRound: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false, boughtCardThisAscend: false, boughtCardLastAscend: false, targetEquipmentDefPenalties: {}, nextItemCostPenalty: 0, attackLockedThisTurn: false,
     reversalUsedRound: false, learnedCombos: [], triggeredCombos: [], comboAttemptedTurn: false,
-    damageDealt: 0, damageTaken: 0, cardsBought: 0, destroyed: [], returnedToSupply: [], stage3cStatuses: [], stage3cChoices: [], stage3cRestrictions: [], stage3cDefenseModifier: 0, stage3cPurchaseCostModifier: 0,
+    damageDealt: 0, damageTaken: 0, cardsBought: 0, destroyed: [], returnedToSupply: [], stage3cStatuses: [], stage3cChoices: [], stage3cRestrictions: [], stage3cDefenseModifier: 0, stage3cAttackModifier: 0, stage3cSpeedOverride: null, stage3cPurchaseCostModifier: 0,
   }, gameDefinition.turn.handSize);
 }
 
