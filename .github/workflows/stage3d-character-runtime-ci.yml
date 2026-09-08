@@ -26,25 +26,18 @@ jobs:
 
       - name: Apply guarded Character runtime integration in the CI workspace
         run: |
-          node scripts/apply-stage3d-character-runtime.mjs
           python3 - <<'PY'
           from pathlib import Path
-
-          runtime_path = Path("app/character-runtime.ts")
-          text = runtime_path.read_text()
-          text = text.replace('import cardEffectsJson from "./data/card-effects.json";', 'import cardEffectsJson from "./data/card-effects.json" with { type: "json" };')
-          text = text.replace('&& greenCharacterAbilityUnlocked(resolver, board.belt)', '&& (!resolver.startsWith("character.green.") || greenCharacterAbilityUnlocked(board.belt))')
-          text = text.replace('effect.resolver === "character.cannotEquipWeapons" && greenCharacterAbilityUnlocked(String(effect.resolver), board.belt)', 'effect.resolver === "character.cannotEquipWeapons"')
-          text = text.replace('  const choices: CharacterRuntimeChoice[] = [];\n  const notes: string[] = [];\n\n  for (const effect of effectsFor(self.fighterId)) {\n    if (!isAvailable(self, effect, event.type)) continue;\n    const resolver = String(effect.resolver ?? "");', '  const choices: CharacterRuntimeChoice[] = [];\n  const notes: string[] = [];\n  const processedResolvers = new Set<string>();\n\n  for (const effect of effectsFor(self.fighterId)) {\n    const resolver = String(effect.resolver ?? "");\n    if (processedResolvers.has(resolver) || !isAvailable(self, effect, event.type)) continue;\n    processedResolvers.add(resolver);')
-          text = text.replace('opponent = { ...opponent, nextAttackBonus: opponent.nextAttackBonus - amount };', 'opponent = { ...opponent, nextAttackBonus: opponent.nextAttackBonus + amount };')
-          runtime_path.write_text(text)
-
-          playtest_path = Path("app/playtest.tsx")
-          playtest = playtest_path.read_text()
-          playtest = playtest.replace('next = characterReduction.board;', 'next = characterReduction.board as Board;')
-          playtest = playtest.replace('applyHideReady(resetCharacterTurn(characterHide.self as Board))', 'applyHideReady(resetCharacterTurn(characterHide.self as Board) as unknown as Board)')
-          playtest_path.write_text(playtest)
+          path = Path("scripts/apply-stage3d-character-runtime.mjs")
+          script = path.read_text()
+          old_search = "'    if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };\\n    nextPlayer = applyCardEffects(nextPlayer, card, \\\"player\\\", hit ? \\\"onHit\\\" : \\\"afterResolve\\\");'"
+          old_replacement = "'    if (!hit) { nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true }; const blockEvent = runCharacterEvent(nextAi, nextPlayer, { type: \\\"block\\\", card: defenseCard, zone, blocked: true }, \\\"ai\\\"); nextAi = blockEvent.self; nextPlayer = blockEvent.opponent; }\\n    const cardPlayed = runCharacterEvent(nextPlayer, nextAi, { type: \\\"cardPlayed\\\", card, zone, noPrintedNumericEffect: !hasPrintedNumericRulesEffect(card), thirdDifferentCardTypeThisTurn: new Set([...nextPlayer.cardsThisTurn.map((id) => cardFor(id)?.cardType), card.cardType].filter(Boolean)).size >= 3, completedBeltExam: Boolean(nextPlayer.completedBeltExamThisRound) }, \\\"player\\\");\\n    nextPlayer = cardPlayed.self; nextAi = cardPlayed.opponent;\\n    nextPlayer = applyCardEffects(nextPlayer, card, \\\"player\\\", hit ? \\\"onHit\\\" : \\\"afterResolve\\\");'"
+          new_search = "'    if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), discard: [...nextAi.discard, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, blockedSinceLastTurn: !hit || Boolean(nextAi.blockedSinceLastTurn), blockedThisRound: !hit || Boolean(nextAi.blockedThisRound), nextDefenseCardBonus: 0 };\\n    if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };\\n    nextPlayer = applyCardEffects(nextPlayer, card, \\\"player\\\", hit ? \\\"onHit\\\" : \\\"afterResolve\\\");'"
+          new_replacement = "'    if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), discard: [...nextAi.discard, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, blockedSinceLastTurn: !hit || Boolean(nextAi.blockedSinceLastTurn), blockedThisRound: !hit || Boolean(nextAi.blockedThisRound), nextDefenseCardBonus: 0 };\\n    if (!hit) { nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true }; const blockEvent = runCharacterEvent(nextAi, nextPlayer, { type: \\\"block\\\", card: defenseCard, zone, blocked: true }, \\\"ai\\\"); nextAi = blockEvent.self; nextPlayer = blockEvent.opponent; }\\n    const cardPlayed = runCharacterEvent(nextPlayer, nextAi, { type: \\\"cardPlayed\\\", card, zone, noPrintedNumericEffect: !hasPrintedNumericRulesEffect(card), thirdDifferentCardTypeThisTurn: new Set([...nextPlayer.cardsThisTurn.map((id) => cardFor(id)?.cardType), card.cardType].filter(Boolean)).size >= 3, completedBeltExam: Boolean(nextPlayer.completedBeltExamThisRound) }, \\\"player\\\");\\n    nextPlayer = cardPlayed.self; nextAi = cardPlayed.opponent;\\n    nextPlayer = applyCardEffects(nextPlayer, card, \\\"player\\\", hit ? \\\"onHit\\\" : \\\"afterResolve\\\");'"
+          script = script.replace(old_search, new_search).replace(old_replacement, new_replacement)
+          path.write_text(script)
           PY
+          node scripts/apply-stage3d-character-runtime.mjs
 
       - name: Check patch whitespace
         run: git diff --check
