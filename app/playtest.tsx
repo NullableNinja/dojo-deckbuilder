@@ -10,7 +10,7 @@ import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-en
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
 import { consumableRuntimeCommands, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";
-import { resolveLocationEvent, structuredLocationAttackModifiers, structuredLocationDefenseGuardModifier, structuredLocationEquipmentContributionModifier, structuredLocationHealingModifier, structuredLocationPurchaseCostModifier, structuredLocationKataFocusModifier, structuredLocationComboNumericModifier, type LocationCommand } from "./location-effect-resolvers";
+import { resolveLocationEvent, structuredLocationAttackModifiers, structuredLocationDefenseGuardModifier, structuredLocationEquipmentContributionModifier, structuredLocationHealingModifier, structuredLocationPurchaseCostModifier, structuredLocationKataFocusModifier, structuredLocationXpModifier, structuredLocationKoXpModifier, structuredLocationComboNumericModifier, type LocationCommand } from "./location-effect-resolvers";
 import { locationRuntimeDelta, locationUsageContext, markLocationCommandsUsed, resetLocationRound, resetLocationScene, resetLocationTurn, usedAcrossPlayersAfter } from "./location-runtime";
 import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
@@ -499,6 +499,9 @@ function applyLocationImmediate(board: Board, commands: LocationCommand[], contr
   const delta = locationRuntimeDelta(commands);
   if (delta.focus) next = gainFocus(next, delta.focus);
   if (delta.draw) next = drawCards(next, delta.draw);
+  // STAGE3D_LOCATION_RUNTIME_FIXUP_V2 — persist event-time combat modifiers to the next legal use.
+  if (delta.attackPower) next = { ...next, nextAttackBonus: next.nextAttackBonus + delta.attackPower };
+  if (delta.guard) next = { ...next, nextDefenseCardBonus: (next.nextDefenseCardBonus ?? 0) + delta.guard };
   const delayedSpeed = commands.filter((command) => command.action === "modifySpeed" && command.metadata.appliesNextRound === true).reduce((total, command) => total + command.amount, 0);
   const currentSpeed = delta.speed - delayedSpeed;
   if (currentSpeed) next = { ...next, tempSpeed: next.tempSpeed + currentSpeed, speedChangedThisRound: true };
@@ -533,10 +536,10 @@ function applyLocationAfterAttack(board: Board, card: CardEntry, zone: string, c
   if (board.locationChosenCounterZone) next = { ...next, locationChosenCounterZone: null };
   return next;
 }
-function applyLocationBlock(board: Board) {
+function applyLocationBlock(board: Board, blockedZone: string) {
   const location = locationForBoard(board);
   if (!location) return board;
-  const commands = resolveLocationEvent(location, "block", { ...locationUsageFor(board) });
+  const commands = resolveLocationEvent(location, "block", { ...locationUsageFor(board), attackZone: blockedZone, incomingAttackZone: blockedZone, defenseZone: blockedZone, blockedAttackZone: blockedZone });
   return applyLocationImmediate(board, commands, board.locationController ?? "ai");
 }
 function applyLocationConsumableResolve(board: Board, card: CardEntry) {
@@ -566,12 +569,20 @@ function applyLocationBeltExamComplete(board: Board) {
   const across = usedAcrossPlayersAfter(commands, board.locationUsedEffectsAcrossPlayersThisRound ?? []);
   return { ...next, locationUsedEffectsAcrossPlayersThisRound: across };
 }
-function locationHealingAmount(board: Board, baseAmount: number, source: CardEntry) {
-  if (baseAmount <= 0) return baseAmount;
+function applyLocationHealing(board: Board, baseAmount: number, source: CardEntry) {
+  if (baseAmount <= 0) return { board, amount: baseAmount };
   const location = locationForBoard(board);
-  if (!location) return baseAmount;
+  if (!location) return { board, amount: baseAmount };
   const parsed = structuredLocationHealingModifier(location, { ...locationUsageFor(board), healingSourceAny: [source.cardType, source.subtype, ...source.tags], cardTypeAny: [source.cardType], cardSubtypeOrTagAny: [source.subtype, ...source.tags] });
-  return Math.max(parsed.minimum, baseAmount + parsed.amount);
+  return { board: markLocationCommandsUsed(board, parsed.commands), amount: Math.max(parsed.minimum, baseAmount + parsed.amount) };
+}
+function applyLocationXpBonus(board: Board, xpSource: "Attack" | "Defense" | "KO", isKoXp = false) {
+  const location = locationForBoard(board);
+  if (!location) return board;
+  const normal = structuredLocationXpModifier(location, { ...locationUsageFor(board), xpSourceAny: [xpSource], isKoXp });
+  const ko = isKoXp ? structuredLocationKoXpModifier(location, { ...locationUsageFor(board), xpSourceAny: [xpSource], isKoXp: true }) : { amount: 0, commands: [] as LocationCommand[] };
+  const commands = [...normal.commands, ...ko.commands];
+  return { ...markLocationCommandsUsed(board, commands), xp: Math.max(0, board.xp + normal.amount + ko.amount) };
 }
 function locationPurchasePrice(board: Board, card: CardEntry, basePrice: number) {
   const location = locationForBoard(board);
@@ -614,7 +625,7 @@ function locationAttackModifier(location: CardEntry | undefined, card: CardEntry
 }
 function locationDefenseModifier(location: CardEntry | undefined, card: CardEntry | null | undefined, board: Board, zone: string): CombatModifier {
   if (!location) return { value: 0, notes: [], locationCommands: [] };
-  const parsed = structuredLocationDefenseGuardModifier(location, { ...locationUsageFor(board), defenseTagAny: card?.tags ?? [], defenseZone: zone, incomingAttackZone: zone, firstDefenseThisRound: !board.defendedThisRound, equipmentExhaustedEarlierThisRound: Boolean(board.locationEquipmentExhaustedThisRound), firstEquipmentExhaustThisRound: !board.locationEquipmentExhaustedThisRound, selfSpeed: fighterStat(board, "Speed") });
+  const parsed = structuredLocationDefenseGuardModifier(location, { ...locationUsageFor(board), defenseTagAny: card?.tags ?? [], defenseZone: zone, incomingAttackZone: zone, firstDefenseThisRound: !board.defendedThisRound, equipmentExhaustedEarlierThisRound: Boolean(board.locationEquipmentExhaustedThisRound), firstEquipmentExhaustThisRound: !board.locationEquipmentExhaustedThisRound, selfSpeed: fighterStat(board, "Speed"), selfSpeedAtLeast: fighterStat(board, "Speed") });
   return { value: parsed.guard + parsed.equipmentDefense, notes: parsed.commands.map((command) => command.effectId), locationCommands: parsed.commands };
 }
 function locationEquipmentPrintedAdjustment(board: Board, card: CardEntry, base: number) {
@@ -1598,7 +1609,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
     const context = Object.keys(familyContext).length ? familyContext : isCoreConsumableCard(card) ? stage3cConsumableContext(next) : familyContext;
     const hpBeforeFamily = next.hp;
     next = applyStage3CTiming(next, card, timing, owner, context, "self");
-    if (next.hp > hpBeforeFamily) next = { ...next, hp: Math.min(next.maxHp, hpBeforeFamily + locationHealingAmount(next, next.hp - hpBeforeFamily, card)) };
+    if (next.hp > hpBeforeFamily) { const healed = applyLocationHealing(next, next.hp - hpBeforeFamily, card); next = { ...healed.board, hp: Math.min(next.maxHp, hpBeforeFamily + healed.amount) }; }
   } else {
     for (const effect of effectPlanForCard(card).effects.filter((entry) => entry.timing === timing)) {
       if (effect.kind === "draw") next = drawCards(next, effect.amount);
@@ -1612,7 +1623,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
       if (effect.kind === "nextAttackPower") next.nextAttackBonus += effect.amount;
       if (effect.kind === "speed") { next.tempSpeed += effect.amount; if (effect.amount) next.speedChangedThisRound = true; }
       if (effect.kind === "focus") next = gainFocus(next, effect.amount);
-      if (effect.kind === "heal") next.hp = Math.min(next.maxHp, next.hp + locationHealingAmount(next, effect.amount, card));
+      if (effect.kind === "heal") { const healed = applyLocationHealing(next, effect.amount, card); next = { ...healed.board, hp: Math.min(next.maxHp, next.hp + healed.amount) }; }
     }
   }
   if (timing === "afterResolve" && isCoreConsumableCard(card)) next = applyLocationConsumableResolve(next, card);
@@ -2299,7 +2310,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const locationTrackedPlayer = markLocationCommandsUsed(current.player, locationModifier.locationCommands ?? []);
     const attackState = { ...stage3cConsumeAttackStatuses(locationTrackedPlayer, card, zone), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage, lastAttackHit: hit, currentAttackIsReversal: false, attackLockedThisTurn: current.player.attackLockedThisTurn || finalAttackOnlyAttackLock(card, current.player.attacksThisTurn === 0) };
     const completesActiveBeltExam = !beltTaskMet(current.player) && beltTaskMet(attackState);
-    let nextPlayer = applyCardEffects({ ...attackState, completesActiveBeltExamThisAttack: completesActiveBeltExam }, card, "player");
+    let nextPlayer = applyLocationXpBonus(applyCardEffects({ ...attackState, completesActiveBeltExamThisAttack: completesActiveBeltExam }, card, "player"), "Attack");
     const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
     if (flowDraw) nextPlayer = drawCards({ ...nextPlayer, flowUsedThisTurn: true }, 1);
     if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
@@ -2320,7 +2331,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextAi = { ...nextAi, hand: aiHand, discard: [...nextAi.discard, ...discarded] };
       targetDiscardNotes.push(`target discards ${discardCount}: ${discarded.map((id) => cardFor(id)?.name ?? "Unknown").join(", ")}`);
     }
-    if (defenseCard) nextAi = { ...markLocationCommandsUsed(nextAi, defenseModifier.locationCommands ?? []), hand: removeOne(nextAi.hand, defenseCard.id), discard: [...nextAi.discard, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, blockedSinceLastTurn: !hit || Boolean(nextAi.blockedSinceLastTurn), blockedThisRound: !hit || Boolean(nextAi.blockedThisRound), nextDefenseCardBonus: 0 };
+    if (defenseCard) nextAi = applyLocationXpBonus({ ...markLocationCommandsUsed(nextAi, defenseModifier.locationCommands ?? []), hand: removeOne(nextAi.hand, defenseCard.id), discard: [...nextAi.discard, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, blockedSinceLastTurn: !hit || Boolean(nextAi.blockedSinceLastTurn), blockedThisRound: !hit || Boolean(nextAi.blockedThisRound), nextDefenseCardBonus: 0 }, "Defense");
     if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };
     nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
     if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
@@ -2346,9 +2357,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
     if (damage >= 3 && beltHasReward(nextPlayer, "impact-focus")) nextPlayer = gainFocus(nextPlayer, 1);
-    if (!nextAi.hp) nextPlayer.xp += 2;
+    if (!nextAi.hp) nextPlayer = applyLocationXpBonus({ ...nextPlayer, xp: nextPlayer.xp + 2 }, "KO", true);
     nextPlayer = applyLocationAfterAttack(markCompletedTask(nextPlayer), card, zone, damage, hit);
-    if (!hit && defenseCard) nextAi = applyLocationBlock(nextAi);
+    if (!hit && defenseCard) nextAi = applyLocationBlock(nextAi, zone);
     const result = hit
       ? `${card.name} hits ${aiFighter?.name ?? "the opponent"} for ${damage}.${defenseCard ? ` ${defenseCard.name} is discarded after this strike.` : ""}`
       : defenseCard
@@ -2684,7 +2695,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       tempoBonus = settings.tempo && nextPlayer.tempo && fighterStat(nextPlayer, "Speed") > fighterStat(current.ai, "Speed") ? 1 : 0;
       defensePower += cardPower(defenseCard) + (nextPlayer.nextDefenseCardBonus ?? 0) + stage3cDefenseStatusBonus(nextPlayer, defenseCard) + (nextPlayer.equipmentDefenseGuard ?? 0) + defenseCardModifier.value + tempoBonus + locationModifier.value;
       const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, pending.attackPower);
-      nextPlayer = stage3cConsumeDefenseStatuses(markCompletedTask({ ...markLocationCommandsUsed(nextPlayer, locationModifier.locationCommands ?? []), hand: removeOne(nextPlayer.hand, defenseCard.id), discard: [...nextPlayer.discard, defenseCard.id], xp: nextPlayer.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, nextDefenseCardBonus: 0, tempo: tempoBonus ? false : nextPlayer.tempo }));
+      nextPlayer = applyLocationXpBonus(stage3cConsumeDefenseStatuses(markCompletedTask({ ...markLocationCommandsUsed(nextPlayer, locationModifier.locationCommands ?? []), hand: removeOne(nextPlayer.hand, defenseCard.id), discard: [...nextPlayer.discard, defenseCard.id], xp: nextPlayer.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, nextDefenseCardBonus: 0, tempo: tempoBonus ? false : nextPlayer.tempo })), "Defense");
       nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onPlay", familyDefenseContext);
       const followup = applyAfterDefenseEquipment(nextPlayer);
       nextPlayer = followup.board;
@@ -2798,8 +2809,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return paused;
     }
     nextAi = applyLocationAfterAttack(nextAi, aiCard, pending.zone, damage, hit);
-    if (!hit && defenseCard) nextPlayer = applyLocationBlock(nextPlayer);
-    if (!nextPlayer.hp) nextAi = { ...nextAi, xp: nextAi.xp + 2 };
+    if (!hit && defenseCard) nextPlayer = applyLocationBlock(nextPlayer, pending.zone);
+    if (!nextPlayer.hp) nextAi = applyLocationXpBonus({ ...nextAi, xp: nextAi.xp + 2 }, "KO", true);
     const message = hit
       ? `${aiCard.name} hits you for ${damage}. Attack ${finalAttackPower} vs Defense ${defensePower}.`
       : defenseCard
@@ -2886,7 +2897,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
     nextPlayer = applyLocationAfterAttack(markCompletedTask(nextPlayer), card, zone, damage, hit);
-    if (!hit && defenseCard) nextAi = applyLocationBlock(nextAi);
+    if (!hit && defenseCard) nextAi = applyLocationBlock(nextAi, zone);
     const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "player", card.id),
@@ -3237,7 +3248,7 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   const stage3cAttackBonus = stage3cAttackPowerBonus(activeEquipment.board, card, zone);
   const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + activeEquipment.power);
   const consumedAttackBoard = stage3cConsumeAttackStatuses(markLocationCommandsUsed(activeEquipment.board, locationModifier.locationCommands ?? []), card, zone);
-  let nextAi = applyCardEffects({ ...consumedAttackBoard, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0 }, card, "ai");
+  let nextAi = applyLocationXpBonus(applyCardEffects({ ...consumedAttackBoard, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0 }, card, "ai"), "Attack");
   const flowDraw = hasFlow && !current.ai.flowUsedThisTurn;
   if (flowDraw) nextAi = drawCards({ ...nextAi, flowUsedThisTurn: true }, 1);
   if (current.ai.flowAfterFirstAttack && current.ai.attacksThisTurn === 0) nextAi = { ...nextAi, flowAfterFirstAttack: false, nextAttackHasFlow: true };
