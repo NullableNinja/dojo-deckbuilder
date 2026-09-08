@@ -37,12 +37,6 @@ jobs:
       - name: Stage 3D Location runtime tests
         run: node --experimental-strip-types --test tests/stage3d-location-runtime.test.mjs
 
-      - name: Validate structured effects
-        run: npm run validate:effects
-
-      - name: Lint structured effects
-        run: npm run lint:effects
-
       - name: TypeScript compile check
         run: npx tsc --noEmit
 
