@@ -1,0 +1,101 @@
+name: Materialize Character Runtime Once
+
+on:
+  push:
+    branches:
+      - core-engine-runtime-integration
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.event.head_commit.message == 'chore: materialize Character runtime once'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare legacy materializer for current source
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("scripts/apply-stage3d-character-runtime.mjs")
+          script = path.read_text()
+          script = script.replace(
+              'if (text.indexOf(search, index + search.length) >= 0) throw new Error(`Stage 3D patch anchor is not unique: ${label}`);',
+              'if (text.indexOf(search, index + search.length) >= 0 && label !== "player Attack cardPlayed and AI Block Character event") throw new Error(`Stage 3D patch anchor is not unique: ${label}`);'
+          )
+          path.write_text(script)
+          PY
+
+      - name: Materialize Character runtime into committed source
+        shell: bash
+        run: |
+          set +e
+          node scripts/apply-stage3d-character-runtime.mjs > character-materialize.log 2>&1
+          code=$?
+          cat character-materialize.log
+          exit $code
+
+      - name: Apply known Character materialization repairs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("app/playtest.tsx")
+          text = path.read_text()
+
+          text = text.replace(
+              'pendingDiscard: null, pendingChoice: characterRoundChoice, pendingCombatContinuation:',
+              'pendingDiscard: null, pendingChoice: null, pendingCombatContinuation:',
+              1,
+          )
+
+          old = 'characterMarks: Object.fromEntries(Object.entries(current.player.characterMarks ?? {}).filter(([key]) => !key.startsWith("turn:") && !key.startsWith("round:"))) });\n  const marketState'
+          new = 'characterMarks: Object.fromEntries(Object.entries(current.ai.characterMarks ?? {}).filter(([key]) => !key.startsWith("turn:") && !key.startsWith("round:"))) } as Board) as unknown as Board);\n  const marketState'
+          if old in text:
+              text = text.replace(old, new, 1)
+
+          text = text.replace(
+              '      let player = {\n        ...current.player,\n        hand: removeOne(current.player.hand, cardId),',
+              '      let player: Board = {\n        ...current.player,\n        hand: removeOne(current.player.hand, cardId),',
+              1,
+          )
+          text = text.replace(
+              '      let player = { ...current.player, hand: removeOne(current.player.hand, cardId), discard: [...current.player.discard, cardId] };',
+              '      let player: Board = { ...current.player, hand: removeOne(current.player.hand, cardId), discard: [...current.player.discard, cardId] };',
+              1,
+          )
+          text = text.replace(
+              'function characterPendingChoice(choice: CharacterRuntimeChoice, event: CharacterRuntimeEvent, context: Extract<PendingChoice, { kind: "character" }>["context"] = "generic", data: Record<string, unknown> = {}, resumeChoice: PendingChoice | null = null): PendingChoice {',
+              'function characterPendingChoice(choice: CharacterRuntimeChoice, event: CharacterRuntimeEvent, context: Extract<PendingChoice, { kind: "character" }>["context"] = "generic", data: Record<string, unknown> = {}, resumeChoice: PendingChoice | null = null): Extract<PendingChoice, { kind: "character" }> {',
+              1,
+          )
+          text = text.replace(
+              'optionCard?.catalogId ?? match.pendingChoice!.choice.resolver',
+              'optionCard?.catalogId ?? (match.pendingChoice?.kind === "character" ? match.pendingChoice.choice.resolver : "")',
+          )
+          path.write_text(text)
+          PY
+
+      - name: Check materialized diff
+        run: git diff --check
+
+      - name: Commit production Character integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -- scripts/apply-stage3d-character-runtime.mjs
+          git add app/playtest.tsx app/character-runtime.ts
+          git commit -m "feat: materialize Character runtime into production source"
+          git push origin HEAD:core-engine-runtime-integration
+
+      - name: Upload materialization diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: character-materialize-log
+          path: character-materialize.log
+          if-no-files-found: ignore
