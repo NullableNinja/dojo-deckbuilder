@@ -31,7 +31,21 @@ jobs:
           PY
 
       - name: Materialize Character source
-        run: node scripts/apply-stage3d-character-runtime.mjs
+        shell: bash
+        run: |
+          set +e
+          node scripts/apply-stage3d-character-runtime.mjs > character-materialize.log 2>&1
+          code=$?
+          cat character-materialize.log
+          exit $code
+
+      - name: Upload materializer diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: character-materialize-log
+          path: character-materialize.log
+          if-no-files-found: ignore
 
       - name: Apply known repairs
         run: |
