@@ -1,0 +1,159 @@
+name: Apply Stage 3C Lifecycle Context Remediation Once
+on:
+  push:
+    branches: [stage3c-play-surface-remediation]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Patch structured Consumable lifecycle and play context
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          resolver = Path('app/consumable-effect-resolvers.ts')
+          t = resolver.read_text()
+          replacements = [
+            (
+              '      "consumable.chooseOpponentNextAttackPenalty",\n      "consumable.chooseOpponentSpeedPenalty",',
+              '      "consumable.chooseOpponentNextAttackPenalty",\n      "consumable.chooseOpponentNextDefenseGuardPenalty",\n      "consumable.chooseOpponentSpeedPenalty",'
+            ),
+            (
+              '    case "consumable.chooseOpponentNextAttackPenalty":\n      command.qualifier = { nextAttack: true };\n      command.duration = "nextAttack";\n      break;',
+              '    case "consumable.chooseOpponentNextAttackPenalty":\n      command.qualifier = { nextAttack: true, expires: "endOfRound" };\n      command.duration = "nextAttack";\n      break;'
+            ),
+            (
+              '    case "consumable.nextIncomingAttackDefense":\n      command.qualifier = { nextIncomingAttack: true };\n      command.duration = "nextIncomingAttack";\n      break;',
+              '    case "consumable.nextIncomingAttackDefense":\n      command.qualifier = { nextIncomingAttack: true, expires: "endOfRound" };\n      command.duration = "nextIncomingAttack";\n      break;'
+            ),
+            (
+              '    case "consumable.zoneSpecificIncomingAttackPenalty":\n      command.qualifier = { chosenIncomingZone: true };\n      command.duration = "nextIncomingAttack";\n      break;',
+              '    case "consumable.zoneSpecificIncomingAttackPenalty":\n      command.qualifier = { chosenIncomingZone: true, expires: "endOfRound" };\n      command.duration = "nextIncomingAttack";\n      break;'
+            ),
+            (
+              '    case "consumable.ascendPurchaseDiscount":\n      command.duration = "nextPurchase";\n      command.qualifier = { minPrintedCost: 5, minimumFinalCost: 4 };\n      break;',
+              '    case "consumable.ascendPurchaseDiscount":\n      command.duration = "nextPurchase";\n      command.qualifier = { minPrintedCost: 5, minimumFinalCost: 4, expires: "endOfTurn" };\n      break;'
+            ),
+            (
+              '    case "consumable.pepTalkConditionalAttackBonus":\n      command.duration = "nextAttack";\n      break;',
+              '    case "consumable.pepTalkConditionalAttackBonus":\n      command.duration = "nextAttack";\n      command.qualifier = { nextAttack: true, expires: "endOfTurn" };\n      break;'
+            ),
+            (
+              '    case "consumable.blockedAttackBacklash":\n      if (command.trigger === "passive") command.effect = "combat.dealDamage";\n      command.duration = command.trigger === "passive" ? "immediate" : "nextAttack";\n      command.qualifier = { watchedAttack: "nextAttack" };\n      break;',
+              '    case "consumable.blockedAttackBacklash":\n      if (command.trigger === "passive") command.effect = "combat.dealDamage";\n      command.duration = command.trigger === "passive" ? "immediate" : "nextAttack";\n      command.qualifier = command.trigger === "passive" ? { watchedAttack: "nextAttack" } : { watchedAttack: "nextAttack", expires: "endOfTurn" };\n      break;'
+            ),
+            (
+              '    case "consumable.preventInterfereOnNextAttack":\n      command.duration = "nextAttack";\n      command.qualifier = { prevent: "interfere" };\n      break;',
+              '    case "consumable.preventInterfereOnNextAttack":\n      command.duration = "nextAttack";\n      command.qualifier = { prevent: "interfere", expires: "endOfTurn" };\n      break;'
+            ),
+            (
+              '    case "consumable.nextKataFocusBonus":\n      command.duration = "nextKata";\n      command.qualifier = { nextKata: true };\n      break;',
+              '    case "consumable.nextKataFocusBonus":\n      command.duration = "nextKata";\n      command.qualifier = { nextKata: true, expires: "endOfTurn" };\n      break;'
+            ),
+            (
+              '    case "consumable.pocketYoyo":\n      if (command.trigger === "passive") command.qualifier = { afterPenalizedDefenseBlocks: true };\n      break;',
+              '    case "consumable.pocketYoyo":\n      command.qualifier = command.trigger === "passive" ? { afterPenalizedDefenseBlocks: true } : { nextDefense: true, expires: "endOfRound" };\n      break;\n    case "consumable.chooseOpponentNextDefenseGuardPenalty":\n      command.duration = "nextDefense";\n      command.qualifier = { nextDefense: true, expires: "endOfRound" };\n      break;'
+            ),
+          ]
+          for old, new in replacements:
+            if old not in t:
+              raise SystemExit(f'resolver anchor missing: {old[:80]}')
+            t = t.replace(old, new, 1)
+          resolver.write_text(t)
+
+          playtest = Path('app/playtest.tsx')
+          p = playtest.read_text()
+          old = '''function stage3cEndTurn(board: Board) {\n  return expireStage3C(board, "endOfTurn");\n}\n\nfunction stage3cAdvanceRound(board: Board) {\n  let next = expireStage3C(expireStage3C(board, "endOfRound"), "nextHonor");'''
+          new = '''function expireStage3CQualified(board: Board, expires: "endOfTurn" | "endOfRound") {\n  const expiringIds = new Set((board.stage3cStatuses ?? []).filter((status) => status.qualifier?.expires === expires).map((status) => status.sourceEffectId));\n  if (!expiringIds.size) return board;\n  return { ...board, stage3cStatuses: (board.stage3cStatuses ?? []).filter((status) => !expiringIds.has(status.sourceEffectId)) };\n}\n\nfunction stage3cEndTurn(board: Board) {\n  return expireStage3CQualified(expireStage3C(board, "endOfTurn"), "endOfTurn");\n}\n\nfunction stage3cAdvanceRound(board: Board) {\n  let next = expireStage3CQualified(expireStage3C(expireStage3C(board, "endOfRound"), "nextHonor"), "endOfRound");'''
+          if old not in p:
+            raise SystemExit('playtest lifecycle anchor missing')
+          p = p.replace(old, new, 1)
+
+          old = '''    let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;\n    let nextPlayer = markCompletedTask(applyCardEffects({ ...supportBoard, hand: removeOne(supportBoard.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value, lastAttackHit: false }, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(current.player) : {}));'''
+          new = '''    let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;\n    const supportEntryBoard = { ...supportBoard, hand: removeOne(supportBoard.hand, id), playArea: [...supportBoard.playArea, id], cardsThisTurn: [...supportBoard.cardsThisTurn, id], focus: supportBoard.focus + locationModifier.value, lastAttackHit: false };\n    let nextPlayer = markCompletedTask(applyCardEffects(supportEntryBoard, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(supportEntryBoard) : {}));'''
+          if old not in p:
+            raise SystemExit('playSupport context anchor missing')
+          p = p.replace(old, new, 1)
+
+          old = '    const choiceNote = pendingChoice?.kind === "destroy-junk" ? `Choose ${junkCount} Junk card${junkCount === 1 ? "" : "s"} from your hand or discard pile to destroy.` : pendingChoice?.kind === "discard-hand" ? `Choose ${pendingChoice.remaining} card${pendingChoice.remaining === 1 ? "" : "s"} from your hand to discard.` : deckNote || cardEffectNote(card);'
+          new = '    const junkSourceLabel = junkSources.length === 2 ? "hand or discard pile" : junkSources[0] === "discard" ? "discard pile" : "hand";\n    const choiceNote = pendingChoice?.kind === "destroy-junk" ? `Choose ${junkCount} Junk card${junkCount === 1 ? "" : "s"} from your ${junkSourceLabel} to destroy.` : pendingChoice?.kind === "discard-hand" ? `Choose ${pendingChoice.remaining} card${pendingChoice.remaining === 1 ? "" : "s"} from your hand to discard.` : deckNote || cardEffectNote(card);'
+          if old not in p:
+            raise SystemExit('choice-note anchor missing')
+          p = p.replace(old, new, 1)
+          playtest.write_text(p)
+
+          test_file = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
+          q = test_file.read_text()
+          addition = r'''
+
+test("Quick Duel auto-resolves single-opponent Guard penalties and preserves round expiry", () => {
+  const sand = consumableRuntimeCommands(card("DDB-CON-CORE-043"), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 })
+    .find((command) => command.resolver === "consumable.chooseOpponentNextDefenseGuardPenalty");
+  assert.ok(sand);
+  assert.equal(sand.choice, undefined);
+  assert.equal(sand.duration, "nextDefense");
+  assert.equal(sand.qualifier?.expires, "endOfRound");
+
+  const multiplayer = consumableRuntimeCommands(card("DDB-CON-CORE-043"), "onPlay", { ...consumableBaseContext, opponentTargetCount: 2 })
+    .find((command) => command.resolver === "consumable.chooseOpponentNextDefenseGuardPenalty");
+  assert.ok(multiplayer?.choice);
+});
+
+test("structured this-turn and this-round Consumable statuses carry explicit expiry metadata", () => {
+  const cases = [
+    ["DDB-CON-CORE-002", "consumable.chooseOpponentNextAttackPenalty", "endOfRound"],
+    ["DDB-CON-CORE-004", "consumable.nextQualifyingAttackModifier", "endOfTurn"],
+    ["DDB-CON-CORE-007", "consumable.nextAttackUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-013", "consumable.nextAttackFlowUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-016", "consumable.nextIncomingAttackDefense", "endOfRound"],
+    ["DDB-CON-CORE-031", "consumable.pepTalkConditionalAttackBonus", "endOfTurn"],
+    ["DDB-CON-CORE-037", "consumable.blockedAttackBacklash", "endOfTurn"],
+    ["DDB-CON-CORE-043", "consumable.chooseOpponentNextDefenseGuardPenalty", "endOfRound"],
+    ["DDB-CON-CORE-046", "consumable.preventInterfereOnNextAttack", "endOfTurn"],
+    ["DDB-CON-CORE-047", "consumable.nextIncomingAttackDefense", "endOfRound"],
+    ["DDB-CON-CORE-052", "consumable.nextAttackUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-054", "consumable.nextKataFocusBonus", "endOfTurn"],
+    ["DDB-CON-CORE-062", "consumable.pocketYoyo", "endOfRound"],
+  ];
+  for (const [catalogId, resolver, expires] of cases) {
+    const command = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 })
+      .find((candidate) => candidate.resolver === resolver && candidate.trigger === "onPlay");
+    assert.ok(command, `${catalogId} must produce ${resolver}`);
+    assert.equal(command.qualifier?.expires, expires, `${catalogId} must expire at ${expires}`);
+  }
+});
+'''
+          if 'Quick Duel auto-resolves single-opponent Guard penalties and preserves round expiry' not in q:
+            q += addition
+          test_file.write_text(q)
+
+          integration = Path('tests/playtest-effect-integration.test.mjs')
+          r = integration.read_text()
+          addition2 = r'''
+
+test("Quick Duel evaluates Consumable onPlay context after the played card leaves hand and expires qualified statuses", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /const supportEntryBoard = \{ \.\.\.supportBoard, hand: removeOne\(supportBoard\.hand, id\)/);
+  assert.match(source, /stage3cConsumableContext\(supportEntryBoard\)/);
+  assert.match(source, /function expireStage3CQualified\(board: Board, expires: "endOfTurn" \| "endOfRound"\)/);
+  assert.match(source, /status\.qualifier\?\.expires === expires/);
+});
+'''
+          if 'Quick Duel evaluates Consumable onPlay context after the played card leaves hand' not in r:
+            r += addition2
+          integration.write_text(r)
+          PY
+
+          git diff --check
+      - name: Remove one-shot workflow, test, and commit product changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-stage3c-lifecycle-context-remediation.yml
+          git add app/consumable-effect-resolvers.ts app/playtest.tsx tests/stage3c-defense-consumable-runtime.test.mjs tests/playtest-effect-integration.test.mjs
+          git commit -m "fix: enforce Consumable turn-round lifecycle and post-play context"
+          git push origin HEAD:stage3c-play-surface-remediation
