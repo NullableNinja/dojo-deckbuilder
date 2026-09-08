@@ -139,3 +139,12 @@ test("Cover Up remains the weak universal starter Defense and its printed Guard 
   assert.match(source, /defensePower \+= cardPower\(defenseCard\)/);
   assert.match(source, /\$\{defenseCard\.name\} \+\$\{cardPower\(defenseCard\)\} Guard/);
 });
+
+
+test("Quick Duel evaluates Consumable onPlay context after the played card leaves hand and expires qualified statuses", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /const supportEntryBoard = \{ \.\.\.supportBoard, hand: removeOne\(supportBoard\.hand, id\)/);
+  assert.match(source, /stage3cConsumableContext\(supportEntryBoard\)/);
+  assert.match(source, /function expireStage3CQualified\(board: Board, expires: "endOfTurn" \| "endOfRound"\)/);
+  assert.match(source, /status\.qualifier\?\.expires === expires/);
+});

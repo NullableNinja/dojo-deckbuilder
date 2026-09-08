@@ -1105,12 +1105,18 @@ function stage3cStartTurn(board: Board) {
   return { ...next, stage3cStatuses: (next.stage3cStatuses ?? []).filter((status) => !ids.has(status.sourceEffectId)) };
 }
 
+function expireStage3CQualified(board: Board, expires: "endOfTurn" | "endOfRound") {
+  const expiringIds = new Set((board.stage3cStatuses ?? []).filter((status) => status.qualifier?.expires === expires).map((status) => status.sourceEffectId));
+  if (!expiringIds.size) return board;
+  return { ...board, stage3cStatuses: (board.stage3cStatuses ?? []).filter((status) => !expiringIds.has(status.sourceEffectId)) };
+}
+
 function stage3cEndTurn(board: Board) {
-  return expireStage3C(board, "endOfTurn");
+  return expireStage3CQualified(expireStage3C(board, "endOfTurn"), "endOfTurn");
 }
 
 function stage3cAdvanceRound(board: Board) {
-  let next = expireStage3C(expireStage3C(board, "endOfRound"), "nextHonor");
+  let next = expireStage3CQualified(expireStage3C(expireStage3C(board, "endOfRound"), "nextHonor"), "endOfRound");
   const armed = (next.stage3cStatuses ?? []).filter((status) => status.duration === "nextRound");
   const armedIds = new Set(armed.map((status) => status.sourceEffectId));
   next = { ...next, stage3cStatuses: (next.stage3cStatuses ?? []).filter((status) => !armedIds.has(status.sourceEffectId)) };
@@ -2196,7 +2202,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (isCoreConsumableCard(card) && (current.player.stage3cRestrictions ?? []).includes("consumable")) return current;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, current.player);
     let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;
-    let nextPlayer = markCompletedTask(applyCardEffects({ ...supportBoard, hand: removeOne(supportBoard.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id], focus: current.player.focus + locationModifier.value, lastAttackHit: false }, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(current.player) : {}));
+    const supportEntryBoard = { ...supportBoard, hand: removeOne(supportBoard.hand, id), playArea: [...supportBoard.playArea, id], cardsThisTurn: [...supportBoard.cardsThisTurn, id], focus: supportBoard.focus + locationModifier.value, lastAttackHit: false };
+    let nextPlayer = markCompletedTask(applyCardEffects(supportEntryBoard, card, "player", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(supportEntryBoard) : {}));
     if (isCoreConsumableCard(card)) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", stage3cConsumableContext(nextPlayer));
     const playerFastestFocus = structuredFocusIfFastest(card, fighterStat(nextPlayer, "Speed"), fighterStat(current.ai, "Speed"));
     if (playerFastestFocus) nextPlayer = { ...nextPlayer, focus: nextPlayer.focus + playerFastestFocus };
@@ -2230,7 +2237,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       const defensePenalty = targetNextDefensePenalty(card);
       if (defensePenalty) nextAi = { ...nextAi, nextDefenseCardBonus: (nextAi.nextDefenseCardBonus ?? 0) - defensePenalty };
     }
-    const choiceNote = pendingChoice?.kind === "destroy-junk" ? `Choose ${junkCount} Junk card${junkCount === 1 ? "" : "s"} from your hand or discard pile to destroy.` : pendingChoice?.kind === "discard-hand" ? `Choose ${pendingChoice.remaining} card${pendingChoice.remaining === 1 ? "" : "s"} from your hand to discard.` : deckNote || cardEffectNote(card);
+    const junkSourceLabel = junkSources.length === 2 ? "hand or discard pile" : junkSources[0] === "discard" ? "discard pile" : "hand";
+    const choiceNote = pendingChoice?.kind === "destroy-junk" ? `Choose ${junkCount} Junk card${junkCount === 1 ? "" : "s"} from your ${junkSourceLabel} to destroy.` : pendingChoice?.kind === "discard-hand" ? `Choose ${pendingChoice.remaining} card${pendingChoice.remaining === 1 ? "" : "s"} from your hand to discard.` : deckNote || cardEffectNote(card);
     return write(current, `${card.name} played. ${choiceNote}${destroyedAfterUse ? " Destroyed after use; it will not enter your discard pile." : ""}${locationModifier.notes.length ? ` ${locationModifier.notes.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, pendingDiscard, pendingChoice });
   });
 

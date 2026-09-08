@@ -181,6 +181,7 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
     && Number(context.opponentTargetCount ?? 0) === 1
     && new Set([
       "consumable.chooseOpponentNextAttackPenalty",
+      "consumable.chooseOpponentNextDefenseGuardPenalty",
       "consumable.chooseOpponentSpeedPenalty",
     ]).has(resolver);
 
@@ -214,7 +215,7 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       command.duration = "nextAttack";
       break;
     case "consumable.chooseOpponentNextAttackPenalty":
-      command.qualifier = { nextAttack: true };
+      command.qualifier = { nextAttack: true, expires: "endOfRound" };
       command.duration = "nextAttack";
       break;
     case "consumable.nextDamagePrevention":
@@ -222,7 +223,7 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       command.duration = "nextDamage";
       break;
     case "consumable.nextIncomingAttackDefense":
-      command.qualifier = { nextIncomingAttack: true };
+      command.qualifier = { nextIncomingAttack: true, expires: "endOfRound" };
       command.duration = "nextIncomingAttack";
       break;
     case "consumable.setSpeedToValue":
@@ -242,7 +243,7 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       if (command.effect === "core.gainFocus") command.amount = Math.max(command.amount, Number(context.revealedFocusValue ?? command.amount));
       break;
     case "consumable.zoneSpecificIncomingAttackPenalty":
-      command.qualifier = { chosenIncomingZone: true };
+      command.qualifier = { chosenIncomingZone: true, expires: "endOfRound" };
       command.duration = "nextIncomingAttack";
       break;
     case "consumable.reorderTopThree":
@@ -250,10 +251,11 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       break;
     case "consumable.ascendPurchaseDiscount":
       command.duration = "nextPurchase";
-      command.qualifier = { minPrintedCost: 5, minimumFinalCost: 4 };
+      command.qualifier = { minPrintedCost: 5, minimumFinalCost: 4, expires: "endOfTurn" };
       break;
     case "consumable.pepTalkConditionalAttackBonus":
       command.duration = "nextAttack";
+      command.qualifier = { nextAttack: true, expires: "endOfTurn" };
       break;
     case "consumable.discardUpToForFocus":
       command.choice = { resolver, maxDiscard: 2, focusPerDiscard: 2 };
@@ -266,11 +268,11 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
     case "consumable.blockedAttackBacklash":
       if (command.trigger === "passive") command.effect = "combat.dealDamage";
       command.duration = command.trigger === "passive" ? "immediate" : "nextAttack";
-      command.qualifier = { watchedAttack: "nextAttack" };
+      command.qualifier = command.trigger === "passive" ? { watchedAttack: "nextAttack" } : { watchedAttack: "nextAttack", expires: "endOfTurn" };
       break;
     case "consumable.preventInterfereOnNextAttack":
       command.duration = "nextAttack";
-      command.qualifier = { prevent: "interfere" };
+      command.qualifier = { prevent: "interfere", expires: "endOfTurn" };
       break;
     case "consumable.untargetableUntilTurnOrAttack":
       command.duration = "nextTurn";
@@ -278,7 +280,7 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       break;
     case "consumable.nextKataFocusBonus":
       command.duration = "nextKata";
-      command.qualifier = { nextKata: true };
+      command.qualifier = { nextKata: true, expires: "endOfTurn" };
       break;
     case "consumable.warrantyIcePop":
       if (command.effect === "core.custom") {
@@ -287,7 +289,11 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       }
       break;
     case "consumable.pocketYoyo":
-      if (command.trigger === "passive") command.qualifier = { afterPenalizedDefenseBlocks: true };
+      command.qualifier = command.trigger === "passive" ? { afterPenalizedDefenseBlocks: true } : { nextDefense: true, expires: "endOfRound" };
+      break;
+    case "consumable.chooseOpponentNextDefenseGuardPenalty":
+      command.duration = "nextDefense";
+      command.qualifier = { nextDefense: true, expires: "endOfRound" };
       break;
     case "consumable.restrictedFocusItemsEquipment":
       command.duration = "endOfTurn";

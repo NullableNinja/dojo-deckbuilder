@@ -402,3 +402,41 @@ test("every Consumable explicit-choice resolver queues at least one structured c
   }
   assert.deepEqual(failures, []);
 });
+
+
+test("Quick Duel auto-resolves single-opponent Guard penalties and preserves round expiry", () => {
+  const sand = consumableRuntimeCommands(card("DDB-CON-CORE-043"), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 })
+    .find((command) => command.resolver === "consumable.chooseOpponentNextDefenseGuardPenalty");
+  assert.ok(sand);
+  assert.equal(sand.choice, undefined);
+  assert.equal(sand.duration, "nextDefense");
+  assert.equal(sand.qualifier?.expires, "endOfRound");
+
+  const multiplayer = consumableRuntimeCommands(card("DDB-CON-CORE-043"), "onPlay", { ...consumableBaseContext, opponentTargetCount: 2 })
+    .find((command) => command.resolver === "consumable.chooseOpponentNextDefenseGuardPenalty");
+  assert.ok(multiplayer?.choice);
+});
+
+test("structured this-turn and this-round Consumable statuses carry explicit expiry metadata", () => {
+  const cases = [
+    ["DDB-CON-CORE-002", "consumable.chooseOpponentNextAttackPenalty", "endOfRound"],
+    ["DDB-CON-CORE-004", "consumable.nextQualifyingAttackModifier", "endOfTurn"],
+    ["DDB-CON-CORE-007", "consumable.nextAttackUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-013", "consumable.nextAttackFlowUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-016", "consumable.nextIncomingAttackDefense", "endOfRound"],
+    ["DDB-CON-CORE-031", "consumable.pepTalkConditionalAttackBonus", "endOfTurn"],
+    ["DDB-CON-CORE-037", "consumable.blockedAttackBacklash", "endOfTurn"],
+    ["DDB-CON-CORE-043", "consumable.chooseOpponentNextDefenseGuardPenalty", "endOfRound"],
+    ["DDB-CON-CORE-046", "consumable.preventInterfereOnNextAttack", "endOfTurn"],
+    ["DDB-CON-CORE-047", "consumable.nextIncomingAttackDefense", "endOfRound"],
+    ["DDB-CON-CORE-052", "consumable.nextAttackUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-054", "consumable.nextKataFocusBonus", "endOfTurn"],
+    ["DDB-CON-CORE-062", "consumable.pocketYoyo", "endOfRound"],
+  ];
+  for (const [catalogId, resolver, expires] of cases) {
+    const command = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 })
+      .find((candidate) => candidate.resolver === resolver && candidate.trigger === "onPlay");
+    assert.ok(command, `${catalogId} must produce ${resolver}`);
+    assert.equal(command.qualifier?.expires, expires, `${catalogId} must expire at ${expires}`);
+  }
+});
