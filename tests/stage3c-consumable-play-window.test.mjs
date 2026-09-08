@@ -5,6 +5,7 @@ import { canPlayCoreConsumableInPhase, stage3cRestrictionBlocks } from "../app/s
 
 const cards = JSON.parse(await readFile(new URL("../content/cards.json", import.meta.url), "utf8")).cards ?? [];
 const card = (catalogId) => cards.find((entry) => entry.catalogId === catalogId);
+const consumables = cards.filter((entry) => String(entry.catalogId ?? "").startsWith("DDB-CON-CORE-"));
 
 test("Consumable surface timing distinguishes Yell, Anytime, incoming Reaction, and event-specific Reaction cards", () => {
   assert.equal(canPlayCoreConsumableInPhase(card("DDB-CON-CORE-052"), "player-yell"), true); // Turn
@@ -19,6 +20,15 @@ test("Consumable surface timing distinguishes Yell, Anytime, incoming Reaction, 
     assert.equal(canPlayCoreConsumableInPhase(card(catalogId), "defense-window"), false, `${catalogId} needs its specific event hook instead of the generic incoming-Attack window`);
   }
   assert.equal(canPlayCoreConsumableInPhase(card("DDB-CON-CORE-057"), "defense-window"), true); // Anytime
+});
+
+test("all Core Consumables respect their printed Yell timing class instead of being generically playable support", () => {
+  assert.equal(consumables.length, 62);
+  for (const entry of consumables) {
+    const timing = String(entry.timing ?? "").toLocaleLowerCase();
+    const expected = timing === "turn" || timing === "anytime";
+    assert.equal(canPlayCoreConsumableInPhase(entry, "player-yell"), expected, `${entry.catalogId} (${entry.timing}) Yell legality drifted`);
+  }
 });
 
 test("Stage 3C restrictions are shared rules, not UI-only disabling", () => {
