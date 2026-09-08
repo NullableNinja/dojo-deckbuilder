@@ -38,3 +38,13 @@ test("incoming-Attack and next-Defense statuses consume on different gameplay ev
   assert.equal(afterDefense.some((entry) => entry.sourceEffectId === "ice-pack"), true);
   assert.equal(afterDefense.some((entry) => entry.sourceEffectId === "pocket-sand"), false);
 });
+
+test("consuming the next incoming Attack does not erase unrelated persistent statuses", () => {
+  const statuses = [
+    status({ sourceEffectId: "seaweed-wrap", amount: 1 }),
+    status({ sourceEffectId: "pocket-sand", effect: "combat.modifyGuard", amount: -2, duration: "nextDefense" }),
+    status({ sourceEffectId: "plum-wine", effect: "core.custom", amount: -1, duration: "nextTurn", qualifier: { stat: "DEF" } }),
+  ];
+  const remaining = consumeNextIncomingAttackStatuses(statuses);
+  assert.deepEqual(remaining.map((entry) => entry.sourceEffectId), ["pocket-sand", "plum-wine"]);
+});
