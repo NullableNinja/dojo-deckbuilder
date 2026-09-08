@@ -1,0 +1,32 @@
+name: Audit Stage 3C Custom Runtime Semantics
+on:
+  push:
+    branches: [stage3c-play-surface-remediation]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - name: Enumerate custom/dedicated commands against play surface
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          import { consumableRuntimeCommands } from './app/consumable-effect-resolvers.ts';
+          const cards = JSON.parse(await readFile('./app/data/cards.json','utf8')).cards;
+          const playtest = await readFile('./app/playtest.tsx','utf8');
+          const context = { hpThresholdMet:true, hasTempo:true, handEmptyAfterHeal:true, normalAttacksResolvedThisTurn:2, reactionItemUsedSinceLastTurn:true, temporaryNegativeModifierPresent:true, removedTemporaryNegativeModifier:true, nextAttackBlocked:true, interferencePrevented:false, chosenFriendlyIsBenched:false, chosenFriendlyIsConscious:true, sameTurnSourceActive:true, discardedCount:2, revealedFocusValue:2, revealedDifferentTypeCount:3, selectedEquipmentSubtype:'Gear', friendlyTargetCount:1, opponentTargetCount:1, junkDestroyed:true };
+          for (const card of cards.filter((card)=>String(card.catalogId).startsWith('DDB-CON-CORE-'))) {
+            const commands=[];
+            for (const trigger of ['onPlay','afterResolve','onHide','passive']) {
+              for (const command of consumableRuntimeCommands(card,trigger,context)) {
+                if (command.effect === 'core.custom' || command.resolver) commands.push({trigger,effect:command.effect,resolver:command.resolver,duration:command.duration,amount:command.amount,qualifier:command.qualifier,choice:Boolean(command.choice),resolverReferencedInPlaytest:Boolean(command.resolver && playtest.includes(command.resolver))});
+              }
+            }
+            if (commands.some((command)=>command.effect==='core.custom')) console.log(JSON.stringify({catalogId:card.catalogId,name:card.name,rulesText:card.rulesText,commands}));
+          }
+          NODE
