@@ -96,6 +96,7 @@ const consumableBaseContext = {
   discardedCount: 2,
   revealedFocusValue: 2,
   revealedDifferentTypeCount: 3,
+  friendlyTargetCount: 2,
   selectedEquipmentSubtype: "Gear",
 };
 
@@ -219,6 +220,28 @@ test("end-of-round Consumable modifiers apply now and expire cleanly", () => {
   const expired = expireRuntimeStatuses(state, "endOfRound");
   assert.equal(expired.self.speed, 0);
   assert.equal(expired.statuses.some((status) => status.sourceEffectId === effect.id), false);
+});
+
+test("solo-friendly healing resolves into HP instead of an unreachable target choice", () => {
+  const soloHealResolvers = new Set([
+    "consumable.chooseFriendlyHealTarget",
+    "consumable.healByChosenFriendlyPosition",
+    "consumable.healAndRemoveStatus",
+  ]);
+  const failures = [];
+  for (const [catalogId, definition] of Object.entries(consumables)) {
+    const healEffects = (definition.effects ?? []).filter((effect) => effect.effect === "core.heal" && soloHealResolvers.has(effect.resolver));
+    for (const effect of healEffects) {
+      const commands = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, friendlyTargetCount: 1 });
+      const command = commands.find((candidate) => candidate.sourceEffectId === effect.id);
+      if (!command) { failures.push(`${catalogId}:${effect.id}:missing-command`); continue; }
+      if (command.choice) failures.push(`${catalogId}:${effect.id}:still-queued-as-choice`);
+      const state = applyConsumableRuntime(createFamilyRuntimeState({ self: { hp: 1, maxHp: 20 } }), card(catalogId), "onPlay", { ...consumableBaseContext, friendlyTargetCount: 1 });
+      if (state.self.hp < 1 + Number(effect.amount ?? 0)) failures.push(`${catalogId}:${effect.id}:heal-not-applied`);
+      if (state.pendingChoices.some((choice) => choice.sourceEffectId === effect.id)) failures.push(`${catalogId}:${effect.id}:unreachable-choice-remains`);
+    }
+  }
+  assert.deepEqual(failures, []);
 });
 
 test("next-Attack Consumable modifiers persist exactly once and are consumed at the Attack hook", () => {

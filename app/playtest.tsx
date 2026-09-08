@@ -953,6 +953,7 @@ function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {
     hpThresholdMet: board.hp <= Math.ceil(board.maxHp / 2),
     handEmptyAfterHeal: board.hand.length === 0,
     normalAttacksResolvedThisTurn: board.attacksThisTurn,
+    friendlyTargetCount: 1,
     temporaryNegativeModifierPresent: board.tempSpeed < 0 || board.nextAttackBonus < 0 || (board.nextDefenseCardBonus ?? 0) < 0,
     removedTemporaryNegativeModifier: false,
     sameTurnSourceActive: true,

@@ -23,6 +23,13 @@ test("Quick Duel wires printed Attack/Defense modifiers and flexible zones into 
 });
 
 
+test("Quick Duel marks its single friendly fighter so structured healing auto-resolves", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /friendlyTargetCount: 1/);
+  assert.match(source, /applyStage3CTiming\(next, card, timing, owner, context, "self"\)/);
+});
+
+
 test("Quick Duel pauses for explicit player-choice effects instead of auto-resolving them", async () => {
   const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
   assert.match(source, /type PendingChoice/);
