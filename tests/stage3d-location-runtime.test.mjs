@@ -132,6 +132,7 @@ test("Location lifecycle reset keeps delayed state but clears turn/round/scene u
   const nextTurn = resetLocationTurn(initial);
   assert.deepEqual(nextTurn.locationUsedEffectsThisTurn, []);
   assert.deepEqual(nextTurn.locationUsedEffectsThisRound, ["round"]);
+  assert.equal(nextTurn.locationChosenCounterZone, "Low", "delayed next-counter zone survives an ordinary turn boundary");
 
   const nextScene = resetLocationScene(nextTurn);
   assert.deepEqual(nextScene.locationUsedEffectsThisScene, []);
@@ -141,6 +142,7 @@ test("Location lifecycle reset keeps delayed state but clears turn/round/scene u
   assert.deepEqual(nextRound.locationUsedEffectsThisRound, []);
   assert.equal(nextRound.tempSpeed, -2, "next-round delayed Speed applies at Honor");
   assert.equal(nextRound.locationNextRoundSpeed, 0);
+  assert.equal(nextRound.locationChosenCounterZone, null, "delayed counter state expires at the round boundary if still unused");
 });
 
 test("Quick Duel uses all Core Locations and gameplay no longer calls legacy Location prose/focus paths", () => {
@@ -161,8 +163,9 @@ test("Quick Duel exposes explicit Location lifecycle/event hooks for both fighte
     "applyLocationConsumableResolve",
     "applyLocationEquipmentExhaust",
     "locationPurchasePrice",
-    "locationHealingAmount",
+    "applyLocationHealing",
     "applyLocationBeltExamComplete",
   ]) assert.match(playtestSource, new RegExp(`\\b${hook}\\b`), `missing ${hook}`);
+  assert.match(playtestSource, /const healed = applyLocationHealing\(/, "Location healing modifier must be invoked by actual healing resolution");
   assert.match(playtestSource, /usedLocationEffectsAcrossPlayersThisRound/);
 });
