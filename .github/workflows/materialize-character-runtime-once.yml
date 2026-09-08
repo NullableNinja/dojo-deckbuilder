@@ -31,12 +31,18 @@ jobs:
           board_label = '  "Board Character runtime state",\n);'
           start = script.index(board_start)
           end = script.index(board_label, start) + len(board_label)
-          block = '''source = replaceOnce(
-  source,
-  '  locationPendingChoice?: { kind: "location-choice"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string } | null;\\n};',
-  '  locationPendingChoice?: { kind: "location-choice"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string } | null;\\n  usedCharacterEffectIdsThisTurn?: string[];\\n  usedCharacterEffectIdsThisRound?: string[];\\n  usedCharacterEffectIdsThisGame?: string[];\\n  characterMarks?: Record<string, unknown>;\\n  dealtCombatDamageThisTurn?: number;\\n  dealtCombatDamagePreviousTurn?: boolean | null;\\n};',
-  "Board Character runtime state",
-);'''
+          location_line = '  locationPendingChoice?: { kind: "location-choice"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string } | null;'
+          character_lines = [
+              '  usedCharacterEffectIdsThisTurn?: string[];',
+              '  usedCharacterEffectIdsThisRound?: string[];',
+              '  usedCharacterEffectIdsThisGame?: string[];',
+              '  characterMarks?: Record<string, unknown>;',
+              '  dealtCombatDamageThisTurn?: number;',
+              '  dealtCombatDamagePreviousTurn?: boolean | null;',
+          ]
+          search_literal = repr(location_line + '\\n};').replace('\\\\n', '\\\\n')
+          replacement_literal = repr(location_line + '\\n' + '\\n'.join(character_lines) + '\\n};').replace('\\\\n', '\\\\n')
+          block = 'source = replaceOnce(\n  source,\n  ' + search_literal + ',\n  ' + replacement_literal + ',\n  "Board Character runtime state",\n);'
           script = script[:start] + block + script[end:]
           path.write_text(script)
           PY
