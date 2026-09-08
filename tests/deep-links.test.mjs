@@ -14,6 +14,5 @@ test("companion supports shareable deep links for rules and cards", async () => 
   assert.match(source, /initialSectionId/);
   assert.match(source, /className="rule-section-nav"/);
   assert.match(css, /Shareable rule-section navigation/);
-  assert.match(source, /import PlaytestView from "\.\/playtest"/);
-  assert.doesNotMatch(source, /const PlaytestView = lazy/);
+  assert.match(source, /const PlaytestView = lazy\(\(\) => import\("\.\/playtest"\)\)/);
 });

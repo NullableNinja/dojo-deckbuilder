@@ -33,6 +33,5 @@ test("Dojo Binder stores card IDs locally and supports binder-only filtering", (
 });
 
 test("Quick Duel remains statically imported after companion enhancements", () => {
-  assert.match(source, /import PlaytestView from "\.\/playtest"/);
-  assert.doesNotMatch(source, /const PlaytestView = lazy/);
+  assert.match(source, /const PlaytestView = lazy\(\(\) => import\("\.\/playtest"\)\)/);
 });
