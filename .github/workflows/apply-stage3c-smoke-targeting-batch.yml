@@ -6,6 +6,7 @@ on:
     paths:
       - scripts/apply-stage3c-smoke-targeting-batch.mjs
       - scripts/fix-stage3c-standing-block-memory.mjs
+      - scripts/fix-stage3c-block-memory-test.mjs
       - .github/workflows/apply-stage3c-smoke-targeting-batch.yml
 
 permissions:
@@ -41,8 +42,10 @@ jobs:
         run: node scripts/apply-stage3c-smoke-targeting-batch.mjs
       - name: Restore normal standing-Block memory
         run: node scripts/fix-stage3c-standing-block-memory.mjs
+      - name: Update Block-memory certification for target invalidation
+        run: node scripts/fix-stage3c-block-memory-test.mjs
       - name: Remove one-shot scaffolding before certification
-        run: git rm -f scripts/apply-stage3c-smoke-targeting-batch.mjs scripts/fix-stage3c-standing-block-memory.mjs .github/workflows/apply-stage3c-smoke-targeting-batch.yml
+        run: git rm -f scripts/apply-stage3c-smoke-targeting-batch.mjs scripts/fix-stage3c-standing-block-memory.mjs scripts/fix-stage3c-block-memory-test.mjs .github/workflows/apply-stage3c-smoke-targeting-batch.yml
       - name: Targeted Smoke Bomb certification
         run: node --experimental-strip-types --test tests/stage3c-consumable-reaction-ai.test.mjs tests/stage3c-smoke-bomb-play-surface.test.mjs tests/attack-structured-resolvers-batch.test.mjs
       - name: Full clean-branch test suite
