@@ -160,8 +160,6 @@ export function resetLocationTurn<T extends LocationTrackedState>(state: T): T {
   return {
     ...state,
     locationUsedEffectsThisTurn: [],
-    locationChosenCounterZone: null,
-    locationChosenCounterRound: null,
     locationComboNumericChoice: null,
   };
 }
