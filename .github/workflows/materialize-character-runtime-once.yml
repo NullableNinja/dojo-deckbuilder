@@ -17,78 +17,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Prepare materializer
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path("scripts/apply-stage3d-character-runtime.mjs")
-          script = path.read_text()
-          script = script.replace(
-              'if (text.indexOf(search, index + search.length) >= 0) throw new Error(`Stage 3D patch anchor is not unique: ${label}`);',
-              'if (text.indexOf(search, index + search.length) >= 0 && label !== "player Attack cardPlayed and AI Block Character event") throw new Error(`Stage 3D patch anchor is not unique: ${label}`);'
-          )
-
-          old_board = "\n".join([
-              "source = replaceOnce(",
-              "  source,",
-              "  '  stage3cPurchaseCostModifier?: number;\\n};',",
-              "  '  stage3cPurchaseCostModifier?: number;\\n  usedCharacterEffectIdsThisTurn?: string[];\\n  usedCharacterEffectIdsThisRound?: string[];\\n  usedCharacterEffectIdsThisGame?: string[];\\n  characterMarks?: Record<string, unknown>;\\n  dealtCombatDamageThisTurn?: number;\\n  dealtCombatDamagePreviousTurn?: boolean | null;\\n};',",
-              '  "Board Character runtime state",',
-              ");",
-          ])
-          new_board = "\n".join([
-              "source = replaceOnce(",
-              "  source,",
-              "  '  locationPendingChoice?: { kind: \"location-choice\"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string } | null;\\n};',",
-              "  '  locationPendingChoice?: { kind: \"location-choice\"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string } | null;\\n  usedCharacterEffectIdsThisTurn?: string[];\\n  usedCharacterEffectIdsThisRound?: string[];\\n  usedCharacterEffectIdsThisGame?: string[];\\n  characterMarks?: Record<string, unknown>;\\n  dealtCombatDamageThisTurn?: number;\\n  dealtCombatDamagePreviousTurn?: boolean | null;\\n};',",
-              '  "Board Character runtime state",',
-              ");",
-          ])
-          if old_board not in script:
-              raise SystemExit("legacy Board materializer block not found")
-          script = script.replace(old_board, new_board, 1)
-
-          old_choice = "\n".join([
-              "source = replaceOnce(",
-              "  source,",
-              "  '  | { kind: \"fire-drill-zone\"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[] };',",
-              "  '  | { kind: \"fire-drill-zone\"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[] }\\n  | { kind: \"character\"; choice: CharacterRuntimeChoice; event: CharacterRuntimeEvent; context: \"generic\" | \"incoming-strike\" | \"combo-reveal\" | \"ronin-market\" | \"ronin-location\" | \"reboot\"; data?: Record<string, unknown>; resumeChoice?: PendingChoice | null };',",
-              '  "generic Character pending choice",',
-              ");",
-          ])
-          new_choice = "\n".join([
-              "source = replaceOnce(",
-              "  source,",
-              "  '  | { kind: \"location-choice\"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string };',",
-              "  '  | { kind: \"location-choice\"; sourceCardId: string; effectId: string; operation: string; options: string[]; metadata: Record<string, unknown>; step?: string }\\n  | { kind: \"character\"; choice: CharacterRuntimeChoice; event: CharacterRuntimeEvent; context: \"generic\" | \"incoming-strike\" | \"combo-reveal\" | \"ronin-market\" | \"ronin-location\" | \"reboot\"; data?: Record<string, unknown>; resumeChoice?: PendingChoice | null };',",
-              '  "generic Character pending choice",',
-              ");",
-          ])
-          if old_choice not in script:
-              raise SystemExit("legacy PendingChoice materializer block not found")
-          script = script.replace(old_choice, new_choice, 1)
-
-          old_price = "\n".join([
-              "source = replaceOnce(",
-              "  source,",
-              "  '  return Math.max(0, cardCost(card) + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === \"Item\" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount);',",
-              "  '  const normalPrice = Math.max(0, cardCost(card) + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === \"Item\" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount);\\n  return characterPurchasePrice(board, normalPrice);',",
-              '  "Coupon Carl Market price",',
-              ");",
-          ])
-          new_price = "\n".join([
-              "source = replaceOnce(",
-              "  source,",
-              "  '  const base = Math.max(0, cardCost(card) + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === \"Item\" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount);\\n  return locationPurchasePrice(board, card, base);',",
-              "  '  const base = Math.max(0, cardCost(card) + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === \"Item\" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount);\\n  const locationPrice = locationPurchasePrice(board, card, base);\\n  return characterPurchasePrice(board, locationPrice);',",
-              '  "Coupon Carl Market price",',
-              ");",
-          ])
-          if old_price not in script:
-              raise SystemExit("legacy purchase materializer block not found")
-          script = script.replace(old_price, new_price, 1)
-          path.write_text(script)
-          PY
+      - name: Adapt legacy materializer to current runtime tree
+        run: node scripts/adapt-stage3d-character-materializer.mjs
 
       - name: Materialize Character source
         shell: bash
@@ -107,7 +37,7 @@ jobs:
           path: character-materialize.log
           if-no-files-found: ignore
 
-      - name: Apply known repairs
+      - name: Apply known integration repairs
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -144,15 +74,15 @@ jobs:
           path.write_text(text)
           PY
 
-      - name: Check diff
+      - name: Check materialized diff
         run: git diff --check
 
-      - name: Commit materialized production source and remove installer
+      - name: Commit production Character source and remove migration tooling
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -- scripts/apply-stage3d-character-runtime.mjs
           git add app/playtest.tsx app/character-runtime.ts
-          git rm scripts/apply-stage3d-character-runtime.mjs .github/workflows/materialize-character-runtime-once.yml
+          git rm scripts/apply-stage3d-character-runtime.mjs scripts/adapt-stage3d-character-materializer.mjs .github/workflows/materialize-character-runtime-once.yml
           git commit -m "feat: materialize Character runtime into production source"
           git push origin HEAD:core-engine-runtime-integration
