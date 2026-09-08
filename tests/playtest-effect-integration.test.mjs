@@ -148,3 +148,13 @@ test("Quick Duel evaluates Consumable onPlay context after the played card leave
   assert.match(source, /function expireStage3CQualified\(board: Board, expires: "endOfTurn" \| "endOfRound"\)/);
   assert.match(source, /status\.qualifier\?\.expires === expires/);
 });
+
+
+test("Quick Duel applies nextIncomingAttack DEF without requiring a Defense card and consumes it independently", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /let defensePower = fighterStat\(nextPlayer, "DEF"\) \+ armorModifier\.value \+ stage3cIncomingAttackDefenseBonus\(nextPlayer\)/);
+  assert.match(source, /stage3cIncomingAttackDefenseBonus\(aiDefenseReaction\.board\)/);
+  assert.match(source, /nextAi = stage3cConsumeIncomingAttackStatuses\(nextAi\)/);
+  assert.match(source, /nextPlayer = stage3cConsumeIncomingAttackStatuses\(nextPlayer\)/);
+  assert.match(source, /stage3cConsumeDefenseStatuses\(\{ \.\.\.nextAi/);
+});
