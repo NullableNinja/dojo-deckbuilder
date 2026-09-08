@@ -1,0 +1,76 @@
+name: Apply Stage 3C Single-Opponent Remediation Once
+
+on:
+  push:
+    branches:
+      - stage3c-play-surface-remediation
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch single-opponent structured choices
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          resolver = Path('app/consumable-effect-resolvers.ts')
+          text = resolver.read_text()
+          old = '  friendlyTargetCount?: number;\n  selectedEquipmentSubtype?: string;'
+          new = '  friendlyTargetCount?: number;\n  opponentTargetCount?: number;\n  selectedEquipmentSubtype?: string;'
+          if old not in text:
+              raise SystemExit('Consumable target-count context anchor missing')
+          text = text.replace(old, new, 1)
+
+          old = '''  const autoResolveSoloFriendlyHeal = command.effect === "core.heal"\n    && command.target === "self"\n    && Number(context.friendlyTargetCount ?? 0) === 1\n    && new Set([\n      "consumable.chooseFriendlyHealTarget",\n      "consumable.healByChosenFriendlyPosition",\n      "consumable.healAndRemoveStatus",\n    ]).has(resolver);\n\n  if (!autoResolveSoloFriendlyHeal && choiceResolver(resolver) && ['''
+          new = '''  const autoResolveSoloFriendlyHeal = command.effect === "core.heal"\n    && command.target === "self"\n    && Number(context.friendlyTargetCount ?? 0) === 1\n    && new Set([\n      "consumable.chooseFriendlyHealTarget",\n      "consumable.healByChosenFriendlyPosition",\n      "consumable.healAndRemoveStatus",\n    ]).has(resolver);\n  const autoResolveSingleOpponent = command.target === "opponent"\n    && Number(context.opponentTargetCount ?? 0) === 1\n    && new Set([\n      "consumable.chooseOpponentNextAttackPenalty",\n      "consumable.chooseOpponentSpeedPenalty",\n    ]).has(resolver);\n\n  if (!autoResolveSoloFriendlyHeal && !autoResolveSingleOpponent && choiceResolver(resolver) && ['''
+          if old not in text:
+              raise SystemExit('Consumable auto-resolution anchor missing')
+          resolver.write_text(text.replace(old, new, 1))
+
+          playtest = Path('app/playtest.tsx')
+          text = playtest.read_text()
+          old = '    friendlyTargetCount: 1,\n    temporaryNegativeModifierPresent:'
+          new = '    friendlyTargetCount: 1,\n    opponentTargetCount: 1,\n    temporaryNegativeModifierPresent:'
+          if old not in text:
+              raise SystemExit('Quick Duel target-count context anchor missing')
+          playtest.write_text(text.replace(old, new, 1))
+
+          tests = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
+          text = tests.read_text()
+          old = '  friendlyTargetCount: 2,\n  selectedEquipmentSubtype: "Gear",'
+          new = '  friendlyTargetCount: 2,\n  opponentTargetCount: 2,\n  selectedEquipmentSubtype: "Gear",'
+          if old not in text:
+              raise SystemExit('Stage 3C target-count test context anchor missing')
+          text = text.replace(old, new, 1)
+
+          anchor = '''test("solo-friendly healing resolves into HP instead of an unreachable target choice", () => {'''
+          regression = '''test("single-opponent target selection auto-resolves in Quick Duel semantics", () => {\n  const cases = [\n    ["DDB-CON-CORE-002", "consumable.chooseOpponentNextAttackPenalty", "combat.modifyAttackPower", -2, "nextAttack"],\n    ["DDB-CON-CORE-059", "consumable.chooseOpponentSpeedPenalty", "combat.modifySpeed", -2, "endOfRound"],\n  ];\n  for (const [catalogId, resolver, effect, amount, duration] of cases) {\n    const duelCommands = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 });\n    const duelCommand = duelCommands.find((candidate) => candidate.resolver === resolver);\n    assert.ok(duelCommand, `${catalogId} must produce its structured command`);\n    assert.equal(duelCommand.choice, undefined, `${catalogId} must not queue an unreachable opponent choice in a duel`);\n    assert.equal(duelCommand.effect, effect);\n    assert.equal(duelCommand.amount, amount);\n    assert.equal(duelCommand.duration, duration);\n\n    const multiplayerCommands = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 2 });\n    const multiplayerCommand = multiplayerCommands.find((candidate) => candidate.resolver === resolver);\n    assert.ok(multiplayerCommand?.choice, `${catalogId} must preserve explicit target choice when multiple opponents exist`);\n  }\n});\n\n'''
+          if anchor not in text:
+              raise SystemExit('Stage 3C single-opponent regression insertion anchor missing')
+          tests.write_text(text.replace(anchor, regression + anchor, 1))
+
+          integration = Path('tests/playtest-effect-integration.test.mjs')
+          text = integration.read_text()
+          old = '  assert.match(source, /friendlyTargetCount: 1/);'
+          new = '  assert.match(source, /friendlyTargetCount: 1/);\n  assert.match(source, /opponentTargetCount: 1/);'
+          if old not in text:
+              raise SystemExit('Quick Duel target-count integration assertion missing')
+          integration.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Remove one-shot workflow and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/apply-stage3c-single-opponent-remediation.yml
+          git add app/consumable-effect-resolvers.ts app/playtest.tsx tests/stage3c-defense-consumable-runtime.test.mjs tests/playtest-effect-integration.test.mjs
+          git diff --check
+          git commit -m "fix: auto-resolve single-opponent Consumable targets"
+          git push origin HEAD:stage3c-play-surface-remediation
