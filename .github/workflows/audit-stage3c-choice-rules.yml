@@ -1,0 +1,35 @@
+name: Audit Stage 3C Choice Card Rules
+
+on:
+  push:
+    branches:
+      - stage3c-play-surface-remediation
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Print choice-card rules and resolvers
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          import { consumableRuntimeCommands } from './app/consumable-effect-resolvers.ts';
+          const cards = JSON.parse(await readFile('./content/cards.json','utf8')).cards;
+          const context = { hpThresholdMet:true, hasTempo:true, handEmptyAfterHeal:true, normalAttacksResolvedThisTurn:2, reactionItemUsedSinceLastTurn:true, temporaryNegativeModifierPresent:true, removedTemporaryNegativeModifier:true, nextAttackBlocked:true, interferencePrevented:false, chosenFriendlyIsBenched:false, chosenFriendlyIsConscious:true, sameTurnSourceActive:true, discardedCount:2, revealedFocusValue:2, revealedDifferentTypeCount:3, selectedEquipmentSubtype:'Gear', friendlyTargetCount:2 };
+          for (const card of cards.filter((card) => String(card.catalogId).startsWith('DDB-CON-CORE-'))) {
+            const choices = [];
+            for (const trigger of ['onPlay','afterResolve','onHide','passive']) {
+              for (const command of consumableRuntimeCommands(card, trigger, context)) if (command.choice) choices.push({trigger,effect:command.effect,target:command.target,resolver:command.resolver,duration:command.duration,amount:command.amount});
+            }
+            if (!choices.length) continue;
+            console.log(JSON.stringify({catalogId:card.catalogId,name:card.name,rulesText:card.rulesText,choices}));
+          }
+          NODE
