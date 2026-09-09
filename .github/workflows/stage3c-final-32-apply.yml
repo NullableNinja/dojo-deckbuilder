@@ -147,6 +147,9 @@ jobs:
         run: |
           set -o pipefail
           npm test 2>&1 | tee stage3c-full-suite.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -eq 0 ]; then rm -f stage3c-full-suite.log; fi
+          exit "$status"
 
       - name: Upload remediation diagnostics
         if: failure()
