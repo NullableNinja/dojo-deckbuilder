@@ -16,6 +16,11 @@ export default defineConfig({
               test: /app[\\/]data[\\/]card-effects\.json$/,
               priority: 20,
             },
+            {
+              name: "playtest",
+              test: /app[\\/]playtest\.tsx$/,
+              priority: 15,
+            },
           ],
         },
       },
