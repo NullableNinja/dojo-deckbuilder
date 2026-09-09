@@ -113,7 +113,7 @@ function conditionValues(context: ConsumableRuntimeContext) {
 function resolverConditionMatches(_catalogId: string, effect: StructuredRuntimeEffect, context: ConsumableRuntimeContext) {
   if (!conditionsMatch(effect, conditionValues(context))) return false;
   switch (effect.resolver) {
-    case "consumable.focusByHpThreshold": return Boolean(context.hpThresholdMet);
+    case "consumable.focusByHpThreshold": return true;
     case "consumable.drawIfHandEmptyAfterHeal": return Boolean(context.handEmptyAfterHeal);
     case "consumable.afterSecondNormalAttackFocus": return (context.normalAttacksResolvedThisTurn ?? 0) >= 2;
     case "consumable.tempoAtUseCycle": return Boolean(context.hasTempo);
@@ -152,7 +152,6 @@ function choiceResolver(resolver?: string) {
     "consumable.destroyJunkThenDrawTwo",
     "consumable.healByChosenFriendlyPosition",
     "consumable.destroyJunkFromHand",
-    "consumable.ascendPurchaseDiscount",
     "consumable.removeTemporaryNegativeStatModifier",
     "consumable.discardUpToForFocus",
     "consumable.replaceRevealedMarketOrLocation",
@@ -203,6 +202,9 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
   }
 
   switch (resolver) {
+    case "consumable.focusByHpThreshold":
+      command.amount = context.hpThresholdMet ? 2 : 1;
+      break;
     case "consumable.nextQualifyingAttackModifier":
       command.qualifier = { nextAttackTag: "Unarmed", expires: "endOfTurn" };
       command.duration = "nextAttack";
@@ -248,9 +250,10 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
       command.duration = "nextIncomingAttack";
       break;
     case "consumable.reorderTopThree":
-      command.choice = { resolver, reveal: 3, bonusFocusIfDifferentTypes: 3 };
+      command.choice = { resolver, reveal: 3, bonusFocusIfDifferentTypes: 1 };
       break;
     case "consumable.ascendPurchaseDiscount":
+      command.target = "self";
       command.duration = "nextPurchase";
       command.qualifier = { minPrintedCost: 5, minimumFinalCost: 4, expires: "endOfTurn" };
       break;
@@ -299,6 +302,9 @@ function qualifyConsumableCommand(catalogId: string, effect: StructuredRuntimeEf
     case "consumable.restrictedFocusItemsEquipment":
       command.duration = "endOfTurn";
       command.qualifier = { spendOnlyOn: ["Item", "Equipment"] };
+      break;
+    case "consumable.topThreeAttackSelection":
+      command.choice = { resolver, reveal: 3, filter: "Attack", discardRest: true, optionalDestroyJunkDiscarded: true };
       break;
     case "consumable.suppressChosenWeaponClause":
       command.duration = "endOfTurn";

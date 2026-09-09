@@ -374,7 +374,6 @@ test("every Consumable explicit-choice resolver queues at least one structured c
     "consumable.destroyJunkThenDrawTwo",
     "consumable.healByChosenFriendlyPosition",
     "consumable.destroyJunkFromHand",
-    "consumable.ascendPurchaseDiscount",
     "consumable.removeTemporaryNegativeStatModifier",
     "consumable.discardUpToForFocus",
     "consumable.replaceRevealedMarketOrLocation",

@@ -9,6 +9,7 @@ type TimedRuntimeCard = RuntimeCardLike & { timing?: string | null };
 export function canPlayCoreConsumableInPhase(card: TimedRuntimeCard, phase: ConsumableSurfacePhase, context: ConsumableRuntimeContext = {}) {
   const timing = String(card.timing ?? "").trim().toLocaleLowerCase();
   if (phase === "player-yell") return timing === "turn" || timing === "anytime";
+  if (phase === "player-ascend") return timing === "ascend";
   if (phase !== "defense-window") return false;
   if (timing === "anytime") return true;
   if (timing !== "reaction") return false;
