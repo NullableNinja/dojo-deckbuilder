@@ -86,7 +86,7 @@ jobs:
           consumables = Path('content/card-effects/consumables.json')
           text = consumables.read_text()
           old_voucher = '"target":"chosen-card","amount":-2,"duration":"immediate","resolver":"consumable.ascendPurchaseDiscount"'
-          new_voucher = '"target":"self","amount":-2,"duration":"nextPurchase","resolver":"consumable.ascendPurchaseDiscount"'
+          new_voucher = '"target":"self","amount":-2,"duration":"endOfTurn","resolver":"consumable.ascendPurchaseDiscount"'
           if text.count(old_voucher) != 1:
               raise SystemExit(f'Laminated Lunch Voucher canonical anchor count={text.count(old_voucher)}')
           consumables.write_text(text.replace(old_voucher, new_voucher, 1))
