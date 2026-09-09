@@ -27,6 +27,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Repair and syntax-check one-shot patcher
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/apply-stage3c-final-32.mjs')
+          text = path.read_text()
+          old = 'pendingChoice ? ` Up to \\${remaining} more may be discarded.` : " Choice complete."'
+          new = 'pendingChoice ? " Up to " + remaining + " more may be discarded." : " Choice complete."'
+          if old not in text:
+              raise SystemExit('expected nested template anchor not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          node --check scripts/apply-stage3c-final-32.mjs
+
       - name: Apply final 32 remediation
         run: node scripts/apply-stage3c-final-32.mjs
 
