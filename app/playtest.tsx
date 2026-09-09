@@ -172,7 +172,8 @@ type PendingChoice =
   | { kind: "attack-option"; sourceCardId: string; effect: "courtesy-notice" | "discount-dim-mak" | "tornado-crescent" }
   | { kind: "attack-cost-discard"; sourceCardId: string; bonus: number; optional: true }
   | { kind: "fire-drill-discard"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[]; optional: true }
-  | { kind: "fire-drill-zone"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[] };
+  | { kind: "fire-drill-zone"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[] }
+  | { kind: "air-horn-reaction"; sourceCardId: string; reactionCardId: string; reactionKind: "consumable" | "defense" };
 
 type Match = {
   schema: 8;
@@ -202,6 +203,9 @@ type Match = {
   reversalIncomingZone?: string | null;
   attackCostDecisionCardId?: string | null;
   nonHonorSceneChangedThisRound?: boolean;
+  airHornPassedReactionIds?: string[];
+  airHornAiConsumableSpentThisStrike?: boolean;
+  airHornAiDefenseSpentThisStrike?: boolean;
   exchangeSequence?: number;
   lastExchange?: PlaytestCombatExchange | null;
   log: string[];
@@ -2123,7 +2127,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     return current;
   });
 
-  const declareAttack = () => setMatch((current) => {
+  const resolvePlayerAttackState = (current: Match): Match => {
     if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice || stage3cRestrictionBlocks(current.player.stage3cRestrictions, "attack")) return current;
     const card = cardFor(current.selectedAttackId);
     if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
@@ -2150,10 +2154,35 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const hasFlow = attackHasFlow(current.player, card, comboModifier, zone);
     const stage3cAttackBonus = stage3cAttackPowerBonus(current.player, card, zone);
     const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
-    const aiConsumableReaction = autoPlayAiDefensiveConsumable(aiIncomingReaction.board, Math.max(0, baseAttackPower - fighterStat(aiIncomingReaction.board, "DEF")));
+    const playerAirHorn = firstEventReactionCard(current.player.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
+    const expectedIncomingDamage = Math.max(0, baseAttackPower - fighterStat(aiIncomingReaction.board, "DEF"));
+    const aiConsumableCandidate = current.airHornAiConsumableSpentThisStrike
+      ? null
+      : chooseAiDefensiveConsumable(aiIncomingReaction.board.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), {
+          ...stage3cConsumableContext(aiIncomingReaction.board),
+          missingHp: Math.max(0, aiIncomingReaction.board.maxHp - aiIncomingReaction.board.hp),
+          expectedIncomingDamage,
+          friendlyTargetCount: 1,
+          opponentTargetCount: 1,
+        }) as CardEntry | null;
+    if (aiConsumableCandidate && playerAirHorn && !(current.airHornPassedReactionIds ?? []).includes(aiConsumableCandidate.id)) {
+      return write(current, `${aiConsumableCandidate.name} is played as the computer's Reaction. Air Horn can cancel it before resolution.`, {
+        pendingChoice: { kind: "air-horn-reaction", sourceCardId: playerAirHorn.id, reactionCardId: aiConsumableCandidate.id, reactionKind: "consumable" },
+      });
+    }
+    const aiConsumableReaction = current.airHornAiConsumableSpentThisStrike
+      ? { board: aiIncomingReaction.board, card: null as CardEntry | null, notes: ["Air Horn canceled the computer's Consumable Reaction"] }
+      : autoPlayAiDefensiveConsumable(aiIncomingReaction.board, expectedIncomingDamage);
     const defenseScenarioPower = afterDefenseAttackPowerBonus(card, true);
-    const defenseId = bestDefense(aiConsumableReaction.board, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value, armorPenalty);
+    const defenseId = current.airHornAiDefenseSpentThisStrike
+      ? null
+      : bestDefense(aiConsumableReaction.board, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value, armorPenalty);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
+    if (defenseCard && playerAirHorn && !(current.airHornPassedReactionIds ?? []).includes(defenseCard.id)) {
+      return write(current, `${defenseCard.name} is played as the computer's one Defense for this strike. Air Horn can cancel it before Guard or printed effects resolve.`, {
+        pendingChoice: { kind: "air-horn-reaction", sourceCardId: playerAirHorn.id, reactionCardId: defenseCard.id, reactionKind: "defense" },
+      });
+    }
     const postDefensePower = afterDefenseAttackPowerBonus(card, Boolean(defenseCard));
     const attackPower = Math.max(0, baseAttackPower + postDefensePower.amount);
     const aiDefenseReaction = defenseCard ? autoActivateAiDefenseGuardEquipment(aiConsumableReaction.board) : { board: aiConsumableReaction.board, guard: 0, notes: [] as string[] };
@@ -2245,7 +2274,79 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : optionalCycle && nextPlayer.hand.length ? { kind: "discard-draw", sourceCardId: card.id, remaining: optionalCycle.discard, draw: optionalCycle.draw } : null;
     const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
-    return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
+    return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, airHornPassedReactionIds: [], airHornAiConsumableSpentThisStrike: false, airHornAiDefenseSpentThisStrike: false, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
+  };
+
+  const declareAttack = () => setMatch((current) => current ? resolvePlayerAttackState(current) : current);
+
+  const resolvePlayerAirHornChoice = (useAirHorn: boolean) => setMatch((current) => {
+    const choice = current?.pendingChoice;
+    if (!current || !choice || choice.kind !== "air-horn-reaction") return current;
+    const reaction = cardFor(choice.reactionCardId);
+    const airHorn = cardFor(choice.sourceCardId);
+    if (!reaction || !airHorn || !current.player.hand.includes(airHorn.id)) {
+      const passed = write(current, "Air Horn is no longer available; the announced Reaction resolves.", {
+        pendingChoice: null,
+        airHornPassedReactionIds: [...new Set([...(current.airHornPassedReactionIds ?? []), choice.reactionCardId])],
+      });
+      return resolvePlayerAttackState(passed);
+    }
+    if (!useAirHorn) {
+      const passed = write(current, `Air Horn held. ${reaction.name} remains on the Dojo Stack and resolves normally.`, {
+        pendingChoice: null,
+        airHornPassedReactionIds: [...new Set([...(current.airHornPassedReactionIds ?? []), reaction.id])],
+      });
+      return resolvePlayerAttackState(passed);
+    }
+
+    let player: Board = {
+      ...current.player,
+      hand: removeOne(current.player.hand, airHorn.id),
+      playArea: [...current.player.playArea, airHorn.id],
+      usedConsumableThisRound: true,
+      reactionItemUsedSinceLastTurn: true,
+    };
+    player = returnResolvedConsumable(player, airHorn);
+    let ai = current.ai;
+    let airHornAiConsumableSpentThisStrike = Boolean(current.airHornAiConsumableSpentThisStrike);
+    let airHornAiDefenseSpentThisStrike = Boolean(current.airHornAiDefenseSpentThisStrike);
+
+    if (choice.reactionKind === "consumable") {
+      if (ai.hand.includes(reaction.id)) {
+        let cancelledAi: Board = {
+          ...ai,
+          hand: removeOne(ai.hand, reaction.id),
+          playArea: [...ai.playArea, reaction.id],
+          usedConsumableThisRound: true,
+          reactionItemUsedSinceLastTurn: true,
+        };
+        cancelledAi = returnResolvedConsumable(cancelledAi, reaction);
+        ai = cancelledAi;
+      }
+      airHornAiConsumableSpentThisStrike = true;
+    } else {
+      if (ai.hand.includes(reaction.id)) {
+        ai = stage3cConsumeDefenseStatuses(markCompletedTask({
+          ...ai,
+          hand: removeOne(ai.hand, reaction.id),
+          discard: [...ai.discard, reaction.id],
+          xp: ai.xp + 1,
+          defendedThisRound: true,
+          playedDefenseSinceLastTurn: true,
+          nextDefenseCardBonus: 0,
+        }));
+      }
+      airHornAiDefenseSpentThisStrike = true;
+    }
+
+    const intercepted = write(current, `Air Horn cancels ${reaction.name} before it resolves. ${choice.reactionKind === "defense" ? "That was the computer's one Defense card for this strike." : "The canceled Consumable returns to supply without applying its effect."}`, {
+      player,
+      ai,
+      pendingChoice: null,
+      airHornAiConsumableSpentThisStrike,
+      airHornAiDefenseSpentThisStrike,
+    });
+    return resolvePlayerAttackState(intercepted);
   });
 
   const playSupport = (id: string) => setMatch((current) => {
@@ -2874,7 +2975,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           : match.pendingChoice?.kind === "ready-equipment"
             ? (player.exhaustedEquipment ?? []).filter((id) => player.equipment.includes(id)).map((id, index) => ({ id, source: "equipment" as const, index }))
             : [];
-  const effectChoiceTitle = match.pendingChoice?.kind === "destroy-junk" ? "Choose Junk to destroy"
+  const effectChoiceTitle = match.pendingChoice?.kind === "air-horn-reaction" ? "Sound the Air Horn?"
+    : match.pendingChoice?.kind === "destroy-junk" ? "Choose Junk to destroy"
     : match.pendingChoice?.kind === "discard-draw" ? "Discard to draw?"
       : match.pendingChoice?.kind === "discard-hand" ? "Choose what to discard"
         : match.pendingChoice?.kind === "deck-pick" ? "Choose from the revealed cards"
@@ -2884,7 +2986,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? "Reduce this damage?"
                   : match.pendingChoice?.kind === "post-block-cycle" ? "Use post-Block Equipment?"
                     : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
-  const effectChoicePrompt = match.pendingChoice?.kind === "destroy-junk" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more Junk card${match.pendingChoice.remaining === 1 ? "" : "s"} from your hand or discard pile.`
+  const effectChoicePrompt = match.pendingChoice?.kind === "air-horn-reaction" ? `${cardFor(match.pendingChoice.reactionCardId)?.name ?? "The computer Reaction"} was just played. Use Air Horn now to cancel it before the Dojo Stack resolves, or allow it to resolve normally.`
+    : match.pendingChoice?.kind === "destroy-junk" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more Junk card${match.pendingChoice.remaining === 1 ? "" : "s"} from your hand or discard pile.`
     : match.pendingChoice?.kind === "discard-draw" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Attack"} lets you discard ${match.pendingChoice.remaining} card${match.pendingChoice.remaining === 1 ? "" : "s"} to draw ${match.pendingChoice.draw}. You may decline.`
       : match.pendingChoice?.kind === "discard-hand" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more discard${match.pendingChoice.remaining === 1 ? "" : "s"}. You choose the card.`
         : match.pendingChoice?.kind === "deck-pick" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} revealed ${match.pendingChoice.revealed.length} card${match.pendingChoice.revealed.length === 1 ? "" : "s"}. ${match.pendingChoice.optional ? "Take an eligible card or skip." : "Choose the eligible card to put into your hand."}`
@@ -3058,7 +3161,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView === "belt" && <button className="button ghost" onClick={() => setDeskView("market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : "Next: check Belt progress."}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
       </section>
     </div>}
-    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
+    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "air-horn-reaction" ? <><button type="button" onClick={() => resolvePlayerAirHornChoice(true)}><span>REACTION</span><b>USE AIR HORN</b><small>Cancel {cardFor(match.pendingChoice.reactionCardId)?.name ?? "the Reaction"} before it resolves</small></button><button type="button" onClick={() => resolvePlayerAirHornChoice(false)}><span>PASS</span><b>ALLOW REACTION</b><small>Keep Air Horn in hand and resolve the announced Reaction</small></button></> : match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
     {coachOpen && !match.winner && <div className="playtest-inspector-backdrop coach-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setCoachOpen(false)}><section className="coach-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="coach-dialog-title"><button className="modal-close" onClick={() => setCoachOpen(false)} aria-label="Close Decision Coach">×</button><span className="eyebrow">Decision coach · optional guidance</span><h2 id="coach-dialog-title">What should I do now?</h2><div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Recommended next step</span><p>{turnCoach}</p></div><div className="coach-dialog-actions"><button className="button primary" onClick={() => setCoachOpen(false)}>Back to the mat →</button><button className="button ghost" onClick={() => { setSettings({ ...settings, guided: false }); setCoachOpen(false); }}>Turn coach off</button></div><small>You can re-enable the Coach from the utility bar at any time.</small></section></div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><div className="fight-log-groups">{groupedFightLog(match.log).map((group, groupIndex) => <section key={`${group.label}-${groupIndex}`}><h3>{group.label}</h3><ol>{group.lines.map((line, index) => <li key={`${line}-${index}`}><b>{group.lines.length - index}</b><span>{line}</span></li>)}</ol></section>)}</div></section></div>}
     {inspected && inspectedBoard && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
