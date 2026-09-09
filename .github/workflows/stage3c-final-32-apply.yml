@@ -99,6 +99,13 @@ jobs:
               raise SystemExit('market Focus regression anchor missing')
           guard.write_text(text.replace(old_spend, new_spend, 1))
 
+          runtime_contract = Path('tests/stage3c-defense-consumable-runtime.test.mjs')
+          text = runtime_contract.read_text()
+          old_choice = '    "consumable.ascendPurchaseDiscount",\n'
+          if text.count(old_choice) != 1:
+              raise SystemExit(f'Lunch Voucher stale explicit-choice anchor count={text.count(old_choice)}')
+          runtime_contract.write_text(text.replace(old_choice, '', 1))
+
           test = Path('tests/stage3c-consumable-final-32.test.mjs')
           text = test.read_text()
           old_threshold = 'assert.ok(source.includes("board.hp <= Math.ceil(board.maxHp / 2)"));'
