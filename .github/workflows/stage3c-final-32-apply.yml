@@ -37,7 +37,13 @@ jobs:
           new = 'pendingChoice ? " Up to " + remaining + " more may be discarded." : " Choice complete."'
           if old not in text:
               raise SystemExit('expected nested template anchor not found')
-          path.write_text(text.replace(old, new, 1))
+          text = text.replace(old, new, 1)
+          strict = '  if (count !== 1) throw new Error(`${label}: expected one anchor, found ${count}`);\n  return source.replace(search, replacement);'
+          smoke_safe = '  if (label === "player blocked by Smoke" && count === 2) return source.split(search).join(replacement);\n  if (count !== 1) throw new Error(`${label}: expected one anchor, found ${count}`);\n  return source.replace(search, replacement);'
+          if strict not in text:
+              raise SystemExit('replaceOnce safety anchor not found')
+          text = text.replace(strict, smoke_safe, 1)
+          path.write_text(text)
           PY
           node --check scripts/apply-stage3c-final-32.mjs
 
