@@ -14,6 +14,7 @@ import { canPlayCoreConsumableInPhase, stage3cRestrictionBlocks } from "./stage3
 import { armConsumableAttackFollowupStatuses, isConsumableAttackFollowupStatus, resolveConsumableAttackFollowupStatuses } from "./stage3c-consumable-attack-followup.ts";
 import { armConsumableHideStatuses, resolveConsumableHideStatuses } from "./stage3c-consumable-hide-followup.ts";
 import { chooseAiDefensiveConsumable } from "./stage3c-consumable-reaction-ai.ts";
+import { firstEventReactionCard } from "./stage3c-consumable-event-reactions.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
@@ -2256,6 +2257,29 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : current.phase === "defense-window" && isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(current.player));
     if (!legalSupportPhase) return current;
     if (isCoreConsumableCard(card) && (current.player.stage3cRestrictions ?? []).includes("consumable")) return current;
+    const aiAirHorn = current.phase === "defense-window" && String(card.timing ?? "").trim().toLocaleLowerCase() === "reaction"
+      ? firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null
+      : null;
+    if (aiAirHorn) {
+      let cancelledPlayer: Board = {
+        ...current.player,
+        hand: removeOne(current.player.hand, card.id),
+        playArea: [...current.player.playArea, card.id],
+        usedConsumableThisRound: true,
+        reactionItemUsedSinceLastTurn: true,
+        lastAttackHit: false,
+      };
+      cancelledPlayer = returnResolvedConsumable(cancelledPlayer, card);
+      let reactingAi: Board = {
+        ...current.ai,
+        hand: removeOne(current.ai.hand, aiAirHorn.id),
+        playArea: [...current.ai.playArea, aiAirHorn.id],
+        usedConsumableThisRound: true,
+        reactionItemUsedSinceLastTurn: true,
+      };
+      reactingAi = returnResolvedConsumable(reactingAi, aiAirHorn);
+      return write(current, `${aiAirHorn.name} cancels ${card.name} before it resolves. Both one-use Consumables complete their normal supply lifecycle.`, { player: cancelledPlayer, ai: reactingAi });
+    }
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, current.player);
     let supportBoard = isKata(card) ? stage3cConsumeKata(current.player) : current.player;
     const ownTurnPlay = current.phase === "player-yell";
@@ -2519,6 +2543,30 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const pending = current.pendingStrike;
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     const aiCard = cardFor(pending.cardId)!;
+    if (defenseCard) {
+      const aiAirHorn = firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
+      if (aiAirHorn) {
+        const cancelledPlayer = stage3cConsumeDefenseStatuses(markCompletedTask({
+          ...current.player,
+          hand: removeOne(current.player.hand, defenseCard.id),
+          discard: [...current.player.discard, defenseCard.id],
+          xp: current.player.xp + 1,
+          defendedThisRound: true,
+          playedDefenseSinceLastTurn: true,
+          nextDefenseCardBonus: 0,
+        }));
+        let reactingAi: Board = {
+          ...current.ai,
+          hand: removeOne(current.ai.hand, aiAirHorn.id),
+          playArea: [...current.ai.playArea, aiAirHorn.id],
+          usedConsumableThisRound: true,
+          reactionItemUsedSinceLastTurn: true,
+        };
+        reactingAi = returnResolvedConsumable(reactingAi, aiAirHorn);
+        const intercepted = write(current, `${aiAirHorn.name} cancels ${defenseCard.name} after it is played but before Guard or printed effects resolve. The incoming Attack continues against standing DEF and Equipment.`, { player: cancelledPlayer, ai: reactingAi });
+        return resolveDefenseState(intercepted, null, prevention, skipOptionalPrompt);
+      }
+    }
     let nextPlayer = { ...current.player };
     const matchingArmor = equipmentDefenseModifier(nextPlayer, pending.zone).value > 0;
     const exhaustedPiercingBonus = !pending.targetExhaustedAtDeclaration && (nextPlayer.exhaustedEquipment ?? []).length
