@@ -16,6 +16,7 @@ import "./combo-rack.css";
 import "./playtest-production-mat.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 import { normalizePendingDamageChoice } from "./playtest-state-recovery";
+import { characterAllowedAttackZones, characterCanEquip, characterPurchasePrice } from "./character-runtime";
 
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
 
@@ -320,7 +321,10 @@ function spendFocus(board: Board, amount: number) {
 function marketPriceFor(board: Board, card: CardEntry | undefined) {
   if (!card) return Number.POSITIVE_INFINITY;
   const certificationDiscount = beltHasReward(board, "market-discount") && !board.boughtCardThisAscend ? 1 : 0;
-  return Math.max(0, cardCost(card) + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === "Item" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount);
+  const locationAdjusted = Math.max(0, cardCost(card) + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === "Item" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount);
+  // Character pricing is deliberately last: Coupon Carl discounts the price after
+  // the active Location and other canonical purchase modifiers have composed.
+  return characterPurchasePrice(board, locationAdjusted);
 }
 function equipmentSuppressionForZone(attacker: Board, defender: Board, zone: string) {
   const penalties = attacker.targetEquipmentDefPenalties ?? {};
@@ -889,8 +893,7 @@ function attackAllowedZones(board: Board, card: CardEntry) {
   if (board.nextAttackAnyZone || card.zone?.includes("Any")) return ["High", "Mid", "Low"];
   const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
   if (attackCanChooseAnyZone(card, board.attacksThisTurn === 0, equipped)) return ["High", "Mid", "Low"];
-  if (cardFor(board.fighterId)?.name === "Whirlwind Wynn" && board.attacksThisTurn === 0 && hasTag(card, "Spin")) return ["High", "Mid", "Low"];
-  return [card.zone?.split(",")[0] ?? "High"];
+  return characterAllowedAttackZones(board, card, [card.zone?.split(",")[0] ?? "High"]);
 }
 function attackHasFlexibleZone(board: Board, card: CardEntry) {
   return attackAllowedZones(board, card).length > 1;
@@ -1914,7 +1917,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-initiate" || current.winner) return current;
     const card = cardFor(id);
     if (!card || !isPermanent(card)) return current;
-    if (cardFor(current.player.fighterId)?.name === "Knuckleton the Brawler" && isWeapon(card)) return write(current, "Knuckleton refuses the Weapon. The waiver cites 'personal reasons.'");
+    if (!characterCanEquip(current.player, card)) return write(current, "Knuckleton refuses the Weapon. The waiver cites 'personal reasons.'");
     let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id] }, card, "player");
     let pendingChoice: PendingChoice | null = null;
     const beltName = belts[nextPlayer.belt]?.name ?? "White";
