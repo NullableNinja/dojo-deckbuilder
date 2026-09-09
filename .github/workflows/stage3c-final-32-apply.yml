@@ -83,6 +83,22 @@ jobs:
           one(old_market, new_market, 'Lucky Market reveal')
           playtest.write_text(text)
 
+          consumables = Path('content/card-effects/consumables.json')
+          text = consumables.read_text()
+          old_voucher = '"target":"chosen-card","amount":-2,"duration":"immediate","resolver":"consumable.ascendPurchaseDiscount"'
+          new_voucher = '"target":"self","amount":-2,"duration":"nextPurchase","resolver":"consumable.ascendPurchaseDiscount"'
+          if text.count(old_voucher) != 1:
+              raise SystemExit(f'Laminated Lunch Voucher canonical anchor count={text.count(old_voucher)}')
+          consumables.write_text(text.replace(old_voucher, new_voucher, 1))
+
+          guard = Path('tests/playtest-regression-guardrails.test.mjs')
+          text = guard.read_text()
+          old_spend = 'assert.match(playtest, /spendFocus\\(current\\.player, price\\)/);'
+          new_spend = 'assert.match(playtest, /spendMarketFocus\\(current\\.player, card, price\\)/);'
+          if text.count(old_spend) != 1:
+              raise SystemExit('market Focus regression anchor missing')
+          guard.write_text(text.replace(old_spend, new_spend, 1))
+
           test = Path('tests/stage3c-consumable-final-32.test.mjs')
           text = test.read_text()
           old_threshold = 'assert.ok(source.includes("board.hp <= Math.ceil(board.maxHp / 2)"));'
@@ -112,10 +128,13 @@ jobs:
       - name: TypeScript compile gate
         run: npx tsc --noEmit
 
-      - name: Snapshot applied remediation
+      - name: Remove one-shot remediation scaffolding before repository certification
         run: |
-          git diff --binary > stage3c-applied.patch
-          git diff --name-only > stage3c-applied-files.txt
+          rm scripts/apply-stage3c-final-32.mjs
+          rm .github/workflows/stage3c-final-32-apply.yml
+
+      - name: Production build
+        run: npm run build
 
       - name: Full repository suite
         run: |
@@ -127,21 +146,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: stage3c-remediation-diagnostics
-          path: |
-            stage3c-full-suite.log
-            stage3c-applied.patch
-            stage3c-applied-files.txt
-
-      - name: Production build
-        run: npm run build
+          path: stage3c-full-suite.log
 
       - name: Verify patch hygiene
         run: git diff --check
-
-      - name: Remove one-shot remediation scaffolding
-        run: |
-          rm scripts/apply-stage3c-final-32.mjs
-          rm .github/workflows/stage3c-final-32-apply.yml
 
       - name: Commit certified production result
         run: |
