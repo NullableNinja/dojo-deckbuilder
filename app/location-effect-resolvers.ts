@@ -22,6 +22,10 @@ type Registry = {
 
 export type LocationContext = {
   locationEvent: string;
+  usedLocationEffectsThisTurn?: readonly string[];
+  usedLocationEffectsThisRound?: readonly string[];
+  usedLocationEffectsThisScene?: readonly string[];
+  usedLocationEffectsAcrossPlayersThisRound?: readonly string[];
   [key: string]: unknown;
 };
 
@@ -34,6 +38,8 @@ export type LocationCommand = {
   operation: string | null;
   metadata: Record<string, unknown>;
 };
+
+export type LocationUsageScope = "turn" | "round" | "scene" | "acrossPlayersRound";
 
 const registry = cardEffectsJson as unknown as Registry;
 
@@ -109,9 +115,28 @@ function defaultConditionMatch(kind: string, actual: unknown, expected: unknown)
   return actual === expected;
 }
 
-function conditionMatches(condition: { kind?: string; operator?: string; value?: unknown }, context: LocationContext) {
+function usageConditionMatch(effectId: string, kind: string, expected: unknown, context: LocationContext) {
+  if (expected !== true) return null;
+  if ((kind === "oncePerTurn" || kind === "firstMatchingPerTurn") && context.usedLocationEffectsThisTurn) {
+    return !context.usedLocationEffectsThisTurn.includes(effectId);
+  }
+  if ((kind === "oncePerRound" || kind === "firstMatchingPerRound") && context.usedLocationEffectsThisRound) {
+    return !context.usedLocationEffectsThisRound.includes(effectId);
+  }
+  if (kind === "firstMatchingPerSceneStay" && context.usedLocationEffectsThisScene) {
+    return !context.usedLocationEffectsThisScene.includes(effectId);
+  }
+  if (kind === "firstAcrossPlayersPerRound" && context.usedLocationEffectsAcrossPlayersThisRound) {
+    return !context.usedLocationEffectsAcrossPlayersThisRound.includes(effectId);
+  }
+  return null;
+}
+
+function conditionMatches(effectId: string, condition: { kind?: string; operator?: string; value?: unknown }, context: LocationContext) {
   const kind = String(condition.kind ?? "");
   if (!kind || NON_PREDICATE_CONDITIONS.has(kind)) return true;
+  const usageMatch = usageConditionMatch(effectId, kind, condition.value, context);
+  if (usageMatch !== null) return usageMatch;
   const actual = context[kind];
   const expected = condition.value;
   switch (condition.operator ?? "eq") {
@@ -130,7 +155,7 @@ function conditionMatches(condition: { kind?: string; operator?: string; value?:
 export function resolveLocationEffects(card: LocationCardLike, context: LocationContext): LocationCommand[] {
   return structuredLocationEffects(card)
     .filter((effect) => effect.resolver === "location.structured")
-    .filter((effect) => (effect.conditions ?? []).every((condition) => conditionMatches(condition, context)))
+    .filter((effect) => (effect.conditions ?? []).every((condition) => conditionMatches(String(effect.id ?? ""), condition, context)))
     .map((effect) => {
       const metadata = conditionMetadata(effect);
       const operation = typeof metadata.locationOperation === "string" ? metadata.locationOperation : null;
@@ -147,6 +172,19 @@ export function resolveLocationEffects(card: LocationCardLike, context: Location
         metadata,
       };
     });
+}
+
+export function resolveLocationEvent(card: LocationCardLike, locationEvent: string, context: Record<string, unknown> = {}) {
+  return resolveLocationEffects(card, { ...context, locationEvent });
+}
+
+export function locationUsageScopes(command: LocationCommand): LocationUsageScope[] {
+  const scopes: LocationUsageScope[] = [];
+  if (command.metadata.oncePerTurn === true || command.metadata.firstMatchingPerTurn === true) scopes.push("turn");
+  if (command.metadata.oncePerRound === true || command.metadata.firstMatchingPerRound === true) scopes.push("round");
+  if (command.metadata.firstMatchingPerSceneStay === true) scopes.push("scene");
+  if (command.metadata.firstAcrossPlayersPerRound === true) scopes.push("acrossPlayersRound");
+  return scopes;
 }
 
 export function structuredLocationAttackModifiers(
@@ -180,6 +218,16 @@ export function structuredLocationDefenseGuardModifier(
   };
 }
 
+export function structuredLocationEquipmentContributionModifier(
+  card: LocationCardLike,
+  context: Omit<LocationContext, "locationEvent">,
+) {
+  const commands = resolveLocationEffects(card, { ...context, locationEvent: "equipmentContribution" });
+  const weaponArmor = commands.filter((command) => command.operation === "modifyWeaponArmorPrintedBonus").reduce((total, command) => total + command.amount, 0);
+  const readiedOutsideInitiate = commands.filter((command) => command.operation === "modifyReadiedEquipmentPrintedBonus").reduce((total, command) => total + command.amount, 0);
+  return { weaponArmor, readiedOutsideInitiate, commands };
+}
+
 export function structuredLocationHealingModifier(
   card: LocationCardLike,
   context: Omit<LocationContext, "locationEvent">,
@@ -208,4 +256,48 @@ export function structuredLocationKataFocusModifier(
   const bonus = commands.filter((command) => command.action === "gainFocus").reduce((total, command) => total + command.amount, 0);
   const setTo = commands.find((command) => command.operation === "setKataFocusGeneration")?.metadata.fixedValue;
   return { bonus, setTo: typeof setTo === "number" ? setTo : null, commands };
+}
+
+export function structuredLocationXpModifier(
+  card: LocationCardLike,
+  context: Omit<LocationContext, "locationEvent">,
+) {
+  const commands = resolveLocationEffects(card, { ...context, locationEvent: "xpGain" });
+  return {
+    amount: commands.filter((command) => command.operation === "modifyXpGain").reduce((total, command) => total + command.amount, 0),
+    commands,
+  };
+}
+
+export function structuredLocationKoXpModifier(
+  card: LocationCardLike,
+  context: Omit<LocationContext, "locationEvent"> = {},
+) {
+  const commands = resolveLocationEffects(card, { ...context, locationEvent: "ko" });
+  return {
+    amount: commands.filter((command) => command.operation === "modifyKoXp").reduce((total, command) => total + command.amount, 0),
+    commands,
+  };
+}
+
+export function structuredLocationDamageReductionModifier(
+  card: LocationCardLike,
+  context: Omit<LocationContext, "locationEvent">,
+) {
+  const commands = resolveLocationEffects(card, { ...context, locationEvent: "damageReduction" });
+  return {
+    amount: commands.filter((command) => command.operation === "increaseDamageReduction").reduce((total, command) => total + command.amount, 0),
+    commands,
+  };
+}
+
+export function structuredLocationComboNumericModifier(
+  card: LocationCardLike,
+  context: Omit<LocationContext, "locationEvent">,
+) {
+  const commands = resolveLocationEffects(card, { ...context, locationEvent: "comboTrigger" });
+  return {
+    amount: commands.filter((command) => command.operation === "modifyComboPrintedNumericEffect").reduce((total, command) => total + command.amount, 0),
+    commands,
+  };
 }

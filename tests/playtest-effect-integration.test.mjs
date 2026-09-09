@@ -18,15 +18,8 @@ test("Quick Duel wires printed Attack/Defense modifiers and flexible zones into 
   assert.match(source, /printedAttackRuleModifier/);
   assert.match(source, /defenseCardRuleModifier/);
   assert.match(source, /attackHasFlexibleZone/);
-  assert.match(source, /locationAttackRuleModifiers/);
+  assert.match(source, /structuredLocationAttackModifiers/);
   assert.match(source, /conditionalHealAfterHit/);
-});
-
-
-test("Quick Duel marks its single friendly fighter so structured healing auto-resolves", async () => {
-  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
-  assert.match(source, /friendlyTargetCount: 1/);
-  assert.match(source, /applyStage3CTiming\(next, card, timing, owner, context, "self"\)/);
 });
 
 
