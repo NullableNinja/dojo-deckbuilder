@@ -112,17 +112,25 @@ jobs:
       - name: TypeScript compile gate
         run: npx tsc --noEmit
 
+      - name: Snapshot applied remediation
+        run: |
+          git diff --binary > stage3c-applied.patch
+          git diff --name-only > stage3c-applied-files.txt
+
       - name: Full repository suite
         run: |
           set -o pipefail
           npm test 2>&1 | tee stage3c-full-suite.log
 
-      - name: Upload full-suite failure log
+      - name: Upload remediation diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: stage3c-full-suite-log
-          path: stage3c-full-suite.log
+          name: stage3c-remediation-diagnostics
+          path: |
+            stage3c-full-suite.log
+            stage3c-applied.patch
+            stage3c-applied-files.txt
 
       - name: Production build
         run: npm run build
