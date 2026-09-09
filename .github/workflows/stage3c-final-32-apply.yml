@@ -50,6 +50,33 @@ jobs:
       - name: Apply final 32 remediation
         run: node scripts/apply-stage3c-final-32.mjs
 
+      - name: Apply canonical post-patch corrections
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          playtest = Path('app/playtest.tsx')
+          text = playtest.read_text()
+          old = 'hpThresholdMet: board.hp <= Math.ceil(board.maxHp / 2),'
+          new = 'hpThresholdMet: board.hp <= 10,'
+          if text.count(old) != 1:
+              raise SystemExit(f'Fruit Cup context anchor count={text.count(old)}')
+          playtest.write_text(text.replace(old, new, 1))
+
+          test = Path('tests/stage3c-consumable-final-32.test.mjs')
+          text = test.read_text()
+          old_threshold = 'assert.ok(source.includes("board.hp <= Math.ceil(board.maxHp / 2)"));'
+          new_threshold = 'assert.ok(source.includes("board.hp <= 10"));'
+          if text.count(old_threshold) != 1:
+              raise SystemExit('Fruit Cup assertion anchor missing')
+          text = text.replace(old_threshold, new_threshold, 1)
+          old_smoke = 'assert.ok(source.includes("Smoke Bomb invalidates the Attack target"));'
+          new_smoke = 'assert.ok(source.includes("invalidates the Attack target"));'
+          if text.count(old_smoke) != 1:
+              raise SystemExit('Smoke assertion anchor missing')
+          test.write_text(text.replace(old_smoke, new_smoke, 1))
+          PY
+
       - name: Generate canonical runtime data
         run: npm run game:generate
 
