@@ -13,10 +13,10 @@ if (!source.includes(importLine)) {
 const supportAnchor = '    if (isCoreConsumableCard(card) && (current.player.stage3cRestrictions ?? []).includes("consumable")) return current;\n    const locationModifier = locationFocusModifier(cardFor(current.locationId), card, current.player);';
 const supportReplacement = `    if (isCoreConsumableCard(card) && (current.player.stage3cRestrictions ?? []).includes("consumable")) return current;
     const aiAirHorn = current.phase === "defense-window" && String(card.timing ?? "").trim().toLocaleLowerCase() === "reaction"
-      ? firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction")
+      ? firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null
       : null;
     if (aiAirHorn) {
-      let cancelledPlayer = {
+      let cancelledPlayer: Board = {
         ...current.player,
         hand: removeOne(current.player.hand, card.id),
         playArea: [...current.player.playArea, card.id],
@@ -25,7 +25,7 @@ const supportReplacement = `    if (isCoreConsumableCard(card) && (current.playe
         lastAttackHit: false,
       };
       cancelledPlayer = returnResolvedConsumable(cancelledPlayer, card);
-      let reactingAi = {
+      let reactingAi: Board = {
         ...current.ai,
         hand: removeOne(current.ai.hand, aiAirHorn.id),
         playArea: [...current.ai.playArea, aiAirHorn.id],
@@ -49,7 +49,7 @@ const defenseReplacement = `    const pending = current.pendingStrike;
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     const aiCard = cardFor(pending.cardId)!;
     if (defenseCard) {
-      const aiAirHorn = firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction");
+      const aiAirHorn = firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
       if (aiAirHorn) {
         const cancelledPlayer = stage3cConsumeDefenseStatuses(markCompletedTask({
           ...current.player,
@@ -60,7 +60,7 @@ const defenseReplacement = `    const pending = current.pendingStrike;
           playedDefenseSinceLastTurn: true,
           nextDefenseCardBonus: 0,
         }));
-        let reactingAi = {
+        let reactingAi: Board = {
           ...current.ai,
           hand: removeOne(current.ai.hand, aiAirHorn.id),
           playArea: [...current.ai.playArea, aiAirHorn.id],
