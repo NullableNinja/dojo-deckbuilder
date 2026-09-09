@@ -14,6 +14,7 @@ import {
   structuredConsumableSpeedPenalty,
 } from "./consumable-effect-resolvers.ts";
 import { conditionValue, structuredRuntimeEffects } from "./family-effect-runtime.ts";
+import { structuredLocationAttackForHost } from "./location-playtest-bridge.ts";
 
 export * from "./effect-resolvers-legacy.ts";
 
@@ -27,6 +28,18 @@ function isCoreDefense(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
 
 function isCoreConsumable(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
   return catalogId(card).startsWith("DDB-CON-CORE-");
+}
+
+function isCoreLocation(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
+  return catalogId(card).startsWith("DDB-LOC-CORE-");
+}
+
+export function locationAttackRuleModifiers(
+  card: Parameters<typeof legacy.locationAttackRuleModifiers>[0],
+  context: Parameters<typeof legacy.locationAttackRuleModifiers>[1],
+) {
+  if (isCoreLocation(card)) return structuredLocationAttackForHost(card, context);
+  return legacy.locationAttackRuleModifiers(card, context);
 }
 
 export function conditionalDefenseGuardBonus(
