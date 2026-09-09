@@ -113,7 +113,16 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Full repository suite
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee stage3c-full-suite.log
+
+      - name: Upload full-suite failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3c-full-suite-log
+          path: stage3c-full-suite.log
 
       - name: Production build
         run: npm run build
