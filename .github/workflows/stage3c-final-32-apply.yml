@@ -50,18 +50,36 @@ jobs:
       - name: Apply final 32 remediation
         run: node scripts/apply-stage3c-final-32.mjs
 
-      - name: Apply canonical post-patch corrections
+      - name: Apply canonical and TypeScript post-patch corrections
         run: |
           python - <<'PY'
           from pathlib import Path
 
           playtest = Path('app/playtest.tsx')
           text = playtest.read_text()
-          old = 'hpThresholdMet: board.hp <= Math.ceil(board.maxHp / 2),'
-          new = 'hpThresholdMet: board.hp <= 10,'
-          if text.count(old) != 1:
-              raise SystemExit(f'Fruit Cup context anchor count={text.count(old)}')
-          playtest.write_text(text.replace(old, new, 1))
+
+          def one(old, new, label):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label} anchor count={count}')
+              text = text.replace(old, new, 1)
+
+          one('hpThresholdMet: board.hp <= Math.ceil(board.maxHp / 2),', 'hpThresholdMet: board.hp <= 10,', 'Fruit Cup context')
+          one(', selectedAttackId: undefined as never', '', 'Smoke Board shape')
+          one('let player = spendMarketFocus(current.player, revealed, price);', 'let player: Board = spendMarketFocus(current.player, revealed, price);', 'Raffle Board inference')
+          one('let nextPlayer = spendMarketFocus(current.player, card, price);', 'let nextPlayer: Board = spendMarketFocus(current.player, card, price);', 'Market Board inference')
+          lucky_player = 'let player = { ...current.player, hand: removeOne(current.player.hand, lucky.id), playArea: [...current.player.playArea, lucky.id], usedConsumableThisRound: true, reactionItemUsedSinceLastTurn: true };'
+          one(lucky_player, 'let player: Board = { ...current.player, hand: removeOne(current.player.hand, lucky.id), playArea: [...current.player.playArea, lucky.id], usedConsumableThisRound: true, reactionItemUsedSinceLastTurn: true };', 'Lucky Board inference')
+
+          old_location = 'if (sceneChanges && lucky && locationId !== current.locationId) return write(advanced, `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } });'
+          new_location = 'if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId }, log: [message, ...advanced.log].slice(0, 32) }; }'
+          one(old_location, new_location, 'Lucky Location reveal')
+
+          old_market = 'if (revealedId && slot >= 0) return write(advanced, `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during Market Mercy. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId, marketSlot: slot } });'
+          new_market = 'if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during Market Mercy. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot }, log: [message, ...advanced.log].slice(0, 32) }; }'
+          one(old_market, new_market, 'Lucky Market reveal')
+          playtest.write_text(text)
 
           test = Path('tests/stage3c-consumable-final-32.test.mjs')
           text = test.read_text()
@@ -88,6 +106,9 @@ jobs:
 
       - name: Certify remaining 32 Consumables
         run: node --experimental-strip-types --test tests/stage3c-consumable-final-32.test.mjs
+
+      - name: TypeScript compile gate
+        run: npx tsc --noEmit
 
       - name: Full repository suite
         run: npm test
