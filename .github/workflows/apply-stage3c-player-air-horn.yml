@@ -25,7 +25,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/apply-stage3c-player-air-horn.mjs
-      - name: Repair generated certification regex
+      - name: Repair generated certification assertions
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -35,6 +35,11 @@ jobs:
             '/stage3cConsumeDefenseStatuses(markCompletedTask/',
             '/stage3cConsumeDefenseStatuses\\(markCompletedTask/'
           );
+          source = source.split('\n').map((line) =>
+            line.includes('assert.match(resolver, /const defenseId = current')
+              ? '  assert.ok(resolver.includes("const defenseId = current.airHornAiDefenseSpentThisStrike") && resolver.includes("? null") && resolver.includes(": bestDefense"));'
+              : line
+          ).join('\n');
           fs.writeFileSync(path, source);
           NODE
       - run: git rm scripts/apply-stage3c-player-air-horn.mjs .github/workflows/apply-stage3c-player-air-horn.yml
