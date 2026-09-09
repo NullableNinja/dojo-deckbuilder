@@ -25,6 +25,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/apply-stage3c-player-air-horn.mjs
+      - name: Repair generated certification regex
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'tests/stage3c-player-air-horn-play-surface.test.mjs';
+          let source = fs.readFileSync(path, 'utf8');
+          source = source.replace(
+            '/stage3cConsumeDefenseStatuses(markCompletedTask/',
+            '/stage3cConsumeDefenseStatuses\\(markCompletedTask/'
+          );
+          fs.writeFileSync(path, source);
+          NODE
       - run: git rm scripts/apply-stage3c-player-air-horn.mjs .github/workflows/apply-stage3c-player-air-horn.yml
       - run: node --experimental-strip-types --test tests/stage3c-event-reaction-contracts.test.mjs tests/stage3c-air-horn-play-surface.test.mjs tests/stage3c-player-air-horn-play-surface.test.mjs tests/stage3c-consumable-reaction-ai.test.mjs tests/stage3c-consumable-play-window.test.mjs
       - run: npx tsc --noEmit
