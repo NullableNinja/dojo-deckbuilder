@@ -36,8 +36,8 @@ import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import rulesJson from "./data/rules.json";
 import gameDefinitionJson from "./data/game-definition.json";
-
 import PlaytestView from "./playtest";
+import { ReferenceDesk } from "./reference-desk";
 
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
 
@@ -133,7 +133,7 @@ const COMPLETE_CARD_URLS_BY_CATALOG_ID = Object.fromEntries(
   }),
 );
 
-type ViewId = "home" | "playtest" | "quickstart" | "story" | "rules" | "cards" | "rulings" | "glossary" | "house-rules";
+type ViewId = "home" | "playtest" | "quickstart" | "story" | "rules" | "cards" | "reference" | "rulings" | "glossary" | "house-rules";
 type CardEntry = {
   id: string; name: string; cardType: string; subtype: string; category?: string | null;
   catalogId: string; catalogOrder: number;
@@ -218,6 +218,7 @@ const NAV_ITEMS: { id: ViewId; label: string; short: string }[] = [
   { id: "story", label: "Backstory", short: "Story" },
   { id: "rules", label: "Full Rules", short: "Rules" },
   { id: "cards", label: "Card Library", short: "Cards" },
+  { id: "reference", label: "Reference Desk", short: "Desk" },
   { id: "rulings", label: "Rulings & Errata", short: "Rulings" },
   { id: "glossary", label: "Glossary", short: "Terms" },
   { id: "house-rules", label: "House Rules", short: "Variants" },
@@ -229,6 +230,7 @@ const VIEW_LABELS: Record<ViewId, string> = {
   story: "Backstory",
   rules: "Full Rules",
   cards: "Card Library",
+  reference: "Reference Desk",
   rulings: "Rulings",
   glossary: "Glossary",
   "house-rules": "House Rules",
@@ -240,6 +242,7 @@ const MOBILE_MENU_ITEMS: { id: ViewId; label: string; detail: string }[] = [
   { id: "story", label: "Backstory", detail: "Why a filing cabinet became sacred." },
   { id: "rules", label: "Full Rules", detail: "Every official procedure." },
   { id: "cards", label: "Card Library", detail: "Search the registered curriculum." },
+  { id: "reference", label: "Reference Desk", detail: "Canonical table tools and data maps." },
   { id: "rulings", label: "Rulings & Errata", detail: "The Department’s clarifications." },
   { id: "glossary", label: "Glossary", detail: "Find every defined term." },
   { id: "house-rules", label: "House Rules", detail: "Approved deviations and variants." },
@@ -869,12 +872,12 @@ export default function CompanionApp() {
     setShowRevision(false);
   };
   const renderGlobalResults = (className: string, id: string) => <div className={className} id={id} role="listbox" aria-label="Dojo search results">{groupedGlobalResults.map((group) => <section className="global-result-group" key={group.type}><strong>{SEARCH_GROUP_LABELS[group.type]}</strong>{group.results.map((result) => { const index = orderedGlobalResults.indexOf(result); return <button type="button" role="option" aria-selected={index === globalSelection} className={index === globalSelection ? "is-selected" : ""} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setGlobalSelection(index)} onClick={() => chooseResult(result)} key={`${result.type}-${result.title}-${result.detail}`}><span>{result.type}</span><b>{result.title}</b><small>{result.detail}</small></button>; })}</section>)}</div>;
-  const moreActive = view === "story" || view === "rulings" || view === "glossary" || view === "house-rules";
+  const moreActive = view === "story" || view === "reference" || view === "rulings" || view === "glossary" || view === "house-rules";
   const toggleTheme = () => setTheme((current) => current === "light" ? "dark" : "light");
   return <div className="site-frame">
     <header className="site-header"><div className="header-inner shell"><button className="brand" onClick={() => goTo("home")} aria-label="Dojo Deckbuilder home"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></button><nav id="primary-navigation" aria-label="Primary navigation">{NAV_ITEMS.map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}>{item.label}</button>)}</nav><div className="header-search-wrap"><label className="header-search"><span>⌕</span><input ref={searchInputRef} value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} onKeyDown={handleGlobalSearchKeyDown} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /><kbd>Ctrl K</kbd></label>{globalResults.length > 0 && renderGlobalResults("global-results", "dojo-global-results")}</div>{rulesUpdateAvailable && <button type="button" className="rules-update-pill" onClick={() => setShowRevision(true)} title={`Review ${CURRENT_RULES_REVISION}`}><b>NEW</b><span>{CURRENT_RULES_REVISION}</span></button>}<ThemeToggle theme={theme} onToggle={toggleTheme} /><button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-controls="mobile-menu" aria-expanded={menuOpen} aria-label={menuOpen ? "Close site menu" : "Open site menu"}><span /><span /><span /></button></div><div className="reading-progress" role="progressbar" aria-label={`${VIEW_LABELS[view]} reading progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(scrollProgress * 100)}><span style={{ width: `${scrollProgress * 100}%` }} /><b>{VIEW_LABELS[view]}</b></div></header>
     {menuOpen && <><button className="menu-scrim" onClick={() => setMenuOpen(false)} aria-label="Close site menu" /><aside className="mobile-menu-panel" id="mobile-menu" aria-label="Site menu"><div className="mobile-menu-heading"><div><span className="eyebrow">Department directory</span><h2>Find your fight.</h2></div><button className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Close site menu">×</button></div><label className="mobile-global-search"><span aria-hidden="true">⌕</span><input autoFocus value={globalSearch} onChange={(event) => setGlobalSearch(event.target.value)} onKeyDown={handleGlobalSearchKeyDown} placeholder="Search the dojo" aria-label="Search cards, rules, rulings, glossary, and house rules" /></label>{globalSearch.trim().length >= 2 && (globalResults.length ? renderGlobalResults("mobile-search-results", "dojo-mobile-search-results") : <div className="mobile-search-results"><p>No matching filing number. Try a shorter search.</p></div>)}{rulesUpdateAvailable && <button type="button" className="mobile-rules-update" onClick={() => setShowRevision(true)}><b>New rules filing</b><span>{CURRENT_RULES_REVISION} · See what changed →</span></button>}<nav className="mobile-menu-links" aria-label="All site pages">{MOBILE_MENU_ITEMS.filter((item) => item.id !== "playtest").map((item) => <button className={view === item.id ? "active" : ""} onClick={() => goTo(item.id)} key={item.id}><span>{item.label}</span><small>{item.detail}</small></button>)}</nav><ThemeToggle theme={theme} onToggle={toggleTheme} full /></aside></>}
-    <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "playtest" && <PlaytestView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView key={`${searchedRuleChapter || "rules"}-${searchedRuleSection}`} initialChapterId={searchedRuleChapter} initialSectionId={searchedRuleSection} />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "rulings" && <RulingsView key={searchedRuling || "rulings"} initialQuery={searchedRuling} />}{view === "glossary" && <GlossaryView key={searchedTerm || "glossary"} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView key={searchedHouseRule || "house-rules"} initialQuery={searchedHouseRule} />}</div>
+    <div key={view} className="view-stage">{view === "home" && <HomeView goTo={goTo} />}{view === "playtest" && <PlaytestView goTo={goTo} />}{view === "quickstart" && <QuickStartView goTo={goTo} />}{view === "story" && <StoryView goTo={goTo} />}{view === "rules" && <RulesView key={`${searchedRuleChapter || "rules"}-${searchedRuleSection}`} initialChapterId={searchedRuleChapter} initialSectionId={searchedRuleSection} />}{view === "cards" && <CardsView initialCard={searchedCard} clearInitialCard={() => setSearchedCard(null)} />}{view === "reference" && <ReferenceDesk goTo={goTo} />}{view === "rulings" && <RulingsView key={searchedRuling || "rulings"} initialQuery={searchedRuling} />}{view === "glossary" && <GlossaryView key={searchedTerm || "glossary"} initialQuery={searchedTerm} />}{view === "house-rules" && <HouseRulesView key={searchedHouseRule || "house-rules"} initialQuery={searchedHouseRule} />}</div>
     <footer className="site-footer"><div className="shell footer-inner"><div className="brand footer-brand"><BrandMark /><span><b>DOJO</b><em>DECKBUILDER</em></span></div><p>Build your deck. Earn your belt. Try not to fold.</p><span>Filed with the Department. Probably correctly.</span></div></footer>
     {showRevision && <DetailModal eyebrow="New Department Filing" title={`${CURRENT_RULES_REVISION} is now current`} onClose={() => setShowRevision(false)} accent="gold"><p className="modal-lede">This browser has not marked the current rules revision as reviewed yet. Here are the changes most likely to matter at the table.</p><ul className="revision-notes">{RULES_REVISION_NOTES.map((note) => <li key={note}>{note}</li>)}</ul><div className="revision-actions"><button className="button primary" type="button" onClick={() => { acknowledgeRulesRevision(); goTo("rules"); }}>Review full rules →</button><button className="button ghost" type="button" onClick={acknowledgeRulesRevision}>Mark reviewed</button></div></DetailModal>}
     {scrollProgress > .2 && <button className="back-to-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Back to top"><span aria-hidden="true">↑</span><b>Top</b></button>}

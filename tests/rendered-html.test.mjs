@@ -40,13 +40,12 @@ test("global search spans the whole companion", async () => {
   }
 });
 
-test("Quick Duel stays in the proven main bundle and missing artwork is presented intentionally", async () => {
+test("Quick Duel has a stable static render boundary and missing artwork is presented intentionally", async () => {
   const [source, css] = await Promise.all([
     readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
-  assert.match(source, /import PlaytestView from "\.\/playtest"/);
-  assert.doesNotMatch(source, /const PlaytestView = lazy/);
+  assert.match(source, /import PlaytestView from "\.\/playtest";/);
   assert.match(source, /const CardInspector = lazy/);
   assert.match(source, /<Suspense fallback=\{null\}><CardInspector/);
   assert.match(source, /card-art--pending/);

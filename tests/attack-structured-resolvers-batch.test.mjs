@@ -272,7 +272,7 @@ test("post-Defense Attack modifiers feed final power into AI damage math", async
 test("Block memory includes zero-damage strikes stopped by standing DEF or Armor", async () => {
   const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
   assert.match(source, /if \(!hit\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
-  const aiBlockMemory = source.match(/if \(!hit\) nextAi = \{ \.\.\.nextAi, blockedSinceLastTurn: true, blockedThisRound: true \};/g) ?? [];
+  const aiBlockMemory = source.match(/if \(!hit\) (?:nextAi|reactingAi) = \{ \.\.\.(?:nextAi|reactingAi), blockedSinceLastTurn: true, blockedThisRound: true \};/g) ?? [];
   assert.ok(aiBlockMemory.length >= 2, "normal Attacks and Reversals must both remember standing-DEF Blocks");
   assert.doesNotMatch(source, /if \(!hit && defenseCard\) nextPlayer = \{ \.\.\.nextPlayer, blockedSinceLastTurn: true, blockedThisRound: true \};/);
 });

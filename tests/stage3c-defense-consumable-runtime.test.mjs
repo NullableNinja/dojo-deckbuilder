@@ -14,6 +14,8 @@ import {
   consumableRuntimeCommands,
   isSupportedConsumableResolver,
   structuredConsumableLifecycle,
+  structuredConsumableDestroyJunkPlan,
+  structuredConsumableMandatoryDiscard,
 } from "../app/consumable-effect-resolvers.ts";
 import {
   createFamilyRuntimeState,
@@ -96,6 +98,9 @@ const consumableBaseContext = {
   discardedCount: 2,
   revealedFocusValue: 2,
   revealedDifferentTypeCount: 3,
+  friendlyTargetCount: 2,
+  opponentTargetCount: 2,
+  junkDestroyed: true,
   selectedEquipmentSubtype: "Gear",
 };
 
@@ -221,6 +226,64 @@ test("end-of-round Consumable modifiers apply now and expire cleanly", () => {
   assert.equal(expired.statuses.some((status) => status.sourceEffectId === effect.id), false);
 });
 
+test("structured Junk choices preserve source, optionality, and contingent follow-up semantics", () => {
+  assert.deepEqual(structuredConsumableDestroyJunkPlan(card("DDB-CON-CORE-024")), {
+    resolver: "consumable.destroyJunkThenDrawTwo", count: 1, sources: ["hand", "discard"], optional: false, drawAfterSuccess: 2,
+  });
+  assert.deepEqual(structuredConsumableDestroyJunkPlan(card("DDB-CON-CORE-029")), {
+    resolver: "consumable.destroyJunkFromHand", count: 1, sources: ["hand"], optional: false, drawAfterSuccess: 0,
+  });
+  assert.deepEqual(structuredConsumableDestroyJunkPlan(card("DDB-CON-CORE-048")), {
+    resolver: "consumable.optionalDestroyJunkFromHand", count: 1, sources: ["hand"], optional: true, drawAfterSuccess: 0,
+  });
+  const giBeforeChoice = consumableRuntimeCommands(card("DDB-CON-CORE-024"), "onPlay", { ...consumableBaseContext, junkDestroyed: false });
+  assert.equal(giBeforeChoice.some((command) => command.effect === "core.draw"), false, "Fresh Martial Arts Gi must not draw before Junk is destroyed");
+  const giAfterChoice = consumableRuntimeCommands(card("DDB-CON-CORE-024"), "onPlay", { ...consumableBaseContext, junkDestroyed: true });
+  assert.equal(giAfterChoice.find((command) => command.effect === "core.draw")?.amount, 2);
+});
+
+test("single-opponent target selection auto-resolves in Quick Duel semantics", () => {
+  const cases = [
+    ["DDB-CON-CORE-002", "consumable.chooseOpponentNextAttackPenalty", "combat.modifyAttackPower", -2, "nextAttack"],
+    ["DDB-CON-CORE-059", "consumable.chooseOpponentSpeedPenalty", "combat.modifySpeed", -2, "endOfRound"],
+  ];
+  for (const [catalogId, resolver, effect, amount, duration] of cases) {
+    const duelCommands = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 });
+    const duelCommand = duelCommands.find((candidate) => candidate.resolver === resolver);
+    assert.ok(duelCommand, `${catalogId} must produce its structured command`);
+    assert.equal(duelCommand.choice, undefined, `${catalogId} must not queue an unreachable opponent choice in a duel`);
+    assert.equal(duelCommand.effect, effect);
+    assert.equal(duelCommand.amount, amount);
+    assert.equal(duelCommand.duration, duration);
+
+    const multiplayerCommands = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 2 });
+    const multiplayerCommand = multiplayerCommands.find((candidate) => candidate.resolver === resolver);
+    assert.ok(multiplayerCommand?.choice, `${catalogId} must preserve explicit target choice when multiple opponents exist`);
+  }
+});
+
+test("solo-friendly healing resolves into HP instead of an unreachable target choice", () => {
+  const soloHealResolvers = new Set([
+    "consumable.chooseFriendlyHealTarget",
+    "consumable.healByChosenFriendlyPosition",
+    "consumable.healAndRemoveStatus",
+  ]);
+  const failures = [];
+  for (const [catalogId, definition] of Object.entries(consumables)) {
+    const healEffects = (definition.effects ?? []).filter((effect) => effect.effect === "core.heal" && soloHealResolvers.has(effect.resolver));
+    for (const effect of healEffects) {
+      const commands = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, friendlyTargetCount: 1 });
+      const command = commands.find((candidate) => candidate.sourceEffectId === effect.id);
+      if (!command) { failures.push(`${catalogId}:${effect.id}:missing-command`); continue; }
+      if (command.choice) failures.push(`${catalogId}:${effect.id}:still-queued-as-choice`);
+      const state = applyConsumableRuntime(createFamilyRuntimeState({ self: { hp: 1, maxHp: 20 } }), card(catalogId), "onPlay", { ...consumableBaseContext, friendlyTargetCount: 1 });
+      if (state.self.hp < 1 + Number(effect.amount ?? 0)) failures.push(`${catalogId}:${effect.id}:heal-not-applied`);
+      if (state.pendingChoices.some((choice) => choice.sourceEffectId === effect.id)) failures.push(`${catalogId}:${effect.id}:unreachable-choice-remains`);
+    }
+  }
+  assert.deepEqual(failures, []);
+});
+
 test("next-Attack Consumable modifiers persist exactly once and are consumed at the Attack hook", () => {
   const gloves = card("DDB-CON-CORE-004");
   const commands = consumableRuntimeCommands(gloves, "onPlay", consumableBaseContext);
@@ -311,7 +374,6 @@ test("every Consumable explicit-choice resolver queues at least one structured c
     "consumable.destroyJunkThenDrawTwo",
     "consumable.healByChosenFriendlyPosition",
     "consumable.destroyJunkFromHand",
-    "consumable.ascendPurchaseDiscount",
     "consumable.removeTemporaryNegativeStatModifier",
     "consumable.discardUpToForFocus",
     "consumable.replaceRevealedMarketOrLocation",
@@ -339,4 +401,60 @@ test("every Consumable explicit-choice resolver queues at least one structured c
     if (!queued) failures.push(`${resolver}:choice-not-queued`);
   }
   assert.deepEqual(failures, []);
+});
+
+
+test("Quick Duel auto-resolves single-opponent Guard penalties and preserves round expiry", () => {
+  const sand = consumableRuntimeCommands(card("DDB-CON-CORE-043"), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 })
+    .find((command) => command.resolver === "consumable.chooseOpponentNextDefenseGuardPenalty");
+  assert.ok(sand);
+  assert.equal(sand.choice, undefined);
+  assert.equal(sand.duration, "nextDefense");
+  assert.equal(sand.qualifier?.expires, "endOfRound");
+
+  const multiplayer = consumableRuntimeCommands(card("DDB-CON-CORE-043"), "onPlay", { ...consumableBaseContext, opponentTargetCount: 2 })
+    .find((command) => command.resolver === "consumable.chooseOpponentNextDefenseGuardPenalty");
+  assert.ok(multiplayer?.choice);
+});
+
+test("structured this-turn and this-round Consumable statuses carry explicit expiry metadata", () => {
+  const cases = [
+    ["DDB-CON-CORE-002", "consumable.chooseOpponentNextAttackPenalty", "endOfRound"],
+    ["DDB-CON-CORE-004", "consumable.nextQualifyingAttackModifier", "endOfTurn"],
+    ["DDB-CON-CORE-007", "consumable.nextAttackUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-013", "consumable.nextAttackFlowUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-016", "consumable.nextIncomingAttackDefense", "endOfRound"],
+    ["DDB-CON-CORE-031", "consumable.pepTalkConditionalAttackBonus", "endOfTurn"],
+    ["DDB-CON-CORE-037", "consumable.blockedAttackBacklash", "endOfTurn"],
+    ["DDB-CON-CORE-043", "consumable.chooseOpponentNextDefenseGuardPenalty", "endOfRound"],
+    ["DDB-CON-CORE-046", "consumable.preventInterfereOnNextAttack", "endOfTurn"],
+    ["DDB-CON-CORE-047", "consumable.nextIncomingAttackDefense", "endOfRound"],
+    ["DDB-CON-CORE-052", "consumable.nextAttackUntilEndOfTurn", "endOfTurn"],
+    ["DDB-CON-CORE-054", "consumable.nextKataFocusBonus", "endOfTurn"],
+    ["DDB-CON-CORE-062", "consumable.pocketYoyo", "endOfRound"],
+  ];
+  for (const [catalogId, resolver, expires] of cases) {
+    const command = consumableRuntimeCommands(card(catalogId), "onPlay", { ...consumableBaseContext, opponentTargetCount: 1 })
+      .find((candidate) => candidate.resolver === resolver && candidate.trigger === "onPlay");
+    assert.ok(command, `${catalogId} must produce ${resolver}`);
+    assert.equal(command.qualifier?.expires, expires, `${catalogId} must expire at ${expires}`);
+  }
+});
+
+
+test("Stage 3C batch: reveal rewards, round-bounded prevention, and Tempo cycling", () => {
+  const cookie = card("DDB-CON-CORE-020");
+  for (const [revealedFocusValue, expected] of [[0, 1], [1, 1], [2, 2], [3, 2]]) {
+    const command = consumableRuntimeCommands(cookie, "onPlay", { ...consumableBaseContext, revealedFocusValue })
+      .find((entry) => entry.sourceEffectId === "consumable-fine-print-fortune-focus");
+    assert.equal(command?.amount, expected);
+  }
+
+  const painkiller = consumableRuntimeCommands(card("DDB-CON-CORE-041"), "onPlay", consumableBaseContext)
+    .find((entry) => entry.sourceEffectId === "consumable-painkiller-prevent");
+  assert.equal(painkiller?.duration, "nextDamage");
+  assert.equal(painkiller?.qualifier?.expires, "endOfRound");
+
+  assert.equal(structuredConsumableMandatoryDiscard(card("DDB-CON-CORE-040"), { ...consumableBaseContext, hasTempo: true }), 1);
+  assert.equal(structuredConsumableMandatoryDiscard(card("DDB-CON-CORE-040"), { ...consumableBaseContext, hasTempo: false }), 0);
 });

@@ -23,6 +23,14 @@ test("Quick Duel wires printed Attack/Defense modifiers and flexible zones into 
 });
 
 
+test("Quick Duel marks its single friendly fighter so structured healing auto-resolves", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /friendlyTargetCount: 1/);
+  assert.match(source, /opponentTargetCount: 1/);
+  assert.match(source, /applyStage3CTiming\(next, card, timing, owner, context, "self"\)/);
+});
+
+
 test("Quick Duel pauses for explicit player-choice effects instead of auto-resolving them", async () => {
   const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
   assert.match(source, /type PendingChoice/);
@@ -130,4 +138,64 @@ test("Cover Up remains the weak universal starter Defense and its printed Guard 
   const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
   assert.match(source, /defensePower \+= cardPower\(defenseCard\)/);
   assert.match(source, /\$\{defenseCard\.name\} \+\$\{cardPower\(defenseCard\)\} Guard/);
+});
+
+
+test("Quick Duel evaluates Consumable onPlay context after the played card leaves hand and expires qualified statuses", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /const supportEntryBoard = \{ \.\.\.supportBoard, hand: removeOne\(supportBoard\.hand, id\)/);
+  assert.match(source, /stage3cConsumableContext\(supportEntryBoard\)/);
+  assert.match(source, /function expireStage3CQualified\(board: Board, expires: "endOfTurn" \| "endOfRound"\)/);
+  assert.match(source, /status\.qualifier\?\.expires === expires/);
+});
+
+
+test("Quick Duel applies nextIncomingAttack DEF without requiring a Defense card and consumes it independently", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /let defensePower = fighterStat\(nextPlayer, "DEF"\) \+ armorModifier\.value \+ stage3cIncomingAttackDefenseBonus\(nextPlayer\)/);
+  assert.match(source, /stage3cIncomingAttackDefenseBonus\(aiDefenseReaction\.board\)/);
+  assert.match(source, /nextAi = stage3cConsumeIncomingAttackStatuses\(nextAi\)/);
+  assert.match(source, /nextPlayer = stage3cConsumeIncomingAttackStatuses\(nextPlayer\)/);
+  assert.match(source, /stage3cConsumeDefenseStatuses\(\{ \.\.\.nextAi/);
+});
+
+
+test("Quick Duel gates Consumable timing and attack restrictions through shared Stage 3C helpers", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /canPlayCoreConsumableInPhase\(card, "defense-window"/);
+  assert.match(source, /stage3cRestrictionBlocks\(current\.player\.stage3cRestrictions, "attack"\)/);
+  assert.match(source, /stage3cRestrictionBlocks\(prepared\.ai\.stage3cRestrictions, "attack"\)/);
+  assert.match(source, /structuredConsumableMandatoryDiscard\(card, stage3cConsumableContext\(supportEntryBoard\)\)/);
+  assert.match(source, /revealedFocusValue: board\.deck\.length \? cardFocus\(cardFor\(board\.deck\[board\.deck\.length - 1\]\)\) : 0/);
+});
+
+
+test("Quick Duel resolves structured Consumable watched-Attack followups for both fighters", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /armConsumableAttackFollowupStatuses\(nextPlayer\.stage3cStatuses/);
+  assert.match(source, /armConsumableAttackFollowupStatuses\(nextAi\.stage3cStatuses/);
+  assert.match(source, /resolveConsumableAttackFollowupStatuses\(nextPlayer\.stage3cStatuses/);
+  assert.match(source, /resolveConsumableAttackFollowupStatuses\(nextAi\.stage3cStatuses/);
+  assert.match(source, /!isConsumableAttackFollowupStatus\(status\)/);
+});
+
+
+test("Quick Duel persists Consumable Hide effects and Reaction Item history after source cards leave play", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /armConsumableHideStatuses\(armConsumableAttackFollowupStatuses/);
+  assert.match(source, /resolveConsumableHideStatuses\(board\.stage3cStatuses/);
+  assert.match(source, /reactionItemUsedSinceLastTurn: Boolean\(next\.reactionItemUsedSinceLastTurn\)/);
+  assert.match(source, /reactionItemUsedSinceLastTurn: Boolean\(board\.reactionItemUsedSinceLastTurn\)/);
+  assert.match(source, /reactionItemUsedSinceLastTurn: false/);
+});
+
+
+test("Quick Duel gives AI the same incoming-combat Consumable Reaction semantics without off-turn printed Focus", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /chooseAiDefensiveConsumable\(candidates/);
+  assert.match(source, /applyCardEffects\(entry, selected, "ai", "onPlay", stage3cConsumableContext\(entry\), false\)/);
+  assert.match(source, /const ownTurnPlay = current\.phase === "player-yell"/);
+  assert.match(source, /cardsThisTurn: ownTurnPlay \?/);
+  assert.match(source, /if \(grantPrintedFocus\) next = gainFocus/);
+  assert.match(source, /aiConsumableReaction\.notes/);
 });

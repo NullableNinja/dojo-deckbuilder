@@ -6,6 +6,7 @@ import {
 import {
   consumableRuntimeCommands,
   structuredConsumableDestroyJunkCount,
+  structuredConsumableDestroyJunkPlan,
   structuredConsumableDestroysAfterUse,
   structuredConsumableMandatoryDiscard,
   structuredConsumableNextAttackPenalty,
@@ -64,6 +65,12 @@ export function returnsToSupplyAfterUse(card: Parameters<typeof legacy.destroysA
 export function destroyJunkChoiceCount(card: Parameters<typeof legacy.destroyJunkChoiceCount>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableDestroyJunkCount(card);
   return legacy.destroyJunkChoiceCount(card);
+}
+
+export function destroyJunkChoicePlan(card: Parameters<typeof legacy.destroyJunkChoiceCount>[0]) {
+  if (isCoreConsumable(card)) return structuredConsumableDestroyJunkPlan(card);
+  const count = legacy.destroyJunkChoiceCount(card);
+  return count ? { resolver: "legacy" as const, count, sources: ["hand", "discard"] as ("hand" | "discard")[], optional: false, drawAfterSuccess: 0 } : null;
 }
 
 export function mandatoryDiscardChoiceCount(card: Parameters<typeof legacy.mandatoryDiscardChoiceCount>[0]) {
