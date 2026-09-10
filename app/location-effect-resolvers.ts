@@ -75,6 +75,7 @@ const NON_PREDICATE_CONDITIONS = new Set([
   "maximumFinalValue",
   "choiceOptions",
   "discardCount",
+  "destroyCount",
   "drawCount",
   "focusGain",
   "hpLoss",
