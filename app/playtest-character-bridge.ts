@@ -17,8 +17,6 @@ import { structuredRuntimeEffects } from "./family-effect-runtime.ts";
 export type CharacterHostBoard = CharacterRuntimeBoard & Record<string, unknown>;
 export type CharacterHostCard = CharacterRuntimeCard & { name: string; catalogId?: string | null };
 
-const hasTag = (card: CharacterHostCard, tag: string) => (card.tags ?? []).some((value) => value.toLocaleLowerCase() === tag.toLocaleLowerCase());
-
 /**
  * Thin Quick Duel boundary for canonical Character mechanics.
  *
@@ -37,6 +35,7 @@ export function characterAttackForHost(
     differentZoneFromPreviousAttack?: boolean;
     playedKataEarlierThisTurn?: boolean;
     changedZone?: boolean;
+    hasWeaponEquipped?: boolean;
   } = {},
 ) {
   return characterAttackModifier(board, opponent, card, {
@@ -48,14 +47,8 @@ export function characterAttackForHost(
     differentZoneFromPreviousAttack: context.differentZoneFromPreviousAttack,
     playedKataEarlierThisTurn: context.playedKataEarlierThisTurn,
     changedZone: context.changedZone,
-    hasWeaponEquipped: board.equipment.length > 0 && contextHasWeapon(board, card),
+    hasWeaponEquipped: Boolean(context.hasWeaponEquipped),
   });
-}
-
-function contextHasWeapon(board: CharacterHostBoard, currentCard: CharacterHostCard) {
-  // Character runtime only needs the boolean fact. If the current Attack itself
-  // is Weapon-tagged, that is sufficient; equipment-card lookup stays with the host.
-  return hasTag(currentCard, "Weapon") || Boolean((board.characterMarks ?? {})["host:hasWeaponEquipped"]);
 }
 
 export function characterAttackZonesForHost(board: CharacterHostBoard, card: CharacterHostCard, printedZones: string[]) {
