@@ -4,6 +4,7 @@ import { isSupportedCharacterResolver } from "./character-effect-resolvers.ts";
 import { isSupportedDefenseResolver } from "./defense-effect-resolvers.ts";
 import { isSupportedConsumableResolver } from "./consumable-effect-resolvers.ts";
 import { SUPPORTED_KATA_RESOLVERS } from "./kata-effect-resolvers.ts";
+import { SUPPORTED_COMBO_RESOLVERS } from "./combo-runtime.ts";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
 export type EffectKind = "draw" | "discard" | "heal" | "focus" | "speed" | "nextAttackPower";
@@ -25,10 +26,15 @@ export type StructuredEffectAction =
   | "discard"
   | "heal"
   | "gainFocus"
+  | "gainXP"
+  | "reveal"
   | "modifySpeed"
   | "modifyAttackPower"
+  | "modifyDefense"
   | "modifyGuard"
   | "dealDamage"
+  | "grantFlow"
+  | "modifyCost"
   | "piercing"
   | "destroy"
   | "ready"
@@ -142,6 +148,7 @@ const GENERIC_CANONICAL_EFFECTS = new Set([
   "equipment.exhaust",
 ]);
 
+const CORE_GAMEPLAY_ID = /^DDB-(?:STA|ATK|DEF|KAT|CON|CMB|LOC|CHR|DEQ|GEA|WPN)-CORE-\d+$/i;
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;
 const runtimeCards = cardsJson as unknown as RuntimeCardCatalog;
 const structuredEffectsByRulesText = new Map<string, StructuredCardEffect[]>();
@@ -204,9 +211,15 @@ function canonicalEffectName(effect: StructuredCardEffect) {
     : action === "discard" ? "core.discard"
       : action === "heal" ? "core.heal"
         : action === "gainFocus" ? "core.gainFocus"
-          : action === "modifySpeed" ? "combat.modifySpeed"
-            : action === "modifyAttackPower" ? "combat.modifyAttackPower"
-              : action ?? "";
+          : action === "gainXP" ? "core.gainXP"
+            : action === "reveal" ? "core.reveal"
+              : action === "modifySpeed" ? "combat.modifySpeed"
+                : action === "modifyAttackPower" ? "combat.modifyAttackPower"
+                  : action === "modifyDefense" ? "combat.modifyDefense"
+                    : action === "modifyGuard" ? "combat.modifyGuard"
+                      : action === "grantFlow" ? "combat.grantFlow"
+                        : action === "modifyCost" ? "economy.modifyCost"
+                          : action ?? "";
 }
 
 function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | null {
@@ -228,6 +241,7 @@ function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | 
 function isImplementedDedicatedResolver(resolver: string) {
   return IMPLEMENTED_DEDICATED_RESOLVERS.has(resolver)
     || SUPPORTED_KATA_RESOLVERS.has(resolver)
+    || SUPPORTED_COMBO_RESOLVERS.has(resolver)
     || isSupportedCharacterResolver(resolver)
     || isSupportedDefenseResolver(resolver)
     || isSupportedConsumableResolver(resolver);
@@ -287,6 +301,10 @@ export function structuredEffectsForCard(card: StructuredCardLike, registry?: St
 export function effectPlanForCard(card: StructuredCardLike, registry?: StructuredEffectRegistry): CardEffectPlan {
   const structuredEffects = structuredEffectsForCard(card, registry);
   if (structuredEffects) return planFromStructuredEffects(structuredEffects);
+  const catalogId = String(card.catalogId ?? "").trim();
+  if (CORE_GAMEPLAY_ID.test(catalogId)) {
+    return { effects: [], dedicated: [], unsupported: [`${catalogId}: missing canonical structured effect entry`], source: "structured" };
+  }
   return compileCardEffects(card.rulesText ?? "");
 }
 
