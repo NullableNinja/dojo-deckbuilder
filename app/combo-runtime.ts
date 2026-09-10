@@ -4,7 +4,7 @@ import { runtimeCommand, type RuntimeCommand, type RuntimeTrigger, type Structur
 
 export type ComboRuntimeCard = {
   id: string;
-  name?: string;
+  name: string;
   catalogId?: string | null;
   cardType?: string;
   subtype?: string;
