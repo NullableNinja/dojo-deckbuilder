@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - stage3c-defense-consumable-runtime
+      - stage3-final-machine-readable-certification
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   runtime-gate:
@@ -18,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.head.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -27,6 +30,18 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: One-time materialize canonical Combo requirements
+        if: github.ref_name == 'stage3-final-machine-readable-certification' && github.actor != 'github-actions[bot]'
+        run: |
+          node --experimental-strip-types scripts/materialize-combo-requirements.mjs
+          if ! git diff --quiet -- content/combo-requirements.json || ! git ls-files --error-unmatch content/combo-requirements.json >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add content/combo-requirements.json
+            git commit -m "materialize canonical combo requirements"
+            git push origin HEAD:stage3-final-machine-readable-certification
+          fi
 
       - name: Generate canonical runtime data
         run: npm run game:generate
