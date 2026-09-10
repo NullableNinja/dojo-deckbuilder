@@ -247,7 +247,7 @@ test("Quick Duel uses all Core Locations and no gameplay-critical Location rules
   assert.doesNotMatch(playtestSource, /location\.name\s*===/);
   assert.doesNotMatch(playtestSource, /\["Public Library",\s*"Strip-Mall McDojo"/);
   assert.doesNotMatch(resolverSource, /rulesText|normalizedMinus/);
-  assert.match(playtestSource, /STAGE3D_LOCATION_RUNTIME_FINALIZED/);
+  assert.doesNotMatch(playtestSource, /STAGE3D_LOCATION_RUNTIME_FINALIZED/, "Quick Duel must not depend on a one-shot finalizer sentinel");
 });
 
 test("Quick Duel exposes explicit Location lifecycle/event hooks for both fighters", () => {
