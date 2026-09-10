@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   remediate:
-    if: github.event.head_commit.message == 'run Character and Location host-boundary remediation'
+    if: github.event.head_commit.message == 'retry Character and Location host-boundary remediation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +21,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Narrow the one-time Location Focus replacement boundary
+        run: sed -i 's/function stage3cDefenseContext(/function printedAttackRuleModifier(/' scripts/stage3-final-remediate-host-boundaries.mjs
       - name: Apply Character and Location host-boundary remediation
         run: node scripts/stage3-final-remediate-host-boundaries.mjs
       - name: Compile and build remediated source
