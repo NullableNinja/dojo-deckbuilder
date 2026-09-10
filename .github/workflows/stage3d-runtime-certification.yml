@@ -1,0 +1,46 @@
+name: Stage 3D Runtime Certification
+
+on:
+  push:
+    branches:
+      - stage3d-runtime-final-on-main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout committed source
+        uses: actions/checkout@v4
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate canonical game data
+        run: npm run game:generate
+
+      - name: Verify generated game data
+        run: npm run game:check
+
+      - name: Certify all 41 Core Character runtimes
+        run: node --experimental-strip-types --test tests/character-runtime-enforcement.test.mjs
+
+      - name: TypeScript certification
+        run: npx tsc --noEmit
+
+      - name: Full repository certification
+        run: npm test
+
+      - name: Verify certification did not mutate committed source
+        run: git diff --exit-code
