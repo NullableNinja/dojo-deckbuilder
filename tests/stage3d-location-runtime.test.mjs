@@ -164,9 +164,10 @@ test("Location lifecycle expires turn/round/scene state at the correct boundary"
   const turn = resetLocationTurn(scene);
   assert.deepEqual(turn.locationUsedEffectsThisTurn, []);
   assert.deepEqual(turn.locationUsedEffectsThisRound, ["round"]);
-  assert.equal(turn.locationChosenCounterZone, null);
+  assert.equal(turn.locationChosenCounterZone, "Low");
   const round = resetLocationRound(turn);
   assert.deepEqual(round.locationUsedEffectsThisRound, []);
+  assert.equal(round.locationChosenCounterZone, null);
   assert.equal(round.tempSpeed, -2);
   assert.equal(round.locationNextRoundSpeed, 0);
 });
