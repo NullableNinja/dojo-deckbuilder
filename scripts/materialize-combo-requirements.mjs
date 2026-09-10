@@ -92,6 +92,10 @@ const game = await readJson("content/dojo-game.json");
 const effectRegistry = await readJson("content/card-effects/combos.json");
 const combos = (cardsPayload.cards ?? []).filter((card) => String(card.catalogId ?? "").includes("-CMB-CORE-"));
 const cards = Object.fromEntries(combos.map((card) => [card.catalogId, { name: card.name, ...materializeRequirements(card) }]));
+const resolvers = [...new Set(Object.values(effectRegistry.cards ?? {}).flatMap((entry) => (entry.effects ?? []).map((effect) => effect.resolver).filter(Boolean)))].sort();
+const effects = [...new Set(Object.values(effectRegistry.cards ?? {}).flatMap((entry) => (entry.effects ?? []).map((effect) => effect.effect).filter(Boolean)))].sort();
+console.log(`COMBO_RESOLVERS ${JSON.stringify(resolvers)}`);
+console.log(`COMBO_EFFECTS ${JSON.stringify(effects)}`);
 
 const missingRequirementCards = combos.filter((card) => !(cards[card.catalogId]?.requirements ?? []).length);
 if (missingRequirementCards.length) {
@@ -111,8 +115,4 @@ const payload = {
 };
 
 await writeFile(new URL("content/combo-requirements.json", root), `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-const resolvers = [...new Set(Object.values(effectRegistry.cards ?? {}).flatMap((entry) => (entry.effects ?? []).map((effect) => effect.resolver).filter(Boolean)))].sort();
-const effects = [...new Set(Object.values(effectRegistry.cards ?? {}).flatMap((entry) => (entry.effects ?? []).map((effect) => effect.effect).filter(Boolean)))].sort();
 console.log(`Materialized ${Object.keys(cards).length} Core Combo requirement definitions.`);
-console.log(`COMBO_RESOLVERS ${JSON.stringify(resolvers)}`);
-console.log(`COMBO_EFFECTS ${JSON.stringify(effects)}`);
