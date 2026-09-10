@@ -20,7 +20,7 @@ function sequenceStep(descriptor) {
   if (/\battack\b/.test(lower)) step.family = "Attack";
   else if (/\bdefense\b|\bblock\b/.test(lower)) step.family = "Defense";
   else if (/\bkata\b/.test(lower)) step.family = "Kata";
-  const tags = ["punch", "kick", "jump", "spin", "weapon", "hand", "leg", "multi-hit", "flow", "push", "dodge"].filter((tag) => lower.includes(tag));
+  const tags = ["punch", "kick", "jump", "spin", "weapon", "hand", "leg", "multi-hit", "flow", "push", "dodge", "guard", "parry"].filter((tag) => lower.includes(tag));
   if (tags.length) step.tags = tags;
   const zone = ["high", "mid", "low"].find((candidate) => new RegExp(`\\b${candidate}\\b`, "i").test(lower));
   if (zone) step.zone = `${zone[0].toUpperCase()}${zone.slice(1)}`;
@@ -32,17 +32,41 @@ function materializeRequirements(card) {
   const requirements = [];
   let recognized = false;
   const arrowParts = text.split(/\s*(?:→|->)\s*/).map((part) => part.trim()).filter(Boolean);
+
   if (arrowParts.length > 1) {
     recognized = true;
     requirements.push({ kind: "orderedSequence", steps: arrowParts.map(sequenceStep) });
+  }
+  if (/hit\s+high\s*,?\s*then\s+mid\s*,?\s*then\s+low/i.test(text)) {
+    recognized = true;
+    requirements.push({ kind: "orderedAttackHits", zones: ["High", "Mid", "Low"], sameOpponent: /same opponent/i.test(text), window: /this turn/i.test(text) ? "turn" : "round" });
   }
   if (/different zone/i.test(text)) {
     recognized = true;
     requirements.push({ kind: "differentZoneFromPreviousAttack" });
   }
-  if (/block(?:ed)? an? attack|after you played a defense|\bblock\b/i.test(text)) {
+  if (/guard defense blocks? an? attack/i.test(text)) {
+    recognized = true;
+    requirements.push({ kind: "defenseBlocksAttack", tag: "guard" });
+  } else if (/block(?:ed|s)? an? attack|after you played a defense|\bblock\b/i.test(text)) {
     recognized = true;
     requirements.push({ kind: "defendedThisRound" });
+  }
+  if (/play two guard defenses/i.test(text)) {
+    recognized = true;
+    requirements.push({ kind: "minimumDefenseTag", tag: "guard", amount: 2, window: "round" });
+  }
+  if (/play two parry(?:-tag)? defenses/i.test(text)) {
+    recognized = true;
+    requirements.push({ kind: "minimumDefenseTag", tag: "parry", amount: 2, window: "round" });
+  }
+  if (/trigger any other combo this turn,? then complete a different combo/i.test(text)) {
+    recognized = true;
+    requirements.push({ kind: "differentComboAfterCombo", minimumPriorCombos: 1, window: "turn" });
+  }
+  if (/complete a belt exam task,? then make a kick that hits/i.test(text)) {
+    recognized = true;
+    requirements.push({ kind: "beltExamThenAttackHit", tag: "kick", window: /same round/i.test(text) ? "round" : "turn" });
   }
   if (/\bkata\b/i.test(text) && arrowParts.length <= 1) {
     recognized = true;
