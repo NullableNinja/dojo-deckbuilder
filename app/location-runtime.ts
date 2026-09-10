@@ -85,7 +85,9 @@ export function locationRuntimeDelta(commands: LocationCommand[]) {
     else if (command.action === "gainFocus") result.focus += command.amount;
     else if (command.action === "draw") result.draw += Math.max(0, command.amount);
     else if (command.action === "modifySpeed") result.speed += command.amount;
-    else if (command.action === "chooseZone") result.choices.push({ effectId: command.effectId, operation: command.operation ?? "chooseZone", metadata: command.metadata, duration: command.duration });
+    else if (command.action === "chooseZone" && command.operation !== "nextCounterAttackChosenZone") {
+      result.choices.push({ effectId: command.effectId, operation: command.operation ?? "chooseZone", metadata: command.metadata, duration: command.duration });
+    }
 
     switch (command.operation) {
       case "modifyWeaponAttackBonus": result.attackPower += command.amount; break;
@@ -163,8 +165,6 @@ export function resetLocationTurn<T extends LocationTrackedState>(state: T): T {
   return {
     ...state,
     locationUsedEffectsThisTurn: [],
-    locationChosenCounterZone: null,
-    locationChosenCounterRound: null,
     locationComboNumericChoice: null,
     locationKataFlowGrantsThisTurn: 0,
     locationNextAttackFlowFromKata: false,
