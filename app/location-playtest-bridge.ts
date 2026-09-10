@@ -1,4 +1,5 @@
 import {
+  isStructuredLocation,
   resolveLocationEffects,
   type LocationCardLike,
   type LocationContext,
@@ -61,7 +62,9 @@ export type LegacyAttackHostContext = {
 /**
  * Compatibility adapter for the current Quick Duel attack hook. It maps host
  * facts to canonical predicate names, but all gameplay semantics still come
- * from structured Location effects.
+ * from structured Location effects. A structured Location is authoritative
+ * even when none of its effects match this specific attack, so the legacy
+ * name/prose fallback must remain suppressed.
  */
 export function structuredLocationAttackForHost(
   card: LocationCardLike,
@@ -77,7 +80,7 @@ export function structuredLocationAttackForHost(
   });
   const { delta } = resolution;
   return {
-    matched: delta.commands.length > 0,
+    matched: isStructuredLocation(card),
     power: delta.attackPower,
     damage: delta.damage,
     notes: delta.commands.map((command) => {
