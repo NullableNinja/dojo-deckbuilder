@@ -18,7 +18,7 @@ import { firstEventReactionCard, hasUntargetableStatus } from "./stage3c-consuma
 import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, spendableFocusForPurchase, spendFocusForPurchase } from "./stage3c-consumable-surface.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
-import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
+import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -175,18 +175,18 @@ type PendingChoice =
   | { kind: "attack-cost-discard"; sourceCardId: string; bonus: number; optional: true }
   | { kind: "fire-drill-discard"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[]; optional: true }
   | { kind: "fire-drill-zone"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[] }
-  | { kind: "air-horn-reaction"; sourceCardId: string; reactionCardId: string; reactionKind: "consumable" | "defense" }
-  | { kind: "stage3c-trail-mix"; sourceCardId: string; equipmentIds: string[] }
-  | { kind: "stage3c-zone-ward"; sourceCardId: string; amount: number }
-  | { kind: "stage3c-remove-negative"; sourceCardId: string; bonusAttack: number; stats: ("ATK" | "DEF" | "Speed")[] }
-  | { kind: "stage3c-discard-focus"; sourceCardId: string; remaining: number; focusPerDiscard: number; optional: true }
-  | { kind: "stage3c-weapon-suppress"; sourceCardId: string; equipmentIds: string[] }
-  | { kind: "stage3c-exhaust-focus"; sourceCardId: string; equipmentIds: string[]; focus: number }
-  | { kind: "stage3c-raffle"; sourceCardId: string; revealedCardId: string }
-  | { kind: "stage3c-lucky-reveal"; sourceCardId: string; revealKind: "market" | "location"; revealedCardId: string; marketSlot?: number }
-  | { kind: "stage3c-sparring-pick"; sourceCardId: string; revealed: string[] }
-  | { kind: "stage3c-sparring-junk"; sourceCardId: string; junkIds: string[]; optional: true }
-  | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] };
+  | { kind: "cancel-reaction"; sourceCardId: string; reactionCardId: string; reactionKind: "consumable" | "defense" }
+  | { kind: "equipment-cycle"; sourceCardId: string; equipmentIds: string[] }
+  | { kind: "zone-call"; sourceCardId: string; amount: number }
+  | { kind: "remove-negative-stat"; sourceCardId: string; bonusAttack: number; stats: ("ATK" | "DEF" | "Speed")[] }
+  | { kind: "discard-for-focus"; sourceCardId: string; remaining: number; focusPerDiscard: number; optional: true }
+  | { kind: "suppress-equipment-clause"; sourceCardId: string; equipmentIds: string[] }
+  | { kind: "exhaust-equipment-for-focus"; sourceCardId: string; equipmentIds: string[]; focus: number }
+  | { kind: "market-reveal-purchase"; sourceCardId: string; revealedCardId: string }
+  | { kind: "replace-revealed-card"; sourceCardId: string; revealKind: "market" | "location"; revealedCardId: string; marketSlot?: number }
+  | { kind: "deck-attack-pick"; sourceCardId: string; revealed: string[] }
+  | { kind: "destroy-revealed-junk"; sourceCardId: string; junkIds: string[]; optional: true }
+  | { kind: "discard-reaction"; sourceCardId: string; reactionIds: string[] };
 
 type Match = {
   schema: 8;
@@ -285,6 +285,8 @@ const QUICK_DUEL_LOCATION_NAMES = new Set([
   "Traditional Dojo",
   "Yoga Studio",
 ]);
+const DEFAULT_QUICK_DUEL_FIGHTER_NAME = "Sensei Ducktape";
+const DEFAULT_QUICK_DUEL_LOCATION_NAME = "Tournament Mat";
 const quickDuelLocationPool = locationPool.filter((card) => QUICK_DUEL_LOCATION_NAMES.has(card.name));
 const belts = gameDefinition.progression.belts;
 const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail: string; aiHp: number; statBoost: number }> = {
@@ -984,6 +986,16 @@ function drawCards(board: Board, count: number) {
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
 
+function cardHasRuntimeResolver(card: CardEntry | null | undefined, resolver: string) {
+  return Boolean(card && structuredRuntimeResolvers(card, resolver).length);
+}
+
+function cardHasRuntimeCondition(card: CardEntry | null | undefined, resolver: string, kind: string, value: unknown) {
+  return Boolean(card && structuredRuntimeResolvers(card, resolver).some((effect) =>
+    (effect.conditions ?? []).some((condition) => condition.kind === kind && condition.value === value),
+  ));
+}
+
 function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {
   return {
     hasTempo: board.tempo,
@@ -1285,10 +1297,10 @@ function stage3cAiPreferredAttackZone(board: Board) {
 function beginStage3CSparringDummy(board: Board, sourceCardId: string) {
   const revealedState = revealDeckTop(board, 3);
   const attacks = revealedState.revealed.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
-  if (attacks.length) return { board: revealedState.board, pendingChoice: { kind: "stage3c-sparring-pick", sourceCardId, revealed: revealedState.revealed } as PendingChoice };
+  if (attacks.length) return { board: revealedState.board, pendingChoice: { kind: "deck-attack-pick", sourceCardId, revealed: revealedState.revealed } as PendingChoice };
   const junkIds = revealedState.revealed.filter((id) => isJunk(cardFor(id)));
   const discarded = { ...revealedState.board, discard: [...revealedState.board.discard, ...revealedState.revealed] };
-  return { board: discarded, pendingChoice: junkIds.length ? { kind: "stage3c-sparring-junk", sourceCardId, junkIds, optional: true } as PendingChoice : null };
+  return { board: discarded, pendingChoice: junkIds.length ? { kind: "destroy-revealed-junk", sourceCardId, junkIds, optional: true } as PendingChoice : null };
 }
 
 
@@ -1475,12 +1487,15 @@ function emptyBoard(fighterId: string): Board {
   }, gameDefinition.turn.handSize);
 }
 
+const STARTER_ART_BY_NAME: Readonly<Record<string, string>> = {
+  "Basic Jab": starterJabArtUrl,
+  "High Guard": highGuardArtUrl,
+};
+
 function artistUrl(card: CardEntry) {
   if (card.image && CARD_ART[card.image]) return CARD_ART[card.image];
   if (COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId]) return COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId];
-  if (card.name === "Basic Jab") return starterJabArtUrl;
-  if (card.name === "High Guard") return highGuardArtUrl;
-  return undefined;
+  return STARTER_ART_BY_NAME[card.name];
 }
 
 function presentationSlug(value: string) {
@@ -1595,7 +1610,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
     next.flowAfterFirstAttack = true;
   } else if (timing === "onPlay" && /(?:^|[.!?]\s+)(?:Your|The) next [^.]*Attack[^.]*gains Flow/i.test(text)) {
     next.nextAttackHasFlow = true;
-  } else if (timing === "onPlay" && card.name === "Second Wind Form" && board.hp > board.maxHp / 2) {
+  } else if (timing === "onPlay" && cardHasRuntimeCondition(card, "kata.branch", "grantFlowTo", "nextAttack") && board.hp > board.maxHp / 2) {
     next.nextAttackHasFlow = true;
   } else if (timing === "onHit" && /(?:On Hit|If (?:this Attack|it|that Attack) Hits?)[^.]*next [^.]*Attack[^.]*gains Flow/i.test(text)) {
     next.nextAttackHasFlow = true;
@@ -1957,7 +1972,7 @@ function MobilePlaytestNotice() {
 }
 
 export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards") => void }) {
-  const [selectedId, setSelectedId] = useState(() => characters.find((card) => card.name === "Sensei Ducktape")?.id ?? characters[0].id);
+  const [selectedId, setSelectedId] = useState(() => characters.find((card) => card.name === DEFAULT_QUICK_DUEL_FIGHTER_NAME)?.id ?? characters[0].id);
   const [settings, setSettings] = useState<HouseSettings>(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-settings") ?? "null") as Partial<HouseSettings> | null;
@@ -2036,7 +2051,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const shuffledMarket = shuffle(marketPool.filter((card) => settings.openMarket || Boolean(artistUrl(card))).map((card) => card.id));
     const openingMarket = curateOpeningMarket(shuffledMarket, settings.balancedMarket);
     const comboDeck = shuffle(comboPool.map((card) => card.id));
-    const currentLocation = settings.locations ? locations[0] : locationPool.find((card) => card.name === "Tournament Mat")?.id ?? locations[0];
+    const currentLocation = settings.locations ? locations[0] : locationPool.find((card) => card.name === DEFAULT_QUICK_DUEL_LOCATION_NAME)?.id ?? locations[0];
     const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
     const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
     setDeskView(null);
@@ -2252,7 +2267,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         }) as CardEntry | null;
     if (aiConsumableCandidate && playerAirHorn && !(current.airHornPassedReactionIds ?? []).includes(aiConsumableCandidate.id)) {
       return write(current, `${aiConsumableCandidate.name} is played as the computer's Reaction. Air Horn can cancel it before resolution.`, {
-        pendingChoice: { kind: "air-horn-reaction", sourceCardId: playerAirHorn.id, reactionCardId: aiConsumableCandidate.id, reactionKind: "consumable" },
+        pendingChoice: { kind: "cancel-reaction", sourceCardId: playerAirHorn.id, reactionCardId: aiConsumableCandidate.id, reactionKind: "consumable" },
       });
     }
     const aiConsumableReaction = current.airHornAiConsumableSpentThisStrike
@@ -2270,7 +2285,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     if (defenseCard && playerAirHorn && !(current.airHornPassedReactionIds ?? []).includes(defenseCard.id)) {
       return write(current, `${defenseCard.name} is played as the computer's one Defense for this strike. Air Horn can cancel it before Guard or printed effects resolve.`, {
-        pendingChoice: { kind: "air-horn-reaction", sourceCardId: playerAirHorn.id, reactionCardId: defenseCard.id, reactionKind: "defense" },
+        pendingChoice: { kind: "cancel-reaction", sourceCardId: playerAirHorn.id, reactionCardId: defenseCard.id, reactionKind: "defense" },
       });
     }
     const postDefensePower = afterDefenseAttackPowerBonus(card, Boolean(defenseCard));
@@ -2371,7 +2386,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const resolvePlayerAirHornChoice = (useAirHorn: boolean) => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "air-horn-reaction") return current;
+    if (!current || !choice || choice.kind !== "cancel-reaction") return current;
     const reaction = cardFor(choice.reactionCardId);
     const airHorn = cardFor(choice.sourceCardId);
     if (!reaction || !airHorn || !current.player.hand.includes(airHorn.id)) {
@@ -2521,7 +2536,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       if (defensePenalty) nextAi = { ...nextAi, nextDefenseCardBonus: (nextAi.nextDefenseCardBonus ?? 0) - defensePenalty };
     }
     if (isCoreConsumableCard(card)) {
-      if (card.catalogId === "DDB-CON-CORE-009") {
+      if (cardHasRuntimeResolver(card, "consumable.chooseOpponentDiscardReactionIfAble")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.chooseOpponentDiscardReactionIfAble"]);
         const reactions = nextAi.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && String(candidate.timing ?? "").toLocaleLowerCase() === "reaction"));
         if (reactions.length) {
@@ -2529,53 +2544,53 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           nextAi = { ...nextAi, hand: removeOne(nextAi.hand, chosen.id), discard: [...nextAi.discard, chosen.id] };
         }
       }
-      if (card.catalogId === "DDB-CON-CORE-010") {
+      if (cardHasRuntimeResolver(card, "consumable.optionalExhaustToCycle")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.optionalExhaustToCycle"]);
         const equipmentIds = stage3cReadyEquipmentIds(nextPlayer);
-        if (!pendingChoice && equipmentIds.length) pendingChoice = { kind: "stage3c-trail-mix", sourceCardId: id, equipmentIds };
+        if (!pendingChoice && equipmentIds.length) pendingChoice = { kind: "equipment-cycle", sourceCardId: id, equipmentIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-012" && current.phase === "player-ascend") {
+      if (cardHasRuntimeResolver(card, "consumable.raffleTicket") && current.phase === "player-ascend") {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.raffleTicket"]);
         const reveal = revealMarketCards(nextMarketDeck, nextMarketDiscard, 1);
         nextMarketDeck = reveal.marketDeck;
         nextMarketDiscard = reveal.marketDiscard;
-        if (reveal.revealed[0]) pendingChoice = { kind: "stage3c-raffle", sourceCardId: id, revealedCardId: reveal.revealed[0] };
+        if (reveal.revealed[0]) pendingChoice = { kind: "market-reveal-purchase", sourceCardId: id, revealedCardId: reveal.revealed[0] };
       }
-      if (card.catalogId === "DDB-CON-CORE-021") {
+      if (cardHasRuntimeResolver(card, "consumable.zoneSpecificIncomingAttackPenalty")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.zoneSpecificIncomingAttackPenalty"]);
-        pendingChoice = { kind: "stage3c-zone-ward", sourceCardId: id, amount: -2 };
+        pendingChoice = { kind: "zone-call", sourceCardId: id, amount: -2 };
       }
-      if (card.catalogId === "DDB-CON-CORE-022") {
+      if (cardHasRuntimeResolver(card, "consumable.reorderTopThree")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.reorderTopThree"]);
         const reveal = revealDeckTop(nextPlayer, 3);
         const types = new Set(reveal.revealed.map((candidate) => cardFor(candidate)?.cardType ?? "Unknown"));
         nextPlayer = reveal.board;
         if (reveal.revealed.length) pendingChoice = { kind: "deck-order", sourceCardId: id, revealed: reveal.revealed, ordered: [], bonusFocus: reveal.revealed.length === 3 && types.size === 3 ? 1 : 0 };
       }
-      if (card.catalogId === "DDB-CON-CORE-031" || card.catalogId === "DDB-CON-CORE-056") {
+      if (cardHasRuntimeResolver(card, "consumable.pepTalkConditionalAttackBonus") || cardHasRuntimeResolver(card, "consumable.removeTemporaryNegativeStatModifier")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.removeTemporaryNegativeStatModifier"]);
         const stats = stage3cNegativeStatOptions(nextPlayer);
-        if (stats.length) pendingChoice = { kind: "stage3c-remove-negative", sourceCardId: id, bonusAttack: card.catalogId === "DDB-CON-CORE-031" ? 1 : 0, stats };
+        if (stats.length) pendingChoice = { kind: "remove-negative-stat", sourceCardId: id, bonusAttack: cardHasRuntimeResolver(card, "consumable.pepTalkConditionalAttackBonus") ? 1 : 0, stats };
       }
-      if (card.catalogId === "DDB-CON-CORE-032") {
+      if (cardHasRuntimeResolver(card, "consumable.discardUpToForFocus")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.discardUpToForFocus"]);
-        if (nextPlayer.hand.length) pendingChoice = { kind: "stage3c-discard-focus", sourceCardId: id, remaining: Math.min(2, nextPlayer.hand.length), focusPerDiscard: 2, optional: true };
+        if (nextPlayer.hand.length) pendingChoice = { kind: "discard-for-focus", sourceCardId: id, remaining: Math.min(2, nextPlayer.hand.length), focusPerDiscard: 2, optional: true };
       }
-      if (card.catalogId === "DDB-CON-CORE-035") {
+      if (cardHasRuntimeResolver(card, "consumable.suppressChosenWeaponClause")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.suppressChosenWeaponClause"]);
         const equipmentIds = nextPlayer.equipment.filter((equipmentId) => { const item = cardFor(equipmentId); return Boolean(item && isWeapon(item)); });
-        if (equipmentIds.length) pendingChoice = { kind: "stage3c-weapon-suppress", sourceCardId: id, equipmentIds };
+        if (equipmentIds.length) pendingChoice = { kind: "suppress-equipment-clause", sourceCardId: id, equipmentIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-045") {
+      if (cardHasRuntimeResolver(card, "consumable.exhaustEquipmentForFocus")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.exhaustEquipmentForFocus"]);
         const equipmentIds = stage3cReadyEquipmentIds(nextPlayer);
-        if (equipmentIds.length) pendingChoice = { kind: "stage3c-exhaust-focus", sourceCardId: id, equipmentIds, focus: 3 };
+        if (equipmentIds.length) pendingChoice = { kind: "exhaust-equipment-for-focus", sourceCardId: id, equipmentIds, focus: 3 };
       }
-      if (card.catalogId === "DDB-CON-CORE-049" && current.phase === "defense-window" && current.pendingStrike) {
+      if (cardHasRuntimeResolver(card, "consumable.untargetableUntilTurnOrAttack") && current.phase === "defense-window" && current.pendingStrike) {
         const escaped = write(current, `Smoke Bomb invalidates ${cardFor(current.pendingStrike.cardId)?.name ?? "the incoming Attack"}'s only legal target. The strike is spent without dealing damage.`, { player: nextPlayer, ai: nextAi, pendingStrike: null, pendingChoice: null, pendingCombatContinuation: null });
         return finishAiTurn(escaped, "Computer cannot legally target you through the Smoke Bomb and ends its Yell.", settings.locations);
       }
-      if (card.catalogId === "DDB-CON-CORE-051") {
+      if (cardHasRuntimeResolver(card, "consumable.topThreeAttackSelection")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.topThreeAttackSelection"]);
         const sparring = beginStage3CSparringDummy(nextPlayer, id);
         nextPlayer = sparring.board;
@@ -2609,7 +2624,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const selected = cardFor(cardId);
     if (!selected) return current;
 
-    if (choice.kind === "stage3c-trail-mix") {
+    if (choice.kind === "equipment-cycle") {
       if (source !== "equipment" || !choice.equipmentIds.includes(cardId) || !current.player.equipment.includes(cardId) || isEquipmentExhausted(current.player, cardId)) return current;
       let player = exhaustEquipment(current.player, cardId);
       player = drawCards(player, 1);
@@ -2617,7 +2632,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return write(current, `${selected.name} exhausted for ${cardFor(choice.sourceCardId)?.name ?? "Department-Issue Trail Mix"}; draw 1${pendingChoice ? " and choose 1 discard" : ""}.`, { player, pendingChoice });
     }
 
-    if (choice.kind === "stage3c-discard-focus") {
+    if (choice.kind === "discard-for-focus") {
       if (!current.player.hand.includes(cardId)) return current;
       const player = gainFocus({ ...current.player, hand: removeOne(current.player.hand, cardId), discard: [...current.player.discard, cardId] }, choice.focusPerDiscard);
       const remaining = choice.remaining - 1;
@@ -2625,34 +2640,34 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return write(current, `${selected.name} discarded for +${choice.focusPerDiscard} Focus.${pendingChoice ? " Up to " + remaining + " more may be discarded." : " Choice complete."}`, { player, pendingChoice });
     }
 
-    if (choice.kind === "stage3c-weapon-suppress") {
+    if (choice.kind === "suppress-equipment-clause") {
       if (source !== "equipment" || !choice.equipmentIds.includes(cardId) || !current.player.equipment.includes(cardId)) return current;
       const player = { ...current.player, suppressedEquipmentPenaltyIds: [...new Set([...(current.player.suppressedEquipmentPenaltyIds ?? []), cardId])] };
       return write(current, `Muscle Ointment suppresses ${selected.name}'s drawback/self-penalty until Hide.`, { player, pendingChoice: null });
     }
 
-    if (choice.kind === "stage3c-exhaust-focus") {
+    if (choice.kind === "exhaust-equipment-for-focus") {
       if (source !== "equipment" || !choice.equipmentIds.includes(cardId) || !current.player.equipment.includes(cardId) || isEquipmentExhausted(current.player, cardId)) return current;
       const player = gainFocus(exhaustEquipment(current.player, cardId), choice.focus);
       return write(current, `${selected.name} exhausted; Receipt-Printer Ribbon grants +${choice.focus} Focus.`, { player, pendingChoice: null });
     }
 
-    if (choice.kind === "stage3c-reaction-discard") {
+    if (choice.kind === "discard-reaction") {
       if (!choice.reactionIds.includes(cardId) || !current.player.hand.includes(cardId) || String(selected.timing ?? "").toLocaleLowerCase() !== "reaction") return current;
       const player = { ...current.player, hand: removeOne(current.player.hand, cardId), discard: [...current.player.discard, cardId] };
       return write(current, `${selected.name} discarded to satisfy Confetti Cannon.`, { player, pendingChoice: null });
     }
 
-    if (choice.kind === "stage3c-sparring-pick") {
+    if (choice.kind === "deck-attack-pick") {
       if (source !== "deck" || !choice.revealed.includes(cardId) || !isAttack(selected)) return current;
       const rest = removeOne(choice.revealed, cardId);
       const junkIds = rest.filter((candidate) => isJunk(cardFor(candidate)));
       const player = { ...current.player, hand: [...current.player.hand, cardId], discard: [...current.player.discard, ...rest] };
-      const pendingChoice = junkIds.length ? { kind: "stage3c-sparring-junk", sourceCardId: choice.sourceCardId, junkIds, optional: true } as PendingChoice : null;
+      const pendingChoice = junkIds.length ? { kind: "destroy-revealed-junk", sourceCardId: choice.sourceCardId, junkIds, optional: true } as PendingChoice : null;
       return write(current, `${selected.name} taken from Sparring Dummy's reveal; the rest are discarded.${pendingChoice ? " You may destroy one Junk discarded this way." : ""}`, { player, pendingChoice });
     }
 
-    if (choice.kind === "stage3c-sparring-junk") {
+    if (choice.kind === "destroy-revealed-junk") {
       if (source !== "discard" || !choice.junkIds.includes(cardId) || !current.player.discard.includes(cardId) || !isJunk(selected)) return current;
       const player = { ...current.player, discard: removeOne(current.player.discard, cardId), destroyed: [...(current.player.destroyed ?? []), cardId] };
       return write(current, `${selected.name} destroyed from Sparring Dummy's discarded reveal.`, { player, pendingChoice: null });
@@ -2736,14 +2751,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const resolveStage3CZoneWard = (zone: string) => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "stage3c-zone-ward") return current;
+    if (!current || !choice || choice.kind !== "zone-call") return current;
     const ai = stage3cArmZoneWard(current.ai, choice.sourceCardId, zone, choice.amount);
     return write(current, `Foam Finger calls ${zone}; the next ${zone} Attack targeting you this round gets ${choice.amount} Attack Power.`, { ai, pendingChoice: null });
   });
 
   const resolveStage3CNegative = (stat: "ATK" | "DEF" | "Speed") => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "stage3c-remove-negative" || !choice.stats.includes(stat)) return current;
+    if (!current || !choice || choice.kind !== "remove-negative-stat" || !choice.stats.includes(stat)) return current;
     const removed = stage3cRemoveTemporaryNegative(current.player, stat);
     let player = removed.board;
     if (removed.removed && choice.bonusAttack) {
@@ -2755,7 +2770,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const resolveStage3CRaffle = (buy: boolean) => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "stage3c-raffle") return current;
+    if (!current || !choice || choice.kind !== "market-reveal-purchase") return current;
     const revealed = cardFor(choice.revealedCardId);
     if (!revealed) return { ...current, pendingChoice: null };
     const price = marketPriceFor(current.player, revealed);
@@ -2770,7 +2785,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const resolveStage3CLucky = (use: boolean) => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "stage3c-lucky-reveal") return current;
+    if (!current || !choice || choice.kind !== "replace-revealed-card") return current;
     if (!use) return write(current, "Lucky Dumpling held; the revealed card remains.", { pendingChoice: null });
     const lucky = cardFor(choice.sourceCardId);
     if (!lucky || !current.player.hand.includes(lucky.id)) return { ...current, pendingChoice: null };
@@ -2803,9 +2818,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return resolveDefenseState(current, choice.defenseId, null, true);
     }
     if (current.pendingChoice.kind === "post-block-cycle") return resumeAfterDefense(write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional Equipment"}: post-Block cycle declined.`, { pendingChoice: null }));
-    if (current.pendingChoice.kind === "stage3c-trail-mix") return write(current, "Department-Issue Trail Mix: optional Equipment cycle declined.", { pendingChoice: null });
-    if (current.pendingChoice.kind === "stage3c-discard-focus") return write(current, "Last-Call Electrolytes: stop discarding; keep the Focus already earned.", { pendingChoice: null });
-    if (current.pendingChoice.kind === "stage3c-sparring-junk") return write(current, "Sparring Dummy: optional Junk destruction declined.", { pendingChoice: null });
+    if (current.pendingChoice.kind === "equipment-cycle") return write(current, "Department-Issue Trail Mix: optional Equipment cycle declined.", { pendingChoice: null });
+    if (current.pendingChoice.kind === "discard-for-focus") return write(current, "Last-Call Electrolytes: stop discarding; keep the Focus already earned.", { pendingChoice: null });
+    if (current.pendingChoice.kind === "destroy-revealed-junk") return write(current, "Sparring Dummy: optional Junk destruction declined.", { pendingChoice: null });
     if (current.pendingChoice.kind === "destroy-junk" && current.pendingChoice.optional) return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: Junk destruction declined.`, { pendingChoice: null });
     if (current.pendingChoice.kind === "discard-draw") return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: discard/draw declined.`, { pendingChoice: null });
     if (current.pendingChoice.kind === "ready-equipment" && current.pendingChoice.optional) return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: ready effect declined.`, { pendingChoice: null });
@@ -2850,8 +2865,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const refilled = refillPurchasedMarketSlot(current.market, current.marketDeck, current.marketDiscard, slot);
     const purchased = write(current, `Bought ${card.name} for ${price} Focus (${focusBefore} → ${nextPlayer.focus}). The top Market card immediately fills the slot.`, { player: nextPlayer, ...refilled, marketPurchasedThisRound: true });
     const revealedId = refilled.market[slot];
-    const lucky = revealedId ? nextPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033")) : null;
-    return lucky && revealedId ? write(purchased, `${cardFor(revealedId)?.name ?? "A Market card"} was revealed. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } }) : purchased;
+    const lucky = revealedId ? nextPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && cardHasRuntimeResolver(candidate, "consumable.replaceRevealedMarketOrLocation"))) : null;
+    return lucky && revealedId ? write(purchased, `${cardFor(revealedId)?.name ?? "A Market card"} was revealed. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "replace-revealed-card", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } }) : purchased;
   });
 
   const cycleCombo = (learn: boolean) => setMatch((current) => {
@@ -3257,27 +3272,27 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           ? match.pendingChoice.revealed.map((id, index) => ({ id, source: "deck" as const, index }))
           : match.pendingChoice?.kind === "ready-equipment"
             ? (player.exhaustedEquipment ?? []).filter((id) => player.equipment.includes(id)).map((id, index) => ({ id, source: "equipment" as const, index }))
-            : match.pendingChoice?.kind === "stage3c-trail-mix" || match.pendingChoice?.kind === "stage3c-weapon-suppress" || match.pendingChoice?.kind === "stage3c-exhaust-focus"
+            : match.pendingChoice?.kind === "equipment-cycle" || match.pendingChoice?.kind === "suppress-equipment-clause" || match.pendingChoice?.kind === "exhaust-equipment-for-focus"
               ? match.pendingChoice.equipmentIds.map((id, index) => ({ id, source: "equipment" as const, index }))
-              : match.pendingChoice?.kind === "stage3c-discard-focus" || match.pendingChoice?.kind === "stage3c-reaction-discard"
-                ? (match.pendingChoice.kind === "stage3c-reaction-discard" ? match.pendingChoice.reactionIds : player.hand).map((id, index) => ({ id, source: "hand" as const, index }))
-                : match.pendingChoice?.kind === "stage3c-sparring-pick"
+              : match.pendingChoice?.kind === "discard-for-focus" || match.pendingChoice?.kind === "discard-reaction"
+                ? (match.pendingChoice.kind === "discard-reaction" ? match.pendingChoice.reactionIds : player.hand).map((id, index) => ({ id, source: "hand" as const, index }))
+                : match.pendingChoice?.kind === "deck-attack-pick"
                   ? match.pendingChoice.revealed.map((id, index) => ({ id, source: "deck" as const, index })).filter((entry) => isAttack(cardFor(entry.id)!))
-                  : match.pendingChoice?.kind === "stage3c-sparring-junk"
+                  : match.pendingChoice?.kind === "destroy-revealed-junk"
                     ? match.pendingChoice.junkIds.map((id, index) => ({ id, source: "discard" as const, index }))
                     : [];
-  const effectChoiceTitle = match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"
-    : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? "Use Lucky Dumpling?"
-    : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Call a protected zone"
-    : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Remove a temporary penalty"
-    : match.pendingChoice?.kind === "stage3c-trail-mix" ? "Exhaust Equipment to cycle?"
-    : match.pendingChoice?.kind === "stage3c-discard-focus" ? "Discard for Focus"
-    : match.pendingChoice?.kind === "stage3c-weapon-suppress" ? "Choose a Weapon"
-    : match.pendingChoice?.kind === "stage3c-exhaust-focus" ? "Exhaust Equipment for Focus"
-    : match.pendingChoice?.kind === "stage3c-sparring-pick" ? "Choose an Attack"
-    : match.pendingChoice?.kind === "stage3c-sparring-junk" ? "Destroy revealed Junk?"
-    : match.pendingChoice?.kind === "stage3c-reaction-discard" ? "Discard a Reaction"
-    : match.pendingChoice?.kind === "air-horn-reaction" ? "Sound the Air Horn?"
+  const effectChoiceTitle = match.pendingChoice?.kind === "market-reveal-purchase" ? "Buy the raffle reveal?"
+    : match.pendingChoice?.kind === "replace-revealed-card" ? "Use Lucky Dumpling?"
+    : match.pendingChoice?.kind === "zone-call" ? "Call a protected zone"
+    : match.pendingChoice?.kind === "remove-negative-stat" ? "Remove a temporary penalty"
+    : match.pendingChoice?.kind === "equipment-cycle" ? "Exhaust Equipment to cycle?"
+    : match.pendingChoice?.kind === "discard-for-focus" ? "Discard for Focus"
+    : match.pendingChoice?.kind === "suppress-equipment-clause" ? "Choose a Weapon"
+    : match.pendingChoice?.kind === "exhaust-equipment-for-focus" ? "Exhaust Equipment for Focus"
+    : match.pendingChoice?.kind === "deck-attack-pick" ? "Choose an Attack"
+    : match.pendingChoice?.kind === "destroy-revealed-junk" ? "Destroy revealed Junk?"
+    : match.pendingChoice?.kind === "discard-reaction" ? "Discard a Reaction"
+    : match.pendingChoice?.kind === "cancel-reaction" ? "Sound the Air Horn?"
     : match.pendingChoice?.kind === "destroy-junk" ? "Choose Junk to destroy"
     : match.pendingChoice?.kind === "discard-draw" ? "Discard to draw?"
       : match.pendingChoice?.kind === "discard-hand" ? "Choose what to discard"
@@ -3288,18 +3303,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? "Reduce this damage?"
                   : match.pendingChoice?.kind === "post-block-cycle" ? "Use post-Block Equipment?"
                     : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
-  const effectChoicePrompt = match.pendingChoice?.kind === "stage3c-raffle" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`
-    : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} was just revealed. Replace it from the same deck or keep it.`
-    : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Choose High, Mid, or Low. The next Attack in that zone targeting you this round gets -2 Attack Power."
-    : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Choose one currently active temporary -ATK, -DEF, or -Speed effect to remove."
-    : match.pendingChoice?.kind === "stage3c-trail-mix" ? "You may exhaust one ready Equipment you control to draw 1, then discard 1."
-    : match.pendingChoice?.kind === "stage3c-discard-focus" ? `Discard up to ${match.pendingChoice.remaining} more card${match.pendingChoice.remaining === 1 ? "" : "s"}; each is worth +${match.pendingChoice.focusPerDiscard} Focus.`
-    : match.pendingChoice?.kind === "stage3c-weapon-suppress" ? "Choose one equipped Weapon. Its negative stat contribution is ignored until Hide."
-    : match.pendingChoice?.kind === "stage3c-exhaust-focus" ? `Choose one ready Equipment to exhaust for +${match.pendingChoice.focus} Focus.`
-    : match.pendingChoice?.kind === "stage3c-sparring-pick" ? "Choose one Attack among the top-three reveal; the rest are discarded."
-    : match.pendingChoice?.kind === "stage3c-sparring-junk" ? "You may destroy one Junk that Sparring Dummy just discarded."
-    : match.pendingChoice?.kind === "stage3c-reaction-discard" ? "Confetti Cannon requires you to choose one Reaction card from hand to discard."
-    : match.pendingChoice?.kind === "air-horn-reaction" ? `${cardFor(match.pendingChoice.reactionCardId)?.name ?? "The computer Reaction"} was just played. Use Air Horn now to cancel it before the Dojo Stack resolves, or allow it to resolve normally.`
+  const effectChoicePrompt = match.pendingChoice?.kind === "market-reveal-purchase" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`
+    : match.pendingChoice?.kind === "replace-revealed-card" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} was just revealed. Replace it from the same deck or keep it.`
+    : match.pendingChoice?.kind === "zone-call" ? "Choose High, Mid, or Low. The next Attack in that zone targeting you this round gets -2 Attack Power."
+    : match.pendingChoice?.kind === "remove-negative-stat" ? "Choose one currently active temporary -ATK, -DEF, or -Speed effect to remove."
+    : match.pendingChoice?.kind === "equipment-cycle" ? "You may exhaust one ready Equipment you control to draw 1, then discard 1."
+    : match.pendingChoice?.kind === "discard-for-focus" ? `Discard up to ${match.pendingChoice.remaining} more card${match.pendingChoice.remaining === 1 ? "" : "s"}; each is worth +${match.pendingChoice.focusPerDiscard} Focus.`
+    : match.pendingChoice?.kind === "suppress-equipment-clause" ? "Choose one equipped Weapon. Its negative stat contribution is ignored until Hide."
+    : match.pendingChoice?.kind === "exhaust-equipment-for-focus" ? `Choose one ready Equipment to exhaust for +${match.pendingChoice.focus} Focus.`
+    : match.pendingChoice?.kind === "deck-attack-pick" ? "Choose one Attack among the top-three reveal; the rest are discarded."
+    : match.pendingChoice?.kind === "destroy-revealed-junk" ? "You may destroy one Junk that Sparring Dummy just discarded."
+    : match.pendingChoice?.kind === "discard-reaction" ? "Confetti Cannon requires you to choose one Reaction card from hand to discard."
+    : match.pendingChoice?.kind === "cancel-reaction" ? `${cardFor(match.pendingChoice.reactionCardId)?.name ?? "The computer Reaction"} was just played. Use Air Horn now to cancel it before the Dojo Stack resolves, or allow it to resolve normally.`
     : match.pendingChoice?.kind === "destroy-junk" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more Junk card${match.pendingChoice.remaining === 1 ? "" : "s"} from your hand or discard pile.`
     : match.pendingChoice?.kind === "discard-draw" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Attack"} lets you discard ${match.pendingChoice.remaining} card${match.pendingChoice.remaining === 1 ? "" : "s"} to draw ${match.pendingChoice.draw}. You may decline.`
       : match.pendingChoice?.kind === "discard-hand" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more discard${match.pendingChoice.remaining === 1 ? "" : "s"}. You choose the card.`
@@ -3310,7 +3325,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} can exhaust now to reduce ${match.pendingChoice.damage} combat damage by ${match.pendingChoice.reduce}. Declining still consumes this round's first-damage timing window.`
                   : match.pendingChoice?.kind === "post-block-cycle" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} triggered after the Block. Exhaust it to draw ${match.pendingChoice.draw}, then choose ${match.pendingChoice.discard} discard${match.pendingChoice.discard === 1 ? "" : "s"}, or decline and continue combat.`
                     : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
-  const effectChoiceCanSkip = match.pendingChoice?.kind === "stage3c-trail-mix" || match.pendingChoice?.kind === "stage3c-discard-focus" || match.pendingChoice?.kind === "stage3c-sparring-junk" || (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
+  const effectChoiceCanSkip = match.pendingChoice?.kind === "equipment-cycle" || match.pendingChoice?.kind === "discard-for-focus" || match.pendingChoice?.kind === "destroy-revealed-junk" || (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
   const inspectedBoard = inspected
     ? inspected.id === player.fighterId ? player : inspected.id === ai.fighterId ? ai : null
     : null;
@@ -3474,7 +3489,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView === "belt" && <button className="button ghost" onClick={() => setDeskView("market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : "Next: check Belt progress."}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
       </section>
     </div>}
-    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "stage3c-raffle" ? <><button type="button" onClick={() => resolveStage3CRaffle(true)}><span>BUY</span><b>{cardFor(match.pendingChoice.revealedCardId)?.name}</b><small>Pay {marketPriceFor(player, cardFor(match.pendingChoice.revealedCardId))} Focus</small></button><button type="button" onClick={() => resolveStage3CRaffle(false)}><span>PASS</span><b>PUT ON BOTTOM</b><small>Do not buy the reveal</small></button></> : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? <><button type="button" onClick={() => resolveStage3CLucky(true)}><span>REACTION</span><b>USE LUCKY DUMPLING</b><small>Discard the reveal and replace it</small></button><button type="button" onClick={() => resolveStage3CLucky(false)}><span>PASS</span><b>KEEP REVEAL</b><small>Save Lucky Dumpling</small></button></> : match.pendingChoice?.kind === "stage3c-zone-ward" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => resolveStage3CZoneWard(zone)} key={zone}><span>PROTECT ZONE</span><b>{zone}</b><small>Next matching Attack gets -2 Power</small></button>) : match.pendingChoice?.kind === "stage3c-remove-negative" ? match.pendingChoice.stats.map((stat) => <button type="button" onClick={() => resolveStage3CNegative(stat)} key={stat}><span>REMOVE PENALTY</span><b>-{stat}</b><small>Remove one active temporary penalty</small></button>) : match.pendingChoice?.kind === "air-horn-reaction" ? <><button type="button" onClick={() => resolvePlayerAirHornChoice(true)}><span>REACTION</span><b>USE AIR HORN</b><small>Cancel {cardFor(match.pendingChoice.reactionCardId)?.name ?? "the Reaction"} before it resolves</small></button><button type="button" onClick={() => resolvePlayerAirHornChoice(false)}><span>PASS</span><b>ALLOW REACTION</b><small>Keep Air Horn in hand and resolve the announced Reaction</small></button></> : match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
+    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "market-reveal-purchase" ? <><button type="button" onClick={() => resolveStage3CRaffle(true)}><span>BUY</span><b>{cardFor(match.pendingChoice.revealedCardId)?.name}</b><small>Pay {marketPriceFor(player, cardFor(match.pendingChoice.revealedCardId))} Focus</small></button><button type="button" onClick={() => resolveStage3CRaffle(false)}><span>PASS</span><b>PUT ON BOTTOM</b><small>Do not buy the reveal</small></button></> : match.pendingChoice?.kind === "replace-revealed-card" ? <><button type="button" onClick={() => resolveStage3CLucky(true)}><span>REACTION</span><b>USE LUCKY DUMPLING</b><small>Discard the reveal and replace it</small></button><button type="button" onClick={() => resolveStage3CLucky(false)}><span>PASS</span><b>KEEP REVEAL</b><small>Save Lucky Dumpling</small></button></> : match.pendingChoice?.kind === "zone-call" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => resolveStage3CZoneWard(zone)} key={zone}><span>PROTECT ZONE</span><b>{zone}</b><small>Next matching Attack gets -2 Power</small></button>) : match.pendingChoice?.kind === "remove-negative-stat" ? match.pendingChoice.stats.map((stat) => <button type="button" onClick={() => resolveStage3CNegative(stat)} key={stat}><span>REMOVE PENALTY</span><b>-{stat}</b><small>Remove one active temporary penalty</small></button>) : match.pendingChoice?.kind === "cancel-reaction" ? <><button type="button" onClick={() => resolvePlayerAirHornChoice(true)}><span>REACTION</span><b>USE AIR HORN</b><small>Cancel {cardFor(match.pendingChoice.reactionCardId)?.name ?? "the Reaction"} before it resolves</small></button><button type="button" onClick={() => resolvePlayerAirHornChoice(false)}><span>PASS</span><b>ALLOW REACTION</b><small>Keep Air Horn in hand and resolve the announced Reaction</small></button></> : match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
     {coachOpen && !match.winner && <div className="playtest-inspector-backdrop coach-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setCoachOpen(false)}><section className="coach-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="coach-dialog-title"><button className="modal-close" onClick={() => setCoachOpen(false)} aria-label="Close Decision Coach">×</button><span className="eyebrow">Decision coach · optional guidance</span><h2 id="coach-dialog-title">What should I do now?</h2><div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Recommended next step</span><p>{turnCoach}</p></div><div className="coach-dialog-actions"><button className="button primary" onClick={() => setCoachOpen(false)}>Back to the mat →</button><button className="button ghost" onClick={() => { setSettings({ ...settings, guided: false }); setCoachOpen(false); }}>Turn coach off</button></div><small>You can re-enable the Coach from the utility bar at any time.</small></section></div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><div className="fight-log-groups">{groupedFightLog(match.log).map((group, groupIndex) => <section key={`${group.label}-${groupIndex}`}><h3>{group.label}</h3><ol>{group.lines.map((line, index) => <li key={`${line}-${index}`}><b>{group.lines.length - index}</b><span>{line}</span></li>)}</ol></section>)}</div></section></div>}
     {inspected && inspectedBoard && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
@@ -3616,12 +3631,12 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string) {
   const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
   const marketNote = current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
   const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
-  const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033"));
-  if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
+  const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && cardHasRuntimeResolver(candidate, "consumable.replaceRevealedMarketOrLocation")));
+  if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "replace-revealed-card", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
   if (!current.marketPurchasedThisRound && lucky) {
     const revealedId = marketState.market.find((id) => !current.market.includes(id));
     const slot = revealedId ? marketState.market.indexOf(revealedId) : -1;
-    if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during Market Mercy. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
+    if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during Market Mercy. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "replace-revealed-card", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
   }
   return advanced;
 }
@@ -3678,12 +3693,12 @@ function prepareAiTurn(current: Match) {
       nextPlayer = applyStage3CTiming(nextPlayer, card, "afterResolve", "player", stage3cConsumableContext(nextAi), "opponent");
     }
     if (isCoreConsumableCard(card)) {
-      if (card.catalogId === "DDB-CON-CORE-009") {
+      if (cardHasRuntimeResolver(card, "consumable.chooseOpponentDiscardReactionIfAble")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.chooseOpponentDiscardReactionIfAble"]);
         const reactionIds = nextPlayer.hand.filter((candidate) => String(cardFor(candidate)?.timing ?? "").toLocaleLowerCase() === "reaction");
-        if (reactionIds.length) pendingChoice = { kind: "stage3c-reaction-discard", sourceCardId: card.id, reactionIds };
+        if (reactionIds.length) pendingChoice = { kind: "discard-reaction", sourceCardId: card.id, reactionIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-010") {
+      if (cardHasRuntimeResolver(card, "consumable.optionalExhaustToCycle")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.optionalExhaustToCycle"]);
         const equipmentId = stage3cReadyEquipmentIds(nextAi)[0];
         if (equipmentId) {
@@ -3693,11 +3708,11 @@ function prepareAiTurn(current: Match) {
           if (discardId) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, discardId), discard: [...nextAi.discard, discardId] };
         }
       }
-      if (card.catalogId === "DDB-CON-CORE-021") {
+      if (cardHasRuntimeResolver(card, "consumable.zoneSpecificIncomingAttackPenalty")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.zoneSpecificIncomingAttackPenalty"]);
         nextPlayer = stage3cArmZoneWard(nextPlayer, card.id, stage3cAiPreferredAttackZone(nextPlayer), -2);
       }
-      if (card.catalogId === "DDB-CON-CORE-022") {
+      if (cardHasRuntimeResolver(card, "consumable.reorderTopThree")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.reorderTopThree"]);
         const reveal = revealDeckTop(nextAi, 3);
         const ordered = [...reveal.revealed].sort((left, right) => cardCost(cardFor(right)) - cardCost(cardFor(left)));
@@ -3705,34 +3720,34 @@ function prepareAiTurn(current: Match) {
         nextAi = { ...reveal.board, deck: [...reveal.board.deck, ...ordered.slice().reverse()] };
         if (reveal.revealed.length === 3 && types.size === 3) nextAi = gainFocus(nextAi, 1);
       }
-      if (card.catalogId === "DDB-CON-CORE-031" || card.catalogId === "DDB-CON-CORE-056") {
+      if (cardHasRuntimeResolver(card, "consumable.pepTalkConditionalAttackBonus") || cardHasRuntimeResolver(card, "consumable.removeTemporaryNegativeStatModifier")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.removeTemporaryNegativeStatModifier"]);
         const stat = stage3cNegativeStatOptions(nextAi)[0];
         if (stat) {
           const removed = stage3cRemoveTemporaryNegative(nextAi, stat);
           nextAi = removed.board;
-          if (removed.removed && card.catalogId === "DDB-CON-CORE-031") {
+          if (removed.removed && cardHasRuntimeResolver(card, "consumable.pepTalkConditionalAttackBonus")) {
             const status: RuntimeStatus = { sourceEffectId: `consumable-pep-talk-bonus:${card.id}`, effect: "combat.modifyAttackPower", target: "self", amount: 1, duration: "nextAttack", resolver: "consumable.pepTalkConditionalAttackBonus", qualifier: { nextAttack: true, expires: "endOfTurn" }, appliedImmediately: false };
             nextAi = { ...nextAi, stage3cStatuses: [...(nextAi.stage3cStatuses ?? []), status] };
           }
         }
       }
-      if (card.catalogId === "DDB-CON-CORE-032") {
+      if (cardHasRuntimeResolver(card, "consumable.discardUpToForFocus")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.discardUpToForFocus"]);
         const discarded = [...nextAi.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right))).slice(0, 2);
         nextAi = gainFocus({ ...nextAi, hand: nextAi.hand.filter((candidate) => !discarded.includes(candidate)), discard: [...nextAi.discard, ...discarded] }, discarded.length * 2);
       }
-      if (card.catalogId === "DDB-CON-CORE-035") {
+      if (cardHasRuntimeResolver(card, "consumable.suppressChosenWeaponClause")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.suppressChosenWeaponClause"]);
         const weaponId = nextAi.equipment.find((candidate) => { const item = cardFor(candidate); return Boolean(item && isWeapon(item)); });
         if (weaponId) nextAi = { ...nextAi, suppressedEquipmentPenaltyIds: [...new Set([...(nextAi.suppressedEquipmentPenaltyIds ?? []), weaponId])] };
       }
-      if (card.catalogId === "DDB-CON-CORE-045") {
+      if (cardHasRuntimeResolver(card, "consumable.exhaustEquipmentForFocus")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.exhaustEquipmentForFocus"]);
         const equipmentId = stage3cReadyEquipmentIds(nextAi)[0];
         if (equipmentId) nextAi = gainFocus(exhaustEquipment(nextAi, equipmentId), 3);
       }
-      if (card.catalogId === "DDB-CON-CORE-051") {
+      if (cardHasRuntimeResolver(card, "consumable.topThreeAttackSelection")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.topThreeAttackSelection"]);
         const reveal = revealDeckTop(nextAi, 3);
         const attackId = reveal.revealed.filter((candidate) => isAttack(cardFor(candidate)!)).sort((left, right) => cardPower(cardFor(right)!) - cardPower(cardFor(left)!))[0];
