@@ -65,7 +65,7 @@ function commandForEffect(effectId) {
   assert.ok(owner, `${effectId} missing canonical Location owner`);
   const [catalogId, entry] = owner;
   const effect = entry.effects.find((candidate) => candidate.id === effectId);
-  const command = resolveLocationEffects({ catalogId }, { ...satisfyingContext(effect), locationEvent: effect.trigger })
+  const command = resolveLocationEffects({ catalogId }, satisfyingContext(effect))
     .find((candidate) => candidate.effectId === effect.id);
   assert.ok(command, `${catalogId}/${effectId} did not resolve`);
   return command;
@@ -91,10 +91,7 @@ test("Stage 3D canonical roster is exactly 53 Core Locations / 99 structured eff
 test("all 99 Location effects select from structured context without prose interpretation", () => {
   for (const [catalogId, entry] of Object.entries(source.cards)) {
     for (const effect of entry.effects) {
-      const commands = resolveLocationEffects(
-        { catalogId },
-        { ...satisfyingContext(effect), locationEvent: effect.trigger },
-      );
+      const commands = resolveLocationEffects({ catalogId }, satisfyingContext(effect));
       assert.ok(commands.some((command) => command.effectId === effect.id), `${catalogId}/${effect.id} did not resolve`);
     }
   }
@@ -104,10 +101,8 @@ test("every Core Location effect produces executable runtime state/delta or an e
   const covered = new Set();
   for (const [catalogId, entry] of Object.entries(source.cards)) {
     for (const effect of entry.effects) {
-      const command = resolveLocationEffects(
-        { catalogId },
-        { ...satisfyingContext(effect), locationEvent: effect.trigger },
-      ).find((candidate) => candidate.effectId === effect.id);
+      const command = resolveLocationEffects({ catalogId }, satisfyingContext(effect))
+        .find((candidate) => candidate.effectId === effect.id);
       assert.ok(command, `${catalogId}/${effect.id} missing command`);
       assert.ok(meaningfulDelta(locationRuntimeDelta([command])), `${catalogId}/${effect.id} has no executable runtime delta`);
       covered.add(catalogId);
@@ -120,14 +115,14 @@ test("usage scopes enforce first/once semantics including across-player round sc
   const effect = source.cards["DDB-LOC-CORE-004"].effects[0];
   const first = resolveLocationEffects(
     { catalogId: "DDB-LOC-CORE-004" },
-    { ...satisfyingContext(effect), locationEvent: effect.trigger, usedLocationEffectsThisRound: [] },
+    { ...satisfyingContext(effect), usedLocationEffectsThisRound: [] },
   );
   assert.equal(first.length, 1);
   assert.deepEqual(locationUsageScopes(first[0]), ["round"]);
   const marked = markLocationCommandsUsed({ locationUsedEffectsThisRound: [] }, first);
   const second = resolveLocationEffects(
     { catalogId: "DDB-LOC-CORE-004" },
-    { ...satisfyingContext(effect), locationEvent: effect.trigger, ...locationUsageContext(marked) },
+    { ...satisfyingContext(effect), ...locationUsageContext(marked) },
   );
   assert.equal(second.length, 0);
 
@@ -136,13 +131,13 @@ test("usage scopes enforce first/once semantics including across-player round sc
   assert.ok(demo);
   const globalFirst = resolveLocationEffects(
     { catalogId: "DDB-LOC-CORE-046" },
-    { ...satisfyingContext(demo), locationEvent: demo.trigger, usedLocationEffectsAcrossPlayersThisRound: [] },
+    { ...satisfyingContext(demo), usedLocationEffectsAcrossPlayersThisRound: [] },
   ).filter((command) => command.effectId === demo.id);
   assert.equal(globalFirst.length, 1);
   assert.deepEqual(locationUsageScopes(globalFirst[0]), ["acrossPlayersRound"]);
   const globalSecond = resolveLocationEffects(
     { catalogId: "DDB-LOC-CORE-046" },
-    { ...satisfyingContext(demo), locationEvent: demo.trigger, usedLocationEffectsAcrossPlayersThisRound: usedAcrossPlayersAfter(globalFirst) },
+    { ...satisfyingContext(demo), usedLocationEffectsAcrossPlayersThisRound: usedAcrossPlayersAfter(globalFirst) },
   ).filter((command) => command.effectId === demo.id);
   assert.equal(globalSecond.length, 0);
 });
@@ -191,13 +186,15 @@ test("representative structured Location effects mutate numeric gameplay state a
 
 test("thin Location host bridge resolves canonical commands and tracks usage without card-specific logic", () => {
   const state = { locationUsedEffectsThisTurn: [], locationUsedEffectsThisRound: [], locationUsedEffectsThisScene: [] };
-  const effect = source.cards["DDB-LOC-CORE-030"].effects.find((candidate) => candidate.trigger === "attack");
+  const effect = source.cards["DDB-LOC-CORE-030"].effects.find((candidate) =>
+    candidate.conditions?.some((condition) => condition.kind === "locationEvent" && condition.value === "attack"));
   assert.ok(effect);
+  const context = satisfyingContext(effect);
   const resolution = resolveLocationHostEvent(
     { catalogId: "DDB-LOC-CORE-030" },
     state,
     "attack",
-    satisfyingContext(effect),
+    Object.fromEntries(Object.entries(context).filter(([key]) => key !== "locationEvent")),
   );
   assert.ok(resolution.delta.commands.some((command) => command.effectId === effect.id));
   assert.equal(resolution.delta.attackPower, -1);
