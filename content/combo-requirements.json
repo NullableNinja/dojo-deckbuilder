@@ -1,0 +1,1008 @@
+{
+  "schemaVersion": 1,
+  "rulesVersion": "v2.3",
+  "rulesRevision": "v2.3-r5",
+  "family": "Combo",
+  "description": "Canonical machine-readable fulfillment requirements for Core Combos. Runtime evaluates these structures and never infers Combo requirements from printed prose.",
+  "cards": {
+    "DDB-CMB-CORE-001": {
+      "name": "Aisle-Three Ambush",
+      "displayText": "Play a Kata, then make an Attack in a different zone than your previous Attack this turn",
+      "requirements": [
+        {
+          "kind": "differentZoneFromPreviousAttack"
+        },
+        {
+          "kind": "priorCardFamily",
+          "family": "Kata"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-002": {
+      "name": "Appeal Denied",
+      "displayText": "Block an Attack, then make a Reversal that Hits",
+      "requirements": [
+        {
+          "kind": "defendedThisRound"
+        },
+        {
+          "kind": "reversal"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-003": {
+      "name": "Bird Law",
+      "displayText": "Jump Attack → Kick in a different Zone",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "tags": [
+                "jump"
+              ]
+            },
+            {
+              "tags": [
+                "kick"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "differentZoneFromPreviousAttack"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-004": {
+      "name": "Blitzed Expectations",
+      "displayText": "Multi-Hit Attack → any Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "tags": [
+                "multi-hit"
+              ]
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-005": {
+      "name": "Block, Stock, and Barrel",
+      "displayText": "Block an Attack while you have two or more permanent Equipment cards equipped, then make a Weapon Attack",
+      "requirements": [
+        {
+          "kind": "defendedThisRound"
+        },
+        {
+          "kind": "minimumEquipment",
+          "amount": 2
+        },
+        {
+          "kind": "weaponAttack"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-006": {
+      "name": "Blunt Force Seminar",
+      "displayText": "Blunt Weapon equipped → Mid Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "weapon"
+              ]
+            },
+            {
+              "family": "Attack",
+              "zone": "Mid"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-007": {
+      "name": "Body Shop Special",
+      "displayText": "Mid Punch → Mid Kick against the same opponent",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "punch"
+              ],
+              "zone": "Mid"
+            },
+            {
+              "tags": [
+                "kick"
+              ],
+              "zone": "Mid"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-008": {
+      "name": "Breathe In, Violence Out",
+      "displayText": "Play a Kata with the Flow tag → Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Kata",
+              "tags": [
+                "flow"
+              ]
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-009": {
+      "name": "Budget, Breathe, Bonk",
+      "displayText": "Play a Kata that generates at least 2 Focus, then Hit with an Attack",
+      "requirements": [
+        {
+          "kind": "priorCardFamily",
+          "family": "Kata"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-010": {
+      "name": "Catch and Release Program",
+      "displayText": "Block an Attack with a Grapple-tag Defense → Attack that fighter on your next turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack"
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        },
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-011": {
+      "name": "Catch These Hands",
+      "displayText": "Block an Attack → Punch that attacker on your next turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack"
+            },
+            {
+              "tags": [
+                "punch"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-012": {
+      "name": "Clock In, Block Out",
+      "displayText": "Gain Speed, then Block before your next turn",
+      "requirements": [
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-013": {
+      "name": "Comment Period Closed",
+      "displayText": "Make a Mid Attack that Hits after you played a Defense since your last turn",
+      "requirements": [
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-014": {
+      "name": "Curriculum Vitae",
+      "displayText": "During one turn, play an Attack, a Kata, and equip a permanent Equipment or use a Consumable",
+      "requirements": [
+        {
+          "kind": "priorCardFamily",
+          "family": "Kata"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-015": {
+      "name": "Empty Hands, Full Problems",
+      "displayText": "Play a Kata while you have no Weapon equipped → Hand Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Kata",
+              "tags": [
+                "weapon"
+              ]
+            },
+            {
+              "family": "Attack",
+              "tags": [
+                "hand"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-016": {
+      "name": "Flexible Schedule",
+      "displayText": "Flexible Weapon equipped → attack High and Low in either order",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "weapon"
+              ]
+            },
+            {
+              "family": "Attack",
+              "zone": "High"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-017": {
+      "name": "Guarded Optimism",
+      "displayText": "A Guard Defense Blocks an Attack",
+      "requirements": [
+        {
+          "kind": "defenseBlocksAttack",
+          "tag": "guard"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-018": {
+      "name": "Hands, Feet, Repeat",
+      "displayText": "Hand Attack → Kick → Hand Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "tags": [
+                "hand"
+              ]
+            },
+            {
+              "tags": [
+                "kick"
+              ]
+            },
+            {
+              "family": "Attack",
+              "tags": [
+                "hand"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-019": {
+      "name": "Head, Shoulders, Knees & Regret",
+      "displayText": "Hit High, then Mid, then Low against the same opponent this turn",
+      "requirements": [
+        {
+          "kind": "orderedAttackHits",
+          "zones": [
+            "High",
+            "Mid",
+            "Low"
+          ],
+          "sameOpponent": true,
+          "window": "turn"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-020": {
+      "name": "High-Low Budget Cut",
+      "displayText": "High Attack → Low Attack against the same opponent",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "zone": "High"
+            },
+            {
+              "family": "Attack",
+              "zone": "Low"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-021": {
+      "name": "I Meant To Do That",
+      "displayText": "Your Attack is Blocked → your next Attack this turn targets a different Zone",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack"
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        },
+        {
+          "kind": "differentZoneFromPreviousAttack"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-022": {
+      "name": "Improvised Curriculum",
+      "displayText": "Improvised Weapon equipped → any Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "weapon"
+              ]
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-023": {
+      "name": "Inner Peace Was a Mistake",
+      "displayText": "Kata → Kata → Attack in the same turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Kata"
+            },
+            {
+              "family": "Kata"
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-024": {
+      "name": "Kata-lytic Converter",
+      "displayText": "Kata → Attack in the same turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Kata"
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-025": {
+      "name": "Low-Hanging Fruit",
+      "displayText": "Low Attack → Low Attack against the same opponent",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "zone": "Low"
+            },
+            {
+              "family": "Attack",
+              "zone": "Low"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-026": {
+      "name": "Lowered Expectations",
+      "displayText": "Low Attack → High Attack against the same opponent",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "zone": "Low"
+            },
+            {
+              "family": "Attack",
+              "zone": "High"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-027": {
+      "name": "Maximum Overdojo",
+      "displayText": "Trigger any other Combo this turn, then complete a different Combo",
+      "requirements": [
+        {
+          "kind": "differentComboAfterCombo",
+          "minimumPriorCombos": 1,
+          "window": "turn"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-028": {
+      "name": "No, YOU Come Here",
+      "displayText": "Block an Attack with a Parry-tag Defense → attack that fighter on your next turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "tags": [
+                "parry"
+              ]
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        },
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-029": {
+      "name": "Not Today, Gravity",
+      "displayText": "Block an Attack with a Dodge-tag Defense → Kick that attacker on your next turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "tags": [
+                "dodge"
+              ]
+            },
+            {
+              "tags": [
+                "kick"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-030": {
+      "name": "One-Two-Oh-No",
+      "displayText": "Punch → Punch against the same opponent",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "punch"
+              ]
+            },
+            {
+              "tags": [
+                "punch"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-031": {
+      "name": "Panic Into Purpose",
+      "displayText": "Begin your turn with at least 2 Junk cards in hand → Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "hand"
+              ]
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-032": {
+      "name": "Paperwork and Pain",
+      "displayText": "Play a Kata with the Economy tag → Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Kata"
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-033": {
+      "name": "Personal Space Violation",
+      "displayText": "Knee or Elbow Attack → Hand Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack"
+            },
+            {
+              "family": "Attack",
+              "tags": [
+                "hand"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-034": {
+      "name": "Pocket Snack Tactics",
+      "displayText": "Use a Consumable → Low Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {},
+            {
+              "family": "Attack",
+              "zone": "Low"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-035": {
+      "name": "Pointy End Forward",
+      "displayText": "Blade Weapon equipped → High Attack → Mid Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "weapon"
+              ]
+            },
+            {
+              "family": "Attack",
+              "zone": "High"
+            },
+            {
+              "family": "Attack",
+              "zone": "Mid"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-036": {
+      "name": "Purchase Order of Pain",
+      "displayText": "Buy a Weapon, then Hit with a Weapon Attack before your next Ascend",
+      "requirements": [
+        {
+          "kind": "weaponAttack"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-037": {
+      "name": "Questionable Geometry",
+      "displayText": "Spin Attack → Attack in a different Zone",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "tags": [
+                "spin"
+              ]
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        },
+        {
+          "kind": "differentZoneFromPreviousAttack"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-038": {
+      "name": "Red Tape and Roundhouse",
+      "displayText": "Complete a Belt Exam task, then make a Kick that Hits in the same round",
+      "requirements": [
+        {
+          "kind": "beltExamThenAttackHit",
+          "tag": "kick",
+          "window": "round"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-039": {
+      "name": "Return Receipt",
+      "displayText": "Your Attack is Blocked → Attack the same opponent in a different Zone",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack"
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        },
+        {
+          "kind": "differentZoneFromPreviousAttack"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-040": {
+      "name": "Rope-a-Dope-a-Dojo",
+      "displayText": "Block two Attacks in the same round → Punch that attacker on your next turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Defense"
+            },
+            {
+              "tags": [
+                "punch"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-041": {
+      "name": "Shell Company",
+      "displayText": "Play two Guard Defenses in the same round",
+      "requirements": [
+        {
+          "kind": "minimumDefenseTag",
+          "tag": "guard",
+          "amount": 2,
+          "window": "round"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-042": {
+      "name": "Shin Happens",
+      "displayText": "Block a Low Attack → Low Attack that fighter on your next turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "zone": "Low"
+            },
+            {
+              "family": "Attack",
+              "zone": "Low"
+            }
+          ]
+        },
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-043": {
+      "name": "Stick Around",
+      "displayText": "Staff or Polearm equipped → Mid Attack → Low Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {},
+            {
+              "family": "Attack",
+              "zone": "Mid"
+            },
+            {
+              "family": "Attack",
+              "zone": "Low"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-044": {
+      "name": "Swan Song",
+      "displayText": "Kick (Low or Mid) → High Kick against the same opponent",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "kick"
+              ],
+              "zone": "Mid"
+            },
+            {
+              "tags": [
+                "kick"
+              ],
+              "zone": "High"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-045": {
+      "name": "Sweep Dreams",
+      "displayText": "Sweep or Low Kick → High Attack against the same opponent",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "kick"
+              ],
+              "zone": "Low"
+            },
+            {
+              "family": "Attack",
+              "zone": "High"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-046": {
+      "name": "The Full Tax Audit",
+      "displayText": "Play Attacks in all three Zones this turn; at least two must hit",
+      "requirements": [
+        {
+          "kind": "zonesPresent",
+          "zones": [
+            "High",
+            "Mid",
+            "Low"
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-047": {
+      "name": "Three Breaths, One Regret",
+      "displayText": "Stance Kata this turn → Block an Attack before your next turn → Attack that fighter on your next turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Kata"
+            },
+            {
+              "family": "Attack"
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        },
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-048": {
+      "name": "Three Forms, No Refunds",
+      "displayText": "Play Attacks in all three zones across one round",
+      "requirements": [
+        {
+          "kind": "zonesPresent",
+          "zones": [
+            "High",
+            "Mid",
+            "Low"
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-049": {
+      "name": "Three-Piece & Hydration",
+      "displayText": "Attack → Attack → use a Consumable in the same turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack"
+            },
+            {
+              "family": "Attack"
+            },
+            {}
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-050": {
+      "name": "Three-Piece, No Biscuit",
+      "displayText": "Hand Attack → Hand Attack → Kick against the same opponent",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "tags": [
+                "hand"
+              ]
+            },
+            {
+              "family": "Attack",
+              "tags": [
+                "hand"
+              ]
+            },
+            {
+              "tags": [
+                "kick"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-051": {
+      "name": "Two Sticks, No Plan",
+      "displayText": "Dual-wield or Paired Weapon setup → Attack → Attack",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "tags": [
+                "weapon"
+              ]
+            },
+            {
+              "family": "Attack"
+            },
+            {
+              "family": "Attack"
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-052": {
+      "name": "Weaponized Serenity",
+      "displayText": "Play a Kata with the Equipment tag → Attack while a Weapon is equipped",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Kata"
+            },
+            {
+              "family": "Attack",
+              "tags": [
+                "weapon"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "DDB-CMB-CORE-053": {
+      "name": "Wing It",
+      "displayText": "Play two Parry-tag Defenses in the same round",
+      "requirements": [
+        {
+          "kind": "minimumDefenseTag",
+          "tag": "parry",
+          "amount": 2,
+          "window": "round"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-054": {
+      "name": "Wrong Door, Right Elbow",
+      "displayText": "Make a Reversal that Hits, then play a Mid Attack on your next turn",
+      "requirements": [
+        {
+          "kind": "reversal"
+        }
+      ]
+    },
+    "DDB-CMB-CORE-055": {
+      "name": "You Missed, Congratulations",
+      "displayText": "Block an Attack with a Dodge-tag Defense → Hit that attacker on your next turn",
+      "requirements": [
+        {
+          "kind": "orderedSequence",
+          "steps": [
+            {
+              "family": "Attack",
+              "tags": [
+                "dodge"
+              ]
+            },
+            {}
+          ]
+        },
+        {
+          "kind": "defendedThisRound"
+        }
+      ]
+    }
+  }
+}
