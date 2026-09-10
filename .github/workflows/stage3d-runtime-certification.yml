@@ -39,6 +39,9 @@ jobs:
       - name: Certify all 53 Core Location runtimes
         run: node --experimental-strip-types --test tests/stage3d-location-runtime-clean.test.mjs
 
+      - name: Certify Character and Location composition
+        run: node --experimental-strip-types --test tests/stage3d-character-location-composition.test.mjs
+
       - name: TypeScript certification
         run: npx tsc --noEmit
 
