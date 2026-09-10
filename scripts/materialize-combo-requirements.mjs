@@ -93,8 +93,11 @@ const effectRegistry = await readJson("content/card-effects/combos.json");
 const combos = (cardsPayload.cards ?? []).filter((card) => String(card.catalogId ?? "").includes("-CMB-CORE-"));
 const cards = Object.fromEntries(combos.map((card) => [card.catalogId, { name: card.name, ...materializeRequirements(card) }]));
 
-const missingRequirements = combos.filter((card) => !(cards[card.catalogId]?.requirements ?? []).length).map((card) => `${card.catalogId} ${card.name}`);
-if (missingRequirements.length) throw new Error(`Unable to materialize executable requirements for: ${missingRequirements.join(", ")}`);
+const missingRequirementCards = combos.filter((card) => !(cards[card.catalogId]?.requirements ?? []).length);
+if (missingRequirementCards.length) {
+  console.error(`UNMATERIALIZED_COMBO_REQUIREMENTS ${JSON.stringify(missingRequirementCards.map((card) => ({ catalogId: card.catalogId, name: card.name, tags: card.tags, rulesText: card.rulesText, details: card.details, requirementText: requirementText(card) })))}`);
+  throw new Error(`Unable to materialize executable requirements for: ${missingRequirementCards.map((card) => `${card.catalogId} ${card.name}`).join(", ")}`);
+}
 const missingEffects = combos.filter((card) => !(effectRegistry.cards?.[card.catalogId]?.effects ?? []).length).map((card) => `${card.catalogId} ${card.name}`);
 if (missingEffects.length) throw new Error(`Core Combos missing structured payoff effects: ${missingEffects.join(", ")}`);
 
