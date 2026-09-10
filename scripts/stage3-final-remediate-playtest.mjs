@@ -69,9 +69,13 @@ const consumableResolvers = new Map([
   ["DDB-CON-CORE-056", "consumable.removeTemporaryNegativeStatModifier"],
 ]);
 for (const [catalogId, resolver] of consumableResolvers) {
-  replaceAllRequired(`card.catalogId === "${catalogId}"`, `cardHasRuntimeResolver(card, "${resolver}")`, `card ${catalogId}`);
+  const cardSearch = `card.catalogId === "${catalogId}"`;
   const candidateSearch = `candidate.catalogId === "${catalogId}"`;
-  if (source.includes(candidateSearch)) replaceAllRequired(candidateSearch, `cardHasRuntimeResolver(candidate, "${resolver}")`, `candidate ${catalogId}`);
+  const cardCount = source.split(cardSearch).length - 1;
+  const candidateCount = source.split(candidateSearch).length - 1;
+  if (!cardCount && !candidateCount) throw new Error(`Missing expected Core Consumable identity dispatch for ${catalogId}`);
+  if (cardCount) replaceAllRequired(cardSearch, `cardHasRuntimeResolver(card, "${resolver}")`, `card ${catalogId}`);
+  if (candidateCount) replaceAllRequired(candidateSearch, `cardHasRuntimeResolver(candidate, "${resolver}")`, `candidate ${catalogId}`);
 }
 
 // Second Wind Form's branch is represented structurally as grantFlowTo=nextAttack.
