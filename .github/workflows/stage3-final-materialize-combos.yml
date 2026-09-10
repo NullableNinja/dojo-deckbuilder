@@ -1,0 +1,33 @@
+name: Stage 3 Final Combo Requirement Materialization
+
+on:
+  push:
+    branches:
+      - stage3-final-machine-readable-certification
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage3-final-machine-readable-certification
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --experimental-strip-types scripts/materialize-combo-requirements.mjs
+      - name: Commit materialized canonical Combo requirements
+        run: |
+          if git diff --quiet -- content/combo-requirements.json && git ls-files --error-unmatch content/combo-requirements.json >/dev/null 2>&1; then
+            echo "Combo requirements already materialized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/combo-requirements.json
+          git commit -m "materialize canonical combo requirements"
+          git push origin HEAD:stage3-final-machine-readable-certification
