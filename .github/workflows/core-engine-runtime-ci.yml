@@ -3,7 +3,7 @@ name: Stage 3C/3D Runtime Certification
 on:
   push:
     branches:
-      - stage3cd-runtime-final-integration
+      - stage3cd-runtime-final-integration-v2
   pull_request:
     branches:
       - main
