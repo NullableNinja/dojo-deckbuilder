@@ -3,6 +3,8 @@ import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import { effectPlanForCard } from "../app/card-effects.ts";
 import { kataCommandsForHost } from "../app/kata-playtest-bridge.ts";
+import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
+import { characterHostSubscriptions, requiredCharacterHostEvents } from "../app/character-playtest-bridge.ts";
 
 const root = new URL("../", import.meta.url);
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -14,6 +16,8 @@ const vocabulary = await readJson("content/effects.json");
 const playtest = await readText("app/playtest.tsx");
 const resolverFacade = await readText("app/effect-resolvers.ts");
 const kataBridge = await readText("app/kata-playtest-bridge.ts");
+const comboBridge = await readText("app/combo-playtest-bridge.ts");
+const characterBridge = await readText("app/character-playtest-bridge.ts");
 
 const familyFiles = new Map([
   ["Starter", "starters.json"],
@@ -68,6 +72,16 @@ function kataFactsFor(effect) {
     else facts[kind] = condition.value;
   }
   return facts;
+}
+
+function comboHostContext() {
+  const attack = { id: "host-attack", name: "Host Attack", cardType: "Technique", subtype: "Attack", zone: "Low", tags: ["Attack", "Hand", "Punch", "Kick", "Jump", "Spin", "Weapon", "Multi-Hit"] };
+  return {
+    priorCards: [], attacksThisTurn: 0, defendedThisRound: false, blockedThisRound: false,
+    hitThisTurn: false, hitZonesThisTurn: [], zonesPlayed: [], equipment: [], currentCard: attack,
+    currentZone: "Low", currentAttackHit: false, currentDefense: null, currentDefenseBlocked: false,
+    completedBeltExamThisRound: false, triggeredComboIds: [],
+  };
 }
 
 test("every canonical Core gameplay family has one authoritative structured registry entry", async () => {
@@ -125,6 +139,40 @@ test("all Core Kata effects are reachable through the structured Quick Duel host
   assert.match(resolverFacade, /kataDeckLookPlanForHost/);
   assert.match(resolverFacade, /kataDiscardFollowupForHost/);
   assert.doesNotMatch(kataBridge, /rulesText|compileCardEffects|effect-resolvers-legacy/);
+});
+
+test("all 55 Core Combo effect registries have complete structured host plans", async () => {
+  const registry = (await readJson("content/card-effects/combos.json")).cards ?? {};
+  const requirements = (await readJson("content/combo-requirements.json")).cards ?? {};
+  const canonical = coreByFamily.get("Combo") ?? [];
+  assert.equal(canonical.length, 55);
+  assert.deepEqual(Object.keys(requirements).sort(), canonical.map((card) => card.catalogId).sort());
+  const failures = [];
+  for (const combo of canonical) {
+    const plan = comboPlanForHost(combo, comboHostContext());
+    if (plan.unsupportedEffectIds.length) failures.push(`${combo.catalogId}: ${plan.unsupportedEffectIds.join(", ")}`);
+    const canonicalIds = (registry[combo.catalogId]?.effects ?? []).map((effect) => effect.id).sort();
+    if (JSON.stringify(plan.coveredEffectIds) !== JSON.stringify(canonicalIds)) failures.push(`${combo.catalogId}: incomplete host plan coverage`);
+  }
+  assert.deepEqual(failures, []);
+  assert.doesNotMatch(comboBridge, /rulesText|Requirement:|Payoff:|\.match\s*\(/);
+  assert.match(comboBridge, /comboDeferredCommandsOnCompletion/);
+  assert.match(comboBridge, /comboChoiceOnAttack/);
+});
+
+test("all 41 Core Characters expose canonical event subscriptions through one host bridge", () => {
+  const subscriptions = characterHostSubscriptions();
+  assert.equal(subscriptions.length, 41);
+  assert.deepEqual(subscriptions.map((entry) => entry.cardId).sort(), (coreByFamily.get("Character") ?? []).map((card) => card.catalogId).sort());
+  assert.ok(subscriptions.every((entry) => entry.events.length > 0));
+  const required = new Set(requiredCharacterHostEvents());
+  for (const subscription of subscriptions) for (const event of subscription.events) assert.ok(required.has(event), `${subscription.cardId}/${event}`);
+  assert.ok(required.has("turnStart"));
+  assert.ok(required.has("roundStart"));
+  assert.ok(required.has("hide"));
+  assert.doesNotMatch(characterBridge, /rulesText|compileCardEffects|effect-resolvers-legacy|DDB-CHR-CORE-\d{3}/);
+  assert.match(characterBridge, /applyCharacterRuntimeEvent/);
+  assert.match(characterBridge, /characterRuntimeCoverage/);
 });
 
 test("playtest host contains no direct Core card-identity gameplay dispatch", () => {
