@@ -61,7 +61,7 @@ test("Ascend Consumables have a real phase and Voucher is a qualified next-purch
   assert.equal(voucher.target, "self");
   assert.equal(voucher.duration, "nextPurchase");
   assert.equal(voucher.qualifier?.minPrintedCost, 5);
-  assert.ok(source.includes('kind: "stage3c-raffle"'));
+  assert.ok(source.includes('kind: "market-reveal-purchase"'));
   assert.ok(source.includes("resolveStage3CRaffle"));
 });
 
@@ -83,25 +83,32 @@ test("Dojo Coupon restricted Focus cannot subsidize Technique purchases but rema
   assert.ok(source.includes("spendMarketFocus"));
 });
 
-test("all explicit player choices in the final 32 are promoted to the visible PendingChoice surface", () => {
-  for (const kind of ["stage3c-trail-mix","stage3c-zone-ward","stage3c-remove-negative","stage3c-discard-focus","stage3c-weapon-suppress","stage3c-exhaust-focus","stage3c-raffle","stage3c-lucky-reveal","stage3c-sparring-pick","stage3c-sparring-junk","stage3c-reaction-discard"]) assert.ok(source.includes(`kind: "${kind}"`), kind);
-  assert.ok(source.includes("resolveStage3CZoneWard"));
-  assert.ok(source.includes("resolveStage3CNegative"));
-  assert.ok(source.includes("resolveStage3CLucky"));
+test("explicit player choices in the final 32 use generic action-oriented PendingChoice protocols", () => {
+  for (const kind of ["equipment-cycle", "zone-call", "remove-negative-stat", "discard-for-focus", "suppress-equipment-clause", "exhaust-equipment-for-focus", "market-reveal-purchase", "replace-revealed-card", "deck-order", "deck-attack-pick", "discard-reaction"]) {
+    assert.ok(source.includes(`kind: "${kind}"`), kind);
+  }
+  for (const stale of ["stage3c-trail-mix","stage3c-zone-ward","stage3c-remove-negative","stage3c-discard-focus","stage3c-weapon-suppress","stage3c-exhaust-focus","stage3c-raffle","stage3c-lucky-reveal","stage3c-sparring-pick","stage3c-sparring-junk","stage3c-reaction-discard"]) {
+    assert.equal(source.includes(`kind: "${stale}"`), false, stale);
+  }
+  assert.ok(source.includes("cardHasRuntimeResolver(card"));
+  assert.ok(source.includes("clearStage3CResolverChoices"));
 });
 
 test("Confetti Cannon forces the actual opponent Reaction discard path for both human and AI controllers", () => {
   assert.ok(commands("DDB-CON-CORE-009").some((c) => c.resolver === "consumable.chooseOpponentDiscardReactionIfAble"));
-  assert.ok(source.includes('card.catalogId === "DDB-CON-CORE-009"'));
-  assert.ok(source.includes('kind: "stage3c-reaction-discard"'));
+  assert.ok(source.includes('cardHasRuntimeResolver(card, "consumable.chooseOpponentDiscardReactionIfAble")'));
+  assert.ok(source.includes('kind: "discard-reaction"'));
+  assert.equal(source.includes('card.catalogId === "DDB-CON-CORE-009"'), false);
 });
 
 test("Department-Issue Trail Mix and Receipt-Printer Ribbon pay real Equipment costs before their payoff", () => {
-  assert.ok(source.includes('card.catalogId === "DDB-CON-CORE-010"'));
-  assert.ok(source.includes('kind: "stage3c-trail-mix"'));
+  assert.ok(commands("DDB-CON-CORE-010").some((c) => c.resolver === "consumable.optionalExhaustToCycle" && c.effect === "equipment.exhaust"));
+  assert.ok(source.includes('cardHasRuntimeResolver(card, "consumable.optionalExhaustToCycle")'));
+  assert.ok(source.includes('kind: "equipment-cycle"'));
   assert.ok(source.includes("exhaustEquipment(current.player, cardId)"));
-  assert.ok(source.includes('card.catalogId === "DDB-CON-CORE-045"'));
-  assert.ok(source.includes('kind: "stage3c-exhaust-focus"'));
+  assert.ok(commands("DDB-CON-CORE-045").some((c) => c.resolver === "consumable.exhaustEquipmentForFocus" && c.effect === "equipment.exhaust"));
+  assert.ok(source.includes('cardHasRuntimeResolver(card, "consumable.exhaustEquipmentForFocus")'));
+  assert.ok(source.includes('kind: "exhaust-equipment-for-focus"'));
 });
 
 test("Foam Finger stores the chosen zone on the real next-Attack status", () => {
@@ -112,11 +119,11 @@ test("Foam Finger stores the chosen zone on the real next-Attack status", () => 
 });
 
 test("Fortune Cookie and Sparring Dummy use actual deck reveal/order/pick surfaces", () => {
-  assert.ok(source.includes('card.catalogId === "DDB-CON-CORE-022"'));
+  assert.ok(commands("DDB-CON-CORE-022").some((c) => c.resolver === "consumable.reorderTopThree"));
   assert.ok(source.includes('kind: "deck-order"'));
-  assert.ok(source.includes('card.catalogId === "DDB-CON-CORE-051"'));
-  assert.ok(source.includes('kind: "stage3c-sparring-pick"'));
-  assert.ok(source.includes('kind: "stage3c-sparring-junk"'));
+  assert.ok(commands("DDB-CON-CORE-051").some((c) => c.resolver === "consumable.topThreeAttackSelection"));
+  assert.ok(source.includes("beginStage3CSparringDummy"));
+  assert.ok(source.includes('kind: "deck-attack-pick"'));
 });
 
 test("Pep Talk and Tiger Balm remove one actual temporary stat penalty; Pep Talk only then arms +1 Attack", () => {
@@ -128,7 +135,7 @@ test("Pep Talk and Tiger Balm remove one actual temporary stat penalty; Pep Talk
 test("Last-Call Electrolytes is an optional 0/1/2 discard loop paying +2 Focus each", () => {
   const lastCall = commands("DDB-CON-CORE-032", { discardedCount: 2 });
   assert.ok(lastCall.some((c) => c.resolver === "consumable.discardUpToForFocus"));
-  assert.ok(source.includes('kind: "stage3c-discard-focus"'));
+  assert.ok(source.includes('kind: "discard-for-focus"'));
   assert.ok(source.includes("focusPerDiscard: 2"));
 });
 
@@ -147,8 +154,9 @@ test("Emergency Shoelace is correctly certified as a dormant replacement because
 });
 
 test("Muscle Ointment suppresses a chosen equipped Weapon penalty and Hide clears that suppression", () => {
+  assert.ok(commands("DDB-CON-CORE-035").some((c) => c.resolver === "consumable.suppressChosenWeaponClause"));
   assert.ok(source.includes("suppressedEquipmentPenaltyIds"));
-  assert.ok(source.includes('kind: "stage3c-weapon-suppress"'));
+  assert.ok(source.includes('kind: "suppress-equipment-clause"'));
   assert.ok(source.includes("suppression && value < 0 ? 0 : value"));
   assert.ok(source.includes("suppressedEquipmentPenaltyIds: []"));
 });
