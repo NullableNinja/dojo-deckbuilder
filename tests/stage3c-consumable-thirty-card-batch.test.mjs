@@ -167,6 +167,7 @@ test("Air Horn is recognized as a real cancel-Reaction event card and both playe
   const airHorn = card("DDB-CON-CORE-001");
   assert.equal(firstEventReactionCard([airHorn], "cancel-reaction")?.catalogId, "DDB-CON-CORE-001");
   assert.ok(playtestSource.includes('firstEventReactionCard(current.ai.hand'));
-  assert.ok(playtestSource.includes('pendingChoice: { kind: "air-horn-reaction"'));
+  assert.ok(playtestSource.includes('pendingChoice: { kind: "cancel-reaction"'));
   assert.ok(playtestSource.includes("resolvePlayerAirHornChoice"));
+  assert.ok(playtestSource.includes('choice.kind !== "cancel-reaction"'));
 });
