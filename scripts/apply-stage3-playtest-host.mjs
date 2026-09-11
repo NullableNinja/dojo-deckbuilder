@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 
+// One-time guarded authoring migration for the isolated Stage 3 feature branch.
 const path = new URL("../app/playtest.tsx", import.meta.url);
 let source = await readFile(path, "utf8");
 
