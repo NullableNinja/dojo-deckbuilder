@@ -54,9 +54,11 @@ export function activateQuickDuelComboOnBoards<Board extends QuickDuelRuntimeCom
 ): QuickDuelComboSessionResult<Board> {
   const activated = activateQuickDuelComboPlan(plan, completedAt);
   if (!activated.execution.active) return { execution: activated.execution, boards, projectedCommands: [] };
+  const executed = new Set(activated.execution.executedEffectIds);
+  const stillDeferred = plan.deferredOnCompletion.filter((command) => !executed.has(command.sourceEffectId));
   const projectedCommands = [
     ...activated.commands,
-    ...plan.deferredOnCompletion,
+    ...stillDeferred,
     ...(activated.execution.pendingChoice ? [choiceCommand(activated.execution.pendingChoice)] : []),
   ];
   return {
