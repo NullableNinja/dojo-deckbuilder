@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   applyQuickDuelPlaytestTransition,
   prepareQuickDuelPlaytestAttack,
+  publishQuickDuelPlaytestCharacterEvent,
   publishQuickDuelPlaytestLifecycleEvent,
 } from "../app/quick-duel-playtest-host.ts";
 import { comboHostFactsFromBoard } from "../app/quick-duel-game-host.ts";
@@ -17,18 +18,23 @@ const kata = (id) => ({ id, name: id, cardType: "Technique", subtype: "Kata", ta
 function board(overrides = {}) {
   return {
     fighterId: "fighter",
+    belt: 3,
     hp: 10,
     maxHp: 10,
     xp: 0,
     focus: 0,
     tempSpeed: 0,
     nextAttackBonus: 0,
+    nextDefenseCardBonus: 0,
     nextAttackHasFlow: false,
     nextAttackAnyZone: false,
     damageTaken: 0,
     hand: [],
+    deck: [],
     discard: [],
+    destroyed: [],
     equipment: [],
+    exhaustedEquipment: [],
     cardsThisTurn: [],
     zonesPlayed: [],
     attacksThisTurn: 0,
@@ -38,6 +44,16 @@ function board(overrides = {}) {
     learnedCombos: [],
     triggeredCombos: [],
     cardsBought: 0,
+    usedConsumableThisRound: false,
+    wasHitSinceLastTurn: false,
+    damageReductionUsed: false,
+    reversalAttackBonus: 0,
+    nextInitiateFocus: 0,
+    borrowedEquipmentId: null,
+    abilityUsedRound: false,
+    usedCharacterEffectIdsThisTurn: [],
+    usedCharacterEffectIdsThisRound: [],
+    usedCharacterEffectIdsThisGame: [],
     characterMarks: {},
     stage3cStatuses: [],
     stage3cChoices: [],
@@ -108,6 +124,40 @@ test("cardless lifecycle publication targets the acting AI board rather than the
   assert.deepEqual(published.activatedComboIds, []);
 });
 
+test("safe Character events resolve through canonical runtime with actor orientation preserved", () => {
+  const current = match(
+    board({ fighterId: "DDB-CHR-CORE-001" }),
+    board({ fighterId: "DDB-CHR-CORE-024", nextAttackBonus: 0 }),
+    { phase: "ai-initiate", turnIndex: 1 },
+  );
+
+  const published = publishQuickDuelPlaytestCharacterEvent(current, "ai", {
+    type: "initiate",
+    hasWeaponEquipped: false,
+    selectedMode: "attack",
+  });
+  assert.equal(published.published, true);
+  assert.equal(published.conflict, false);
+  assert.equal(published.match.ai.nextAttackBonus, 1);
+  assert.equal(published.match.player.nextAttackBonus, 0);
+  assert.deepEqual(published.match.log, ["preserve-me"]);
+});
+
+test("compatibility-owned Character events are blocked instead of double-resolving", () => {
+  const current = match(board({ fighterId: "DDB-CHR-CORE-012" }), board({ fighterId: "DDB-CHR-CORE-001" }));
+  const published = publishQuickDuelPlaytestCharacterEvent(current, "player", {
+    type: "attackDeclared",
+    firstAttackThisTurn: true,
+    usedConsumableThisTurn: true,
+    attackPower: 2,
+    card: attack("compatibility-attack"),
+  });
+  assert.equal(published.published, false);
+  assert.equal(published.conflict, true);
+  assert.equal(published.match, current);
+  assert.match(published.reason, /compatibility-owned/);
+});
+
 test("transition adapter preserves full Playtest match fields while recording structured history", () => {
   const form = kata("form-played");
   const previous = match(board({ hand: [form.id] }));
@@ -127,6 +177,6 @@ test("transition adapter preserves full Playtest match fields while recording st
 
 test("Playtest adapter remains identity-free and does not parse card prose", async () => {
   const source = await readFile(new URL("../app/quick-duel-playtest-host.ts", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /DDB-CMB-CORE-|rulesText|displayText|combo\.name\s*===|catalogId\s*===/);
+  assert.doesNotMatch(source, /DDB-(?:CMB|CHR)-CORE-|rulesText|displayText|combo\.name\s*===|catalogId\s*===/);
   assert.match(source, /quick-duel-game-host/);
 });
