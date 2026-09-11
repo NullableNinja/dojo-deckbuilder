@@ -1,0 +1,45 @@
+/*
+ * Card Library artwork consistency
+ *
+ * The library used two different preview modes depending on whether an asset
+ * happened to be discovered through COMPLETE_CARD_URLS_BY_CATALOG_ID. That
+ * made otherwise-complete card faces render at either 165px/cropped or
+ * 245px/contained. Keep every real card image in the same preview window.
+ */
+
+.card-library-page .card-art:not(.card-art--pending) {
+  height: 245px;
+  display: grid;
+  place-items: center;
+  background: #dfd4bb;
+}
+
+.card-library-page .card-art:not(.card-art--pending) img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  padding: 0;
+  filter: none;
+}
+
+.card-library-page .card-art:not(.card-art--pending) > span {
+  display: none;
+}
+
+/* Keep the artwork-pending treatment compact and visibly distinct. */
+.card-library-page .card-art.card-art--pending {
+  height: 165px;
+}
+
+.card-library-page .card-art.card-art--pending img {
+  object-fit: cover;
+  object-position: center 42%;
+}
+
+@media (max-width: 720px) {
+  .card-library-page .card-art:not(.card-art--pending),
+  .card-library-page .card-art.card-art--pending {
+    height: 190px;
+  }
+}
