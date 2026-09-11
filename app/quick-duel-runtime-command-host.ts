@@ -1,5 +1,5 @@
 import { applyStage3CBoardCustomCommand } from "./stage3c-board-command-semantics.ts";
-import type { RuntimeChoice, RuntimeCommand, RuntimeStatus } from "./family-effect-runtime.ts";
+import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime.ts";
 
 export type QuickDuelRuntimeCommandBoard = {
   hp: number;
@@ -33,6 +33,16 @@ export type QuickDuelRuntimeCommandOperations<Board extends QuickDuelRuntimeComm
 export type QuickDuelRuntimeCommandBoards<Board extends QuickDuelRuntimeCommandBoard> = {
   self: Board;
   opponent: Board;
+};
+
+export type QuickDuelRuntimeStatusEventFacts = {
+  /** True only when an Attack declaration is known to occur on a later turn. */
+  nextTurn?: boolean;
+};
+
+export type QuickDuelRuntimeStatusActivation<Board extends QuickDuelRuntimeCommandBoard> = {
+  boards: QuickDuelRuntimeCommandBoards<Board>;
+  commands: RuntimeCommand[];
 };
 
 function statusFromCommand(command: RuntimeCommand, appliedImmediately = false): RuntimeStatus {
@@ -182,4 +192,58 @@ export function applyQuickDuelRuntimeCommands<Board extends QuickDuelRuntimeComm
     else self = applyToBoard(self, { ...command, target: "self" }, controller, operations);
   }
   return { self, opponent };
+}
+
+function deferredStatusMatchesEvent(
+  status: RuntimeStatus,
+  trigger: RuntimeTrigger,
+  facts: QuickDuelRuntimeStatusEventFacts,
+) {
+  if (status.appliedImmediately) return false;
+  const activateAt = String(status.qualifier?.activateAt ?? "");
+  if (activateAt === "nextInitiate") return trigger === "onInitiate";
+  if (activateAt === "nextTurnAttack") return trigger === "onAttackDeclared" && facts.nextTurn === true;
+  return false;
+}
+
+function commandFromDeferredStatus(status: RuntimeStatus, trigger: RuntimeTrigger): RuntimeCommand {
+  return {
+    sourceEffectId: status.sourceEffectId,
+    effect: status.effect,
+    trigger,
+    target: status.target,
+    amount: status.amount,
+    duration: "immediate",
+    resolver: status.resolver,
+    conditions: [],
+    qualifier: status.qualifier,
+  };
+}
+
+/**
+ * Consumes canonical deferred statuses when their future gameplay event occurs.
+ * Only statuses explicitly carrying an activateAt qualifier are eligible, so
+ * ordinary standing modifiers are never replayed by this lifecycle hook.
+ */
+export function activateQuickDuelRuntimeStatusesForEvent<Board extends QuickDuelRuntimeCommandBoard>(
+  boards: QuickDuelRuntimeCommandBoards<Board>,
+  trigger: RuntimeTrigger,
+  controller: "player" | "ai",
+  operations: QuickDuelRuntimeCommandOperations<Board>,
+  facts: QuickDuelRuntimeStatusEventFacts = {},
+): QuickDuelRuntimeStatusActivation<Board> {
+  const statuses = boards.self.stage3cStatuses ?? [];
+  const activating = statuses.filter((status) => deferredStatusMatchesEvent(status, trigger, facts));
+  if (!activating.length) return { boards, commands: [] };
+
+  const activatingIds = new Set(activating.map((status) => status.sourceEffectId));
+  const self = {
+    ...boards.self,
+    stage3cStatuses: statuses.filter((status) => !activatingIds.has(status.sourceEffectId)),
+  } as Board;
+  const commands = activating.map((status) => commandFromDeferredStatus(status, trigger));
+  return {
+    boards: applyQuickDuelRuntimeCommands({ self, opponent: boards.opponent }, commands, controller, operations),
+    commands,
+  };
 }
