@@ -10,7 +10,7 @@ test("player Air Horn pauses the declared Attack before an AI Consumable Reactio
   const autoResolve = resolver.indexOf("const aiConsumableReaction =");
   assert.ok(candidate >= 0 && autoResolve > candidate);
   const interruption = resolver.slice(candidate, autoResolve);
-  assert.ok(interruption.includes('pendingChoice: { kind: "air-horn-reaction"'));
+  assert.ok(interruption.includes('pendingChoice: { kind: "cancel-reaction"'));
   assert.ok(interruption.includes('reactionKind: "consumable"'));
   assert.ok(resolver.includes("airHornAiConsumableSpentThisStrike"));
   assert.ok(resolver.includes("Air Horn canceled the computer's Consumable Reaction"));
@@ -23,6 +23,7 @@ test("player Air Horn can cancel the AI's one Defense without allowing a replace
   assert.ok(resolver.includes(": bestDefense"));
   assert.ok(resolver.includes('reactionKind: "defense"'));
   const handler = source.slice(source.indexOf("const resolvePlayerAirHornChoice ="), source.indexOf("const playSupport ="));
+  assert.ok(handler.includes('choice.kind !== "cancel-reaction"'));
   assert.ok(handler.includes("airHornAiDefenseSpentThisStrike = true"));
   assert.ok(handler.includes("return resolvePlayerAttackState(intercepted)"));
 });
@@ -36,7 +37,7 @@ test("Air Horn player choice preserves normal lifecycle destinations", () => {
 });
 
 test("Air Horn choice is an explicit two-button Dojo Stack decision", () => {
-  assert.ok(source.includes("Sound the Air Horn?"));
+  assert.ok(source.includes('match.pendingChoice?.kind === "cancel-reaction"'));
   assert.ok(source.includes("resolvePlayerAirHornChoice(true)"));
   assert.ok(source.includes("USE AIR HORN"));
   assert.ok(source.includes("resolvePlayerAirHornChoice(false)"));
