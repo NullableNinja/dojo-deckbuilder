@@ -21,6 +21,7 @@ import "../app/playtest-collision-guard.css";
 import "../app/playtest-graphics-fix.css";
 import "../app/reference-desk.css";
 import "../app/playtest-card-surface.css";
+import "../app/playtest-market-card-polish.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
