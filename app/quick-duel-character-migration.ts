@@ -30,7 +30,6 @@ export const QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS: Readonly<
     "character.firstHighAttackToMid",
     "character.declaredAttackZoneChange",
     "character.discardToChangeDeclaredZone",
-    "character.afterAttackDifferentZone",
   ],
   characterAttackModifier: [
     "character.firstAttackAfterConsumable",
