@@ -8,9 +8,10 @@ import {
   type QuickDuelAttackRuntimeFacts,
   type QuickDuelComboMatchBoard,
 } from "./quick-duel-combo-match-host.ts";
-import type {
-  QuickDuelRuntimeCommandOperations,
-  QuickDuelRuntimeCommandBoards,
+import {
+  activateQuickDuelRuntimeStatusesForEvent,
+  type QuickDuelRuntimeCommandOperations,
+  type QuickDuelRuntimeCommandBoards,
 } from "./quick-duel-runtime-command-host.ts";
 import type { QuickDuelComboEventFacts } from "./quick-duel-combo-planner.ts";
 
@@ -29,9 +30,10 @@ export type QuickDuelComboAttackPreparation<Board extends QuickDuelComboMatchBoa
  * Publishes one real gameplay event to already-active Combo sessions and then
  * evaluates learned, not-yet-triggered Combos against that same event.
  *
- * Existing sessions receive the event first. Newly completed Combos are then
- * activated at the event that completed their requirement, preventing a newly
- * activated session from receiving the same trigger twice.
+ * Deferred board statuses consume their matching future event first, existing
+ * sessions then receive the event, and newly completed Combos activate last.
+ * This prevents the event that completes a Combo from also consuming a future
+ * status created by that same completion.
  *
  * This host is intentionally identity-free: card IDs are data supplied through
  * the canonical lookup and no Combo prose is interpreted here.
@@ -46,7 +48,8 @@ export function hostQuickDuelComboEvent<Board extends QuickDuelComboMatchBoard>(
   operations: QuickDuelRuntimeCommandOperations<Board>,
   event: QuickDuelComboEventFacts = {},
 ): QuickDuelComboHostedEventResult<Board> {
-  const published = publishQuickDuelComboSessions(boards, trigger, controller, operations);
+  const deferred = activateQuickDuelRuntimeStatusesForEvent(boards, trigger, controller, operations);
+  const published = publishQuickDuelComboSessions(deferred.boards, trigger, controller, operations);
   const activated = activateQuickDuelCombosForEvent(
     published.boards,
     currentCard,
@@ -59,7 +62,7 @@ export function hostQuickDuelComboEvent<Board extends QuickDuelComboMatchBoard>(
   );
   return {
     boards: activated.boards,
-    commands: [...published.commands, ...activated.commands],
+    commands: [...deferred.commands, ...published.commands, ...activated.commands],
     activatedComboIds: activated.activatedComboIds,
   };
 }
