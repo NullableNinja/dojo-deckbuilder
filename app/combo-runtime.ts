@@ -52,7 +52,7 @@ type ComboRequirementRegistry = {
 };
 
 type ComboEffectRegistry = {
-  cards?: Record<string, { name?: string; effects?: StructuredRuntimeEffect[] }> };
+  cards?: Record<string, { name?: string; effects?: StructuredRuntimeEffect[] }>;
 };
 
 export type ComboBlockFact = {
