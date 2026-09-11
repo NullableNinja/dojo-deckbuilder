@@ -6,110 +6,75 @@ let source = fs.readFileSync(path, "utf8");
 function replaceRequired(search, replacement, label = search) {
   if (!source.includes(search)) throw new Error(`Missing expected source for ${label}`);
   source = source.replace(search, replacement);
+  console.log(`${label}: replaced`);
 }
 
-function replaceAllRequired(search, replacement, label = search) {
-  const count = source.split(search).length - 1;
-  if (!count) throw new Error(`Missing expected source for ${label}`);
-  source = source.split(search).join(replacement);
-  console.log(`${label}: ${count} replacement(s)`);
+function replaceRegexRequired(pattern, replacement, label) {
+  const matches = source.match(pattern) ?? [];
+  if (!matches.length) throw new Error(`Missing expected source for ${label}`);
+  source = source.replace(pattern, replacement);
+  console.log(`${label}: ${matches.length} replacement(s)`);
 }
 
-// Read Core semantic identity from generated structured effects rather than card IDs/names.
+// The Playtest host must use the Location host bridge directly, not the legacy resolver facade.
 replaceRequired(
-  'import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";',
-  'import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";',
-  "family runtime import",
+  'import { structuredLocationDefenseForHost, structuredLocationKataForHost } from "./location-playtest-bridge";',
+  'import { structuredLocationAttackForHost, structuredLocationDefenseForHost, structuredLocationKataForHost } from "./location-playtest-bridge";',
+  "Location bridge import",
 );
-
 replaceRequired(
-  'function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }\n',
-  'function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }\n\nfunction cardHasRuntimeResolver(card: CardEntry | null | undefined, resolver: string) {\n  return Boolean(card && structuredRuntimeResolvers(card, resolver).length);\n}\n\nfunction cardHasRuntimeCondition(card: CardEntry | null | undefined, resolver: string, kind: string, value: unknown) {\n  return Boolean(card && structuredRuntimeResolvers(card, resolver).some((effect) =>\n    (effect.conditions ?? []).some((condition) => condition.kind === kind && condition.value === value),\n  ));\n}\n',
-  "runtime resolver helper",
+  'const parsed = locationAttackRuleModifiers(location, {\n    zone,\n    firstAttack,\n    attackTags: card.tags,\n    hasWeapon: equipped.some(isWeapon),\n    equipmentTags: equipped.flatMap((item) => item.tags),\n  });',
+  'const parsed = structuredLocationAttackForHost(location, {\n    zone,\n    firstAttack,\n    attackTags: card.tags,\n    hasWeapon: equipped.some(isWeapon),\n    equipmentTags: equipped.flatMap((item) => item.tags),\n  });',
+  "Location attack bridge",
 );
+source = source.replace(/\blocationAttackRuleModifiers,\s*/g, "");
 
-// Presentation-only starter art lookup should not look like gameplay identity dispatch.
+// Character restrictions must be queried from the Character runtime, never fighter names.
 replaceRequired(
-  'function artistUrl(card: CardEntry) {\n  if (card.image && CARD_ART[card.image]) return CARD_ART[card.image];\n  if (COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId]) return COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId];\n  if (card.name === "Basic Jab") return starterJabArtUrl;\n  if (card.name === "High Guard") return highGuardArtUrl;\n  return undefined;\n}',
-  'const STARTER_ART_BY_NAME: Readonly<Record<string, string>> = {\n  "Basic Jab": starterJabArtUrl,\n  "High Guard": highGuardArtUrl,\n};\n\nfunction artistUrl(card: CardEntry) {\n  if (card.image && CARD_ART[card.image]) return CARD_ART[card.image];\n  if (COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId]) return COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId];\n  return STARTER_ART_BY_NAME[card.name];\n}',
-  "starter art lookup",
+  '(fighter?.name === "Knuckleton the Brawler" && isWeapon(card))',
+  '!characterCanEquip(nextAi, card)',
+  "AI Character equip restriction",
 );
 
-// These are UI/effect protocol names, not card names. Make them reusable semantic protocols.
-const choiceKinds = new Map([
-  ["air-horn-reaction", "cancel-reaction"],
-  ["stage3c-trail-mix", "equipment-cycle"],
-  ["stage3c-zone-ward", "zone-call"],
-  ["stage3c-remove-negative", "remove-negative-stat"],
-  ["stage3c-discard-focus", "discard-for-focus"],
-  ["stage3c-weapon-suppress", "suppress-equipment-clause"],
-  ["stage3c-exhaust-focus", "exhaust-equipment-for-focus"],
-  ["stage3c-raffle", "market-reveal-purchase"],
-  ["stage3c-lucky-reveal", "replace-revealed-card"],
-  ["stage3c-sparring-pick", "deck-attack-pick"],
-  ["stage3c-sparring-junk", "destroy-revealed-junk"],
-  ["stage3c-reaction-discard", "discard-reaction"],
-]);
-for (const [before, after] of choiceKinds) replaceAllRequired(before, after, `choice protocol ${before}`);
-
-// Replace Core Consumable identity dispatch with canonical structured resolver semantics.
-const consumableResolvers = new Map([
-  ["DDB-CON-CORE-009", "consumable.chooseOpponentDiscardReactionIfAble"],
-  ["DDB-CON-CORE-010", "consumable.optionalExhaustToCycle"],
-  ["DDB-CON-CORE-012", "consumable.raffleTicket"],
-  ["DDB-CON-CORE-021", "consumable.zoneSpecificIncomingAttackPenalty"],
-  ["DDB-CON-CORE-022", "consumable.reorderTopThree"],
-  ["DDB-CON-CORE-031", "consumable.pepTalkConditionalAttackBonus"],
-  ["DDB-CON-CORE-032", "consumable.discardUpToForFocus"],
-  ["DDB-CON-CORE-033", "consumable.replaceRevealedMarketOrLocation"],
-  ["DDB-CON-CORE-035", "consumable.suppressChosenWeaponClause"],
-  ["DDB-CON-CORE-045", "consumable.exhaustEquipmentForFocus"],
-  ["DDB-CON-CORE-049", "consumable.untargetableUntilTurnOrAttack"],
-  ["DDB-CON-CORE-051", "consumable.topThreeAttackSelection"],
-  ["DDB-CON-CORE-056", "consumable.removeTemporaryNegativeStatModifier"],
-]);
-for (const [catalogId, resolver] of consumableResolvers) {
-  const cardSearch = `card.catalogId === "${catalogId}"`;
-  const candidateSearch = `candidate.catalogId === "${catalogId}"`;
-  const cardCount = source.split(cardSearch).length - 1;
-  const candidateCount = source.split(candidateSearch).length - 1;
-  if (!cardCount && !candidateCount) throw new Error(`Missing expected Core Consumable identity dispatch for ${catalogId}`);
-  if (cardCount) replaceAllRequired(cardSearch, `cardHasRuntimeResolver(card, "${resolver}")`, `card ${catalogId}`);
-  if (candidateCount) replaceAllRequired(candidateSearch, `cardHasRuntimeResolver(candidate, "${resolver}")`, `candidate ${catalogId}`);
-}
-
-// Second Wind Form's branch is represented structurally as grantFlowTo=nextAttack.
-replaceAllRequired(
-  'card.name === "Second Wind Form"',
-  'cardHasRuntimeCondition(card, "kata.branch", "grantFlowTo", "nextAttack")',
-  "Second Wind structured branch",
-);
-
-// Defaults are presentation/configuration decisions, not gameplay rule dispatch.
-replaceAllRequired('card.name === "Sensei Ducktape"', 'card.name === DEFAULT_QUICK_DUEL_FIGHTER_NAME', "default fighter selection");
-replaceAllRequired('card.name === "Tournament Mat"', 'card.name === DEFAULT_QUICK_DUEL_LOCATION_NAME', "default location selection");
-
-// Put the default literals beside the other Quick Duel configuration.
-const locationAnchor = 'const quickDuelLocationPool = locationPool.filter((card) => QUICK_DUEL_LOCATION_NAMES.has(card.name));';
+// Morning-Shift Meditation is a canonical kata.discardBranch effect. Resolve by structured semantics.
 replaceRequired(
-  locationAnchor,
-  'const DEFAULT_QUICK_DUEL_FIGHTER_NAME = "Sensei Ducktape";\nconst DEFAULT_QUICK_DUEL_LOCATION_NAME = "Tournament Mat";\n' + locationAnchor,
-  "Quick Duel defaults",
+  'const gainsFocus = source?.name === "Morning-Shift Meditation" && cardFocus(discarded) === 0;',
+  'const gainsFocus = Boolean(source && discarded && cardHasRuntimeResolver(source, "kata.discardBranch") && structuredRuntimeResolvers(source, "kata.discardBranch").some((effect) =>\n      effect.action === "gainFocus" && Number(effect.amount ?? 0) > 0 && (effect.conditions ?? []).some((condition) => condition.kind === "discardedFocusValue" && Number(condition.value) === cardFocus(discarded)),\n    ));',
+  "structured Kata discard followup",
 );
 
-// Explicitly refuse to leave the current certification offenders behind.
-const banned = [
-  'card.name === "Basic Jab"',
-  'card.name === "High Guard"',
-  'card.name === "Second Wind Form"',
-  'card.name === "Sensei Ducktape"',
-  'card.name === "Tournament Mat"',
-  ...consumableResolvers.keys(),
-  ...choiceKinds.keys(),
+// Core cards are never allowed to fall through to rulesText parsing once their structured handlers run.
+replaceRequired(
+  'if (structuredAnyZone.handled || structuredFlow.handled) return next;\n  const text = card.rulesText ?? "";',
+  'if (structuredAnyZone.handled || structuredFlow.handled) return next;\n  if (card.catalogId.includes("-CORE-")) return next;\n  const text = card.rulesText ?? "";',
+  "Core applyCardEffects prose boundary",
+);
+
+// Attack Flow for Core cards is decided by structured Attack/Equipment effects only.
+replaceRequired(
+  'if (structuredFlow.handled) return structuredFlow.hasFlow;\n  if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {',
+  'if (structuredFlow.handled) return structuredFlow.hasFlow;\n  if (card.catalogId.includes("-CORE-")) {\n    const pairedFlow = board.equipment.some((id) => {\n      const item = cardFor(id);\n      return Boolean(item && structuredRuntimeResolvers(item, "equipment.pairedWeaponFlow").length);\n    });\n    return board.attacksThisTurn === 1 && pairedFlow;\n  }\n  if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {',
+  "Core attack Flow prose boundary",
+);
+replaceRegexRequired(
+  /\n  const pairedWeapons = board\.equipment\.map\(cardFor\)\.filter\(\(item\): item is CardEntry => Boolean\(item && isWeapon\(item\) && hasTag\(item, "Paired"\)\)\);\n  if \(board\.attacksThisTurn === 1 && pairedWeapons\.length >= 2 && board\.equipment\.some\(\(id\) => cardFor\(id\)\?\.name === "Escrima Sticks"\)\) return true;/g,
+  '',
+  "Equipment name Flow shortcut",
+);
+
+// The legacy prose compiler is not part of the Playtest runtime surface.
+source = source.replace('import { compileCardEffects, describeEffectPlan, effectPlanForCard } from "./card-effects";', 'import { describeEffectPlan, effectPlanForCard } from "./card-effects";');
+
+const bannedGameplayTokens = [
+  'fighter?.name === "Knuckleton the Brawler"',
+  'source?.name === "Morning-Shift Meditation"',
+  'cardFor(id)?.name === "Escrima Sticks"',
+  'locationAttackRuleModifiers(location',
+  'compileCardEffects(',
 ];
-for (const token of banned) {
-  if (source.includes(token)) throw new Error(`Remediation left banned Playtest token: ${token}`);
+for (const token of bannedGameplayTokens) {
+  if (source.includes(token)) throw new Error(`Structured host remediation left banned gameplay token: ${token}`);
 }
 
 fs.writeFileSync(path, source);
-console.log("Stage 3 final Playtest identity/choice remediation written.");
+console.log("Stage 3 structured host/prose-boundary remediation written.");
