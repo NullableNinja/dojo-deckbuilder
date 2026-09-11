@@ -16,6 +16,9 @@ test("Quick Duel exposes one JSON-backed semantic host facade", () => {
     "activateQuickDuelComboPlan",
     "publishQuickDuelComboTrigger",
     "resolveQuickDuelComboChoice",
+    "activateQuickDuelComboOnBoards",
+    "publishQuickDuelComboTriggerOnBoards",
+    "resolveQuickDuelComboChoiceOnBoards",
     "applyQuickDuelRuntimeCommands",
     "publishQuickDuelCharacterEventSafely",
     "beginQuickDuelCharacterTurn",
@@ -34,6 +37,6 @@ test("Quick Duel host facade stays an adapter instead of becoming another rule e
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("//") && !line.startsWith("*") && !line.startsWith("/*"));
-  assert.ok(executableStatements.length < 90, "facade should remain a thin export boundary");
+  assert.ok(executableStatements.length < 110, "facade should remain a thin export boundary");
   assert.doesNotMatch(source, /\bswitch\s*\(|\bif\s*\(/);
 });
