@@ -166,14 +166,14 @@ export default function SearchPage() {
     const originalReplaceState = window.history.replaceState;
     const notify = () => window.dispatchEvent(new Event(LOCATION_CHANGE_EVENT));
 
-    window.history.pushState = function (...args: Parameters<History["pushState"]>) {
-      originalPushState.apply(this, args);
+    window.history.pushState = ((...args: Parameters<History["pushState"]>) => {
+      originalPushState.apply(window.history, args);
       notify();
-    } as History["pushState"];
-    window.history.replaceState = function (...args: Parameters<History["replaceState"]>) {
-      originalReplaceState.apply(this, args);
+    }) as History["pushState"];
+    window.history.replaceState = ((...args: Parameters<History["replaceState"]>) => {
+      originalReplaceState.apply(window.history, args);
       notify();
-    } as History["replaceState"];
+    }) as History["replaceState"];
 
     const syncRoute = () => {
       const route = readSearchRoute();
