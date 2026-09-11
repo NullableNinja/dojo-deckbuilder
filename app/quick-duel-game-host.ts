@@ -53,6 +53,13 @@ export {
 } from "./quick-duel-combo-match-host.ts";
 
 export {
+  hostQuickDuelComboEvent,
+  prepareQuickDuelComboAttack,
+  type QuickDuelComboAttackPreparation,
+  type QuickDuelComboHostedEventResult,
+} from "./quick-duel-combo-event-host.ts";
+
+export {
   applyQuickDuelRuntimeCommands,
   type QuickDuelRuntimeCommandBoard,
   type QuickDuelRuntimeCommandBoards,
