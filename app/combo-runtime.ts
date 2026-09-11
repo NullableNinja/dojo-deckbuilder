@@ -10,26 +10,30 @@ export type ComboRuntimeCard = {
   subtype?: string;
   zone?: string | null;
   tags?: string[];
+  focusValue?: string | number | null;
 };
 
 export type ComboRequirementStep = {
-  family?: "Attack" | "Defense" | "Kata" | string;
+  family?: string;
+  families?: string[];
   tags?: string[];
+  tagsAny?: string[];
   zone?: string;
+  zones?: string[];
+  minimumFocusValue?: number;
 };
 
-export type ComboRequirement = {
+export type ComboRequirement = ComboRequirementStep & {
   kind: string;
   steps?: ComboRequirementStep[];
-  zones?: string[];
   sameOpponent?: boolean;
-  window?: "turn" | "round" | string;
+  window?: "turn" | "round" | "sinceLastTurn" | "sinceLastAscend" | string;
   tag?: string;
   amount?: number;
   minimumPriorCombos?: number;
-  family?: string;
   ordinal?: number;
   minimumPriorAttacks?: number;
+  hit?: boolean;
 };
 
 export type ComboRequirementEntry = {
@@ -46,6 +50,18 @@ type ComboEffectRegistry = {
   cards?: Record<string, { name?: string; effects?: StructuredRuntimeEffect[] }>;
 };
 
+export type ComboBlockFact = {
+  window: "round" | "sinceLastTurn" | string;
+  defenseTags?: string[];
+  incomingZone?: string;
+};
+
+export type ComboPurchaseFact = {
+  window: "sinceLastAscend" | string;
+  tags?: string[];
+  family?: string;
+};
+
 export type ComboRuntimeContext = {
   priorCards: ComboRuntimeCard[];
   attacksThisTurn: number;
@@ -54,7 +70,10 @@ export type ComboRuntimeContext = {
   hitThisTurn: boolean;
   hitZonesThisTurn?: string[];
   zonesPlayed: string[];
+  roundZonesPlayed?: string[];
+  roundAttackHits?: number;
   equipment: ComboRuntimeCard[];
+  startingHand?: ComboRuntimeCard[];
   currentCard: ComboRuntimeCard;
   currentZone: string;
   isReversal?: boolean;
@@ -63,6 +82,10 @@ export type ComboRuntimeContext = {
   currentDefenseBlocked?: boolean;
   completedBeltExamThisRound?: boolean;
   triggeredComboIds?: string[];
+  previousAttackBlocked?: boolean;
+  blockFacts?: ComboBlockFact[];
+  speedGainWindows?: string[];
+  purchaseFacts?: ComboPurchaseFact[];
 };
 
 export type ComboRequirementResult = {
@@ -109,19 +132,56 @@ export const SUPPORTED_COMBO_RESOLVERS = new Set([
   "combo.discardWeaponChoice",
 ]);
 
+export const SUPPORTED_COMBO_REQUIREMENTS = new Set([
+  "orderedSequence",
+  "orderedAttackHits",
+  "differentZoneFromPreviousAttack",
+  "defenseBlocksAttack",
+  "defendedThisRound",
+  "minimumDefenseTag",
+  "differentComboAfterCombo",
+  "beltExamThenAttackHit",
+  "priorCardFamily",
+  "reversal",
+  "attackOrdinal",
+  "minimumPriorAttacks",
+  "priorAttackHit",
+  "minimumEquipment",
+  "weaponAttack",
+  "zonesPresent",
+  "priorAttackTag",
+  "currentCardMatches",
+  "priorCardMatches",
+  "equippedCardMatches",
+  "noWeaponEquipped",
+  "previousAttackBlocked",
+  "blockHistory",
+  "speedGainHistory",
+  "startingHandTagCount",
+  "purchaseHistory",
+  "minimumAttackHits",
+]);
+
 const catalogIdOf = (card: ComboRuntimeCard | string) => typeof card === "string" ? card : String(card.catalogId ?? "").trim();
 const lower = (value: unknown) => String(value ?? "").toLocaleLowerCase();
 const cardTags = (card: ComboRuntimeCard | null | undefined) => (card?.tags ?? []).map(lower);
 const hasTag = (card: ComboRuntimeCard | null | undefined, tag: string) => cardTags(card).some((entry) => entry === lower(tag) || entry.includes(lower(tag)));
+const anyTag = (card: ComboRuntimeCard | null | undefined, tags: string[] = []) => tags.some((tag) => hasTag(card, tag));
 const isAttack = (card: ComboRuntimeCard | null | undefined) => lower(card?.subtype) === "attack" || lower(card?.cardType) === "attack" || hasTag(card, "attack");
 const isDefense = (card: ComboRuntimeCard | null | undefined) => lower(card?.subtype) === "defense" || lower(card?.cardType) === "defense" || hasTag(card, "defense") || hasTag(card, "block");
 const isKata = (card: ComboRuntimeCard | null | undefined) => lower(card?.subtype) === "kata" || lower(card?.cardType) === "kata" || hasTag(card, "kata");
+const isConsumable = (card: ComboRuntimeCard | null | undefined) => lower(card?.subtype) === "consumable" || lower(card?.cardType) === "consumable" || hasTag(card, "consumable");
+const isEquipment = (card: ComboRuntimeCard | null | undefined) => ["weapon", "gear", "defense equipment", "equipment"].some((value) => lower(card?.subtype) === value) || hasTag(card, "equipment") || hasTag(card, "weapon");
+const isJunk = (card: ComboRuntimeCard | null | undefined) => lower(card?.subtype) === "junk" || lower(card?.cardType) === "junk" || hasTag(card, "junk");
 
 function familyMatches(card: ComboRuntimeCard, family?: string) {
   if (!family) return true;
   if (lower(family) === "attack") return isAttack(card);
   if (lower(family) === "defense") return isDefense(card);
   if (lower(family) === "kata") return isKata(card);
+  if (lower(family) === "consumable") return isConsumable(card);
+  if (lower(family) === "equipment") return isEquipment(card);
+  if (lower(family) === "junk") return isJunk(card);
   return lower(card.cardType) === lower(family) || lower(card.subtype) === lower(family);
 }
 
@@ -150,9 +210,13 @@ function historyEntries(context: ComboRuntimeContext) {
 }
 
 function stepMatches(step: ComboRequirementStep, card: ComboRuntimeCard, zone: string) {
-  if (!familyMatches(card, step.family)) return false;
+  if (step.family && !familyMatches(card, step.family)) return false;
+  if ((step.families ?? []).length && !(step.families ?? []).some((family) => familyMatches(card, family))) return false;
   if ((step.tags ?? []).some((tag) => !hasTag(card, tag))) return false;
+  if ((step.tagsAny ?? []).length && !anyTag(card, step.tagsAny)) return false;
   if (step.zone && lower(step.zone) !== lower(zone)) return false;
+  if ((step.zones ?? []).length && !(step.zones ?? []).map(lower).includes(lower(zone))) return false;
+  if (step.minimumFocusValue != null && Number(card.focusValue ?? 0) < Number(step.minimumFocusValue)) return false;
   return true;
 }
 
@@ -172,6 +236,19 @@ function orderedSequenceMatches(requirement: ComboRequirement, context: ComboRun
     if (!matched) return false;
   }
   return Boolean((requirement.steps ?? []).length) && finalWasCurrent;
+}
+
+function blockHistoryMatches(requirement: ComboRequirement, context: ComboRuntimeContext) {
+  const required = Number(requirement.amount ?? 1);
+  const matches = (context.blockFacts ?? []).filter((fact) => {
+    if (requirement.window && fact.window !== requirement.window) return false;
+    if (requirement.zone && lower(fact.incomingZone) !== lower(requirement.zone)) return false;
+    const tags = (fact.defenseTags ?? []).map(lower);
+    if (requirement.tag && !tags.some((tag) => tag === lower(requirement.tag) || tag.includes(lower(requirement.tag)))) return false;
+    if ((requirement.tagsAny ?? []).length && !(requirement.tagsAny ?? []).some((candidate) => tags.some((tag) => tag === lower(candidate) || tag.includes(lower(candidate))))) return false;
+    return true;
+  });
+  return matches.length >= required;
 }
 
 function requirementSatisfied(requirement: ComboRequirement, context: ComboRuntimeContext) {
@@ -220,11 +297,41 @@ function requirementSatisfied(requirement: ComboRequirement, context: ComboRunti
     case "weaponAttack":
       return isAttack(context.currentCard) && (hasTag(context.currentCard, "weapon") || context.equipment.some((card) => hasTag(card, "weapon") || lower(card.subtype).includes("weapon")));
     case "zonesPresent": {
-      const zones = new Set([...context.zonesPlayed, ...(isAttack(context.currentCard) ? [context.currentZone] : [])].map(lower));
+      const source = requirement.window === "round" ? (context.roundZonesPlayed ?? context.zonesPlayed) : context.zonesPlayed;
+      const zones = new Set([...source, ...(isAttack(context.currentCard) ? [context.currentZone] : [])].map(lower));
       return (requirement.zones ?? []).every((zone) => zones.has(lower(zone)));
     }
     case "priorAttackTag":
       return context.priorCards.some((card) => isAttack(card) && Boolean(requirement.tag) && hasTag(card, String(requirement.tag)));
+    case "currentCardMatches":
+      return stepMatches(requirement, context.currentCard, context.currentZone) && (requirement.hit !== true || context.currentAttackHit === true);
+    case "priorCardMatches":
+      return context.priorCards.some((card, index) => stepMatches(requirement, card, isAttack(card) ? context.zonesPlayed[index] ?? "" : ""));
+    case "equippedCardMatches":
+      return context.equipment.filter((card) => stepMatches(requirement, card, "")).length >= Number(requirement.amount ?? 1);
+    case "noWeaponEquipped":
+      return !context.equipment.some((card) => hasTag(card, "weapon") || lower(card.subtype).includes("weapon"));
+    case "previousAttackBlocked":
+      return Boolean(context.previousAttackBlocked);
+    case "blockHistory":
+      return blockHistoryMatches(requirement, context);
+    case "speedGainHistory":
+      return (context.speedGainWindows ?? []).includes(String(requirement.window ?? "sinceLastTurn"));
+    case "startingHandTagCount": {
+      const tag = String(requirement.tag ?? "");
+      return (context.startingHand ?? []).filter((card) => tag ? hasTag(card, tag) || familyMatches(card, tag) : false).length >= Number(requirement.amount ?? 1);
+    }
+    case "purchaseHistory":
+      return (context.purchaseFacts ?? []).filter((fact) => {
+        if (requirement.window && fact.window !== requirement.window) return false;
+        if (requirement.family && lower(fact.family) !== lower(requirement.family)) return false;
+        const tags = (fact.tags ?? []).map(lower);
+        if (requirement.tag && !tags.some((tag) => tag === lower(requirement.tag) || tag.includes(lower(requirement.tag)))) return false;
+        if ((requirement.tagsAny ?? []).length && !(requirement.tagsAny ?? []).some((candidate) => tags.some((tag) => tag === lower(candidate) || tag.includes(lower(candidate))))) return false;
+        return true;
+      }).length >= Number(requirement.amount ?? 1);
+    case "minimumAttackHits":
+      return (requirement.window === "round" ? Number(context.roundAttackHits ?? 0) : (context.hitZonesThisTurn ?? []).length + (context.currentAttackHit ? 1 : 0)) >= Number(requirement.amount ?? 1);
     default:
       return null;
   }
