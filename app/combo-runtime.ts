@@ -336,7 +336,9 @@ function requirementSatisfied(requirement: ComboRequirement, context: ComboRunti
     case "currentCardMatches":
       return stepMatches(requirement, context.currentCard, context.currentZone) && (requirement.hit !== true || context.currentAttackHit === true);
     case "priorCardMatches":
-      return context.priorCards.some((card, index) => stepMatches(requirement, card, isAttack(card) ? context.zonesPlayed[index] ?? "" : ""));
+      return historyEntries(context)
+        .filter((entry) => !entry.current)
+        .some((entry) => stepMatches(requirement, entry.card, entry.zone));
     case "equippedCardMatches":
       return context.equipment.filter((card) => stepMatches(requirement, card, "")).length >= Number(requirement.amount ?? 1);
     case "noWeaponEquipped":
