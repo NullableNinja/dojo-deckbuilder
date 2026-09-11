@@ -60,10 +60,13 @@ export {
 } from "./quick-duel-combo-event-host.ts";
 
 export {
+  activateQuickDuelRuntimeStatusesForEvent,
   applyQuickDuelRuntimeCommands,
   type QuickDuelRuntimeCommandBoard,
   type QuickDuelRuntimeCommandBoards,
   type QuickDuelRuntimeCommandOperations,
+  type QuickDuelRuntimeStatusActivation,
+  type QuickDuelRuntimeStatusEventFacts,
 } from "./quick-duel-runtime-command-host.ts";
 
 export {
