@@ -1,4 +1,4 @@
-import { resolveKataEffects, type KataCommand, type KataStructuredEffect } from "./kata-effect-resolvers.ts";
+import { resolveKataEffects, type KataCommand, type KataCondition, type KataStructuredEffect } from "./kata-effect-resolvers.ts";
 import { structuredRuntimeEffects, type RuntimeCardLike } from "./family-effect-runtime.ts";
 
 export type KataHostFacts = Record<string, unknown> & {
@@ -70,7 +70,11 @@ function kataStructuredEffects(card: RuntimeCardLike): KataStructuredEffect[] {
     target: effect.target,
     amount: effect.amount,
     duration: effect.duration,
-    conditions: effect.conditions,
+    conditions: (effect.conditions ?? []).map((condition): KataCondition => ({
+      kind: condition.kind,
+      operator: condition.operator as KataCondition["operator"],
+      value: condition.value,
+    })),
     resolver: effect.resolver,
   }));
 }
@@ -110,7 +114,7 @@ export function kataDeckLookPlanForHost(card: RuntimeCardLike): KataDeckLookPlan
     return { kind: "pick-reorder", count, filter: "technique", optional: false };
   }
   if (eligible.includes("item") && restAction === "shuffle") {
-    return { kind: "pick-shuffle", count, filter: "item", optional: Boolean(command.params?.optionalKeep) };
+    return { kind: "pick-shuffle", count, filter: "item", optional: true };
   }
   return null;
 }
