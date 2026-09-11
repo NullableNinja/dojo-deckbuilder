@@ -4,6 +4,7 @@ import {
   structuredComboRequirementEntry,
   type ComboRuntimeContext,
 } from "./combo-runtime.ts";
+import { comboPlanForHost, type ComboHostPlan } from "./combo-playtest-bridge.ts";
 import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
 
 export type ComboCardLike = {
@@ -43,6 +44,7 @@ export type ComboEvaluation = {
   speedOnTrigger: number;
   piercing: number;
   choiceRequired?: boolean;
+  structuredPlan?: ComboHostPlan;
 };
 
 const value = (entry: unknown) => String(entry ?? "").trim();
@@ -203,6 +205,7 @@ export function evaluateCombo(combo: ComboCardLike, context: ComboContext): Comb
       requirement: comboRequirementText(combo),
       payoff: comboPayoffText(combo),
       ...result,
+      structuredPlan: comboPlanForHost(combo, context, "onAttackDeclared"),
     };
   }
   return evaluateLegacyCombo(combo, context);
