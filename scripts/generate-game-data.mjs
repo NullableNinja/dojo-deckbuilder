@@ -6,15 +6,16 @@ const readText = (path) => readFile(new URL(path, root), "utf8");
 const readJson = async (path) => JSON.parse(await readText(path));
 const writeJson = async (path, value) => writeFile(new URL(path, root), `${JSON.stringify(value, null, 2)}\n`, "utf8");
 
-const [source, rules, cards, effectsText, comboRequirements, effectArchitecture] = await Promise.all([
+const [source, rules, cards, effectsText, comboRequirementsText, effectArchitecture] = await Promise.all([
   readJson("content/dojo-game.json"),
   readJson("content/rules.json"),
   readJson("content/cards.json"),
   readText("content/effects.json"),
-  readJson("content/combo-requirements.json"),
+  readText("content/combo-requirements.json"),
   expectedCardEffectAggregate(),
 ]);
 const effects = JSON.parse(effectsText);
+const comboRequirements = JSON.parse(comboRequirementsText);
 const { aggregate: cardEffects, families } = effectArchitecture;
 
 if (!source?.definition) throw new Error("content/dojo-game.json is missing definition");
@@ -37,7 +38,7 @@ await Promise.all([
   writeJson("app/data/cards.json", cards),
   writeFile(new URL("app/data/effects.json", root), effectsText.endsWith("\n") ? effectsText : `${effectsText}\n`, "utf8"),
   writeJson("app/data/card-effects.json", cardEffects),
-  writeJson("app/data/combo-requirements.json", comboRequirements),
+  writeFile(new URL("app/data/combo-requirements.json", root), comboRequirementsText.endsWith("\n") ? comboRequirementsText : `${comboRequirementsText}\n`, "utf8"),
 ]);
 
 console.log(`Generated content/card-effects.json from ${families.length} active family source file${families.length === 1 ? "" : "s"}.`);
@@ -47,4 +48,4 @@ console.log(`Generated app/data/game-definition.json from content/dojo-game.json
 console.log("Generated app/data/rules.json from content/rules.json.");
 console.log(`Generated app/data/cards.json from content/cards.json (${cards.total} cards).`);
 console.log(`Generated app/data/card-effects.json from the unified registry (${Object.keys(cardEffects.cards ?? {}).length} migrated cards).`);
-console.log("Generated app/data/combo-requirements.json from content/combo-requirements.json.");
+console.log("Generated app/data/combo-requirements.json as a byte-for-byte copy of content/combo-requirements.json.");
