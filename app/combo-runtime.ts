@@ -21,6 +21,7 @@ export type ComboRequirementStep = {
   zone?: string;
   zones?: string[];
   minimumFocusValue?: number;
+  alternatives?: ComboRequirementStep[];
 };
 
 export type ComboRequirement = ComboRequirementStep & {
@@ -34,6 +35,10 @@ export type ComboRequirement = ComboRequirementStep & {
   ordinal?: number;
   minimumPriorAttacks?: number;
   hit?: boolean;
+  reversal?: boolean;
+  blocked?: boolean;
+  requiredFamilies?: string[];
+  anyFamilies?: string[];
 };
 
 export type ComboRequirementEntry = {
@@ -47,7 +52,7 @@ type ComboRequirementRegistry = {
 };
 
 type ComboEffectRegistry = {
-  cards?: Record<string, { name?: string; effects?: StructuredRuntimeEffect[] }>;
+  cards?: Record<string, { name?: string; effects?: StructuredRuntimeEffect[] }> };
 };
 
 export type ComboBlockFact = {
@@ -60,6 +65,21 @@ export type ComboPurchaseFact = {
   window: "sinceLastAscend" | string;
   tags?: string[];
   family?: string;
+};
+
+export type ComboPlayedCardFact = {
+  window: "turn" | "round" | "sinceLastTurn" | string;
+  card: ComboRuntimeCard;
+  zone?: string;
+};
+
+export type ComboAttackFact = {
+  window: "turn" | "round" | "sinceLastTurn" | string;
+  card: ComboRuntimeCard;
+  zone?: string;
+  hit?: boolean;
+  reversal?: boolean;
+  blocked?: boolean;
 };
 
 export type ComboRuntimeContext = {
@@ -86,6 +106,8 @@ export type ComboRuntimeContext = {
   blockFacts?: ComboBlockFact[];
   speedGainWindows?: string[];
   purchaseFacts?: ComboPurchaseFact[];
+  playedCardFacts?: ComboPlayedCardFact[];
+  attackFacts?: ComboAttackFact[];
 };
 
 export type ComboRequirementResult = {
@@ -160,6 +182,9 @@ export const SUPPORTED_COMBO_REQUIREMENTS = new Set([
   "startingHandTagCount",
   "purchaseHistory",
   "minimumAttackHits",
+  "playedCardHistory",
+  "attackHistory",
+  "cardFamiliesPresent",
 ]);
 
 const catalogIdOf = (card: ComboRuntimeCard | string) => typeof card === "string" ? card : String(card.catalogId ?? "").trim();
@@ -209,7 +234,7 @@ function historyEntries(context: ComboRuntimeContext) {
   return [...prior, { card: context.currentCard, zone: context.currentZone, current: true }];
 }
 
-function stepMatches(step: ComboRequirementStep, card: ComboRuntimeCard, zone: string) {
+function directStepMatches(step: ComboRequirementStep, card: ComboRuntimeCard, zone: string) {
   if (step.family && !familyMatches(card, step.family)) return false;
   if ((step.families ?? []).length && !(step.families ?? []).some((family) => familyMatches(card, family))) return false;
   if ((step.tags ?? []).some((tag) => !hasTag(card, tag))) return false;
@@ -218,6 +243,11 @@ function stepMatches(step: ComboRequirementStep, card: ComboRuntimeCard, zone: s
   if ((step.zones ?? []).length && !(step.zones ?? []).map(lower).includes(lower(zone))) return false;
   if (step.minimumFocusValue != null && Number(card.focusValue ?? 0) < Number(step.minimumFocusValue)) return false;
   return true;
+}
+
+function stepMatches(step: ComboRequirementStep, card: ComboRuntimeCard, zone: string) {
+  if ((step.alternatives ?? []).length) return (step.alternatives ?? []).some((alternative) => directStepMatches(alternative, card, zone));
+  return directStepMatches(step, card, zone);
 }
 
 function orderedSequenceMatches(requirement: ComboRequirement, context: ComboRuntimeContext) {
@@ -332,6 +362,24 @@ function requirementSatisfied(requirement: ComboRequirement, context: ComboRunti
       }).length >= Number(requirement.amount ?? 1);
     case "minimumAttackHits":
       return (requirement.window === "round" ? Number(context.roundAttackHits ?? 0) : (context.hitZonesThisTurn ?? []).length + (context.currentAttackHit ? 1 : 0)) >= Number(requirement.amount ?? 1);
+    case "playedCardHistory":
+      return (context.playedCardFacts ?? []).filter((fact) => (!requirement.window || fact.window === requirement.window) && stepMatches(requirement, fact.card, fact.zone ?? "")).length >= Number(requirement.amount ?? 1);
+    case "attackHistory":
+      return (context.attackFacts ?? []).filter((fact) => {
+        if (requirement.window && fact.window !== requirement.window) return false;
+        if (!stepMatches(requirement, fact.card, fact.zone ?? "")) return false;
+        if (requirement.hit != null && Boolean(fact.hit) !== requirement.hit) return false;
+        if (requirement.reversal != null && Boolean(fact.reversal) !== requirement.reversal) return false;
+        if (requirement.blocked != null && Boolean(fact.blocked) !== requirement.blocked) return false;
+        return true;
+      }).length >= Number(requirement.amount ?? 1);
+    case "cardFamiliesPresent": {
+      const cards = [...context.priorCards, context.currentCard];
+      const required = requirement.requiredFamilies ?? [];
+      const any = requirement.anyFamilies ?? [];
+      return required.every((family) => cards.some((card) => familyMatches(card, family)))
+        && (!any.length || any.some((family) => cards.some((card) => familyMatches(card, family))));
+    }
     default:
       return null;
   }
