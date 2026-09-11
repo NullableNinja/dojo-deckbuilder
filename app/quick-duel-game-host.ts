@@ -34,6 +34,13 @@ export {
 } from "./quick-duel-combo-executor.ts";
 
 export {
+  applyQuickDuelRuntimeCommands,
+  type QuickDuelRuntimeCommandBoard,
+  type QuickDuelRuntimeCommandBoards,
+  type QuickDuelRuntimeCommandOperations,
+} from "./quick-duel-runtime-command-host.ts";
+
+export {
   publishQuickDuelCharacterEventSafely,
   type QuickDuelCharacterPublication,
 } from "./quick-duel-character-executor.ts";
