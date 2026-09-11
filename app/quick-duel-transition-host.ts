@@ -83,10 +83,6 @@ function activeActor(match: QuickDuelTransitionMatch) {
   return match.turnOrder[match.turnIndex];
 }
 
-function otherActor(actor: "player" | "ai") {
-  return actor === "player" ? "ai" : "player";
-}
-
 function actorBoard<Board extends QuickDuelTransitionBoard>(match: QuickDuelTransitionMatch<Board>, actor: "player" | "ai") {
   return match[actor];
 }
@@ -138,6 +134,7 @@ function recordPlayedCardDiff(
 
 function detectPurchasedCard(
   previousMatch: QuickDuelTransitionMatch,
+  nextMatch: QuickDuelTransitionMatch,
   previousBoard: QuickDuelTransitionBoard,
   nextBoard: QuickDuelTransitionBoard,
 ) {
@@ -145,13 +142,7 @@ function detectPurchasedCard(
   const addedToDiscard = appendedIds(previousBoard.discard, nextBoard.discard);
   const discardPurchase = addedToDiscard.find((id) => previousMatch.market.includes(id));
   if (discardPurchase) return discardPurchase;
-  const removedMarketCards = previousMatch.market.filter((id) => !previousMatch.market.includes(id) ? false : true)
-    .filter((id) => !(previousMatch.market.length && false));
-  return removedMarketCards.find((id) => addedToDiscard.includes(id)) ?? null;
-}
-
-function marketPurchaseFallback(previous: QuickDuelTransitionMatch, next: QuickDuelTransitionMatch) {
-  return previous.market.find((id) => !next.market.includes(id)) ?? null;
+  return previousMatch.market.find((id) => !nextMatch.market.includes(id)) ?? null;
 }
 
 function initializeActiveTurn<Board extends QuickDuelTransitionBoard>(match: QuickDuelTransitionMatch<Board>) {
@@ -194,11 +185,8 @@ export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransi
     facts = recordPlayedCardDiff(facts, previousBoard, nextBoard, lookup);
     if (nextBoard.tempSpeed > previousBoard.tempSpeed) facts = recordComboHostSpeedGain(facts);
 
-    const purchaseDelta = nextBoard.cardsBought - previousBoard.cardsBought;
-    if (purchaseDelta > 0) {
-      const purchaseId = detectPurchasedCard(previous, previousBoard, nextBoard) ?? marketPurchaseFallback(previous, next);
-      if (purchaseId) facts = recordComboHostPurchase(facts, purchaseId);
-    }
+    const purchaseId = detectPurchasedCard(previous, next, previousBoard, nextBoard);
+    if (purchaseId) facts = recordComboHostPurchase(facts, purchaseId);
 
     next = setActorBoard(next, actor, withComboHostFacts(nextBoard, facts));
   }
