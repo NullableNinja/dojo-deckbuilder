@@ -15,6 +15,7 @@ export type QuickDuelRuntimeCommandBoard = {
   damageTaken: number;
   speedChangedThisRound?: boolean;
   hand: string[];
+  discard: string[];
   stage3cStatuses?: RuntimeStatus[];
   stage3cChoices?: RuntimeChoice[];
   stage3cRestrictions?: string[];
