@@ -4,8 +4,8 @@ import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
-import { compileCardEffects, describeEffectPlan, effectPlanForCard } from "./card-effects";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroyJunkChoicePlan, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
+import { describeEffectPlan, effectPlanForCard } from "./card-effects";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroyJunkChoicePlan, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
@@ -20,7 +20,7 @@ import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction } from "./character-runtime";
-import { structuredLocationDefenseForHost, structuredLocationKataForHost } from "./location-playtest-bridge";
+import { structuredLocationAttackForHost, structuredLocationDefenseForHost, structuredLocationKataForHost } from "./location-playtest-bridge";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -482,7 +482,7 @@ function locationAttackModifier(location: CardEntry | undefined, card: CardEntry
   if (!location) return { power: 0, damage: 0, notes: [] };
   const firstAttack = board.attacksThisTurn === 0;
   const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
-  const parsed = locationAttackRuleModifiers(location, {
+  const parsed = structuredLocationAttackForHost(location, {
     zone,
     firstAttack,
     attackTags: card.tags,
@@ -1608,6 +1608,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   });
   if (structuredFlow.grant) next.nextAttackHasFlow = true;
   if (structuredAnyZone.handled || structuredFlow.handled) return next;
+  if (card.catalogId.includes("-CORE-")) return next;
   const text = card.rulesText ?? "";
   if (timing === "onPlay" && /After your first Attack resolves[^.]*next Attack gains Flow/i.test(text) && board.attacksThisTurn === 0) {
     next.flowAfterFirstAttack = true;
@@ -1628,11 +1629,22 @@ function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier, zone
   const hasWeaponEquipped = board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
   const structuredFlow = structuredCurrentAttackFlow(card, { hasWeaponEquipped });
   if (structuredFlow.handled) return structuredFlow.hasFlow;
+  if (card.catalogId.includes("-CORE-")) {
+    const pairedWeapons = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item && isWeapon(item) && hasTag(item, "Paired")));
+    const attackNumber = board.attacksThisTurn + 1;
+    return pairedWeapons.length >= 2 && board.equipment.some((id) => {
+      const item = cardFor(id);
+      return Boolean(item && structuredRuntimeResolvers(item, "equipment.structured").some((effect) => {
+        if (effect.effect !== "combat.grantFlow" || effect.trigger !== "onAttackDeclared") return false;
+        const attackNumberCondition = (effect.conditions ?? []).find((condition) => condition.kind === "attackNumber");
+        const pairedCondition = (effect.conditions ?? []).find((condition) => condition.kind === "hasTwoPairedWeapons");
+        return Number(attackNumberCondition?.value ?? -1) === attackNumber && pairedCondition?.value === true;
+      }));
+    });
+  }
   if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {
     return !/Weapon equipped/i.test(card.rulesText ?? "") || hasWeaponEquipped;
   }
-  const pairedWeapons = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item && isWeapon(item) && hasTag(item, "Paired")));
-  if (board.attacksThisTurn === 1 && pairedWeapons.length >= 2 && board.equipment.some((id) => cardFor(id)?.name === "Escrima Sticks")) return true;
   return false;
 }
 
@@ -2610,7 +2622,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current?.pendingDiscard || !current.player.hand.includes(id)) return current;
     const discarded = cardFor(id);
     const source = cardFor(current.pendingDiscard.sourceCardId);
-    const gainsFocus = source?.name === "Morning-Shift Meditation" && cardFocus(discarded) === 0;
+    const gainsFocus = Boolean(source && discarded && cardHasRuntimeResolver(source, "kata.discardBranch") && structuredRuntimeResolvers(source, "kata.discardBranch").some((effect) =>
+      effect.action === "gainFocus" && Number(effect.amount ?? 0) > 0 && (effect.conditions ?? []).some((condition) => condition.kind === "discardedFocusValue" && Number(condition.value) === cardFocus(discarded)),
+    ));
     const remaining = current.pendingDiscard.remaining - 1;
     const player = {
       ...current.player,
@@ -3673,7 +3687,7 @@ function prepareAiTurn(current: Match) {
   }
   const supportIds = nextAi.hand.filter((id) => {
     const card = cardFor(id);
-    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || (fighter?.name === "Knuckleton the Brawler" && isWeapon(card))) return false;
+    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || !characterCanEquip(nextAi, card)) return false;
     if (isCoreConsumableCard(card)) return canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(nextAi));
     return true;
   });
