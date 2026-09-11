@@ -72,6 +72,14 @@ function withCommands(
   };
 }
 
+function deferredCommandIsDueOnCompletion(command: RuntimeCommand, completedAt: RuntimeTrigger) {
+  return completedAt === "onAttackDeclared" && command.qualifier?.activateAt === "nextTurnAttack";
+}
+
+function commandDueNow(command: RuntimeCommand): RuntimeCommand {
+  return { ...command, duration: "immediate" };
+}
+
 /**
  * Activates a fully structured Combo host plan at the gameplay event that
  * completed its requirement. The host supplies facts; this executor only
@@ -81,6 +89,11 @@ function withCommands(
  * on Attack declaration can still resolve canonical onHit/afterResolve effects.
  * Deferred effects are installed immediately as runtime statuses because their
  * structured duration/qualifier describes the future consumption window.
+ *
+ * A nextTurnAttack payoff is special only at the semantic event level: when the
+ * Combo itself becomes eligible on an Attack declaration, that declaration is
+ * already the canonical next-turn Attack and the payoff is due now. Completions
+ * on earlier events (for example, a Defense) keep the same command deferred.
  */
 export function activateQuickDuelComboPlan(
   plan: ComboHostPlan,
@@ -99,9 +112,13 @@ export function activateQuickDuelComboPlan(
   };
   if (!execution.active) return { execution, commands: [] };
 
-  const immediate = plan.commandsByTrigger[completedAt] ?? [];
+  const dueNow = plan.deferredOnCompletion
+    .filter((command) => deferredCommandIsDueOnCompletion(command, completedAt))
+    .map(commandDueNow);
+  const deferred = plan.deferredOnCompletion.filter((command) => !deferredCommandIsDueOnCompletion(command, completedAt));
+  const immediate = [...(plan.commandsByTrigger[completedAt] ?? []), ...dueNow];
   execution = withCommands(execution, immediate, "executed");
-  execution = withCommands(execution, plan.deferredOnCompletion, "queued");
+  execution = withCommands(execution, deferred, "queued");
   execution = {
     ...execution,
     firedTriggers: [completedAt],
@@ -118,7 +135,7 @@ export function publishQuickDuelComboTrigger(
   if (!execution.active || execution.firedTriggers.includes(trigger)) return { execution, commands: [] };
   const commands = execution.plan.commandsByTrigger[trigger] ?? [];
   let next = withCommands(execution, commands, "executed");
-  next = { ...next, firedTriggers: [...next.firedTriggers, trigger] };
+  next = { ...next, firedTriggers: [...execution.firedTriggers, trigger] };
   return { execution: next, commands };
 }
 
