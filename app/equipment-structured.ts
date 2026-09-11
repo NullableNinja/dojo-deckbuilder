@@ -350,19 +350,19 @@ export type StructuredEquipmentActivationPlan =
 export function structuredEquipmentActivationPlan(card: EquipmentCardLike): StructuredEquipmentActivationPlan | null | undefined {
   const effects = structuredEquipmentEffects(card);
   if (!effects) return undefined;
-  const id = equipmentCatalogId(card);
-  if (id === "DDB-GEA-CORE-006") return { kind: "speed-cycle", speed: amountOf(effects, "equipment-gea-006-activation-speed"), draw: amountOf(effects, "equipment-gea-006-tempo-cycle-draw"), discard: amountOf(effects, "equipment-gea-006-tempo-cycle-discard") };
-  if (id === "DDB-WPN-CORE-054") return { kind: "next-attack-power", power: amountOf(effects, "equipment-wpn-054-exhaust-next-attack") };
-  if (id === "DDB-GEA-CORE-010") return { kind: "zone-attack", power: 0, piercing: amountOf(effects, "equipment-gea-010-chosen-zone-piercing"), blockedFocus: amountOf(effects, "equipment-gea-010-chosen-zone-blocked-focus"), requireDifferentPreviousZone: false };
-  if (id === "DDB-GEA-CORE-024") return { kind: "zone-attack", power: amountOf(effects, "equipment-gea-024-different-zone-power"), piercing: 0, blockedFocus: 0, requireDifferentPreviousZone: true };
-  if (id === "DDB-GEA-CORE-004") return { kind: "incoming-zone-penalty", attackPowerPenalty: Math.abs(amountOf(effects, "equipment-gea-004-chosen-zone-attack-penalty")) };
-  if (id === "DDB-GEA-CORE-009") return { kind: "defense-guard", guard: amountOf(effects, "equipment-gea-009-outside-turn-defense-guard"), reversalPower: amountOf(effects, "equipment-gea-009-green-block-reversal") };
-  if (id === "DDB-GEA-CORE-005") return { kind: "initiate-tempo-focus", focus: amountOf(effects, "equipment-gea-005-tempo-initiate-focus") };
-  if (id === "DDB-GEA-CORE-001") return { kind: "after-kata-focus", focus: amountOf(effects, "equipment-gea-001-after-kata-focus") };
-  if (id === "DDB-GEA-CORE-022") return { kind: "first-hit-discard-focus", discard: amountOf(effects, "equipment-gea-022-first-hit-discard"), focus: amountOf(effects, "equipment-gea-022-first-hit-focus") };
-  if (id === "DDB-WPN-CORE-057") return { kind: "hit-direct-damage", damage: amountOf(effects, "equipment-wpn-057-hit-direct-damage") };
-  if (id === "DDB-GEA-CORE-023") return { kind: "hit-next-initiate-focus", focus: amountOf(effects, "equipment-gea-023-next-initiate-focus") };
-  if (id === "DDB-WPN-CORE-046") return { kind: "numbered-attack-power", attackNumber: Number(equipmentConditionValue(effectById(effects, "equipment-wpn-046-orange-second-normal-power") ?? {}, "attackNumber") ?? 2), power: amountOf(effects, "equipment-wpn-046-orange-second-normal-power"), minBelt: String(equipmentConditionValue(effectById(effects, "equipment-wpn-046-orange-second-normal-power") ?? {}, "minimumBelt") ?? "Orange") };
+  if (effectById(effects, "equipment-gea-006-activation-speed")) return { kind: "speed-cycle", speed: amountOf(effects, "equipment-gea-006-activation-speed"), draw: amountOf(effects, "equipment-gea-006-tempo-cycle-draw"), discard: amountOf(effects, "equipment-gea-006-tempo-cycle-discard") };
+  if (effectById(effects, "equipment-wpn-054-exhaust-next-attack")) return { kind: "next-attack-power", power: amountOf(effects, "equipment-wpn-054-exhaust-next-attack") };
+  if (effectById(effects, "equipment-gea-010-chosen-zone-piercing")) return { kind: "zone-attack", power: 0, piercing: amountOf(effects, "equipment-gea-010-chosen-zone-piercing"), blockedFocus: amountOf(effects, "equipment-gea-010-chosen-zone-blocked-focus"), requireDifferentPreviousZone: false };
+  if (effectById(effects, "equipment-gea-024-different-zone-power")) return { kind: "zone-attack", power: amountOf(effects, "equipment-gea-024-different-zone-power"), piercing: 0, blockedFocus: 0, requireDifferentPreviousZone: true };
+  if (effectById(effects, "equipment-gea-004-chosen-zone-attack-penalty")) return { kind: "incoming-zone-penalty", attackPowerPenalty: Math.abs(amountOf(effects, "equipment-gea-004-chosen-zone-attack-penalty")) };
+  if (effectById(effects, "equipment-gea-009-outside-turn-defense-guard")) return { kind: "defense-guard", guard: amountOf(effects, "equipment-gea-009-outside-turn-defense-guard"), reversalPower: amountOf(effects, "equipment-gea-009-green-block-reversal") };
+  if (effectById(effects, "equipment-gea-005-tempo-initiate-focus")) return { kind: "initiate-tempo-focus", focus: amountOf(effects, "equipment-gea-005-tempo-initiate-focus") };
+  if (effectById(effects, "equipment-gea-001-after-kata-focus")) return { kind: "after-kata-focus", focus: amountOf(effects, "equipment-gea-001-after-kata-focus") };
+  if (effectById(effects, "equipment-gea-022-first-hit-discard")) return { kind: "first-hit-discard-focus", discard: amountOf(effects, "equipment-gea-022-first-hit-discard"), focus: amountOf(effects, "equipment-gea-022-first-hit-focus") };
+  if (effectById(effects, "equipment-wpn-057-hit-direct-damage")) return { kind: "hit-direct-damage", damage: amountOf(effects, "equipment-wpn-057-hit-direct-damage") };
+  if (effectById(effects, "equipment-gea-023-next-initiate-focus")) return { kind: "hit-next-initiate-focus", focus: amountOf(effects, "equipment-gea-023-next-initiate-focus") };
+  const numberedAttack = effectById(effects, "equipment-wpn-046-orange-second-normal-power");
+  if (numberedAttack) return { kind: "numbered-attack-power", attackNumber: Number(equipmentConditionValue(numberedAttack, "attackNumber") ?? 2), power: Number(numberedAttack.amount ?? 0), minBelt: String(equipmentConditionValue(numberedAttack, "minimumBelt") ?? "Orange") };
   return null;
 }
 
