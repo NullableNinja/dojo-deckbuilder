@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import { effectPlanForCard } from "../app/card-effects.ts";
+import { kataCommandsForHost } from "../app/kata-playtest-bridge.ts";
 
 const root = new URL("../", import.meta.url);
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -11,6 +12,8 @@ const cards = (await readJson("content/cards.json")).cards ?? [];
 const aggregate = (await readJson("content/card-effects.json")).cards ?? {};
 const vocabulary = await readJson("content/effects.json");
 const playtest = await readText("app/playtest.tsx");
+const resolverFacade = await readText("app/effect-resolvers.ts");
+const kataBridge = await readText("app/kata-playtest-bridge.ts");
 
 const familyFiles = new Map([
   ["Starter", "starters.json"],
@@ -55,6 +58,18 @@ function matches(source, expression) {
   return [...source.matchAll(expression)].map((match) => match[0]);
 }
 
+function kataFactsFor(effect) {
+  const facts = {};
+  for (const condition of effect.conditions ?? []) {
+    const kind = String(condition.kind ?? "");
+    if (kind === "beltAtLeast") facts.belt = condition.value;
+    else if (kind === "minimumDamage") facts.damage = condition.value;
+    else if (kind === "requiresCondition") facts[String(condition.value ?? "")] = true;
+    else facts[kind] = condition.value;
+  }
+  return facts;
+}
+
 test("every canonical Core gameplay family has one authoritative structured registry entry", async () => {
   const summary = {};
   for (const [family, file] of familyFiles) {
@@ -94,6 +109,24 @@ test("every structured Core effect is executable and references valid canonical 
   assert.deepEqual(failures, []);
 });
 
+test("all Core Kata effects are reachable through the structured Quick Duel host bridge", async () => {
+  const registry = (await readJson("content/card-effects/katas.json")).cards ?? {};
+  const canonical = coreByFamily.get("Kata") ?? [];
+  assert.equal(canonical.length, 62);
+  const failures = [];
+  for (const card of canonical) {
+    for (const effect of registry[card.catalogId]?.effects ?? []) {
+      const commands = kataCommandsForHost(card, effect.trigger, kataFactsFor(effect));
+      if (!commands.some((command) => command.effectId === effect.id)) failures.push(`${card.catalogId}/${effect.id}`);
+    }
+  }
+  assert.deepEqual(failures, []);
+  assert.match(resolverFacade, /isCoreKataCard/);
+  assert.match(resolverFacade, /kataDeckLookPlanForHost/);
+  assert.match(resolverFacade, /kataDiscardFollowupForHost/);
+  assert.doesNotMatch(kataBridge, /rulesText|compileCardEffects|effect-resolvers-legacy/);
+});
+
 test("playtest host contains no direct Core card-identity gameplay dispatch", () => {
   const identityDispatch = [
     ...matches(playtest, /\b(?:card|candidate|entry|attack|defense|item|kata|equipment)\.(?:catalogId|id|name)\s*===?\s*["'][^"']+["']/g),
@@ -130,6 +163,8 @@ test("playtest host does not expose card-named choice protocols", () => {
 test("Core gameplay cannot silently fall back to the legacy prose parser in the Playtest", () => {
   assert.doesNotMatch(playtest, /\bcompileCardEffects\s*\(/);
   assert.match(playtest, /\beffectPlanForCard\s*\(/);
+  assert.match(resolverFacade, /targetDiscardOnHitCount/);
+  assert.match(resolverFacade, /structuredRuntimeEffects/);
 });
 
 test("removed two-Attack-per-turn cap cannot reappear", async () => {
