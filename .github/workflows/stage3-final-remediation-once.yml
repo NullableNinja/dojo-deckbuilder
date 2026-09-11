@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   remediate:
-    if: github.event.head_commit.message == 'rerun structured Character and Location remediation'
+    if: github.event.head_commit.message == 'run corrected Character and Location remediation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,10 +21,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Correct one-time remediation boundaries
-        run: |
-          sed -i 's/function stage3cDefenseContext(/function printedAttackRuleModifier(/' scripts/stage3-final-remediate-host-boundaries.mjs
-          sed -i '/wasHitSinceLastTurn: attacker.wasHitSinceLastTurn,/d' scripts/stage3-final-remediate-host-boundaries.mjs
       - name: Apply Character and Location host-boundary remediation
         run: node scripts/stage3-final-remediate-host-boundaries.mjs
       - name: Compile and build remediated source
