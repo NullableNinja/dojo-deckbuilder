@@ -100,6 +100,7 @@ export function returnsToSupplyAfterUse(card: Parameters<typeof legacy.destroysA
 export function destroyJunkChoiceCount(card: Parameters<typeof legacy.destroyJunkChoiceCount>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableDestroyJunkCount(card);
   if (isCoreKataCard(card)) return kataDestroyPlanForHost(card)?.count ?? 0;
+  if (isCoreGameplay(card)) return 0;
   return legacy.destroyJunkChoiceCount(card);
 }
 
@@ -118,6 +119,7 @@ export function destroyJunkChoicePlan(card: Parameters<typeof legacy.destroyJunk
       drawAfterHandDestroy: plan.drawAfterHandDestroy,
     } : null;
   }
+  if (isCoreGameplay(card)) return null;
   const count = legacy.destroyJunkChoiceCount(card);
   return count ? { resolver: "legacy" as const, count, sources: ["hand", "discard"] as ("hand" | "discard")[], optional: false, drawAfterSuccess: 0 } : null;
 }
@@ -125,6 +127,11 @@ export function destroyJunkChoicePlan(card: Parameters<typeof legacy.destroyJunk
 export function mandatoryDiscardChoiceCount(card: Parameters<typeof legacy.mandatoryDiscardChoiceCount>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableMandatoryDiscard(card);
   if (isCoreKataCard(card)) return kataMandatoryDiscardCountForHost(card);
+  if (isCoreGameplay(card)) {
+    return structuredRuntimeEffects(card)
+      .filter((effect) => effect.trigger === "onPlay" && effect.effect === "core.discard" && (effect.target ?? "self") === "self" && !effect.resolver && !(effect.conditions?.length))
+      .reduce((total, effect) => total + Math.max(0, Number(effect.amount ?? 0)), 0);
+  }
   return legacy.mandatoryDiscardChoiceCount(card);
 }
 
@@ -134,16 +141,27 @@ export function targetDiscardOnHitCount(card: Parameters<typeof legacy.targetDis
       .filter((effect) => effect.trigger === "onHit" && effect.effect === "core.discard" && effect.target === "opponent")
       .reduce((total, effect) => total + Math.max(0, Number(effect.amount ?? 0)), 0);
   }
+  if (isCoreGameplay(card)) return 0;
   return legacy.targetDiscardOnHitCount(card);
 }
 
 export function targetNextAttackPenalty(card: Parameters<typeof legacy.targetNextAttackPenalty>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableNextAttackPenalty(card);
+  if (isCoreGameplay(card)) {
+    return structuredRuntimeEffects(card)
+      .filter((effect) => effect.effect === "combat.modifyAttackPower" && effect.target === "opponent" && effect.duration === "nextAttack")
+      .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
+  }
   return legacy.targetNextAttackPenalty(card);
 }
 
 export function targetNextDefensePenalty(card: Parameters<typeof legacy.targetNextDefensePenalty>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableNextDefensePenalty(card);
+  if (isCoreGameplay(card)) {
+    return structuredRuntimeEffects(card)
+      .filter((effect) => ["combat.modifyGuard", "combat.modifyDefense"].includes(String(effect.effect ?? "")) && effect.target === "opponent" && effect.duration === "nextDefense")
+      .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
+  }
   return legacy.targetNextDefensePenalty(card);
 }
 
@@ -152,6 +170,13 @@ export function targetSpeedPenaltyUntilHonor(
   context: Parameters<typeof legacy.targetSpeedPenaltyUntilHonor>[1] = {},
 ) {
   if (isCoreConsumable(card)) return structuredConsumableSpeedPenalty(card);
+  if (isCoreGameplay(card)) {
+    const values = { previousCardIsItem: Boolean(context.previousCardIsItem) };
+    return structuredRuntimeEffects(card)
+      .filter((effect) => effect.effect === "combat.modifySpeed" && effect.target === "opponent" && ["nextHonor", "endOfRound"].includes(String(effect.duration ?? "")))
+      .filter((effect) => (effect.conditions ?? []).every((condition) => condition.kind !== "previousCardIsItem" || Boolean(values.previousCardIsItem) === Boolean(condition.value)))
+      .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
+  }
   return legacy.targetSpeedPenaltyUntilHonor(card, context);
 }
 
@@ -160,9 +185,9 @@ export function conditionalHealAfterHit(
   wasHitSinceLastTurn: boolean,
 ) {
   if (isCoreKataCard(card)) return kataConditionalHealForHost(card, { wasHitSinceLastTurn });
-  // Migrated Defense/Consumable healing is executed by the structured family
-  // runtime at its declared trigger. Never parse their printed prose here.
-  if (isCoreDefense(card) || isCoreConsumable(card)) return 0;
+  // Other migrated Core families execute healing in their structured family
+  // runtime. This compatibility helper must never infer healing from prose.
+  if (isCoreGameplay(card)) return 0;
   return legacy.conditionalHealAfterHit(card, wasHitSinceLastTurn);
 }
 
@@ -176,7 +201,7 @@ export function discardChoiceFollowup(
       discardedFocusValue: Number(discarded.focusValue ?? 0),
     });
   }
-  if (isCoreDefense(source) || isCoreConsumable(source)) {
+  if (isCoreGameplay(source)) {
     return { focus: 0, nextAttackPower: 0, nextDefenseGuard: 0, notes: [] as string[] };
   }
   return legacy.discardChoiceFollowup(source, discarded);
@@ -247,5 +272,6 @@ export function deckLookPlan(card: Parameters<typeof legacy.deckLookPlan>[0]): l
     }
     return null;
   }
+  if (isCoreGameplay(card)) return null;
   return legacy.deckLookPlan(card);
 }
