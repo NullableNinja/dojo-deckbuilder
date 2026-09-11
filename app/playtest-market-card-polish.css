@@ -16,20 +16,24 @@
 .ascend-market-grid .play-card--combo { --market-type-accent: #71569d; }
 
 /* The second row of every Market card already contains subtype || cardType.
-   Treat it as a real type badge instead of a tiny decorative ribbon. */
+   Give it a dedicated classification strip. It must NEVER share space with the
+   title/rules copy below it; the screenshot that prompted this pass showed the
+   badge visually cutting through the first lines of the text block. */
 .ascend-market-grid .play-card-kind {
   position: relative !important;
+  inset: auto !important;
   z-index: 7 !important;
+  grid-row: 2 !important;
   align-self: center !important;
   justify-self: start !important;
   min-width: 62px !important;
-  max-width: calc(100% - 16px) !important;
+  max-width: calc(100% - 18px) !important;
   height: 18px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   overflow: hidden !important;
-  margin: 0 8px !important;
+  margin: 0 9px !important;
   border: 1px solid color-mix(in srgb, var(--market-type-accent) 72%, #f7edcf) !important;
   border-left: 4px solid var(--market-type-accent) !important;
   border-radius: 3px 9px 4px 8px !important;
@@ -44,6 +48,55 @@
   text-transform: uppercase !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
+  transform: none !important;
+}
+
+/* Explicitly own the information block in the Market. Older generic card CSS
+   used offsets/negative spacing in a few layouts; neutralize that here so the
+   title begins BELOW the type strip, then rules text, then catalog ID. */
+.ascend-market-grid .play-card-fallback {
+  position: relative !important;
+  inset: auto !important;
+  grid-row: 3 !important;
+  width: 100% !important;
+  height: 116px !important;
+  min-height: 116px !important;
+  max-height: 116px !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  align-content: stretch !important;
+  gap: 5px !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 7px 9px 6px !important;
+  transform: none !important;
+}
+
+.ascend-market-grid .play-card-fallback b {
+  display: block !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  font-size: 15px !important;
+  line-height: 1.08 !important;
+}
+
+.ascend-market-grid .play-card-fallback small {
+  display: -webkit-box !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  font-size: 10.5px !important;
+  line-height: 1.28 !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 4 !important;
+}
+
+.ascend-market-grid .play-card-fallback em {
+  display: block !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  font-size: 7px !important;
+  line-height: 1 !important;
 }
 
 /* The old text pill fought with the card art and looked like another card tag.
@@ -108,10 +161,17 @@
   transform: translateY(-1px) scale(1.05) !important;
 }
 
-/* Preserve the seven-card fixed market geometry established by the Ascend desk
-   while making the new type badge fit cleanly in its dedicated row. */
+/* Keep the fixed 350px Market silhouette. We spend 28px on an honest,
+   dedicated classification row and slightly rebalance the art/text regions
+   rather than allowing the badge to steal pixels from the title. */
 .ascend-market-grid .play-card-main {
-  grid-template-rows: 158px 22px minmax(112px, 1fr) 50px !important;
+  grid-template-rows: 156px 28px 116px 50px !important;
+}
+
+.ascend-market-grid .play-card-art-window {
+  height: 156px !important;
+  min-height: 156px !important;
+  max-height: 156px !important;
 }
 
 @media (max-width: 760px) {
