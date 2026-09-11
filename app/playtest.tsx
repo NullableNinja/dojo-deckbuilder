@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent, type SetStateAction } from "react";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
@@ -20,6 +20,7 @@ import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction } from "./character-runtime";
+import { applyQuickDuelPlaytestTransition } from "./quick-duel-playtest-host";
 import { structuredLocationAttackForHost, structuredLocationDefenseForHost, structuredLocationKataForHost } from "./location-playtest-bridge";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
@@ -1996,12 +1997,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return { tempo: saved?.tempo ?? true, locations: saved?.locations ?? true, openMarket: saved?.openMarket ?? true, guided: saved?.guided ?? true, autoAi: saved?.autoAi ?? true, balancedMarket: saved?.balancedMarket ?? true, difficulty: saved?.difficulty && DIFFICULTIES[saved.difficulty] ? saved.difficulty : "certified", motion };
     } catch { return { tempo: true, locations: true, openMarket: true, guided: true, autoAi: true, balancedMarket: true, difficulty: "certified", motion: "full" }; }
   });
-  const [match, setMatch] = useState<Match | null>(() => {
+  const [match, setRawMatch] = useState<Match | null>(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
       const validSavedMatch = saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;
       return validSavedMatch ? normalizePendingDamageChoice(validSavedMatch) : null;
     } catch { return null; }
+  });
+  const setMatch = (update: SetStateAction<Match | null>) => setRawMatch((previous) => {
+    const next = typeof update === "function" ? update(previous) : update;
+    return previous && next ? applyQuickDuelPlaytestTransition(previous, next, cardFor) : next;
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
   const [inspectorZoomed, setInspectorZoomed] = useState(false);
