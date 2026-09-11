@@ -19,7 +19,7 @@ const canonicalCardHash = (catalogId: string) => `#cards/${encodeURIComponent(ca
 const originHash = (origin: ViewerOrigin) => origin === "playtest" ? "#playtest" : "#cards";
 
 /**
- * Shared Card Viewer lifecycle coordinator.
+ * Dojo Dossier lifecycle coordinator.
  *
  * The Card Library and Quick Duel both mount CardInspector, but they historically
  * owned navigation separately. That allowed route state and overlay state to
@@ -43,8 +43,12 @@ export default function CardViewerLifecycle() {
 
       if (!viewer) {
         if (origin && activeCatalogId) {
+          const cardHash = canonicalCardHash(activeCatalogId);
           const baseHash = originHash(origin);
-          if (window.location.hash !== baseHash) {
+          // Restore only when the inspector itself still owns the URL. If the
+          // user intentionally navigated elsewhere while it was disappearing,
+          // never pull them back to the viewer's origin page.
+          if (window.location.hash === cardHash) {
             window.history.replaceState(null, "", baseHash);
             window.dispatchEvent(new PopStateEvent("popstate"));
           }
