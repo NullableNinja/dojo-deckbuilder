@@ -15,6 +15,14 @@ export {
 } from "./quick-duel-structured-host.ts";
 
 export {
+  comboContextFromQuickDuelBoard,
+  quickDuelComboPlansForEvent,
+  type QuickDuelComboCandidatePlan,
+  type QuickDuelComboEventFacts,
+  type QuickDuelComboPlanningBoard,
+} from "./quick-duel-combo-planner.ts";
+
+export {
   activateQuickDuelComboPlan,
   closeQuickDuelComboExecution,
   publishQuickDuelComboTrigger,
