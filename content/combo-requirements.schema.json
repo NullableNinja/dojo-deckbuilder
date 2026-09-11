@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nullableninja.github.io/dojo-deckbuilder/schema/combo-requirements.schema.json",
+  "title": "Dojo Deckbuilder Core Combo Requirements",
+  "description": "Canonical machine-readable fulfillment requirements for Core Combo cards. Runtime must evaluate these structures rather than infer requirements from printed prose.",
+  "type": "object",
+  "required": ["schemaVersion", "rulesVersion", "rulesRevision", "family", "cards"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "rulesVersion": { "type": "string", "minLength": 1 },
+    "rulesRevision": { "type": "string", "minLength": 1 },
+    "family": { "const": "Combo" },
+    "description": { "type": "string" },
+    "cards": {
+      "type": "object",
+      "patternProperties": {
+        "^DDB-CMB-CORE-\\d{3}$": { "$ref": "#/$defs/comboRequirementEntry" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "sequenceStep": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "family": { "type": "string", "minLength": 1 },
+        "tags": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "zone": { "enum": ["High", "Mid", "Low"] }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "orderedSequence",
+            "orderedAttackHits",
+            "differentZoneFromPreviousAttack",
+            "defenseBlocksAttack",
+            "defendedThisRound",
+            "minimumDefenseTag",
+            "differentComboAfterCombo",
+            "beltExamThenAttackHit",
+            "priorCardFamily",
+            "reversal",
+            "attackOrdinal",
+            "minimumPriorAttacks",
+            "priorAttackHit",
+            "minimumEquipment",
+            "weaponAttack",
+            "zonesPresent",
+            "priorAttackTag"
+          ]
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/sequenceStep" }
+        },
+        "zones": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["High", "Mid", "Low"] }
+        },
+        "sameOpponent": { "type": "boolean" },
+        "window": { "enum": ["turn", "round"] },
+        "tag": { "type": "string", "minLength": 1 },
+        "amount": { "type": "integer", "minimum": 1 },
+        "minimumPriorCombos": { "type": "integer", "minimum": 1 },
+        "family": { "type": "string", "minLength": 1 },
+        "ordinal": { "type": "integer", "minimum": 1 },
+        "minimumPriorAttacks": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "orderedSequence" } }, "required": ["kind"] },
+          "then": { "required": ["steps"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "orderedAttackHits" } }, "required": ["kind"] },
+          "then": { "required": ["zones"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "priorCardFamily" } }, "required": ["kind"] },
+          "then": { "required": ["family"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "attackOrdinal" } }, "required": ["kind"] },
+          "then": { "required": ["ordinal"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "minimumPriorAttacks" } }, "required": ["kind"] },
+          "then": { "required": ["amount"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "minimumEquipment" } }, "required": ["kind"] },
+          "then": { "required": ["amount"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "zonesPresent" } }, "required": ["kind"] },
+          "then": { "required": ["zones"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "priorAttackTag" } }, "required": ["kind"] },
+          "then": { "required": ["tag"] }
+        }
+      ]
+    },
+    "comboRequirementEntry": {
+      "type": "object",
+      "required": ["name", "displayText", "requirements"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "displayText": { "type": "string", "minLength": 1 },
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/requirement" }
+        }
+      }
+    }
+  }
+}
