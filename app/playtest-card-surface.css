@@ -1,72 +1,84 @@
 /* Quick Duel card surface --------------------------------------------------
-   PRESENTATION ONLY. Card names, rules text, costs, Focus, zones, timing,
-   images, and runtime behavior continue to come from canonical JSON/loaders.
-   This file only resolves legacy CSS collisions around the interactive card
-   surface used by the Quick Duel hand. */
+   PRESENTATION ONLY. Names, rules text, costs, Focus, zones, timing, images,
+   and runtime behavior continue to come from canonical JSON/loaders.
+
+   This file is intentionally loaded as the final Quick Duel card-surface layer.
+   Its job is to make the JSON-backed information readable and to prevent older
+   playtest CSS from turning the hand into tall, mostly-empty rectangles. */
 
 @media (min-width: 761px) {
-  /* Older playtest layers changed the hand to a compact grid and clamped the
-     inner button shorter than its card shell. Keep one authoritative physical
-     card silhouette so the face fills the object instead of leaving a large
-     empty panel underneath it. */
   .playtest-shell--live .play-card-row {
-    min-height: 246px;
+    width: 100%;
+    min-height: 0;
+    height: auto;
     display: flex;
-    grid-auto-flow: initial;
-    grid-auto-columns: initial;
-    align-items: stretch;
+    align-items: flex-start;
     justify-content: center;
     gap: 9px;
     overflow-x: auto;
-    overflow-y: hidden;
-    padding: 5px 5px 12px;
+    overflow-y: visible;
+    padding: 5px 5px 10px;
     overscroll-behavior-inline: contain;
     scroll-snap-type: x proximity;
   }
 
+  /* The card is content-sized. Do not reserve a giant blank lower half. */
   .playtest-shell--live .play-card-row .play-card {
-    flex: 0 1 154px;
+    flex: 0 1 166px;
     width: auto;
-    min-width: 122px;
-    max-width: 166px;
-    height: 234px;
-    justify-self: auto;
+    min-width: 142px;
+    max-width: 174px;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: visible;
+    justify-self: auto;
     scroll-snap-align: center;
   }
 
   .playtest-shell--live .play-card-row .play-card-main {
     width: 100%;
-    height: 100%;
-    display: grid;
-    grid-template-rows: 99px auto minmax(0, 1fr) auto;
+    height: auto !important;
+    min-height: 248px !important;
+    max-height: none !important;
+    display: grid !important;
+    grid-template-rows: 96px 18px minmax(98px, auto) 34px !important;
+    align-content: stretch;
     overflow: hidden;
   }
 
+  /* Artwork is a thumbnail/illustration panel. The actual card information is
+     rendered below it from the canonical card record. */
   .playtest-shell--live .play-card-row .play-card-art-window {
     min-height: 0;
+    height: 96px;
+    display: grid;
+    place-items: center;
     overflow: hidden;
+    padding: 3px;
   }
 
   .playtest-shell--live .play-card-row .play-card-art-window > img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center 16%;
+    object-fit: contain;
+    object-position: center;
   }
 
-  /* Cards without finished art still get an intentional Paper-Fu mini-panel,
-     rather than trying to squeeze the entire fallback card into a 99px crop. */
+  /* Cards without finished art still receive a purposeful Paper-Fu thumbnail,
+     but the thumbnail never substitutes for the title/rules block below. */
   .playtest-shell--live .play-card-row .play-card-art-window > .native-card-art {
-    position: relative;
-    inset: auto;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
     align-content: stretch;
     gap: 3px;
+    overflow: hidden;
     padding: 6px;
   }
 
@@ -80,34 +92,55 @@
   .playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > strong,
   .playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > small,
   .playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > em {
-    display: none;
+    display: none !important;
   }
 
+  .playtest-shell--live .play-card-row .play-card-kind {
+    align-self: center;
+    margin: -8px 7px 0;
+    padding: 3px 7px;
+    font-size: 7px;
+    line-height: 1;
+  }
+
+  /* Restore the useful part of the original hand cards: title, printed rules,
+     and catalog ID. A few older layers hid/collapsed this block, so these
+     visibility rules are deliberately explicit. */
   .playtest-shell--live .play-card-row .play-card-fallback {
-    position: static;
-    inset: auto;
+    position: relative !important;
+    inset: auto !important;
     min-width: 0;
-    min-height: 0;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 98px !important;
+    height: auto !important;
+    max-height: none !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
     gap: 4px;
-    padding: 6px 8px 5px;
-    background: transparent;
+    overflow: hidden !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 7px 8px 6px;
+    background: transparent !important;
   }
 
   .playtest-shell--live .play-card-row .play-card-fallback b {
+    display: block !important;
     overflow: hidden;
-    font-size: 15px;
-    line-height: 1;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 14px;
+    line-height: 1.02;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .playtest-shell--live .play-card-row .play-card-fallback small {
-    display: -webkit-box;
+    display: -webkit-box !important;
     overflow: hidden;
-    font-size: 7px;
-    line-height: 1.3;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 8px;
+    line-height: 1.28;
     letter-spacing: 0;
     text-transform: none;
     -webkit-box-orient: vertical;
@@ -115,7 +148,10 @@
   }
 
   .playtest-shell--live .play-card-row .play-card-fallback em {
+    display: block !important;
     overflow: hidden;
+    visibility: visible !important;
+    opacity: 1 !important;
     font-size: 5.5px;
     font-style: normal;
     font-weight: 900;
@@ -125,8 +161,26 @@
   }
 
   .playtest-shell--live .play-card-row .play-card-meta {
-    min-height: 29px;
-    padding: 4px 6px;
+    min-height: 34px !important;
+    height: 34px !important;
+    display: grid !important;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 5px;
+    padding: 4px 7px;
+  }
+
+  .playtest-shell--live .play-card-row .play-card-meta b,
+  .playtest-shell--live .play-card-row .play-card-meta strong {
+    font-size: 9px;
+  }
+
+  .playtest-shell--live .play-card-row .play-card-meta small {
+    font-size: 5px;
+  }
+
+  .playtest-shell--live .play-card-row .play-card-meta em {
+    font-size: 6px;
   }
 
   .playtest-shell--live .play-card-row .play-card-inspect {
@@ -135,13 +189,21 @@
     padding: 4px 6px;
     font-size: 5px;
   }
+
+  /* Seven cards should still fit naturally at common desktop widths. */
+  @media (max-width: 1320px) {
+    .playtest-shell--live .play-card-row .play-card {
+      flex-basis: 154px;
+      min-width: 132px;
+      max-width: 164px;
+    }
+  }
 }
 
-/* Keep fallback copy readable in dark mode. Legacy globals previously painted
-   a second gradient over this area, which made the title/rules block look like
-   an unrelated panel pasted on top of the card. */
+/* Dark mode keeps the information block readable without adding another fake
+   panel inside the card. */
 :root[data-theme="dark"] .playtest-shell--live .play-card-row .play-card-fallback {
-  background: transparent;
+  background: transparent !important;
 }
 
 :root[data-theme="dark"] .playtest-shell--live .play-card-row .play-card-fallback b {
@@ -156,15 +218,24 @@
   color: #9fb1a6;
 }
 
-/* Narrow screens keep the horizontal-card browser behavior from the responsive
-   playtest system, but still guarantee that the clickable face owns the full
-   height of its shell. */
 @media (max-width: 760px) {
+  .playtest-shell--live .play-card-row .play-card,
   .playtest-shell--live .play-card-row .play-card-main {
-    height: 100%;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .playtest-shell--live .play-card-row .play-card-main {
+    min-height: 220px;
+    display: grid !important;
+    grid-template-rows: 82px 18px minmax(86px, auto) 34px !important;
   }
 
   .playtest-shell--live .play-card-row .play-card-fallback {
-    background: transparent;
+    min-height: 86px !important;
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: transparent !important;
   }
 }
