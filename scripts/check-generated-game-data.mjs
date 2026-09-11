@@ -64,6 +64,7 @@ if (canonicalCardEffects.rulesVersion !== source.rulesVersion) fail(`content/car
 if (canonicalCardEffects.rulesRevision !== source.rulesRevision) fail(`content/card-effects.json rulesRevision '${canonicalCardEffects.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
 if (canonicalComboRequirements.rulesVersion !== source.rulesVersion) fail(`content/combo-requirements.json rulesVersion '${canonicalComboRequirements.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
 if (canonicalComboRequirements.rulesRevision !== source.rulesRevision) fail(`content/combo-requirements.json rulesRevision '${canonicalComboRequirements.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
+if (canonicalComboRequirements.$schema !== "combo-requirements.schema.json") fail("content/combo-requirements.json must declare combo-requirements.schema.json");
 if (canonicalCards.total !== canonicalCards.cards?.length) fail("content/cards.json total does not match cards.length");
 if (generatedCards.total !== generatedCards.cards?.length) fail("app/data/cards.json total does not match cards.length");
 
@@ -73,6 +74,7 @@ const expectedAuthoritative = new Set([
   "content/cards.json",
   "content/effects.json",
   "content/combo-requirements.json",
+  "content/combo-requirements.schema.json",
   "content/card-effect.schema.json",
   "content/card-effect-family.schema.json",
 ]);
@@ -154,6 +156,19 @@ const comboRequirementKinds = new Set([
   "weaponAttack",
   "zonesPresent",
   "priorAttackTag",
+  "currentCardMatches",
+  "priorCardMatches",
+  "equippedCardMatches",
+  "noWeaponEquipped",
+  "previousAttackBlocked",
+  "blockHistory",
+  "speedGainHistory",
+  "startingHandTagCount",
+  "purchaseHistory",
+  "minimumAttackHits",
+  "playedCardHistory",
+  "attackHistory",
+  "cardFamiliesPresent",
 ]);
 const canonicalComboIds = (canonicalCards.cards ?? [])
   .filter((card) => /^DDB-CMB-CORE-\d+$/i.test(String(card.catalogId ?? "")))
@@ -173,6 +188,12 @@ for (const [catalogId, entry] of Object.entries(canonicalComboRequirements.cards
   if (!Array.isArray(entry.requirements) || !entry.requirements.length) fail(`${catalogId} Combo requirement has no machine-readable requirements`);
   for (const requirement of entry.requirements ?? []) {
     if (!comboRequirementKinds.has(requirement.kind)) fail(`${catalogId} uses unsupported Combo requirement kind '${requirement.kind}'`);
+    if (requirement.kind === "orderedSequence" && (!Array.isArray(requirement.steps) || !requirement.steps.length)) fail(`${catalogId} orderedSequence requires non-empty steps`);
+    for (const step of requirement.steps ?? []) {
+      if (!step || typeof step !== "object" || !Object.keys(step).length) fail(`${catalogId} orderedSequence contains an empty wildcard step`);
+    }
+    if (["orderedAttackHits", "zonesPresent"].includes(requirement.kind) && (!Array.isArray(requirement.zones) || !requirement.zones.length)) fail(`${catalogId} ${requirement.kind} requires zones`);
+    if (["minimumEquipment", "minimumPriorAttacks", "minimumAttackHits", "startingHandTagCount"].includes(requirement.kind) && Number(requirement.amount ?? 0) < 1) fail(`${catalogId} ${requirement.kind} requires amount >= 1`);
   }
 }
 
