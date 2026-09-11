@@ -36,7 +36,7 @@ export type QuickDuelRuntimeCommandBoards<Board extends QuickDuelRuntimeCommandB
 };
 
 export type QuickDuelRuntimeStatusEventFacts = {
-  /** True only when an Attack declaration is known to occur on a later turn. */
+  /** Compatibility escape hatch for hosts that can prove this Attack is later-turn. */
   nextTurn?: boolean;
 };
 
@@ -194,6 +194,20 @@ export function applyQuickDuelRuntimeCommands<Board extends QuickDuelRuntimeComm
   return { self, opponent };
 }
 
+function nextTurnAttackArmed(status: RuntimeStatus) {
+  return status.qualifier?.nextTurnAttackArmed === true;
+}
+
+function armNextTurnAttackStatuses(statuses: readonly RuntimeStatus[]) {
+  return statuses.map((status) => {
+    if (status.appliedImmediately || String(status.qualifier?.activateAt ?? "") !== "nextTurnAttack") return status;
+    return {
+      ...status,
+      qualifier: { ...(status.qualifier ?? {}), nextTurnAttackArmed: true },
+    };
+  });
+}
+
 function deferredStatusMatchesEvent(
   status: RuntimeStatus,
   trigger: RuntimeTrigger,
@@ -202,7 +216,9 @@ function deferredStatusMatchesEvent(
   if (status.appliedImmediately) return false;
   const activateAt = String(status.qualifier?.activateAt ?? "");
   if (activateAt === "nextInitiate") return trigger === "onInitiate";
-  if (activateAt === "nextTurnAttack") return trigger === "onAttackDeclared" && facts.nextTurn === true;
+  if (activateAt === "nextTurnAttack") {
+    return trigger === "onAttackDeclared" && (nextTurnAttackArmed(status) || facts.nextTurn === true);
+  }
   return false;
 }
 
@@ -221,7 +237,13 @@ function commandFromDeferredStatus(status: RuntimeStatus, trigger: RuntimeTrigge
 }
 
 /**
- * Consumes canonical deferred statuses when their future gameplay event occurs.
+ * Advances canonical deferred statuses at gameplay lifecycle events.
+ *
+ * Initiate has two responsibilities that are both data-driven: resolve effects
+ * whose activateAt is nextInitiate, and arm any existing nextTurnAttack effects
+ * for the coming turn. Statuses created after Initiate remain unarmed and wait
+ * for the following Initiate, so a same-turn second Attack cannot consume them.
+ *
  * Only statuses explicitly carrying an activateAt qualifier are eligible, so
  * ordinary standing modifiers are never replayed by this lifecycle hook.
  */
@@ -234,12 +256,24 @@ export function activateQuickDuelRuntimeStatusesForEvent<Board extends QuickDuel
 ): QuickDuelRuntimeStatusActivation<Board> {
   const statuses = boards.self.stage3cStatuses ?? [];
   const activating = statuses.filter((status) => deferredStatusMatchesEvent(status, trigger, facts));
-  if (!activating.length) return { boards, commands: [] };
-
   const activatingIds = new Set(activating.map((status) => status.sourceEffectId));
+  const surviving = statuses.filter((status) => !activatingIds.has(status.sourceEffectId));
+  const advancedStatuses = trigger === "onInitiate" ? armNextTurnAttackStatuses(surviving) : surviving;
+
+  if (!activating.length) {
+    if (advancedStatuses === statuses || advancedStatuses.every((status, index) => status === statuses[index])) return { boards, commands: [] };
+    return {
+      boards: {
+        self: { ...boards.self, stage3cStatuses: advancedStatuses } as Board,
+        opponent: boards.opponent,
+      },
+      commands: [],
+    };
+  }
+
   const self = {
     ...boards.self,
-    stage3cStatuses: statuses.filter((status) => !activatingIds.has(status.sourceEffectId)),
+    stage3cStatuses: advancedStatuses,
   } as Board;
   const commands = activating.map((status) => commandFromDeferredStatus(status, trigger));
   return {
