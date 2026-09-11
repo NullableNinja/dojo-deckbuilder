@@ -1,0 +1,131 @@
+/* Quick Duel Market card polish --------------------------------------------
+   PRESENTATION ONLY. Market type labels are rendered from the existing
+   JSON-backed CardEntry subtype/cardType value in PlayCard. This layer makes
+   that information visually obvious and replaces the cramped INSPECT pill with
+   a compact magnifier affordance without changing purchase/runtime behavior. */
+
+.ascend-market-grid .play-card {
+  --market-type-accent: #c79a35;
+  position: relative;
+}
+
+.ascend-market-grid .play-card--attack { --market-type-accent: #cf5846; }
+.ascend-market-grid .play-card--defense { --market-type-accent: #4f8eb7; }
+.ascend-market-grid .play-card--kata { --market-type-accent: #8055a2; }
+.ascend-market-grid .play-card--item { --market-type-accent: #c58a32; }
+.ascend-market-grid .play-card--combo { --market-type-accent: #71569d; }
+
+/* The second row of every Market card already contains subtype || cardType.
+   Treat it as a real type badge instead of a tiny decorative ribbon. */
+.ascend-market-grid .play-card-kind {
+  position: relative !important;
+  z-index: 7 !important;
+  align-self: center !important;
+  justify-self: start !important;
+  min-width: 62px !important;
+  max-width: calc(100% - 16px) !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  margin: 0 8px !important;
+  border: 1px solid color-mix(in srgb, var(--market-type-accent) 72%, #f7edcf) !important;
+  border-left: 4px solid var(--market-type-accent) !important;
+  border-radius: 3px 9px 4px 8px !important;
+  padding: 2px 8px 1px 6px !important;
+  color: #fff8de !important;
+  background: color-mix(in srgb, var(--market-type-accent) 42%, #18352a) !important;
+  box-shadow: 1px 2px 0 rgba(14, 11, 7, .28) !important;
+  font-size: 9px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .11em !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* The old text pill fought with the card art and looked like another card tag.
+   Keep the same accessible button and aria-label, but render it as a distinct
+   inspect/magnifier control. */
+.ascend-market-grid .play-card-inspect {
+  position: absolute !important;
+  z-index: 12 !important;
+  top: 9px !important;
+  right: 9px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  display: block !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  border: 1px solid rgba(255, 244, 211, .78) !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  color: #fff7dc !important;
+  background: rgba(25, 55, 44, .94) !important;
+  box-shadow: 2px 3px 0 rgba(35, 24, 15, .34), inset 0 0 0 1px rgba(255,255,255,.08) !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  cursor: pointer !important;
+  transform: none !important;
+}
+
+.ascend-market-grid .play-card-inspect::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.ascend-market-grid .play-card-inspect::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 7px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+
+.ascend-market-grid .play-card-inspect:hover,
+.ascend-market-grid .play-card-inspect:focus-visible {
+  border-color: #f5cc55 !important;
+  color: #fff !important;
+  background: #315c48 !important;
+  box-shadow: 0 0 0 2px rgba(245, 204, 85, .28), 2px 3px 0 rgba(35, 24, 15, .34) !important;
+  transform: translateY(-1px) scale(1.05) !important;
+}
+
+/* Preserve the seven-card fixed market geometry established by the Ascend desk
+   while making the new type badge fit cleanly in its dedicated row. */
+.ascend-market-grid .play-card-main {
+  grid-template-rows: 158px 22px minmax(112px, 1fr) 50px !important;
+}
+
+@media (max-width: 760px) {
+  .ascend-market-grid .play-card-kind {
+    min-width: 56px !important;
+    font-size: 8px !important;
+  }
+
+  .ascend-market-grid .play-card-inspect {
+    top: 7px !important;
+    right: 7px !important;
+    width: 26px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+  }
+}
