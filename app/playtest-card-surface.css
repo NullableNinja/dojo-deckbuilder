@@ -2,15 +2,22 @@
    PRESENTATION ONLY. Names, rules text, costs, Focus, zones, timing, images,
    and runtime behavior continue to come from canonical JSON/loaders.
 
-   Loaded last so old Quick Duel layout layers cannot turn playable cards into
-   tall empty rectangles. The goal here is simple: if a finished card image
-   exists, show the WHOLE card image; if it does not, use the available space
-   for the JSON-backed card information instead of dead space. */
+   This is the final visual authority for cards in the Quick Duel hand. Every
+   card uses the same outer dimensions at a given breakpoint so the hand reads
+   like a real rack of cards rather than a collection of differently sized UI
+   panels. Finished art is shown whole; unfinished cards use the exact same
+   footprint and fill the art region with the Paper-Fu fallback rather than dead
+   space. */
 
 @media (min-width: 761px) {
   .playtest-shell--live .play-card-row {
+    --ddb-hand-card-width: 174px;
+    --ddb-hand-card-height: 338px;
+    --ddb-hand-art-height: 198px;
+    --ddb-hand-info-height: 90px;
+
     width: 100%;
-    min-height: 0 !important;
+    min-height: var(--ddb-hand-card-height) !important;
     height: auto !important;
     display: flex !important;
     align-items: flex-start !important;
@@ -23,16 +30,15 @@
     scroll-snap-type: x proximity;
   }
 
-  /* Cards are content-sized. No minimum body height means there is nowhere for
-     the old giant empty lower panel to come from. */
+  /* One physical silhouette for every card. */
   .playtest-shell.playtest-shell--live .play-card-row .play-card {
-    flex: 0 1 166px;
-    width: auto;
-    min-width: 142px;
-    max-width: 174px;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    flex: 0 0 var(--ddb-hand-card-width) !important;
+    width: var(--ddb-hand-card-width) !important;
+    min-width: var(--ddb-hand-card-width) !important;
+    max-width: var(--ddb-hand-card-width) !important;
+    height: var(--ddb-hand-card-height) !important;
+    min-height: var(--ddb-hand-card-height) !important;
+    max-height: var(--ddb-hand-card-height) !important;
     overflow: visible;
     margin: 0;
     scroll-snap-align: center;
@@ -40,80 +46,80 @@
 
   .playtest-shell.playtest-shell--live .play-card-row .play-card-main {
     width: 100%;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
     display: grid !important;
-    grid-template-rows: auto auto auto auto !important;
-    align-content: start !important;
+    grid-template-rows: var(--ddb-hand-art-height) 18px var(--ddb-hand-info-height) 32px !important;
+    align-content: stretch !important;
     overflow: hidden;
   }
 
   /* ----------------------------------------------------------------------
-     FINISHED CARD IMAGE
-     These assets are complete cards, not banner art. The previous layout was
-     literally cropping them to a ~96px strip. Give the image enough vertical
-     room to display the complete portrait card at its natural proportions. */
-  .playtest-shell.playtest-shell--live .play-card-row .play-card:has(.play-card-art-window > img) .play-card-art-window {
-    height: 205px !important;
-    min-height: 205px !important;
-    display: grid;
+     ART REGION
+     A completed asset is a complete card image, not banner artwork. Keep the
+     entire image visible inside the standardized art region. */
+  .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window {
+    width: 100%;
+    height: var(--ddb-hand-art-height) !important;
+    min-height: var(--ddb-hand-art-height) !important;
+    max-height: var(--ddb-hand-art-height) !important;
+    display: grid !important;
     place-items: center;
     overflow: hidden;
     padding: 4px;
     background: linear-gradient(155deg, #e6d3ae, #f6ead1);
   }
 
-  .playtest-shell.playtest-shell--live .play-card-row .play-card:has(.play-card-art-window > img) .play-card-art-window > img {
+  .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window > img {
     width: 100% !important;
     height: 100% !important;
     object-fit: contain !important;
     object-position: center !important;
   }
 
-  /* A finished card already contains its visual identity, but the digital hand
-     still keeps a compact canonical text/readout below it for legibility. */
-  .playtest-shell.playtest-shell--live .play-card-row .play-card:has(.play-card-art-window > img) .play-card-fallback {
-    padding-top: 6px;
-  }
-
-  /* ----------------------------------------------------------------------
-     CARD WITHOUT FINISHED ART
-     The Paper-Fu placeholder is deliberately compact. The rest of the card is
-     information, not a blank field pretending artwork exists. */
-  .playtest-shell.playtest-shell--live .play-card-row .play-card:has(.play-card-art-window > .native-card-art) .play-card-art-window {
-    height: 92px !important;
-    min-height: 92px !important;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    padding: 3px;
-  }
-
+  /* Unfinished art still consumes the same art rectangle. Rather than leaving
+     it blank, let the native Paper-Fu card face use the whole region. */
   .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window > .native-card-art {
     position: relative !important;
     inset: auto !important;
     width: 100% !important;
     height: 100% !important;
-    min-height: 0 !important;
+    min-height: 100% !important;
     max-height: 100% !important;
     display: grid !important;
-    grid-template-rows: auto minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(50px, 1fr) auto auto !important;
     align-content: stretch;
-    gap: 3px;
+    gap: 5px;
     overflow: hidden;
-    padding: 6px;
+    padding: 8px;
   }
 
   .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > b {
-    display: grid;
+    display: grid !important;
     place-items: center;
-    font-size: 31px;
+    font-size: 50px;
     line-height: 1;
   }
 
-  .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > strong,
-  .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > small,
+  .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > strong {
+    display: block !important;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > small {
+    display: -webkit-box !important;
+    overflow: hidden;
+    font-size: 7px;
+    line-height: 1.2;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
   .playtest-shell.playtest-shell--live .play-card-row .play-card-art-window > .native-card-art > em {
     display: none !important;
   }
@@ -128,24 +134,26 @@
     line-height: 1;
   }
 
-  /* Canonical card information. Crucially, this is AUTO-sized rather than a
-     minmax/1fr row, so short rules text produces a short card instead of a huge
-     green void. */
+  /* ----------------------------------------------------------------------
+     CANONICAL INFORMATION REGION
+     This region is also fixed. Long copy clamps instead of changing the card
+     size, while Inspect remains the route to the complete text. */
   .playtest-shell.playtest-shell--live .play-card-row .play-card-fallback {
     position: relative !important;
     inset: auto !important;
     min-width: 0;
-    min-height: 0 !important;
-    height: auto !important;
-    max-height: none !important;
+    width: 100%;
+    height: var(--ddb-hand-info-height) !important;
+    min-height: var(--ddb-hand-info-height) !important;
+    max-height: var(--ddb-hand-info-height) !important;
     display: grid !important;
-    grid-template-rows: auto auto auto !important;
-    align-content: start !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    align-content: stretch !important;
     gap: 4px;
-    overflow: visible !important;
+    overflow: hidden !important;
     visibility: visible !important;
     opacity: 1 !important;
-    padding: 7px 8px 7px;
+    padding: 7px 8px 6px;
     background: transparent !important;
   }
 
@@ -179,7 +187,6 @@
     overflow: hidden;
     visibility: visible !important;
     opacity: 1 !important;
-    margin-top: 1px;
     font-size: 5.5px;
     font-style: normal;
     font-weight: 900;
@@ -189,8 +196,10 @@
   }
 
   .playtest-shell.playtest-shell--live .play-card-row .play-card-meta {
+    width: 100%;
+    height: 32px !important;
     min-height: 32px !important;
-    height: auto !important;
+    max-height: 32px !important;
     display: grid !important;
     grid-template-columns: auto auto minmax(0, 1fr);
     align-items: center;
@@ -218,18 +227,22 @@
     font-size: 5px;
   }
 
-  /* Finished cards are allowed to be taller because that height is ACTUAL CARD
-     ART, not dead surface. Cards without art remain compact and informative. */
+  /* The dimensions remain fixed within each responsive tier. */
   @media (max-width: 1320px) {
-    .playtest-shell.playtest-shell--live .play-card-row .play-card {
-      flex-basis: 154px;
-      min-width: 132px;
-      max-width: 164px;
+    .playtest-shell--live .play-card-row {
+      --ddb-hand-card-width: 164px;
+      --ddb-hand-card-height: 326px;
+      --ddb-hand-art-height: 188px;
+      --ddb-hand-info-height: 88px;
     }
+  }
 
-    .playtest-shell.playtest-shell--live .play-card-row .play-card:has(.play-card-art-window > img) .play-card-art-window {
-      height: 190px !important;
-      min-height: 190px !important;
+  @media (max-width: 1050px) {
+    .playtest-shell--live .play-card-row {
+      --ddb-hand-card-width: 156px;
+      --ddb-hand-card-height: 314px;
+      --ddb-hand-art-height: 178px;
+      --ddb-hand-info-height: 86px;
     }
   }
 }
@@ -252,37 +265,59 @@
   color: #9fb1a6;
 }
 
+/* Mobile keeps a single fixed card size and scrolls the rack horizontally. */
 @media (max-width: 760px) {
-  .playtest-shell--live .play-card-row .play-card,
-  .playtest-shell--live .play-card-row .play-card-main {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+  .playtest-shell--live .play-card-row {
+    align-items: flex-start !important;
+  }
+
+  .playtest-shell--live .play-card-row .play-card {
+    flex: 0 0 150px !important;
+    width: 150px !important;
+    min-width: 150px !important;
+    max-width: 150px !important;
+    height: 296px !important;
+    min-height: 296px !important;
+    max-height: 296px !important;
   }
 
   .playtest-shell--live .play-card-row .play-card-main {
+    width: 100%;
+    height: 100% !important;
+    min-height: 100% !important;
+    max-height: 100% !important;
     display: grid !important;
-    grid-template-rows: auto auto auto auto !important;
-    align-content: start !important;
+    grid-template-rows: 164px 18px 82px 32px !important;
+    align-content: stretch !important;
   }
 
-  .playtest-shell--live .play-card-row .play-card:has(.play-card-art-window > img) .play-card-art-window {
-    height: 170px !important;
-    min-height: 170px !important;
+  .playtest-shell--live .play-card-row .play-card-art-window {
+    height: 164px !important;
+    min-height: 164px !important;
+    max-height: 164px !important;
   }
 
-  .playtest-shell--live .play-card-row .play-card:has(.play-card-art-window > .native-card-art) .play-card-art-window {
-    height: 78px !important;
-    min-height: 78px !important;
+  .playtest-shell--live .play-card-row .play-card-art-window > img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center !important;
   }
 
   .playtest-shell--live .play-card-row .play-card-fallback {
-    min-height: 0 !important;
-    height: auto !important;
+    height: 82px !important;
+    min-height: 82px !important;
+    max-height: 82px !important;
     display: grid !important;
-    grid-template-rows: auto auto auto !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
     visibility: visible !important;
     opacity: 1 !important;
     background: transparent !important;
+  }
+
+  .playtest-shell--live .play-card-row .play-card-meta {
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
   }
 }
