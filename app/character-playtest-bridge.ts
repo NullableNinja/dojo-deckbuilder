@@ -43,12 +43,28 @@ export function applyCharacterEventForHost<
   };
 }
 
-/** Turn-boundary cleanup remains data-model agnostic and preserves host fields. */
+/** Turn-boundary reset plus event publication, preserving unrelated host state. */
+export function beginCharacterHostTurn<
+  SelfBoard extends CharacterHostBoard,
+  OpponentBoard extends CharacterHostBoard,
+>(self: SelfBoard, opponent: OpponentBoard, actor: CharacterRuntimeActor = "player") {
+  return applyCharacterEventForHost(resetCharacterTurn(self) as SelfBoard, opponent, { type: "turnStart" }, actor);
+}
+
+/** Round-boundary reset plus event publication, preserving unrelated host state. */
+export function beginCharacterHostRound<
+  SelfBoard extends CharacterHostBoard,
+  OpponentBoard extends CharacterHostBoard,
+>(self: SelfBoard, opponent: OpponentBoard, actor: CharacterRuntimeActor = "player") {
+  return applyCharacterEventForHost(resetCharacterRound(self) as SelfBoard, opponent, { type: "roundStart" }, actor);
+}
+
+/** Turn-boundary cleanup remains available when the host resets before pairing boards. */
 export function resetCharacterHostTurn<Board extends CharacterHostBoard>(board: Board): Board {
   return resetCharacterTurn(board) as Board;
 }
 
-/** Round-boundary cleanup remains data-model agnostic and preserves host fields. */
+/** Round-boundary cleanup remains available when the host resets before pairing boards. */
 export function resetCharacterHostRound<Board extends CharacterHostBoard>(board: Board): Board {
   return resetCharacterRound(board) as Board;
 }
@@ -56,7 +72,7 @@ export function resetCharacterHostRound<Board extends CharacterHostBoard>(board:
 /**
  * Canonical event subscription inventory for certification and host wiring.
  * This is derived from the Character runtime registry, not a hand-maintained
- * list in the Playtest.
+ * fighter switch in the Playtest.
  */
 export function characterHostSubscriptions() {
   return characterRuntimeCoverage().map((entry) => ({
@@ -65,6 +81,16 @@ export function characterHostSubscriptions() {
   }));
 }
 
+/**
+ * Hide is included even without an ability resolver subscription because the
+ * runtime returns temporary borrowed Equipment at Hide. Turn/round starts are
+ * published by the lifecycle helpers above.
+ */
 export function requiredCharacterHostEvents(): CharacterRuntimeEventType[] {
-  return [...new Set(characterHostSubscriptions().flatMap((entry) => entry.events))].sort() as CharacterRuntimeEventType[];
+  return [...new Set<CharacterRuntimeEventType>([
+    ...characterHostSubscriptions().flatMap((entry) => entry.events),
+    "hide",
+    "turnStart",
+    "roundStart",
+  ])].sort() as CharacterRuntimeEventType[];
 }
