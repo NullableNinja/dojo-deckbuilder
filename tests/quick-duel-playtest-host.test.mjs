@@ -175,6 +175,14 @@ test("transition adapter preserves full Playtest match fields while recording st
   assert.deepEqual(comboHostFactsFromBoard(hosted.player).turnPlayed.map((fact) => fact.cardId), [form.id]);
 });
 
+test("committed Playtest routes every Match setter update through the unified transition host", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /const \[match, setRawMatch\] = useState<Match \| null>/);
+  assert.match(source, /const setMatch = \(update: SetStateAction<Match \| null>\) => setRawMatch/);
+  assert.match(source, /applyQuickDuelPlaytestTransition\(previous, next, cardFor\)/);
+  assert.doesNotMatch(source, /const \[match, setMatch\] = useState<Match \| null>/);
+});
+
 test("Playtest adapter remains identity-free and does not parse card prose", async () => {
   const source = await readFile(new URL("../app/quick-duel-playtest-host.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source, /DDB-(?:CMB|CHR)-CORE-|rulesText|displayText|combo\.name\s*===|catalogId\s*===/);
