@@ -31,6 +31,10 @@ export type QuickDuelComboMatchResult<Board extends QuickDuelComboMatchBoard> = 
   activatedComboIds: string[];
 };
 
+export type QuickDuelAttackRuntimeFacts = {
+  piercing: number;
+};
+
 type ExecutionRegistry = Record<string, QuickDuelComboExecution>;
 
 function executionRegistry(board: QuickDuelComboMatchBoard): ExecutionRegistry {
@@ -59,6 +63,18 @@ function markComboTriggered<Board extends QuickDuelComboMatchBoard>(board: Board
 
 export function quickDuelActiveComboExecutions(board: QuickDuelComboMatchBoard) {
   return executionRegistry(board);
+}
+
+/**
+ * Extract attack-resolution facts that are not persistent board modifiers from
+ * generic RuntimeCommands. React never needs to know which Combo produced them.
+ */
+export function quickDuelAttackRuntimeFacts(commands: readonly RuntimeCommand[]): QuickDuelAttackRuntimeFacts {
+  return {
+    piercing: commands
+      .filter((command) => command.effect === "combat.piercing")
+      .reduce((total, command) => total + Number(command.amount ?? 0), 0),
+  };
 }
 
 /**
