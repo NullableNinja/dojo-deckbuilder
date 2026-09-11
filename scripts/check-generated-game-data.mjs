@@ -17,7 +17,20 @@ try {
   fail(error instanceof Error ? error.message : String(error));
 }
 
-const [source, generated, canonicalRules, generatedRules, canonicalCards, generatedCards, canonicalVocabulary, generatedVocabulary, canonicalCardEffects, generatedCardEffects] = await Promise.all([
+const [
+  source,
+  generated,
+  canonicalRules,
+  generatedRules,
+  canonicalCards,
+  generatedCards,
+  canonicalVocabulary,
+  generatedVocabulary,
+  canonicalCardEffects,
+  generatedCardEffects,
+  canonicalComboRequirements,
+  generatedComboRequirements,
+] = await Promise.all([
   readJson("content/dojo-game.json"),
   readJson("app/data/game-definition.json"),
   readJson("content/rules.json"),
@@ -28,6 +41,8 @@ const [source, generated, canonicalRules, generatedRules, canonicalCards, genera
   readJson("app/data/effects.json"),
   readJson("content/card-effects.json"),
   readJson("app/data/card-effects.json"),
+  readJson("content/combo-requirements.json"),
+  readJson("app/data/combo-requirements.json"),
 ]);
 
 if (!source?.definition) fail("content/dojo-game.json is missing definition");
@@ -40,12 +55,15 @@ if (!sameJson(generatedCards, canonicalCards)) fail("app/data/cards.json has dri
 if (!sameJson(generatedVocabulary, canonicalVocabulary)) fail("app/data/effects.json has drifted from content/effects.json; run npm run game:generate");
 if (effectArchitecture && !sameJson(canonicalCardEffects, effectArchitecture.aggregate)) fail("content/card-effects.json has drifted from the card-effect family sources; run npm run game:generate");
 if (!sameJson(generatedCardEffects, canonicalCardEffects)) fail("app/data/card-effects.json has drifted from content/card-effects.json; run npm run game:generate");
+if (!sameJson(generatedComboRequirements, canonicalComboRequirements)) fail("app/data/combo-requirements.json has drifted from content/combo-requirements.json; run npm run game:generate");
 if (!String(canonicalRules.version ?? "").startsWith(source.rulesVersion)) fail(`content/rules.json version '${canonicalRules.version ?? "missing"}' does not match ${source.rulesVersion}`);
 if (!String(canonicalCards.version ?? "").startsWith(source.rulesVersion)) fail(`content/cards.json version '${canonicalCards.version ?? "missing"}' does not match ${source.rulesVersion}`);
 if (canonicalVocabulary.rulesVersion !== source.rulesVersion) fail(`content/effects.json rulesVersion '${canonicalVocabulary.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
 if (canonicalVocabulary.rulesRevision !== source.rulesRevision) fail(`content/effects.json rulesRevision '${canonicalVocabulary.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
 if (canonicalCardEffects.rulesVersion !== source.rulesVersion) fail(`content/card-effects.json rulesVersion '${canonicalCardEffects.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
 if (canonicalCardEffects.rulesRevision !== source.rulesRevision) fail(`content/card-effects.json rulesRevision '${canonicalCardEffects.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
+if (canonicalComboRequirements.rulesVersion !== source.rulesVersion) fail(`content/combo-requirements.json rulesVersion '${canonicalComboRequirements.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
+if (canonicalComboRequirements.rulesRevision !== source.rulesRevision) fail(`content/combo-requirements.json rulesRevision '${canonicalComboRequirements.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
 if (canonicalCards.total !== canonicalCards.cards?.length) fail("content/cards.json total does not match cards.length");
 if (generatedCards.total !== generatedCards.cards?.length) fail("app/data/cards.json total does not match cards.length");
 
@@ -54,6 +72,7 @@ const expectedAuthoritative = new Set([
   "content/rules.json",
   "content/cards.json",
   "content/effects.json",
+  "content/combo-requirements.json",
   "content/card-effect.schema.json",
   "content/card-effect-family.schema.json",
 ]);
@@ -95,6 +114,7 @@ const expectedGenerated = new Set([
   "app/data/cards.json",
   "app/data/effects.json",
   "app/data/card-effects.json",
+  "app/data/combo-requirements.json",
 ]);
 for (const path of expectedGenerated) {
   if (!source.sourcePolicy?.generatedFiles?.includes(path)) fail(`${path} is generated but missing from sourcePolicy.generatedFiles`);
@@ -114,6 +134,46 @@ for (const card of canonicalCards.cards ?? []) {
     cardsByCatalogId.set(card.catalogId, card);
   }
   if (!String(card.name ?? "").trim()) fail(`Card '${card.catalogId ?? card.id ?? "unknown"}' has no name`);
+}
+
+const comboRequirementKinds = new Set([
+  "orderedSequence",
+  "orderedAttackHits",
+  "differentZoneFromPreviousAttack",
+  "defenseBlocksAttack",
+  "defendedThisRound",
+  "minimumDefenseTag",
+  "differentComboAfterCombo",
+  "beltExamThenAttackHit",
+  "priorCardFamily",
+  "reversal",
+  "attackOrdinal",
+  "minimumPriorAttacks",
+  "priorAttackHit",
+  "minimumEquipment",
+  "weaponAttack",
+  "zonesPresent",
+  "priorAttackTag",
+]);
+const canonicalComboIds = (canonicalCards.cards ?? [])
+  .filter((card) => /^DDB-CMB-CORE-\d+$/i.test(String(card.catalogId ?? "")))
+  .map((card) => card.catalogId)
+  .sort();
+const comboRequirementIds = Object.keys(canonicalComboRequirements.cards ?? {}).sort();
+if (canonicalComboIds.length !== 55) fail(`Canonical Core Combo catalog should contain 55 cards; found ${canonicalComboIds.length}`);
+if (!sameJson(comboRequirementIds, canonicalComboIds)) fail("content/combo-requirements.json must exactly cover the canonical 55 Core Combo identities");
+for (const [catalogId, entry] of Object.entries(canonicalComboRequirements.cards ?? {})) {
+  const card = cardsByCatalogId.get(catalogId);
+  if (!card) {
+    fail(`Combo requirement entry ${catalogId} does not resolve to a canonical card`);
+    continue;
+  }
+  if (entry.name !== card.name) fail(`Combo requirement entry ${catalogId} is named '${entry.name}' but canonical card is '${card.name}'`);
+  if (!String(entry.displayText ?? "").trim()) fail(`${catalogId} Combo requirement is missing displayText`);
+  if (!Array.isArray(entry.requirements) || !entry.requirements.length) fail(`${catalogId} Combo requirement has no machine-readable requirements`);
+  for (const requirement of entry.requirements ?? []) {
+    if (!comboRequirementKinds.has(requirement.kind)) fail(`${catalogId} uses unsupported Combo requirement kind '${requirement.kind}'`);
+  }
 }
 
 const vocabularyEffects = canonicalVocabulary.effects ?? {};
@@ -257,9 +317,10 @@ if (failures.length) {
   console.log("Canonical rules source: content/rules.json");
   console.log(`Canonical card source: content/cards.json (${canonicalCards.total} cards)`);
   console.log(`Canonical effect vocabulary: content/effects.json (${Object.keys(vocabularyEffects).length} reusable effects)`);
+  console.log(`Canonical Combo requirements: content/combo-requirements.json (${comboRequirementIds.length} Core Combos)`);
   console.log(`Card-effect family sources: ${effectArchitecture?.families.length ?? 0} active family file(s)`);
   console.log(`Unified structured effect registry: content/card-effects.json (${structuredEntries.length} migrated cards)`);
-  console.log("Generated runtime outputs: app/data/game-definition.json, app/data/rules.json, app/data/cards.json, app/data/effects.json, app/data/card-effects.json");
+  console.log("Generated runtime outputs: app/data/game-definition.json, app/data/rules.json, app/data/cards.json, app/data/effects.json, app/data/card-effects.json, app/data/combo-requirements.json");
   console.log("Temporary Stage 3B effect seeds: none");
   console.log("Legacy authoritative data sources: none");
 }
