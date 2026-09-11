@@ -13,6 +13,7 @@ export type QuickDuelRuntimeCommandBoard = {
   nextAttackHasFlow: boolean;
   nextAttackAnyZone: boolean;
   damageTaken: number;
+  damageDealt?: number;
   speedChangedThisRound?: boolean;
   hand: string[];
   discard: string[];
@@ -188,8 +189,13 @@ export function applyQuickDuelRuntimeCommands<Board extends QuickDuelRuntimeComm
   let self = boards.self;
   let opponent = boards.opponent;
   for (const command of commands) {
-    if (command.target === "opponent") opponent = applyToBoard(opponent, { ...command, target: "self" }, controller === "player" ? "ai" : "player", operations);
-    else self = applyToBoard(self, { ...command, target: "self" }, controller, operations);
+    if (command.target === "opponent") {
+      opponent = applyToBoard(opponent, { ...command, target: "self" }, controller === "player" ? "ai" : "player", operations);
+      if (command.effect === "combat.dealDamage") {
+        const damage = Math.max(0, command.amount);
+        self = { ...self, damageDealt: (self.damageDealt ?? 0) + damage };
+      }
+    } else self = applyToBoard(self, { ...command, target: "self" }, controller, operations);
   }
   return { self, opponent };
 }
