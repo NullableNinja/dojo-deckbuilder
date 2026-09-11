@@ -42,6 +42,15 @@ export {
 } from "./quick-duel-combo-session-host.ts";
 
 export {
+  activateQuickDuelCombosForEvent,
+  publishQuickDuelComboSessions,
+  quickDuelActiveComboExecutions,
+  resolveQuickDuelComboSessionChoice,
+  type QuickDuelComboMatchBoard,
+  type QuickDuelComboMatchResult,
+} from "./quick-duel-combo-match-host.ts";
+
+export {
   applyQuickDuelRuntimeCommands,
   type QuickDuelRuntimeCommandBoard,
   type QuickDuelRuntimeCommandBoards,
