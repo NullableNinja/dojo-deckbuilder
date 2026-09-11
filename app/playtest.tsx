@@ -20,7 +20,7 @@ import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction } from "./character-runtime";
-import { applyQuickDuelPlaytestTransition } from "./quick-duel-playtest-host";
+import { applyQuickDuelPlaytestTransition, publishQuickDuelPlaytestLifecycleEvent } from "./quick-duel-playtest-host";
 import { structuredLocationAttackForHost, structuredLocationDefenseForHost, structuredLocationKataForHost } from "./location-playtest-bridge";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
@@ -986,6 +986,18 @@ function drawCards(board: Board, count: number) {
   }
   return { ...board, deck, discard, hand };
 }
+
+const quickDuelHostOperations = {
+  draw: (board: Board, amount: number) => drawCards(board, amount),
+  discardForAi: (board: Board, amount: number) => {
+    const count = Math.min(Math.max(0, amount), board.hand.length);
+    const ranked = [...board.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right)));
+    const discarded = ranked.slice(0, count);
+    let hand = [...board.hand];
+    for (const id of discarded) hand = removeOne(hand, id);
+    return { ...board, hand, discard: [...board.discard, ...discarded] };
+  },
+};
 
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
@@ -3632,9 +3644,10 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
   const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
   if (!nextAi.hp) return finished;
   if (current.turnIndex === 0) {
-    const player = applyInitiateCarryover(finished.player);
+    const hostedFinished = publishQuickDuelPlaytestLifecycleEvent(finished, "player", "onInitiate", quickDuelHostOperations).match;
+    const player = applyInitiateCarryover(hostedFinished.player);
     const carryover = player.focus - finished.player.focus;
-    return { ...finished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...finished.log].slice(0, 32) };
+    return { ...hostedFinished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...hostedFinished.log].slice(0, 32) };
   }
   return advanceRound(finished, sceneChanges, "Both fighters have completed the round.");
 }
@@ -3649,10 +3662,13 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string) {
     ? { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard }
     : refreshMarketRow(current.market, current.marketDeck, current.marketDiscard);
   const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
-  const initiatedPlayer = playerFirst ? applyInitiateCarryover(player) : player;
+  const stagedForInitiate: Match = { ...current, player, ai };
+  const hostedInitiate = playerFirst ? publishQuickDuelPlaytestLifecycleEvent(stagedForInitiate, "player", "onInitiate", quickDuelHostOperations).match : stagedForInitiate;
+  const initiatedPlayer = playerFirst ? applyInitiateCarryover(hostedInitiate.player) : player;
+  const initiatedAi = hostedInitiate.ai;
   const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
   const marketNote = current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
-  const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
+  const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai: initiatedAi, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
   const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && cardHasRuntimeResolver(candidate, "consumable.replaceRevealedMarketOrLocation")));
   if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "replace-revealed-card", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
   if (!current.marketPurchasedThisRound && lucky) {
@@ -3664,6 +3680,7 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string) {
 }
 
 function prepareAiTurn(current: Match) {
+  current = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", quickDuelHostOperations).match;
   const fighter = cardFor(current.ai.fighterId);
   const initiatedAi = applyInitiateCarryover({ ...current.ai, usedEffectIdsThisTurn: [] });
   const turnEquipment = autoActivateAiTurnEquipment(initiatedAi);
