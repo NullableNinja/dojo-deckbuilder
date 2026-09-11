@@ -60,7 +60,7 @@ replaceBetween(
 
 replaceBetween(
   'function locationFocusModifier(location: CardEntry | undefined, card: CardEntry, board: Board): CombatModifier {',
-  'function stage3cDefenseContext(',
+  'function printedAttackRuleModifier(',
   `function locationFocusModifier(location: CardEntry | undefined, card: CardEntry, board: Board): CombatModifier {\n  const kataAlreadyPlayed = board.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; });\n  if (!location || !isKata(card) || kataAlreadyPlayed) return { value: 0, notes: [] };\n  const parsed = structuredLocationKataForHost(location, { firstKataThisTurn: true });\n  const value = parsed.setFocusTo === null ? parsed.focus : parsed.setFocusTo - cardFocus(card);\n  return { value, notes: parsed.notes };\n}\n\n`,
   "Location Kata Focus host boundary",
 );
@@ -75,7 +75,7 @@ replaceBetween(
 replaceBetween(
   'function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry): AttackModifier {',
   'function reduceDamageForFighter(board: Board, damage: number): { board: Board; damage: number; note: string | null } {',
-  `function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry): AttackModifier {\n  const fighter = cardFor(attacker.fighterId);\n  if (!fighter) return { power: 0, damage: 0, notes: [] };\n  const firstAttack = attacker.attacksThisTurn === 0;\n  const hasWeaponEquipped = attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });\n  const printedZone = card.zone?.split(",")[0] ?? null;\n  const previousZone = attacker.zonesPlayed.at(-1) ?? null;\n  const structured = characterAttackModifier(attacker, defender, card, {\n    firstAttackThisTurn: firstAttack,\n    usedConsumableThisTurn: attacker.usedConsumableThisRound,\n    hasWeaponEquipped,\n    wasHitSinceLastTurn: attacker.wasHitSinceLastTurn,\n    playedKataEarlierThisTurn: attacker.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; }),\n    zone: printedZone ?? undefined,\n    previousAttackZone: previousZone,\n    differentZoneFromPreviousAttack: Boolean(previousZone && printedZone && previousZone !== printedZone),\n  });\n  const catchupEffect = structuredRuntimeResolvers(fighter, "character.xpTrailFirstHit")[0];\n  const catchupDamage = firstAttack && defender.xp > attacker.xp ? Number(catchupEffect?.amount ?? 0) : 0;\n  const notes = [...structured.notes];\n  if (catchupDamage) notes.push(\`Character: XP-trail first Hit +\${catchupDamage} damage\`);\n  return { power: structured.power, damage: structured.damage + catchupDamage, notes };\n}\n\n`,
+  `function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry): AttackModifier {\n  const fighter = cardFor(attacker.fighterId);\n  if (!fighter) return { power: 0, damage: 0, notes: [] };\n  const firstAttack = attacker.attacksThisTurn === 0;\n  const hasWeaponEquipped = attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });\n  const printedZone = card.zone?.split(",")[0] ?? null;\n  const previousZone = attacker.zonesPlayed.at(-1) ?? null;\n  const structured = characterAttackModifier(attacker, defender, card, {\n    firstAttackThisTurn: firstAttack,\n    usedConsumableThisTurn: attacker.usedConsumableThisRound,\n    hasWeaponEquipped,\n    playedKataEarlierThisTurn: attacker.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; }),\n    zone: printedZone ?? undefined,\n    previousAttackZone: previousZone,\n    differentZoneFromPreviousAttack: Boolean(previousZone && printedZone && previousZone !== printedZone),\n  });\n  const catchupEffect = structuredRuntimeResolvers(fighter, "character.xpTrailFirstHit")[0];\n  const catchupDamage = firstAttack && defender.xp > attacker.xp ? Number(catchupEffect?.amount ?? 0) : 0;\n  const notes = [...structured.notes];\n  if (catchupDamage) notes.push(\`Character: XP-trail first Hit +\${catchupDamage} damage\`);\n  return { power: structured.power, damage: structured.damage + catchupDamage, notes };\n}\n\n`,
   "Character attack modifier host boundary",
 );
 
@@ -122,7 +122,6 @@ replaceRequired(
   "Character flexible-zone UI",
 );
 
-// Preserve Character usage scopes across the Board lifecycle.
 replaceAllRequired(
   'damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0,',
   'damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], usedCharacterEffectIdsThisTurn: [], usedCharacterEffectIdsThisRound: [], characterMarks: {}, nextAttackArmorPenalty: 0,',
