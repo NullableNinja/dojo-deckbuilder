@@ -12,14 +12,19 @@ import {
   activateQuickDuelRuntimeStatusesForEvent,
   type QuickDuelRuntimeCommandOperations,
   type QuickDuelRuntimeCommandBoards,
+  type QuickDuelRuntimeStatusEventFacts,
 } from "./quick-duel-runtime-command-host.ts";
 import type { QuickDuelComboEventFacts } from "./quick-duel-combo-planner.ts";
 
-export type QuickDuelComboHostedEventResult<Board extends QuickDuelComboMatchBoard> = {
+export type QuickDuelComboPublishedEventResult<Board extends QuickDuelComboMatchBoard> = {
   boards: QuickDuelRuntimeCommandBoards<Board>;
   commands: RuntimeCommand[];
-  activatedComboIds: string[];
 };
+
+export type QuickDuelComboHostedEventResult<Board extends QuickDuelComboMatchBoard> =
+  QuickDuelComboPublishedEventResult<Board> & {
+    activatedComboIds: string[];
+  };
 
 export type QuickDuelComboAttackPreparation<Board extends QuickDuelComboMatchBoard> =
   QuickDuelComboHostedEventResult<Board> & {
@@ -27,8 +32,31 @@ export type QuickDuelComboAttackPreparation<Board extends QuickDuelComboMatchBoa
   };
 
 /**
- * Publishes one real gameplay event to already-active Combo sessions and then
- * evaluates learned, not-yet-triggered Combos against that same event.
+ * Publishes a gameplay lifecycle event that does not itself require a card to
+ * complete a new Combo. Deferred statuses consume their matching future window
+ * first, followed by already-active Combo sessions.
+ *
+ * This is the correct seam for phase events such as Initiate: the host never
+ * fabricates a current card merely to advance canonical future effects.
+ */
+export function publishQuickDuelComboEvent<Board extends QuickDuelComboMatchBoard>(
+  boards: QuickDuelRuntimeCommandBoards<Board>,
+  trigger: RuntimeTrigger,
+  controller: "player" | "ai",
+  operations: QuickDuelRuntimeCommandOperations<Board>,
+  statusEvent: QuickDuelRuntimeStatusEventFacts = {},
+): QuickDuelComboPublishedEventResult<Board> {
+  const deferred = activateQuickDuelRuntimeStatusesForEvent(boards, trigger, controller, operations, statusEvent);
+  const published = publishQuickDuelComboSessions(deferred.boards, trigger, controller, operations);
+  return {
+    boards: published.boards,
+    commands: [...deferred.commands, ...published.commands],
+  };
+}
+
+/**
+ * Publishes one real card gameplay event to already-active Combo sessions and
+ * then evaluates learned, not-yet-triggered Combos against that same event.
  *
  * Deferred board statuses consume their matching future event first, existing
  * sessions then receive the event, and newly completed Combos activate last.
@@ -47,9 +75,9 @@ export function hostQuickDuelComboEvent<Board extends QuickDuelComboMatchBoard>(
   controller: "player" | "ai",
   operations: QuickDuelRuntimeCommandOperations<Board>,
   event: QuickDuelComboEventFacts = {},
+  statusEvent: QuickDuelRuntimeStatusEventFacts = {},
 ): QuickDuelComboHostedEventResult<Board> {
-  const deferred = activateQuickDuelRuntimeStatusesForEvent(boards, trigger, controller, operations);
-  const published = publishQuickDuelComboSessions(deferred.boards, trigger, controller, operations);
+  const published = publishQuickDuelComboEvent(boards, trigger, controller, operations, statusEvent);
   const activated = activateQuickDuelCombosForEvent(
     published.boards,
     currentCard,
@@ -62,7 +90,7 @@ export function hostQuickDuelComboEvent<Board extends QuickDuelComboMatchBoard>(
   );
   return {
     boards: activated.boards,
-    commands: [...deferred.commands, ...published.commands, ...activated.commands],
+    commands: [...published.commands, ...activated.commands],
     activatedComboIds: activated.activatedComboIds,
   };
 }
@@ -80,6 +108,7 @@ export function prepareQuickDuelComboAttack<Board extends QuickDuelComboMatchBoa
   controller: "player" | "ai",
   operations: QuickDuelRuntimeCommandOperations<Board>,
   event: QuickDuelComboEventFacts = {},
+  statusEvent: QuickDuelRuntimeStatusEventFacts = {},
 ): QuickDuelComboAttackPreparation<Board> {
   const hosted = hostQuickDuelComboEvent(
     boards,
@@ -90,6 +119,7 @@ export function prepareQuickDuelComboAttack<Board extends QuickDuelComboMatchBoa
     controller,
     operations,
     event,
+    statusEvent,
   );
   return {
     ...hosted,
