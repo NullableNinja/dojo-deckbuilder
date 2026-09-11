@@ -1,12 +1,15 @@
 import type { ComboHostCardLookup } from "./combo-host-facts.ts";
 import type { ComboRuntimeCard } from "./combo-runtime.ts";
+import type { CharacterRuntimeBoard, CharacterRuntimeEvent } from "./character-runtime.ts";
 import type { RuntimeCommand, RuntimeTrigger } from "./family-effect-runtime.ts";
 import {
   applyQuickDuelStructuredTransition,
   hostQuickDuelComboEvent,
   prepareQuickDuelComboAttack,
+  publishQuickDuelCharacterEventSafely,
   publishQuickDuelComboEvent,
   type QuickDuelAttackRuntimeFacts,
+  type QuickDuelCharacterPublication,
   type QuickDuelComboEventFacts,
   type QuickDuelComboMatchBoard,
   type QuickDuelRuntimeCommandOperations,
@@ -26,6 +29,13 @@ export type QuickDuelPlaytestEventResult<Match> = {
 
 export type QuickDuelPlaytestAttackResult<Match> = QuickDuelPlaytestEventResult<Match> & {
   attackFacts: QuickDuelAttackRuntimeFacts;
+};
+
+export type QuickDuelPlaytestCharacterEventResult<Match> = {
+  match: Match;
+  published: boolean;
+  conflict: boolean;
+  reason: string;
 };
 
 function opposingActor(actor: QuickDuelPlaytestActor): QuickDuelPlaytestActor {
@@ -95,6 +105,49 @@ export function publishQuickDuelPlaytestLifecycleEvent<
     match: withActorBoards(match, actor, published.boards),
     commands: published.commands,
     activatedComboIds: [],
+  };
+}
+
+/**
+ * Publishes a Character event through the migration-safe canonical runtime.
+ *
+ * Events that still have a legacy compatibility helper in playtest.tsx are
+ * deliberately rejected by the Character ownership registry so the same
+ * structured effect cannot resolve twice. As those helpers are retired, the
+ * registry automatically opens the corresponding generic event route without
+ * adding fighter identities or rules to this adapter.
+ */
+export function publishQuickDuelPlaytestCharacterEvent<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  event: CharacterRuntimeEvent,
+): QuickDuelPlaytestCharacterEventResult<Match> {
+  const oriented = boardsForActor(match, actor);
+  const publication: QuickDuelCharacterPublication<Board, Board> = publishQuickDuelCharacterEventSafely(
+    oriented.self,
+    oriented.opponent,
+    event,
+    actor,
+  );
+  if (!publication.result) {
+    return {
+      match,
+      published: publication.published,
+      conflict: publication.conflict,
+      reason: publication.reason,
+    };
+  }
+  return {
+    match: withActorBoards(match, actor, {
+      self: publication.result.self,
+      opponent: publication.result.opponent,
+    }),
+    published: publication.published,
+    conflict: publication.conflict,
+    reason: publication.reason,
   };
 }
 
