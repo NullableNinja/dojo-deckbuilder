@@ -50,10 +50,10 @@ replaceRequired(
   "Core applyCardEffects prose boundary",
 );
 
-// Attack Flow for Core cards is decided by structured Attack/Equipment effects only.
+// Attack Flow for Core cards is decided by canonical structured Attack/Equipment effects only.
 replaceRequired(
   'if (structuredFlow.handled) return structuredFlow.hasFlow;\n  if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {',
-  'if (structuredFlow.handled) return structuredFlow.hasFlow;\n  if (card.catalogId.includes("-CORE-")) {\n    const pairedFlow = board.equipment.some((id) => {\n      const item = cardFor(id);\n      return Boolean(item && structuredRuntimeResolvers(item, "equipment.pairedWeaponFlow").length);\n    });\n    return board.attacksThisTurn === 1 && pairedFlow;\n  }\n  if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {',
+  'if (structuredFlow.handled) return structuredFlow.hasFlow;\n  if (card.catalogId.includes("-CORE-")) {\n    const pairedWeapons = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item && isWeapon(item) && hasTag(item, "Paired")));\n    const attackNumber = board.attacksThisTurn + 1;\n    return pairedWeapons.length >= 2 && board.equipment.some((id) => {\n      const item = cardFor(id);\n      return Boolean(item && structuredRuntimeResolvers(item, "equipment.structured").some((effect) => {\n        if (effect.effect !== "combat.grantFlow" || effect.trigger !== "onAttackDeclared") return false;\n        const attackNumberCondition = (effect.conditions ?? []).find((condition) => condition.kind === "attackNumber");\n        const pairedCondition = (effect.conditions ?? []).find((condition) => condition.kind === "hasTwoPairedWeapons");\n        return Number(attackNumberCondition?.value ?? -1) === attackNumber && pairedCondition?.value === true;\n      }));\n    });\n  }\n  if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {',
   "Core attack Flow prose boundary",
 );
 replaceRegexRequired(
