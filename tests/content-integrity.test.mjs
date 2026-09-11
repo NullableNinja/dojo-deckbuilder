@@ -107,9 +107,9 @@ test("Wild Swing publishes its r5 complete card art", async () => {
   assert.ok(websiteArtwork.size > 30_000, "Wild Swing website art must be the finished card, not a placeholder");
   assert.ok(downloadArtwork.size > 150_000, "Wild Swing download must retain print-friendly resolution");
   assert.ok(companion.includes("...STARTER_CARD_URLS"), "Card Library must resolve starter art");
-  assert.ok(companion.includes("cmb|sta"), "Card Library catalog matcher must include starter IDs");
-  assert.ok(playtest.includes("characters,starters"), "Playtest must bundle starter art");
-  assert.ok(playtest.includes("cmb|sta"), "Playtest catalog matcher must include starter IDs");
+  assert.ok(companion.includes("cmb|sta|loc"), "Card Library catalog matcher must include Starter and Location IDs");
+  assert.ok(playtest.includes("characters,starters,locations"), "Playtest must bundle Starter and Location art");
+  assert.ok(playtest.includes("cmb|sta|loc"), "Playtest catalog matcher must include Starter and Location IDs");
 });
 
 test("editable card source pipeline emits GIMP-compatible OpenRaster deliverables", async () => {
@@ -167,7 +167,7 @@ test("playtest uses the live Core catalog and actual uploaded card art", async (
   assert.match(companion, /PlaytestView/);
   assert.match(companion, /Play Quick Duel/);
   assert.match(playtest, /import cardsJson from "\.\/data\/cards\.json"/);
-  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,defense-equipment,gear,combos,characters,starters\}/);
+  assert.match(playtest, /import\.meta\.glob<string>\("\.\/assets\/cards\/\{attacks,defenses,katas,consumables,defense-equipment,gear,combos,characters,starters,locations\}/);
   assert.match(playtest, /COMPLETE_CARD_ART_BY_CATALOG_ID\[card\.catalogId\]/);
   assert.match(playtest, /gameDefinition\.starterDeck\.flatMap/);
   assert.match(playtest, /const marketPool = cards\.filter/);
