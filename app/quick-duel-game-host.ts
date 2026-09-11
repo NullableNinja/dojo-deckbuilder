@@ -55,8 +55,10 @@ export {
 export {
   hostQuickDuelComboEvent,
   prepareQuickDuelComboAttack,
+  publishQuickDuelComboEvent,
   type QuickDuelComboAttackPreparation,
   type QuickDuelComboHostedEventResult,
+  type QuickDuelComboPublishedEventResult,
 } from "./quick-duel-combo-event-host.ts";
 
 export {
