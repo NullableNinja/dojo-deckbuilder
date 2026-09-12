@@ -1,4 +1,3 @@
-import cardsJson from "./data/cards.json";
 import {
   characterHasResolver,
   type CharacterRuntimeBoard,
@@ -14,48 +13,43 @@ export type QuickDuelCharacterLifecycleFacts = {
   noCombatDamagePreviousTurn?: boolean;
 };
 
-type RuntimeCard = {
+export type QuickDuelCharacterCard = {
   id: string;
   subtype?: string | null;
 };
 
-type RuntimeCardCatalog = { cards?: RuntimeCard[] };
+export type QuickDuelCharacterCardLookup = (id: string) => QuickDuelCharacterCard | null | undefined;
 
-const runtimeCards = (cardsJson as unknown as RuntimeCardCatalog).cards ?? [];
-const cardById = new Map(runtimeCards.map((card) => [card.id, card]));
+const isPermanentEquipment = (card: QuickDuelCharacterCard | null | undefined) =>
+  card?.subtype === "Weapon" || card?.subtype === "Defense Equipment" || card?.subtype === "Gear";
 
-const isPermanentEquipment = (id: string) => {
-  const subtype = cardById.get(id)?.subtype;
-  return subtype === "Weapon" || subtype === "Defense Equipment" || subtype === "Gear";
-};
-
-const isConsumable = (id: string) => cardById.get(id)?.subtype === "Consumable";
-const isWeapon = (id: string) => cardById.get(id)?.subtype === "Weapon";
+const isConsumable = (card: QuickDuelCharacterCard | null | undefined) => card?.subtype === "Consumable";
+const isWeapon = (card: QuickDuelCharacterCard | null | undefined) => card?.subtype === "Weapon";
 
 /**
  * Derives Character event facts from live board state based on resolver
- * capability rather than fighter identity. This is the seam that lets canonical
- * Character effects participate in Quick Duel without card-name conditionals in
- * playtest.tsx.
+ * capability rather than fighter identity. Card classification comes from the
+ * host's canonical card lookup instead of a second imported catalog.
  */
 export function quickDuelCharacterLifecycleEvent(
   board: CharacterRuntimeBoard,
   event: "initiate" | "hide",
+  cardLookup: QuickDuelCharacterCardLookup,
   facts: QuickDuelCharacterLifecycleFacts = {},
 ): CharacterRuntimeEvent {
   if (event === "hide") return { type: "hide" };
 
   let candidateIds: string[] | undefined;
   if (characterHasResolver(board.fighterId, "character.equipDiscardPermanentUntilHide")) {
-    candidateIds = board.discard.filter(isPermanentEquipment);
+    candidateIds = board.discard.filter((id) => isPermanentEquipment(cardLookup(id)));
   } else if (characterHasResolver(board.fighterId, "character.revealConsumableCycle")) {
-    candidateIds = board.hand.filter(isConsumable);
+    candidateIds = board.hand.filter((id) => isConsumable(cardLookup(id)));
   }
 
   return {
     type: "initiate",
     candidateIds,
-    hasWeaponEquipped: board.equipment.some(isWeapon),
+    hasWeaponEquipped: board.equipment.some((id) => isWeapon(cardLookup(id))),
     noCombatDamagePreviousTurn: facts.noCombatDamagePreviousTurn,
   };
 }
