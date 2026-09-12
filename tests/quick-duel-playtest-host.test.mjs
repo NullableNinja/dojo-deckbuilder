@@ -118,7 +118,7 @@ test("cardless lifecycle publication targets the acting AI board rather than the
     turnIndex: 1,
   });
 
-  const published = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", operations);
+  const published = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", operations, lookupWith());
   assert.equal(published.match.ai.focus, 2);
   assert.equal(published.match.player.focus, 1);
   assert.equal(published.match.ai.stage3cStatuses.length, 0);
@@ -134,7 +134,7 @@ test("the live Initiate lifecycle seam derives Ducktape candidates and preserves
     { phase: "player-initiate", turnIndex: 0 },
   );
 
-  const offered = publishQuickDuelPlaytestLifecycleEvent(current, "player", "onInitiate", operations);
+  const offered = publishQuickDuelPlaytestLifecycleEvent(current, "player", "onInitiate", operations, lookupWith());
   assert.equal(offered.characterPublished, true);
   assert.equal(offered.characterConflict, false);
   assert.equal(offered.characterEvent?.type, "initiate");
@@ -153,20 +153,20 @@ test("the live Initiate lifecycle seam derives Ducktape candidates and preserves
   assert.equal(resolved.match.player.borrowedEquipmentId, permanent.id);
   assert.ok(resolved.match.player.equipment.includes(permanent.id));
 
-  const hidden = publishQuickDuelPlaytestLifecycleEvent(resolved.match, "player", "onHide", operations);
+  const hidden = publishQuickDuelPlaytestLifecycleEvent(resolved.match, "player", "onHide", operations, lookupWith());
   assert.equal(hidden.match.player.borrowedEquipmentId, null);
   assert.ok(!hidden.match.player.equipment.includes(permanent.id));
   assert.ok(hidden.match.player.discard.includes(permanent.id));
 });
 
-test("the live Initiate lifecycle seam lets AI resolve Character choices without React card logic", () => {
+test("the live Initiate lifecycle seam lets AI resolve Character abilities without React card logic", () => {
   const current = match(
     board({ fighterId: "DDB-CHR-CORE-001" }),
     board({ fighterId: "DDB-CHR-CORE-024", nextAttackBonus: 0 }),
     { phase: "ai-ready", turnIndex: 1 },
   );
 
-  const published = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", operations);
+  const published = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", operations, lookupWith());
   assert.equal(published.characterPublished, true);
   assert.equal(published.characterChoices.length, 0);
   assert.equal(published.match.ai.nextAttackBonus, 1);
