@@ -14,9 +14,11 @@ test("experimental global Dojo Dossier lifecycle stays isolated from the applica
   assert.match(lifecycle, /export default function CardViewerLifecycle\(\)/);
 });
 
-test("shared CardInspector is eager in the application graph so inspect cannot depend on a late chunk", () => {
-  assert.match(main, /import \{ CardInspector \} from "\.\.\/app\/card-inspector";/);
-  assert.match(main, /rootElement\.dataset\.cardInspectorModule = CardInspector\.name \|\| "ready";/);
+test("shared CardInspector stays out of the application entry and is loaded through its dedicated lazy module", () => {
+  assert.doesNotMatch(main, /import \{ CardInspector \} from "\.\.\/app\/card-inspector";/);
+  assert.doesNotMatch(main, /rootElement\.dataset\.cardInspectorModule/);
+  assert.match(playtest, /lazy\(\(\) => import\("\.\/card-inspector"\)\.then\(\(module\) => \(\{ default: module\.CardInspector \}\)\)\)/);
+  assert.match(companion, /lazy\(\(\) => import\("\.\/card-inspector"\)\.then\(\(module\) => \(\{ default: module\.CardInspector \}\)\)\)/);
 });
 
 test("Dojo Dossier contains card render failures instead of unmounting the Playtest", () => {
