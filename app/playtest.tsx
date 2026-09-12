@@ -2419,15 +2419,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       airHornAiConsumableSpentThisStrike = true;
     } else {
       if (ai.hand.includes(reaction.id)) {
-        ai = stage3cConsumeDefenseStatuses(markCompletedTask({
+        ai = {
           ...ai,
           hand: removeOne(ai.hand, reaction.id),
           discard: [...ai.discard, reaction.id],
-          xp: ai.xp + 1,
-          defendedThisRound: true,
-          playedDefenseSinceLastTurn: true,
-          nextDefenseCardBonus: 0,
-        }));
+        };
       }
       airHornAiDefenseSpentThisStrike = true;
     }
@@ -2928,15 +2924,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (defenseCard) {
       const aiAirHorn = firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
       if (aiAirHorn) {
-        const cancelledPlayer = stage3cConsumeDefenseStatuses(markCompletedTask({
+        const cancelledPlayer: Board = {
           ...current.player,
           hand: removeOne(current.player.hand, defenseCard.id),
           discard: [...current.player.discard, defenseCard.id],
-          xp: current.player.xp + 1,
-          defendedThisRound: true,
-          playedDefenseSinceLastTurn: true,
-          nextDefenseCardBonus: 0,
-        }));
+        };
         let reactingAi: Board = {
           ...current.ai,
           hand: removeOne(current.ai.hand, aiAirHorn.id),
