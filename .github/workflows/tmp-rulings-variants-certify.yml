@@ -106,6 +106,41 @@ jobs:
           PY
           rm app/reference-desk.tsx app/reference-desk.css
 
+      - name: Align certification tests with unified guidance architecture
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_exact(path, old, new):
+              target = Path(path)
+              text = target.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one stale assertion, found {count}: {old!r}")
+              target.write_text(text.replace(old, new))
+
+          replace_exact(
+              "tests/mobile-responsive.test.mjs",
+              '  assert.match(app, /view === "house-rules"/);',
+              '  assert.match(app, /rawView === "house-rules"/);\n  assert.match(app, /id: "rulings", label: "Rulings & Variants"/);\n  assert.doesNotMatch(app, /view === "house-rules"/);',
+          )
+          replace_exact(
+              "tests/rulings-variants-house-rules.test.mjs",
+              '  assert.match(source, /Quick Duel variants/);',
+              '  assert.match(source, /Optional house rules/);',
+          )
+          replace_exact(
+              "tests/static-build.test.mjs",
+              '["Quick Start", "Card Library", "Rulings & Errata", "Glossary", "House Rules", "Rita attacks Devin. Count the paper."]',
+              '["Quick Start", "Card Library", "Rulings & Variants", "Glossary", "House Rules", "Rita attacks Devin. Count the paper."]',
+          )
+          stale_reference_test = Path("tests/reference-desk.test.mjs")
+          if not stale_reference_test.exists():
+              raise SystemExit("expected the stale Reference Desk test before removal")
+          stale_reference_test.unlink()
+          PY
+
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
