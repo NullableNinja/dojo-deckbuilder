@@ -14,6 +14,7 @@ import "../app/playtest-market-card-polish.css";
 import "../app/card-library-art-consistency.css";
 import "../app/playtest-layout.css";
 import "../app/playtest-live-skin.css";
+import "../app/playtest-visual-repair.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
