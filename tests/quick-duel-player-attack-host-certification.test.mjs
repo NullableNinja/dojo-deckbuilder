@@ -33,7 +33,30 @@ test("committed AI Attack routes Combo gameplay through the canonical Playtest h
   const defenseResolution = source.slice(defenseStart, defenseEnd);
   assert.match(defenseResolution, /hostQuickDuelPlaytestCardEvent\(hostedComboMatch, "ai", aiCard, pending\.zone, cardFor, "onHit"/);
   assert.match(defenseResolution, /hostQuickDuelPlaytestCardEvent\(hostedComboMatch, "ai", aiCard, pending\.zone, cardFor, "afterResolve"/);
+});
 
-  const remainingLegacyAttackCalls = source.match(/comboAttackModifier\(current\./g) ?? [];
-  assert.equal(remainingLegacyAttackCalls.length, 1, "only Reversal may remain on the legacy Combo path during this migration stage");
+test("committed Reversal routes Combo gameplay through the canonical Playtest host", async () => {
+  const source = await readFile(sourceUrl, "utf8");
+  const start = source.indexOf('  const resolveReversal = () => setMatch((current) => {');
+  const end = source.indexOf("\n  const useHandCard =", start);
+  assert.ok(start >= 0 && end > start, "Reversal function boundaries must remain discoverable");
+
+  const reversal = source.slice(start, end);
+  assert.match(reversal, /prepareQuickDuelPlaytestAttack\(current, "player", card, zone, cardFor, quickDuelHostOperations, \{ isReversal: true \}\)/);
+  assert.match(reversal, /hostQuickDuelPlaytestCardEvent\(hostedComboMatch, "player", card, zone, cardFor, "onHit", quickDuelHostOperations, \{ isReversal: true/);
+  assert.match(reversal, /hostQuickDuelPlaytestCardEvent\(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, \{ isReversal: true/);
+  assert.doesNotMatch(reversal, /comboAttackModifier|comboModifier/, "Reversal must not retain a parallel Combo rulebook");
+});
+
+test("Playtest has no legacy Combo Attack evaluator and evaluateCombo is display-only", async () => {
+  const source = await readFile(sourceUrl, "utf8");
+  assert.doesNotMatch(source, /function comboAttackModifier\(/, "legacy Combo Attack evaluator must stay deleted");
+  assert.doesNotMatch(source, /type ComboModifier\b/, "legacy ComboModifier type must stay deleted");
+  assert.equal((source.match(/comboAttackModifier\(/g) ?? []).length, 0, "no gameplay path may call the deleted Combo evaluator");
+
+  const evaluateComboMatches = [...source.matchAll(/evaluateCombo\(/g)];
+  assert.equal(evaluateComboMatches.length, 1, "evaluateCombo may remain only for the Learned Combo display preview");
+  const learnedComboDisplay = source.indexOf("const learnedComboStates = player.learnedCombos.map");
+  assert.ok(learnedComboDisplay >= 0, "Learned Combo preview state must remain discoverable");
+  assert.ok(evaluateComboMatches[0].index > learnedComboDisplay, "the sole evaluateCombo call must be inside the Learned Combo display path");
 });
