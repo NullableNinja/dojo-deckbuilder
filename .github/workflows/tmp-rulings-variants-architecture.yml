@@ -45,11 +45,32 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Regenerate canonical derivatives
+      - name: Regenerate canonical derivatives and repair generated callers
         run: |
           npm run game:generate
-          echo '--- all generated pickQuickAction references ---'
-          grep -n -C 10 'pickQuickAction' app/playtest.tsx || true
+          python <<'PY'
+          from pathlib import Path
+          path = Path("app/playtest.tsx")
+          text = path.read_text()
+          old_block = '''const suggestedAction = pickQuickAction(
+    player,
+    match.market,
+    actionUsability,
+  );'''
+          new_block = '''const suggestedAction = pickQuickAction(
+    player,
+    match.market,
+    settings,
+    actionUsability,
+  );'''
+          old_inline = 'const recommended = canAct ? pickQuickAction(player, match.market, actionUsability) : null;'
+          new_inline = 'const recommended = canAct ? pickQuickAction(player, match.market, settings, actionUsability) : null;'
+          if text.count(old_block) != 1:
+              raise SystemExit(f"expected one generated suggestedAction caller, found {text.count(old_block)}")
+          if text.count(old_inline) != 1:
+              raise SystemExit(f"expected one generated recommended caller, found {text.count(old_inline)}")
+          path.write_text(text.replace(old_block, new_block).replace(old_inline, new_inline))
+          PY
 
       - name: Remove temporary patch machinery
         run: rm .github/workflows/tmp-rulings-variants-architecture.yml scripts/tmp-rulings-variants-patch.py
