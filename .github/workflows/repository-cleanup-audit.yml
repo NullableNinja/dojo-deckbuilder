@@ -43,12 +43,24 @@ jobs:
           node --test tests/repository-hygiene.test.mjs 2>&1 | tee cleanup-audit/hygiene-test.txt
 
       - name: Run complete repository test gate
+        id: full_test
+        continue-on-error: true
         env:
           GITHUB_PAGES: true
-        run: npm test
+        shell: bash
+        run: |
+          mkdir -p cleanup-audit
+          set -o pipefail
+          npm test 2>&1 | tee cleanup-audit/npm-test.txt
 
       - name: Runtime effect certification
-        run: node scripts/certify-runtime-effects.mjs
+        id: runtime_cert
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p cleanup-audit
+          set -o pipefail
+          node scripts/certify-runtime-effects.mjs 2>&1 | tee cleanup-audit/runtime-certification.txt
 
       - name: TypeScript unused-symbol diagnostic
         continue-on-error: true
@@ -151,7 +163,13 @@ jobs:
           PY
 
       - name: Ensure generated source is clean
-        run: git diff --exit-code
+        id: generated_clean
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p cleanup-audit
+          set -o pipefail
+          git diff --exit-code 2>&1 | tee cleanup-audit/generated-clean.txt
 
       - name: Upload audit artifact
         if: always()
@@ -161,5 +179,16 @@ jobs:
           path: |
             cleanup-audit/inventory.json
             cleanup-audit/hygiene-test.txt
+            cleanup-audit/npm-test.txt
+            cleanup-audit/runtime-certification.txt
             cleanup-audit/tsc-unused.txt
+            cleanup-audit/generated-clean.txt
           if-no-files-found: warn
+
+      - name: Enforce certification result
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.full_test.outcome }}" = "success"
+          test "${{ steps.runtime_cert.outcome }}" = "success"
+          test "${{ steps.generated_clean.outcome }}" = "success"
