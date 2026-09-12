@@ -5,14 +5,13 @@ on:
     branches:
       - stage3-main-integration-authoring
     paths:
-      - scripts/reconcile-stage3-lifecycle-host.mjs
       - .github/workflows/stage3-main-integration-authoring.yml
 
 permissions:
   contents: write
 
 jobs:
-  author-lifecycle-candidate:
+  author-player-attack-candidate:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -37,11 +36,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Reconcile Initiate lifecycle
+      - name: Replay player Attack host
         run: |
-          node scripts/reconcile-stage3-lifecycle-host.mjs
+          git fetch origin 4a3bafb5e2754fab1efa607c90e319cd4e0c36fa
+          git show 4a3bafb5e2754fab1efa607c90e319cd4e0c36fa -- app/playtest.tsx | git apply --3way
           git add app/playtest.tsx
-          git commit -m "candidate: publish canonical Initiate lifecycle"
+          git commit -m "candidate: route player Attack through unified Combo host"
 
       - name: TypeScript gate
         run: npx tsc --noEmit
@@ -49,5 +49,5 @@ jobs:
       - name: Playtest host gate
         run: node --experimental-strip-types --test tests/quick-duel-playtest-host.test.mjs
 
-      - name: Push lifecycle candidate
+      - name: Push player Attack candidate
         run: git push origin HEAD:stage3-main-integration-authoring
