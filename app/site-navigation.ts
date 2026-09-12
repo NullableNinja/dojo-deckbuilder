@@ -12,7 +12,7 @@ export type SiteNavigationItem = {
   order: number;
 };
 
-export const SITE_NAVIGATION: SiteNavigationItem[] = [
+const SITE_NAVIGATION_ITEMS: SiteNavigationItem[] = [
   {
     page: "home",
     label: "Home",
@@ -98,7 +98,9 @@ export const SITE_NAVIGATION: SiteNavigationItem[] = [
     mobileBottomIcon: "Aa",
     order: 70,
   },
-].sort((a, b) => a.order - b.order);
+];
+
+export const SITE_NAVIGATION: SiteNavigationItem[] = SITE_NAVIGATION_ITEMS.sort((a, b) => a.order - b.order);
 
 export const DESKTOP_NAVIGATION = SITE_NAVIGATION.filter((item) => item.desktop);
 export const MOBILE_MENU_NAVIGATION = SITE_NAVIGATION.filter((item) => item.mobileMenu);
