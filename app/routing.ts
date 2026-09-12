@@ -148,6 +148,31 @@ export function subscribeToRoute(listener: (route: SiteRoute) => void) {
   };
 }
 
+const routeState = (transient = false) => ({
+  ...(typeof window !== "undefined" ? window.history.state ?? {} : {}),
+  ...(transient ? { ddbTransientRoute: true } : { ddbRoute: true }),
+});
+
+/**
+ * Change only the browser address for a routed overlay without notifying the
+ * app shell. Quick Duel uses this so an open card Dossier exposes the same
+ * #cards/DDB-... URL as the Card Library while the duel remains mounted.
+ * Direct navigation/reload of that URL still resolves through parseRoute().
+ */
+export function pushTransientRoute(route: SiteRoute) {
+  if (typeof window === "undefined") return;
+  const hash = serializeRoute(route);
+  if (window.location.hash === hash) return;
+  window.history.pushState(routeState(true), "", hash);
+}
+
+export function replaceTransientRoute(route: SiteRoute) {
+  if (typeof window === "undefined") return;
+  const hash = serializeRoute(route);
+  if (window.location.hash === hash) return;
+  window.history.replaceState(routeState(true), "", hash);
+}
+
 const writeRoute = (route: SiteRoute, replace: boolean) => {
   if (typeof window === "undefined") return;
   const hash = serializeRoute(route);
@@ -155,9 +180,8 @@ const writeRoute = (route: SiteRoute, replace: boolean) => {
     notify();
     return;
   }
-  const state = { ...(window.history.state ?? {}), ddbRoute: true };
-  if (replace) window.history.replaceState(state, "", hash);
-  else window.history.pushState(state, "", hash);
+  if (replace) window.history.replaceState(routeState(), "", hash);
+  else window.history.pushState(routeState(), "", hash);
   notify();
 };
 

@@ -89,6 +89,40 @@
 }
 
 /* -------------------------------------------------------------------------
+   ASCEND FOOTER — the helper sentence was the remaining vertical regression.
+   The final action row is self-explanatory; keep Previous + Finish on one line.
+   ---------------------------------------------------------------------- */
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+}
+
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions > div {
+  min-height: 42px !important;
+  height: 42px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions > div > small {
+  display: none !important;
+}
+
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions > .button,
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions > div > .button {
+  height: 42px !important;
+  min-height: 42px !important;
+  margin: 0 !important;
+  align-self: center !important;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------------
    ASCEND ACQUISITION — full-width Combo overlay + shrink-wrapped desk/footer
    ---------------------------------------------------------------------- */
 @media (min-width: 1200px) {
@@ -155,15 +189,18 @@
     align-items: center !important;
   }
 
-  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-guide-actions > div {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 10px !important;
+  /* Belt Check had its own 62px footer track, so the Acquisition-only repair
+     never touched the screenshot regression. Give Belt Check the same compact
+     action-row contract now that the helper sentence is removed from layout. */
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-belt) {
+    grid-template-rows: 82px 54px auto 52px !important;
   }
 
-  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-guide-actions small,
-  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-next {
-    margin: 0 !important;
-    align-self: center !important;
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-belt) > .ascend-desk-footer {
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+    align-items: center !important;
+    padding-block: 5px !important;
   }
 }
