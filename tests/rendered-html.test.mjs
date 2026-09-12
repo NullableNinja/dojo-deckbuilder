@@ -9,14 +9,27 @@ test("renders the static GitHub Pages shell with mobile metadata", async () => {
   assert.match(html, /\/dojo-deckbuilder\/assets\/index-[^"']+\.js/);
 });
 
-test("bundles the interactive Starter Deck lesson and both card examples", async () => {
+test("bundles the interactive Starter Deck lesson from canonical card and rule data", async () => {
   const assetDirectory = new URL("../dist/assets/", import.meta.url);
   const bundles = (await readdir(assetDirectory)).filter((name) => /^index-.*\.js$/.test(name));
   assert.equal(bundles.length, 1);
   const bundle = await readFile(new URL(bundles[0], assetDirectory), "utf8");
-  for (const expected of ["Build this exact 15-card deck.", "Basic Jab", "High Guard", "Attacks", "Defenses", "Katas", "Junk", "Rita attacks Devin. Count the paper."]) {
-    assert.ok(bundle.includes(expected), `Missing companion lesson content: ${expected}`);
+  const [companion, presentation, rules] = await Promise.all([
+    readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/canonical-presentation.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/rules.json", import.meta.url), "utf8"),
+  ]);
+
+  for (const expected of ["Build this exact 15-card deck.", "Rita attacks Devin. Count the paper."]) {
+    assert.ok(bundle.includes(expected), `Missing companion lesson UI content: ${expected}`);
   }
+  for (const expected of ["Basic Jab", "High Guard", "Attacks", "Defenses", "Katas", "Junk"]) {
+    assert.ok(rules.includes(expected), `Missing canonical Starter Deck content: ${expected}`);
+  }
+  assert.match(companion, /CANONICAL_STARTER_CARDS\.map/);
+  assert.match(companion, /STARTER_EXAMPLES\.basicJab/);
+  assert.match(companion, /STARTER_EXAMPLES\.highGuard/);
+  assert.match(presentation, /standard-starter-deck/);
   assert.equal(bundle.match(/data:image\/webp;base64,/g)?.length ?? 0, 0, "Artwork should remain separately cacheable.");
 });
 
