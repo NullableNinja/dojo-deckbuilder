@@ -21,7 +21,7 @@ import "../app/mobile-site-polish.css";
 import "../app/card-inspector-host-fix.css";
 import "../app/playtest-collision-guard.css";
 import "../app/playtest-graphics-fix.css";
-import "../app/reference-desk.css";
+import "../app/rulings-variants.css";
 import "../app/playtest-card-surface.css";
 import "../app/playtest-market-card-polish.css";
 import "../app/card-library-art-consistency.css";
