@@ -29,13 +29,17 @@ jobs:
         run: |
           sed -i 's/if call_count < 8:/if call_count != 7:/' scripts/tmp-rulings-variants-patch.py
           sed -i 's/expected at least 8 settings.locations call endings/expected 7 settings.locations call endings/' scripts/tmp-rulings-variants-patch.py
+          sed -i 's#rules_path = "app/data/rules.json"#rules_path = "content/rules.json"#' scripts/tmp-rulings-variants-patch.py
           python scripts/tmp-rulings-variants-patch.py
-
-      - name: Remove temporary patch machinery
-        run: rm .github/workflows/tmp-rulings-variants-architecture.yml scripts/tmp-rulings-variants-patch.py
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Regenerate canonical derivatives
+        run: npm run game:generate
+
+      - name: Remove temporary patch machinery
+        run: rm .github/workflows/tmp-rulings-variants-architecture.yml scripts/tmp-rulings-variants-patch.py
 
       - name: Run full repository gate
         env:
@@ -47,6 +51,6 @@ jobs:
         run: |
           git config user.name "Dojo Deckbuilder Automation"
           git config user.email "actions@users.noreply.github.com"
-          git add app/companion-app.tsx app/playtest.tsx app/search-page.tsx app/data/rules.json .github/workflows/tmp-rulings-variants-architecture.yml scripts/tmp-rulings-variants-patch.py
+          git add app/companion-app.tsx app/playtest.tsx app/search-page.tsx app/data/rules.json content/rules.json .github/workflows/tmp-rulings-variants-architecture.yml scripts/tmp-rulings-variants-patch.py
           git commit -m "unify rulings and add optional Quick Duel variants"
           git push origin HEAD:rulings-variants-playtest-options
