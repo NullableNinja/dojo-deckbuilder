@@ -27,12 +27,26 @@ test("player Air Horn can cancel the AI's one Defense without allowing a replace
   assert.ok(handler.includes("return resolvePlayerAttackState(intercepted)"));
 });
 
-test("Air Horn player choice preserves normal lifecycle destinations", () => {
+test("canceled AI Defense is spent but does not resolve Defense or Block lifecycle", () => {
+  const handler = source.slice(source.indexOf("const resolvePlayerAirHornChoice ="), source.indexOf("const playSupport ="));
+  const start = handler.indexOf('if (choice.reactionKind === "consumable")');
+  const end = handler.indexOf("airHornAiDefenseSpentThisStrike = true", start);
+  assert.ok(start >= 0 && end > start);
+  const defenseCancellation = handler.slice(start, end);
+  assert.ok(defenseCancellation.includes("hand: removeOne(ai.hand, reaction.id)"));
+  assert.ok(defenseCancellation.includes("discard: [...ai.discard, reaction.id]"));
+  assert.doesNotMatch(defenseCancellation, /stage3cConsumeDefenseStatuses/);
+  assert.doesNotMatch(defenseCancellation, /markCompletedTask/);
+  assert.doesNotMatch(defenseCancellation, /\bxp:/);
+  assert.doesNotMatch(defenseCancellation, /defendedThisRound/);
+  assert.doesNotMatch(defenseCancellation, /playedDefenseSinceLastTurn/);
+  assert.doesNotMatch(defenseCancellation, /nextDefenseCardBonus/);
+});
+
+test("Air Horn player choice preserves Consumable lifecycle destinations", () => {
   const handler = source.slice(source.indexOf("const resolvePlayerAirHornChoice ="), source.indexOf("const playSupport ="));
   assert.ok(handler.includes("player = returnResolvedConsumable(player, airHorn)"));
   assert.ok(handler.includes("cancelledAi = returnResolvedConsumable(cancelledAi, reaction)"));
-  assert.ok(handler.includes("discard: [...ai.discard, reaction.id]"));
-  assert.ok(handler.includes("stage3cConsumeDefenseStatuses(markCompletedTask"));
 });
 
 test("Air Horn choice is an explicit two-button Dojo Stack decision", () => {
