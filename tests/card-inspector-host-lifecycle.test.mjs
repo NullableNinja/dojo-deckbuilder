@@ -14,6 +14,12 @@ test("card inspector host recovery loads after the base inspector cascade", () =
   assert.ok(hostFixImport > inspectorImport, "host recovery must load after Card Inspector styles");
 });
 
+test("production entry exposes the eager CardInspector required by Quick Duel's lazy resolver", () => {
+  assert.match(main, /import \{ CardInspector \} from "\.\.\/app\/card-inspector";/);
+  assert.match(main, /export \{ CardInspector \};/);
+  assert.match(playtest, /lazy\(\(\) => import\("\.\/card-inspector"\)\.then\(\(module\) => \(\{ default: module\.CardInspector \}\)\)\)/);
+});
+
 test("universal inspector no longer locks the host page vertically", () => {
   assert.match(fixCss, /body:has\(\.universal-card-inspector-backdrop\)[\s\S]*overflow-y:\s*auto\s*!important/);
   assert.match(fixCss, /\.universal-card-inspector-backdrop[\s\S]*overscroll-behavior:\s*contain/);
