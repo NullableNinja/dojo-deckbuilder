@@ -2472,7 +2472,7 @@
       "intro": [
         {
           "kind": "paragraph",
-          "text": "House rules live in the dedicated House Rules section of the companion site: approved deviations the Department wishes it had not initialed."
+          "text": "House rules live under Rulings & Variants in the companion site: optional deviations kept clearly separate from official rulings and agreed before setup."
         }
       ],
       "sections": []
@@ -2798,63 +2798,108 @@
       "category": "Promotion",
       "summary": "KO a peer and finish the task—not the XP.",
       "rule": "When you KO an opposing non-Boss fighter at your Belt or higher, mark your current promotion task complete. You still need the required XP and must promote during Ascend.",
-      "notes": "Accelerates task completion without bypassing the XP race."
+      "notes": "Accelerates task completion without bypassing the XP race.",
+      "id": "steal-the-belt",
+      "quickDuel": {
+        "status": "not-applicable",
+        "reason": "Quick Duel ends when the opposing fighter is KO'd, so task credit from that KO cannot affect the duel."
+      }
     },
     {
       "name": "Corner Advice",
       "category": "Comeback",
       "summary": "Once per game, your bench calls the play.",
       "rule": "Once per game during Initiate, draw 2 cards, then discard 2 cards. In a one-Character mode, you may still use this rule; imagine a very loud folding chair.",
-      "notes": "Replaces the old resource-banking variant with bounded hand selection that cannot compound into permanent currency."
+      "notes": "Replaces the old resource-banking variant with bounded hand selection that cannot compound into permanent currency.",
+      "id": "corner-advice",
+      "quickDuel": {
+        "status": "planned",
+        "reason": "This needs a once-per-game draw/discard decision for both the player and tactical AI before it can be enforced fairly."
+      }
     },
     {
       "name": "Secret Kata Night",
       "category": "Market Chaos",
       "summary": "Buy the cost; discover the Kata afterward.",
       "rule": "When a Kata enters the Market, cover its name, rules text, tags, and Focus Value while leaving its Focus Cost visible. Reveal it only after purchase.",
-      "notes": "Use sleeves or blank cards as covers so no card is marked or damaged."
+      "notes": "Use sleeves or blank cards as covers so no card is marked or damaged.",
+      "id": "secret-kata-night",
+      "quickDuel": {
+        "status": "planned",
+        "reason": "Hidden Market information needs dedicated masking and AI knowledge rules before the digital implementation can be trustworthy."
+      }
     },
     {
       "name": "Crowd Favorite",
       "category": "Catch-Up",
       "summary": "The trailing fighter gets one dramatic save per round.",
       "rule": "At Honor, the sole player or team with the lowest XP takes the Crowd token. Once that round after their active fighter is Hit, they may spend it to draw 1 card, then discard 1 card; their next Defense card that round gets +1 Guard. Tied-lowest players receive no token.",
-      "notes": "A bounded defensive nudge with no currency farming."
+      "notes": "A bounded defensive nudge with no currency farming.",
+      "id": "crowd-favorite",
+      "quickDuel": {
+        "status": "planned",
+        "reason": "The Crowd token needs Honor timing, per-round ownership, and a post-Hit choice window that the current duel state does not model yet."
+      }
     },
     {
       "name": "Training Montage",
       "category": "Deck Control",
       "summary": "Lose one action phase to clean up your act.",
       "rule": "Once per game at the start of Yell, skip the rest of that Yell. Heal your active fighter 4 HP and Destroy one Junk card from your hand or discard pile.",
-      "notes": "The immediate lost phase pays for bounded healing and thinning."
+      "notes": "The immediate lost phase pays for bounded healing and thinning.",
+      "id": "training-montage",
+      "quickDuel": {
+        "status": "planned",
+        "reason": "Skipping Yell, choosing a Junk card to Destroy, and teaching the AI when to take the trade all require a new decision state."
+      }
     },
     {
       "name": "Friendly Fire",
       "category": "Team Chaos",
       "summary": "Teammates may attack each other—without farming rewards.",
       "rule": "In team play, active fighters may target allied active fighters. The first allied Attack each round resolves normally but grants no XP, promotion-task credit, KO reward, Tempo, or learned Combo trigger to either teammate.",
-      "notes": "The once-per-round limit keeps the joke tactical instead of becoming an engine."
+      "notes": "The once-per-round limit keeps the joke tactical instead of becoming an engine.",
+      "id": "friendly-fire",
+      "quickDuel": {
+        "status": "not-applicable",
+        "reason": "Quick Duel has one fighter per side and no allied active fighter to target."
+      }
     },
     {
       "name": "Market Scramble",
       "category": "Market",
       "summary": "Replace the entire Market every round.",
       "rule": "At the end of every round, discard every unpurchased Market card and reveal seven fresh cards. Purchases still receive an immediate one-card refill from the top of the Market Deck.",
-      "notes": "Use this optional rule when the table prefers faster churn over a persistent shared row."
+      "notes": "Use this optional rule when the table prefers faster churn over a persistent shared row.",
+      "id": "market-scramble",
+      "quickDuel": {
+        "status": "supported",
+        "reason": "Quick Duel enforces the full seven-card end-of-round refresh through the same Market pipeline used by Market Mercy."
+      }
     },
     {
       "name": "Fast Belts",
       "category": "Short Game",
       "summary": "Later promotions arrive three XP sooner.",
       "rule": "Use the normal Gold threshold. Reduce every later Belt threshold by 3, to a minimum of 1 XP above the previous Belt. Tasks and the one-promotion-per-turn limit remain unchanged.",
-      "notes": "Best for demos and weeknight games."
+      "notes": "Best for demos and weeknight games.",
+      "id": "fast-belts",
+      "quickDuel": {
+        "status": "supported",
+        "reason": "Quick Duel applies the reduced post-Gold XP thresholds symmetrically to the player, AI, promotion checks, and Belt displays."
+      }
     },
     {
       "name": "Scroll Shopping",
       "category": "Combo Control",
       "summary": "Pay extra to browse three future mistakes.",
       "rule": "For your Combo attempt, reveal the top three Combo cards instead of one. Choose one to learn by paying its Focus Cost plus 1 Focus, then shuffle the others back. If you learn none, return all three and shuffle.",
-      "notes": "Preserves the separate face-down deck and one-attempt limit while adding choice."
+      "notes": "Preserves the separate face-down deck and one-attempt limit while adding choice.",
+      "id": "scroll-shopping",
+      "quickDuel": {
+        "status": "planned",
+        "reason": "Three-card Combo selection needs a new acquisition choice surface and matching AI policy before it can be automated safely."
+      }
     }
   ]
 }

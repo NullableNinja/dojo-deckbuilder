@@ -16,7 +16,7 @@ test("bundles the complete interactive companion", async () => {
   assert.ok(mainScript, "Expected the main application bundle");
   const bundles = await Promise.all(scripts.map((name) => readFile(new URL(name, assetDirectory), "utf8")));
   const completeBundle = bundles.join("\n");
-  for (const expected of ["Quick Start", "Card Library", "Rulings & Errata", "Glossary", "House Rules", "Rita attacks Devin. Count the paper."]) {
+  for (const expected of ["Quick Start", "Card Library", "Rulings & Variants", "Glossary", "House Rules", "Rita attacks Devin. Count the paper."]) {
     assert.ok(completeBundle.includes(expected), `Missing site content: ${expected}`);
   }
   const embeddedWebpImages = completeBundle.match(/data:image\/webp;base64,/g)?.length ?? 0;

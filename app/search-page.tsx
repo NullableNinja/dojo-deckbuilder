@@ -151,7 +151,7 @@ const searchDojo = (query: string): SearchResult[] => {
   });
   const rulings: SearchResult[] = rulesData.officialRulings
     .filter((entry) => Object.values(entry).join(" ").toLocaleLowerCase().includes(term))
-    .map(({ id, filed, tag, title }) => ({ type: "Ruling", title, detail: `${id} · ${tag} · ${filed}`, hash: routeHash("rulings", id) }));
+    .map(({ id, filed, tag, title }) => ({ type: "Ruling", title, detail: `${id} · ${tag} · ${filed}`, hash: routeHash("rulings", "official", id) }));
   const cards: SearchResult[] = cardData.cards
     .filter((card) => cardSearchText(card).includes(term))
     .map((card) => ({ type: "Card", title: card.name, detail: `${card.catalogId} · ${card.cardType} · ${card.subtype}`, hash: routeHash("cards", card.catalogId) }));
@@ -160,7 +160,7 @@ const searchDojo = (query: string): SearchResult[] => {
     .map((entry) => ({ type: "Glossary", title: entry.term, detail: entry.meaning, hash: routeHash("glossary", entry.term) }));
   const houseRules: SearchResult[] = rulesData.houseRules
     .filter((entry) => `${entry.name} ${entry.rule} ${entry.summary ?? ""} ${entry.notes ?? ""}`.toLocaleLowerCase().includes(term))
-    .map((entry) => ({ type: "House Rule", title: entry.name, detail: entry.summary || entry.rule, hash: routeHash("house-rules", entry.name) }));
+    .map((entry) => ({ type: "House Rule", title: entry.name, detail: entry.summary || entry.rule, hash: routeHash("rulings", "house", entry.name) }));
 
   return [...rules, ...rulings, ...cards, ...terms, ...houseRules]
     .sort((a, b) => searchResultRank(a, term) - searchResultRank(b, term)
