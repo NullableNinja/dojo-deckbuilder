@@ -46,39 +46,7 @@ const gameDefinition = gameDefinitionJson as unknown as GameDefinition;
 export const HAND_SIZE = gameDefinition.turn.handSize;
 export const STARTING_HP = gameDefinition.mode.startingHp;
 export const BLACK_BELT_XP = gameDefinition.progression.belts.find((belt) => belt.id === "black")?.xp ?? 0;
-const beltRewardsChangeHp = gameDefinition.progression.belts.some((belt) => {
-  const reward = belt.reward ?? {};
-  return Object.keys(reward).some((key) => /hp|health/i.test(key));
-});
-
-const hydrateMechanicalText = (text: string) => {
-  let next = text
-    .replace(/Reach 55 XP/g, `Reach ${BLACK_BELT_XP} XP`)
-    .replace(/at least 55 XP/g, `at least ${BLACK_BELT_XP} XP`);
-
-  if (!beltRewardsChangeHp && next.includes("Belt rewards increase maximum HP")) {
-    next = `Every Character begins at ${STARTING_HP} HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards do not change current or maximum HP. Max HP remains ${STARTING_HP} unless a card or scenario explicitly changes it.`;
-  }
-  return next;
-};
-
-const hydrateBlock = (block: RuleBlock): RuleBlock => {
-  if (block.kind === "table") {
-    return { ...block, rows: block.rows.map((row) => row.map((cell) => typeof cell === "string" ? hydrateMechanicalText(cell) : cell)) };
-  }
-  return { ...block, text: hydrateMechanicalText(block.text) };
-};
-
-export const CANONICAL_RULES = {
-  ...rawRules,
-  chapters: rawRules.chapters.map((chapter) => ({
-    ...chapter,
-    intro: chapter.intro.map(hydrateBlock),
-    sections: chapter.sections.map((entry) => ({ ...entry, content: entry.content.map(hydrateBlock) })),
-  })),
-  officialRulings: rawRules.officialRulings.map((entry) => ({ ...entry, ruling: hydrateMechanicalText(entry.ruling) })),
-  glossary: rawRules.glossary.map((entry) => ({ ...entry, meaning: hydrateMechanicalText(entry.meaning) })),
-} satisfies RuleData;
+export const CANONICAL_RULES = rawRules satisfies RuleData;
 
 const rules = CANONICAL_RULES;
 const chapter = (number: number) => rules.chapters.find((entry) => entry.number === number);

@@ -322,7 +322,7 @@
           "content": [
             {
               "kind": "bullet",
-              "text": "Black Belt Victory: Reach 55 XP, complete the Black Belt promotion task, and promote during Ascend. Quick Duel does not use this victory condition."
+              "text": "Black Belt Victory: Reach 35 XP, complete the Black Belt promotion task, and promote during Ascend. Quick Duel does not use this victory condition."
             },
             {
               "kind": "bullet",
@@ -492,7 +492,7 @@
           "content": [
             {
               "kind": "paragraph",
-              "text": "Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt rewards increase maximum HP except in Quick Duel, where Max HP remains 25 unless a card or scenario explicitly changes it."
+              "text": "Every Character begins at 25 HP. Damage reduces current HP. Healing cannot raise a fighter above maximum HP. At 0 HP, the fighter is Knocked Out. Belt certification does not raise current or maximum HP or heal a fighter. Max HP remains 25 unless a card or scenario explicitly changes it."
             }
           ]
         },
@@ -2212,7 +2212,7 @@
           "content": [
             {
               "kind": "bullet",
-              "text": "Win: KO the Final Boss. If that KO completes your Black Belt task and you already have at least 55 XP, promote to Black Belt immediately before Scenario Victory is checked."
+              "text": "Win: KO the Final Boss. If that KO completes your Black Belt task and you already have at least 35 XP, promote to Black Belt immediately before Scenario Victory is checked."
             },
             {
               "kind": "bullet",

@@ -6,8 +6,9 @@ const readText = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf
 const readJson = async (path) => JSON.parse(await readText(path));
 
 test("player-facing rules presentation is driven by canonical JSON", async () => {
-  const [definition, companion, presentation] = await Promise.all([
+  const [definition, rules, companion, presentation] = await Promise.all([
     readJson("content/dojo-game.json"),
+    readJson("content/rules.json"),
     readText("app/companion-app.tsx"),
     readText("app/canonical-presentation.ts"),
   ]);
@@ -15,6 +16,19 @@ test("player-facing rules presentation is driven by canonical JSON", async () =>
   const black = definition.definition.progression.belts.find((belt) => belt.id === "black");
   assert.equal(black?.xp, 35, "Black Belt should remain the canonical 35-XP threshold");
   assert.equal(definition.definition.turn.handSize, 7, "the canonical opening/normal hand size should remain seven");
+
+  const beltTable = rules.chapters.find((chapter) => chapter.number === 11)?.sections
+    .find((section) => section.id === "belt-table")?.content
+    .find((block) => block.kind === "table")?.rows;
+  const blackRow = beltTable?.find((row) => row[0] === "Black");
+  assert.equal(blackRow?.[1], black.xp, "rulebook Belt Table must match structured Black Belt XP");
+
+  const rulesText = JSON.stringify(rules);
+  assert.match(rulesText, new RegExp(`Black Belt Victory: Reach ${black.xp} XP`));
+  assert.match(rulesText, new RegExp(`already have at least ${black.xp} XP`));
+  assert.doesNotMatch(rulesText, /55 XP/);
+  assert.doesNotMatch(rulesText, /Belt rewards increase maximum HP/);
+  assert.match(rulesText, /Belt certification does not raise current or maximum HP or heal a fighter/);
 
   assert.match(companion, /from "\.\/canonical-presentation"/);
   assert.match(companion, /const rulesData = CANONICAL_RULES/);
@@ -40,14 +54,13 @@ test("player-facing rules presentation is driven by canonical JSON", async () =>
   assert.doesNotMatch(companion, /Pause for no more than two minutes\.<\/li>/);
   assert.doesNotMatch(companion, /Attack Power<\/b> = printed Attack Power/);
 
-  assert.match(presentation, /BLACK_BELT_XP/);
-  assert.match(presentation, /Reach 55 XP/g);
-  assert.match(presentation, /Reach \$\{BLACK_BELT_XP\} XP/);
-  assert.match(presentation, /Belt rewards do not change current or maximum HP/);
+  assert.match(presentation, /export const CANONICAL_RULES = rawRules satisfies RuleData/);
+  assert.doesNotMatch(presentation, /hydrateMechanicalText/);
+  assert.doesNotMatch(presentation, /Reach 55 XP\/g/);
+  assert.doesNotMatch(presentation, /beltRewardsChangeHp/);
   assert.match(presentation, /COMBAT_XP_RULE/);
   assert.match(presentation, /CURRENT_RULE_HIGHLIGHTS/);
 });
-
 test("homepage immediately explains the product and first-game path", async () => {
   const companion = await readText("app/companion-app.tsx");
   assert.match(companion, /A martial-arts deckbuilder with fixed packs\./);
