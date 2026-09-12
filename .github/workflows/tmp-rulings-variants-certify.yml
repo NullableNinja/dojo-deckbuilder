@@ -116,9 +116,30 @@ jobs:
         run: rm .github/workflows/tmp-rulings-variants-certify.yml scripts/tmp-rulings-variants-patch.py
 
       - name: Run full repository gate
+        id: repository-gate
+        shell: bash
         env:
           GITHUB_PAGES: true
-        run: npm test
+        run: |
+          set +e
+          npm test 2>&1 | tee /tmp/rulings-variants-test.log
+          status=${PIPESTATUS[0]}
+          {
+            echo '### Rulings & Variants certification — repository gate tail'
+            echo '```text'
+            tail -n 240 /tmp/rulings-variants-test.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Upload failed repository gate log
+        if: failure() && steps.repository-gate.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rulings-variants-test-log-${{ github.sha }}
+          path: /tmp/rulings-variants-test.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Verify clean patch formatting
         run: git diff --check
