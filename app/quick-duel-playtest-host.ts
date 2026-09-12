@@ -1,6 +1,10 @@
 import type { ComboHostCardLookup } from "./combo-host-facts.ts";
 import type { ComboRuntimeCard } from "./combo-runtime.ts";
-import type { CharacterRuntimeBoard, CharacterRuntimeEvent } from "./character-runtime.ts";
+import type {
+  CharacterRuntimeBoard,
+  CharacterRuntimeChoice,
+  CharacterRuntimeEvent,
+} from "./character-runtime.ts";
 import type { RuntimeCommand, RuntimeTrigger } from "./family-effect-runtime.ts";
 import {
   applyQuickDuelStructuredTransition,
@@ -37,6 +41,9 @@ export type QuickDuelPlaytestCharacterEventResult<Match> = {
   published: boolean;
   conflict: boolean;
   reason: string;
+  event: CharacterRuntimeEvent | null;
+  choices: CharacterRuntimeChoice[];
+  notes: string[];
 };
 
 function opposingActor(actor: QuickDuelPlaytestActor): QuickDuelPlaytestActor {
@@ -113,6 +120,11 @@ export function publishQuickDuelPlaytestLifecycleEvent<
  * structured effect cannot resolve twice. As those helpers are retired, the
  * registry automatically opens the corresponding generic event route without
  * adding fighter identities or rules to this adapter.
+ *
+ * Choices, the resolved event and resolver notes are intentionally preserved.
+ * The React host must be able to surface a canonical `core.choice` instead of
+ * silently discarding it; otherwise abilities such as Sensei Ducktape's
+ * Jerryrig can be executable in isolation while remaining inert in gameplay.
  */
 export function publishQuickDuelPlaytestCharacterEvent<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
@@ -135,6 +147,9 @@ export function publishQuickDuelPlaytestCharacterEvent<
       published: publication.published,
       conflict: publication.conflict,
       reason: publication.reason,
+      event: null,
+      choices: [],
+      notes: [],
     };
   }
   return {
@@ -145,7 +160,34 @@ export function publishQuickDuelPlaytestCharacterEvent<
     published: publication.published,
     conflict: publication.conflict,
     reason: publication.reason,
+    event: publication.result.event,
+    choices: publication.result.choices,
+    notes: publication.result.notes,
   };
+}
+
+/**
+ * Resumes a canonical Character choice without teaching the Playtest about
+ * individual resolver names. The runtime itself declares which event field the
+ * selected value belongs in.
+ */
+export function resolveQuickDuelPlaytestCharacterChoice<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  event: CharacterRuntimeEvent,
+  choice: CharacterRuntimeChoice,
+  selection: string,
+): QuickDuelPlaytestCharacterEventResult<Match> {
+  const value = choice.selectionField === "optionalAccepted"
+    ? selection === "accept"
+    : selection;
+  return publishQuickDuelPlaytestCharacterEvent(match, actor, {
+    ...event,
+    [choice.selectionField]: value,
+  });
 }
 
 /**
