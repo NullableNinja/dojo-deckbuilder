@@ -40,8 +40,35 @@ jobs:
       - name: TypeScript gate
         run: npx tsc --noEmit
 
-      - name: Full test gate
-        run: npm test
+      - name: Capture full-suite result
+        id: tests
+        shell: bash
+        run: |
+          set +e
+          npm test > character-reconcile-tests.txt 2>&1
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          grep -n -B 20 -A 80 '^not ok ' character-reconcile-tests.txt > character-reconcile-failure.txt || true
+          exit 0
+
+      - name: Publish next failure
+        if: steps.tests.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TEST_EXIT_CODE: ${{ steps.tests.outputs.exit_code }}
+        shell: bash
+        run: |
+          {
+            echo '### Stage 3 Character reconciliation — next failing assertion'
+            echo
+            echo "Source commit: $GITHUB_SHA"
+            echo "Full-suite exit code after Character migration: $TEST_EXIT_CODE"
+            echo
+            echo '```text'
+            cat character-reconcile-failure.txt
+            echo '```'
+          } > character-reconcile-comment.md
+          gh pr comment 48 --body-file character-reconcile-comment.md
 
       - name: Remove one-time authoring machinery
         run: rm scripts/reconcile-stage3-character-compat.mjs .github/workflows/stage3-rebuild-character-authoring.yml
