@@ -60,6 +60,20 @@ const SEARCH_GROUP_LABELS: Record<SearchResultType, string> = {
   Ruling: "Rulings",
   "House Rule": "House Rules",
 };
+const SEARCH_GROUP_ICONS: Record<SearchResultType, string> = {
+  Card: "◇",
+  Rule: "§",
+  Glossary: "Aa",
+  Ruling: "!",
+  "House Rule": "⌂",
+};
+const SEARCH_GROUP_NOTES: Record<SearchResultType, string> = {
+  Card: "Fighters, techniques, gear, locations & more",
+  Rule: "Canonical chapters from the rulebook",
+  Glossary: "Game terms and plain-language definitions",
+  Ruling: "Official rulings, clarifications and errata",
+  "House Rule": "Optional variants for extra dojo chaos",
+};
 const LOCATION_CHANGE_EVENT = "ddb-locationchange";
 
 const glossaryKey = (term: string) => term.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
@@ -155,6 +169,7 @@ const searchDojo = (query: string): SearchResult[] => {
 };
 
 const searchGroupId = (type: SearchResultType) => `search-${type.toLocaleLowerCase().replace(/\s+/g, "-")}`;
+const searchTypeClass = (type: SearchResultType) => type.toLocaleLowerCase().replace(/\s+/g, "-");
 
 const clearQuickSearch = () => {
   const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
@@ -170,6 +185,7 @@ export default function SearchPage() {
   const initialRoute = readSearchRoute();
   const [active, setActive] = useState(initialRoute.active);
   const [query, setQuery] = useState(initialRoute.query);
+  const [activeTypes, setActiveTypes] = useState<SearchResultType[]>(SEARCH_GROUP_ORDER);
 
   useEffect(() => {
     const originalPushState = window.history.pushState;
@@ -231,9 +247,16 @@ export default function SearchPage() {
   }, [active]);
 
   const results = useMemo(() => searchDojo(query), [query]);
+  const typeCounts = useMemo(() => SEARCH_GROUP_ORDER.reduce<Record<SearchResultType, number>>((counts, type) => {
+    counts[type] = results.filter((result) => result.type === type).length;
+    return counts;
+  }, { Card: 0, Rule: 0, Glossary: 0, Ruling: 0, "House Rule": 0 }), [results]);
+  const filteredResults = useMemo(() => results.filter((result) => activeTypes.includes(result.type)), [activeTypes, results]);
   const groups = useMemo(() => SEARCH_GROUP_ORDER
-    .map((type) => ({ type, results: results.filter((result) => result.type === type) }))
-    .filter((group) => group.results.length > 0), [results]);
+    .map((type) => ({ type, results: filteredResults.filter((result) => result.type === type) }))
+    .filter((group) => group.results.length > 0), [filteredResults]);
+  const topResults = useMemo(() => filteredResults.slice(0, 6), [filteredResults]);
+  const allFiltersActive = activeTypes.length === SEARCH_GROUP_ORDER.length;
 
   if (!active) return null;
 
@@ -241,6 +264,12 @@ export default function SearchPage() {
     setQuery(nextQuery);
     const trimmed = nextQuery.trim();
     window.history.replaceState(null, "", trimmed ? routeHash("search", trimmed) : "#search");
+  };
+
+  const toggleType = (type: SearchResultType) => {
+    setActiveTypes((current) => current.includes(type)
+      ? current.filter((entry) => entry !== type)
+      : SEARCH_GROUP_ORDER.filter((entry) => entry === type || current.includes(entry)));
   };
 
   const openResult = (result: SearchResult) => {
@@ -252,42 +281,109 @@ export default function SearchPage() {
 
   return <main className="search-page shell page-shell" aria-labelledby="dojo-search-title">
     <header className="search-page-hero paper-stack">
-      <span className="eyebrow">Department-wide search</span>
       <div className="search-page-heading">
         <div>
-          <h1 id="dojo-search-title">Spread the files out.</h1>
-          <p>The quick search is for a direct hit. This page lays every match on the desk and sorts it by where it lives.</p>
+          <span className="eyebrow">Dojo search desk</span>
+          <h1 id="dojo-search-title">Find it. File it. Fight about it.</h1>
+          <p>Search the whole dojo, then narrow the pile by the kind of answer you actually need.</p>
         </div>
-        <span className="search-page-stamp" aria-hidden="true">⌕</span>
+        <div className="search-page-paper-art" aria-hidden="true">
+          <span className="search-paper search-paper-one">RULES</span>
+          <span className="search-paper search-paper-two">CARDS</span>
+          <span className="search-paper search-paper-three">?</span>
+          <span className="search-paper-clip" />
+          <span className="search-paper-stamp">DOJO<br />INDEX</span>
+        </div>
       </div>
       <label className="search-page-input">
-        <span>Search cards, rules, rulings, glossary, and house rules</span>
-        <div><b aria-hidden="true">⌕</b><input autoFocus value={query} onChange={(event) => updateQuery(event.target.value)} placeholder="Try Tempo, High, ferret, knockout…" /></div>
+        <span>Search everything</span>
+        <div><b aria-hidden="true">⌕</b><input autoFocus value={query} onChange={(event) => updateQuery(event.target.value)} placeholder="Card, rule, term, ruling…" /></div>
       </label>
-      <p className="search-page-hint">Tip: type in the site search and press <kbd>Enter</kbd> or <kbd>Return</kbd> anytime to come here.</p>
     </header>
 
     {query.trim().length >= 2 && results.length > 0 && <>
-      <div className="search-page-summary" aria-live="polite">
-        <div><strong>{results.length}</strong><span>match{results.length === 1 ? "" : "es"} for “{query.trim()}”</span></div>
-        <nav aria-label="Jump to search result section">
-          {groups.map((group) => <button type="button" onClick={() => document.getElementById(searchGroupId(group.type))?.scrollIntoView({ behavior: "smooth", block: "start" })} key={group.type}><b>{group.results.length}</b>{SEARCH_GROUP_LABELS[group.type]}</button>)}
-        </nav>
-      </div>
+      <aside className="search-page-summary paper-stack" aria-label="Search dashboard filters">
+        <div className="search-dashboard-total" aria-live="polite">
+          <span>On the desk</span>
+          <strong>{filteredResults.length}</strong>
+          <small>{filteredResults.length === results.length ? `${results.length} matches` : `of ${results.length} matches`}</small>
+        </div>
+
+        <div className="search-dashboard-filter-heading">
+          <span>Filter the pile</span>
+          <button type="button" className={allFiltersActive ? "active" : ""} onClick={() => setActiveTypes([...SEARCH_GROUP_ORDER])}>All</button>
+        </div>
+
+        <div className="search-dashboard-filters">
+          {SEARCH_GROUP_ORDER.map((type) => {
+            const selected = activeTypes.includes(type);
+            return <button
+              type="button"
+              className={`search-filter search-filter-${searchTypeClass(type)}${selected ? " active" : ""}`}
+              aria-pressed={selected}
+              disabled={typeCounts[type] === 0}
+              onClick={() => toggleType(type)}
+              key={type}
+            >
+              <span className="search-filter-icon" aria-hidden="true">{SEARCH_GROUP_ICONS[type]}</span>
+              <span>{SEARCH_GROUP_LABELS[type]}</span>
+              <b>{typeCounts[type]}</b>
+            </button>;
+          })}
+        </div>
+
+        {groups.length > 1 && <nav className="search-dashboard-jumps" aria-label="Jump to result section">
+          <span>Jump to</span>
+          {groups.map((group) => <button type="button" onClick={() => document.getElementById(searchGroupId(group.type))?.scrollIntoView({ behavior: "smooth", block: "start" })} key={group.type}>{SEARCH_GROUP_LABELS[group.type]} <b>↓</b></button>)}
+        </nav>}
+      </aside>
 
       <div className="search-page-results">
-        {groups.map((group) => <section className="search-page-group paper-stack" id={searchGroupId(group.type)} key={group.type}>
-          <header><div><span className="eyebrow">Filed under</span><h2>{SEARCH_GROUP_LABELS[group.type]}</h2></div><strong>{group.results.length}</strong></header>
-          <div className="search-page-result-grid">
-            {group.results.map((result) => <button type="button" className="search-page-result" onClick={() => openResult(result)} key={`${result.type}-${result.title}-${result.detail}`}>
-              <span>{result.type}</span>
+        {topResults.length > 0 && <section className="search-page-top paper-stack" aria-labelledby="search-top-title">
+          <header>
+            <div><span className="eyebrow">Fastest route</span><h2 id="search-top-title">Top Matches</h2></div>
+            <span className="search-top-note">Best-ranked hits across your active filters</span>
+          </header>
+          <div className="search-page-top-grid">
+            {topResults.map((result, index) => <button
+              type="button"
+              className={`search-page-result search-page-top-result search-result-${searchTypeClass(result.type)}`}
+              onClick={() => openResult(result)}
+              key={`top-${result.type}-${result.title}-${result.detail}`}
+            >
+              <span className="search-result-rank">0{index + 1}</span>
+              <span className="search-result-type"><i aria-hidden="true">{SEARCH_GROUP_ICONS[result.type]}</i>{result.type}</span>
               <h3>{result.title}</h3>
               <p>{result.detail}</p>
-              <b>Open filing →</b>
+            </button>)}
+          </div>
+        </section>}
+
+        {groups.map((group) => <section className={`search-page-group search-group-${searchTypeClass(group.type)} paper-stack`} id={searchGroupId(group.type)} key={group.type}>
+          <header>
+            <div className="search-group-heading">
+              <span className="search-group-icon" aria-hidden="true">{SEARCH_GROUP_ICONS[group.type]}</span>
+              <div><span className="eyebrow">Filed under</span><h2>{SEARCH_GROUP_LABELS[group.type]}</h2><p>{SEARCH_GROUP_NOTES[group.type]}</p></div>
+            </div>
+            <strong>{group.results.length}</strong>
+          </header>
+          <div className="search-page-result-grid">
+            {group.results.map((result) => <button
+              type="button"
+              className={`search-page-result search-result-${searchTypeClass(result.type)}`}
+              onClick={() => openResult(result)}
+              key={`${result.type}-${result.title}-${result.detail}`}
+            >
+              <span className="search-result-type"><i aria-hidden="true">{SEARCH_GROUP_ICONS[result.type]}</i>{result.type}</span>
+              <h3>{result.title}</h3>
+              <p>{result.detail}</p>
+              <b>Open →</b>
             </button>)}
           </div>
         </section>)}
       </div>
+
+      {filteredResults.length === 0 && <section className="search-page-empty paper-stack"><span aria-hidden="true">☰</span><h2>Your filters cleared the desk.</h2><p>Turn a category back on or choose All to bring the results back.</p></section>}
     </>}
 
     {query.trim().length < 2 && <section className="search-page-empty paper-stack"><span aria-hidden="true">⌕</span><h2>Give me at least two characters.</h2><p>Then I’ll search the whole dojo instead of making the filing cabinet panic.</p></section>}
