@@ -17,23 +17,26 @@ test("last-mile repair loads after the Combo popout hook", () => {
   assert.ok(lastMile > popout);
 });
 
-test("hand is forced to the full live shell width", () => {
-  assert.match(css, /playtest-workspace\.playtest-workspace--hand\s*\{[\s\S]*width:\s*100% !important;[\s\S]*max-width:\s*none !important;/);
+test("hand removes the legacy 190px rail instead of only changing width", () => {
+  assert.match(css, /playtest-workspace\.playtest-workspace--hand\s*\{[\s\S]*width:\s*100% !important;[\s\S]*display:\s*block !important;[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) !important;[\s\S]*gap:\s*0 !important;/);
   assert.match(css, /hand-panel\.paper-stack\s*\{[\s\S]*width:\s*100% !important;[\s\S]*max-width:\s*none !important;/);
-  assert.match(css, /play-card-row\s*\{[\s\S]*flex-wrap:\s*nowrap !important;[\s\S]*overflow-x:\s*auto !important;/);
+  assert.match(css, /play-card-row\s*\{[\s\S]*flex-wrap:\s*nowrap !important;[\s\S]*justify-content:\s*safe center !important;[\s\S]*overflow-x:\s*auto !important;/);
 });
 
-test("fighter Combo launcher has a readable two-part compact layout", () => {
-  assert.match(css, /fighter-combo-launch\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto !important;[\s\S]*gap:\s*6px !important;/);
+test("fighter Combo launcher is a styled readable two-part control", () => {
+  assert.match(css, /fighter-combo-launch\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto !important;/);
+  assert.match(css, /fighter-combo-launch\s*\{[\s\S]*gap:\s*7px !important;/);
+  assert.match(css, /fighter-combo-launch\s*\{[\s\S]*background:\s*linear-gradient\([\s\S]*!important;/);
   assert.match(css, /fighter-combo-launch > small\s*\{\s*display:\s*none !important;/);
 });
 
-test("expanded Combo is anchored to the whole Acquisition Market", () => {
+test("expanded Combo explicitly escapes the collapsed launcher grid area", () => {
   assert.match(css, /ascend-market\s*\{[\s\S]*position:\s*relative !important;[\s\S]*overflow:\s*visible !important;/);
-  assert.match(css, /ascend-featured-combo\[data-combo-popout="ready"\]\.is-open\s*\{[\s\S]*inset:\s*54px 0 auto 0 !important;[\s\S]*width:\s*auto !important;[\s\S]*max-width:\s*none !important;/);
+  assert.match(css, /ascend-featured-combo\[data-combo-popout="ready"\]\.is-open\s*\{[\s\S]*grid-area:\s*unset !important;[\s\S]*left:\s*0 !important;[\s\S]*right:\s*0 !important;[\s\S]*width:\s*100% !important;[\s\S]*min-width:\s*100% !important;/);
 });
 
-test("Acquisition footer keeps helper text and continue action on one compact row", () => {
-  assert.match(css, /:has\(\.ascend-market\)\s*\{[\s\S]*grid-template-rows:\s*82px 54px auto 52px !important;/);
-  assert.match(css, /ascend-guide-actions > div\s*\{[\s\S]*display:\s*flex !important;[\s\S]*flex-direction:\s*row !important;/);
+test("Acquisition desk shrink-wraps its real content and keeps a compact footer", () => {
+  assert.match(css, /ascend-desk-backdrop > \.ascend-desk\.ascend-desk--functional:has\(\.ascend-market\)\s*\{[\s\S]*height:\s*auto !important;[\s\S]*min-height:\s*0 !important;[\s\S]*grid-template-rows:\s*82px 54px auto 52px !important;/);
+  assert.match(css, /ascend-desk-body\s*\{[\s\S]*height:\s*auto !important;[\s\S]*max-height:\s*calc\(100dvh - 238px\) !important;/);
+  assert.match(css, /ascend-desk-footer\s*\{[\s\S]*height:\s*52px !important;[\s\S]*max-height:\s*52px !important;/);
 });

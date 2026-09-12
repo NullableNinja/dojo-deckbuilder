@@ -1,62 +1,85 @@
 /* Quick Duel last-mile production repair -----------------------------------
    PRESENTATION ONLY.
 
-   This file is intentionally imported after the Combo pop-out runtime hook.
-   A handful of legacy playtest component rules are lazy-loaded with the
-   playtest chunk, so these narrowly-scoped overrides protect the final live
-   geometry until the remaining legacy component CSS is fully retired.
+   These rules intentionally own the final live geometry after the historical
+   playtest skins. They reset the specific legacy layout properties that were
+   still winning even though width-only regression checks were green.
 */
 
-/* Hand: the live hand owns the same shell width as HUD + arena. */
-.playtest-shell.playtest-shell--live .playtest-workspace.playtest-workspace--hand {
+/* -------------------------------------------------------------------------
+   HAND — remove the legacy reserved 190px rail, not merely widen the wrapper
+   ---------------------------------------------------------------------- */
+.playtest-shell.playtest-shell--live > .playtest-workspace.playtest-workspace--hand {
+  grid-area: hand / 1 / hand / -1 !important;
   width: 100% !important;
   min-width: 0 !important;
   max-width: none !important;
-  margin-inline: 0 !important;
+  display: block !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0 !important;
+  overflow: visible !important;
+  margin: 0 !important;
   justify-self: stretch !important;
 }
 
-.playtest-shell.playtest-shell--live .playtest-workspace--hand > .hand-panel.paper-stack {
+.playtest-shell.playtest-shell--live > .playtest-workspace--hand > .hand-panel.paper-stack {
   width: 100% !important;
   min-width: 0 !important;
   max-width: none !important;
-  margin-inline: 0 !important;
+  margin: 0 !important;
   box-sizing: border-box;
 }
 
-.playtest-shell.playtest-shell--live .playtest-workspace--hand .play-card-row {
+.playtest-shell--live .playtest-workspace--hand .play-card-row {
   width: 100% !important;
   min-width: 0 !important;
   max-width: none !important;
   flex-wrap: nowrap !important;
+  justify-content: safe center !important;
   overflow-x: auto !important;
+  overflow-y: hidden !important;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable both-edges;
 }
 
-/* Fighter Combo docket: keep the compact XP-row launcher readable. */
+.playtest-shell--live .playtest-workspace--hand .play-card-row .play-card {
+  flex-shrink: 0 !important;
+}
+
+/* -------------------------------------------------------------------------
+   FIGHTER COMBO DOCKET — compact Paper-Fu control, no smashed COMBOS0/2 text
+   ---------------------------------------------------------------------- */
 .playtest-shell--live .fighter-combo-launch {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
   grid-template-rows: 1fr !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 7px !important;
   padding: 0 8px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(230, 205, 143, .54) !important;
+  border-radius: 6px 2px 7px 3px !important;
+  color: #f7efd7 !important;
+  background: linear-gradient(160deg, rgba(38, 82, 63, .98), rgba(18, 49, 37, .98)) !important;
+  box-shadow: inset 0 0 0 1px rgba(7, 24, 17, .35) !important;
   line-height: 1 !important;
 }
 
 .playtest-shell--live .fighter-combo-launch > span {
   min-width: 0;
   overflow: hidden;
-  color: inherit;
+  color: #f0d36d !important;
   font-size: 8px !important;
-  font-weight: 900;
-  letter-spacing: .035em;
+  font-weight: 950 !important;
+  letter-spacing: .045em !important;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .playtest-shell--live .fighter-combo-launch > b {
   margin: 0 !important;
-  font-size: 15px !important;
+  color: #fff8df !important;
+  font-size: 14px !important;
   line-height: 1 !important;
   white-space: nowrap;
 }
@@ -65,44 +88,70 @@
   display: none !important;
 }
 
-/* Acquisition Combo pop-out: anchor the absolute panel to the whole Market,
-   never to the narrow launcher column. */
+/* -------------------------------------------------------------------------
+   ASCEND ACQUISITION — full-width Combo overlay + shrink-wrapped desk/footer
+   ---------------------------------------------------------------------- */
 @media (min-width: 1200px) {
   .playtest-shell--live .ascend-desk--functional .ascend-market {
     position: relative !important;
     overflow: visible !important;
   }
 
+  /* The open panel must stop participating in the collapsed 116px Combo grid
+     area. Explicit physical edges make the Market itself the containing box. */
   .playtest-shell--live .ascend-desk--functional .ascend-featured-combo[data-combo-popout="ready"].is-open {
+    grid-area: unset !important;
     position: absolute !important;
-    inset: 54px 0 auto 0 !important;
-    width: auto !important;
-    min-width: 0 !important;
-    max-width: none !important;
+    inset: auto !important;
+    top: 54px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
+    z-index: 24 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     height: 366px !important;
     min-height: 366px !important;
     max-height: 366px !important;
+    margin: 0 !important;
     justify-self: stretch !important;
+    transform: none !important;
     overflow: hidden !important;
-    z-index: 24 !important;
   }
 
-  /* Acquisition footer hugs the desk instead of creating a low hanging action. */
-  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) {
+  /* Acquisition should hug its actual one-row Market instead of preserving a
+     viewport-height body inherited from the generic Ascend dialog. */
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-market) {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 40px) !important;
     grid-template-rows: 82px 54px auto 52px !important;
+    align-self: center !important;
+  }
+
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-market) > .ascend-desk-body {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 238px) !important;
+    padding-bottom: 6px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
   }
 
   .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) > .ascend-desk-footer {
-    min-height: 52px !important;
     height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
     align-items: center !important;
     padding-block: 5px !important;
   }
 
   .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-guide-actions,
   .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-guide-actions > div {
-    min-height: 42px !important;
     height: 42px !important;
+    min-height: 42px !important;
     align-items: center !important;
   }
 
