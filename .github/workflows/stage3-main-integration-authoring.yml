@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  author-integration-candidates:
+  author-transition-candidate:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -43,50 +43,11 @@ jobs:
           git add app/playtest.tsx
           git commit -m "candidate: wire Playtest transitions through unified game host"
 
-      - name: Fetch historical integration commits
-        run: |
-          git fetch origin b0557f1a2b8e77af65c063afe75196e73d03c593 4a3bafb5e2754fab1efa607c90e319cd4e0c36fa 5c78b98b8e12abf7a20036f43572e949f2c0713f 58ae0f5da2f63aa645745b3e74c65a7475bc6a0e
-
-      - name: Replay Initiate lifecycle
-        run: |
-          git show b0557f1a2b8e77af65c063afe75196e73d03c593 -- app/playtest.tsx | git apply --3way
-          git add app/playtest.tsx
-          git commit -m "candidate: publish canonical Initiate lifecycle"
-
-      - name: Replay player Attack host
-        run: |
-          git show 4a3bafb5e2754fab1efa607c90e319cd4e0c36fa -- app/playtest.tsx | git apply --3way
-          git add app/playtest.tsx
-          git commit -m "candidate: route player Attack through unified Combo host"
-
-      - name: Replay AI Attack host
-        run: |
-          git show 5c78b98b8e12abf7a20036f43572e949f2c0713f -- app/playtest.tsx | git apply --3way
-          git add app/playtest.tsx
-          git commit -m "candidate: route AI Attack through unified Combo host"
-
-      - name: Replay Reversal host
-        run: |
-          git show 58ae0f5da2f63aa645745b3e74c65a7475bc6a0e -- app/playtest.tsx | git apply --3way
-          git add app/playtest.tsx
-          git commit -m "candidate: route Reversal through unified Combo host"
-
       - name: TypeScript gate
         run: npx tsc --noEmit
 
       - name: Playtest host gate
         run: node --experimental-strip-types --test tests/quick-duel-playtest-host.test.mjs
 
-      - name: Remove authoring machinery before full suite
-        run: rm scripts/reconcile-stage3-transition-host.mjs .github/workflows/stage3-main-integration-authoring.yml
-
-      - name: Full repository gate
-        run: npm test
-
-      - name: Commit authoring cleanup
-        run: |
-          git add scripts/reconcile-stage3-transition-host.mjs .github/workflows/stage3-main-integration-authoring.yml
-          git commit -m "authoring: remove temporary Stage 3 integration machinery"
-
-      - name: Push candidate chain
+      - name: Push transition candidate
         run: git push origin HEAD:stage3-main-integration-authoring
