@@ -38,5 +38,11 @@ test("expanded Combo explicitly escapes the collapsed launcher grid area", () =>
 test("Acquisition desk shrink-wraps its real content and keeps a compact footer", () => {
   assert.match(css, /ascend-desk-backdrop > \.ascend-desk\.ascend-desk--functional:has\(\.ascend-market\)\s*\{[\s\S]*height:\s*auto !important;[\s\S]*min-height:\s*0 !important;[\s\S]*grid-template-rows:\s*82px 54px auto 52px !important;/);
   assert.match(css, /ascend-desk-body\s*\{[\s\S]*height:\s*auto !important;[\s\S]*max-height:\s*calc\(100dvh - 238px\) !important;/);
-  assert.match(css, /ascend-desk-footer\s*\{[\s\S]*height:\s*52px !important;[\s\S]*max-height:\s*52px !important;/);
+});
+
+test("Belt Check removes the helper sentence from layout and keeps both actions on one compact row", () => {
+  assert.match(css, /ascend-guide-actions > div > small\s*\{\s*display:\s*none !important;/);
+  assert.match(css, /ascend-guide-actions\s*\{[\s\S]*display:\s*flex !important;[\s\S]*align-items:\s*center !important;[\s\S]*gap:\s*10px !important;/);
+  assert.match(css, /ascend-desk-backdrop > \.ascend-desk\.ascend-desk--functional:has\(\.ascend-belt\)\s*\{[\s\S]*grid-template-rows:\s*82px 54px auto 52px !important;/);
+  assert.match(css, /ascend-desk\.ascend-desk--functional:has\(\.ascend-belt\) > \.ascend-desk-footer\s*\{[\s\S]*height:\s*52px !important;[\s\S]*min-height:\s*52px !important;[\s\S]*max-height:\s*52px !important;/);
 });
