@@ -1,0 +1,270 @@
+/* Ascend Featured Combo interaction correction -----------------------------
+   Desktop only. The collapsed state is intentionally a real compact launcher
+   at the end of the one-row Market — not a miniature permanent Combo panel.
+   The existing .is-open state still expands across the Market card lane.
+*/
+
+@media (min-width: 1200px) {
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo[data-combo-popout="ready"]) {
+    grid-template-columns: minmax(0, 1fr) 116px;
+    grid-template-rows: auto 366px;
+    grid-template-areas:
+      "heading heading"
+      "market combo";
+    gap: 8px 10px;
+  }
+
+  /* COLLAPSED: just a button beside the Market row. */
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) {
+    grid-area: combo;
+    position: relative;
+    inset: auto;
+    z-index: 3;
+    width: 108px;
+    min-width: 108px;
+    max-width: 108px;
+    height: 112px;
+    min-height: 112px;
+    max-height: 112px;
+    align-self: center;
+    justify-self: center;
+    display: block;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid rgba(236, 205, 112, .78);
+    border-radius: 10px 4px 11px 5px;
+    background: linear-gradient(165deg, rgba(34, 79, 59, .99), rgba(13, 47, 35, .99));
+    box-shadow: 3px 4px 0 rgba(214, 165, 40, .26);
+    cursor: pointer;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, auto) auto;
+    place-content: center;
+    place-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header::before {
+    content: "COMBO";
+    color: #f1c84f;
+    font-size: 14px;
+    font-weight: 1000;
+    line-height: 1;
+    letter-spacing: .09em;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header::after {
+    content: "OPEN ↗";
+    color: #f7e5a9;
+    font-size: 8px;
+    font-weight: 950;
+    line-height: 1;
+    letter-spacing: .12em;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header:focus-visible {
+    outline: 3px solid #f1c84f;
+    outline-offset: -5px;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header > div {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header .eyebrow,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) .ascend-featured-combo-state,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > .ascend-featured-combo-card,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > .ascend-featured-combo-meta,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > .ascend-featured-combo-copy,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > .ascend-featured-combo-actions {
+    display: none;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header h3 {
+    display: -webkit-box;
+    width: 100%;
+    overflow: hidden;
+    margin: 0;
+    color: #f5f0dd;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1.1;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* EXPANDED: replace the Market lane with the real Combo decision surface. */
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open {
+    position: absolute;
+    inset: 54px 0 auto 0;
+    z-index: 12;
+    box-sizing: border-box;
+    width: 100%;
+    height: 366px;
+    min-height: 366px;
+    max-height: 366px;
+    display: grid;
+    grid-template-columns: minmax(235px, 310px) minmax(0, 1fr);
+    grid-template-rows: 46px minmax(0, 1fr) 54px;
+    grid-template-areas:
+      "combo-head combo-head"
+      "combo-card combo-copy"
+      "combo-meta combo-actions";
+    column-gap: 28px;
+    row-gap: 8px;
+    overflow: hidden;
+    margin: 0;
+    padding: 12px 20px 14px;
+    cursor: default;
+    border: 2px solid rgba(236, 205, 112, .78);
+    border-left-width: 7px;
+    border-radius: 11px 4px 12px 5px;
+    background: linear-gradient(155deg, rgba(18, 55, 42, .998), rgba(8, 35, 26, .998));
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .34);
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header {
+    grid-area: combo-head;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-width: 0;
+    margin: 0;
+    padding: 0 4px 4px;
+    cursor: pointer;
+    border-bottom: 1px dashed rgba(236, 205, 112, .32);
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header::before {
+    content: none;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header::after {
+    content: "CLOSE ×";
+    flex: 0 0 auto;
+    color: #f4d267;
+    font-size: 10px;
+    font-weight: 1000;
+    letter-spacing: .1em;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header .eyebrow {
+    display: block;
+    font-size: 8px;
+    line-height: 1.15;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header h3 {
+    display: block;
+    overflow: visible;
+    margin: 2px 0 0;
+    color: #f7f3e5;
+    font-size: 20px;
+    line-height: 1.05;
+    -webkit-line-clamp: initial;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open .ascend-featured-combo-state {
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 11px;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-card {
+    grid-area: combo-card;
+    display: block;
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+    max-height: 252px;
+    align-self: center;
+    justify-self: center;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-card img {
+    width: 100%;
+    height: auto;
+    max-height: 252px;
+    object-fit: contain;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-meta {
+    grid-area: combo-meta;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-copy {
+    grid-area: combo-copy;
+    display: grid;
+    align-content: center;
+    gap: 12px;
+    min-width: 0;
+    overflow: hidden;
+    font-size: clamp(12px, .82vw, 14px);
+    line-height: 1.38;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-copy p {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(236, 205, 112, .22);
+    border-radius: 7px 2px 8px 3px;
+    background: rgba(255, 255, 255, .045);
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-copy p b {
+    display: block;
+    margin-bottom: 4px;
+    color: #f1c84f;
+    font-size: 9px;
+    letter-spacing: .08em;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-copy em {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.25;
+    opacity: .78;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-actions {
+    grid-area: combo-actions;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-actions .button {
+    min-height: 38px;
+    padding: 8px 14px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+}
