@@ -24,7 +24,9 @@ test("hand removes the legacy 190px rail instead of only changing width", () => 
 });
 
 test("fighter Combo launcher is a styled readable two-part control", () => {
-  assert.match(css, /fighter-combo-launch\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto !important;[\s\S]*background:\s*linear-gradient\([\s\S]*!important;[\s\S]*gap:\s*7px !important;/);
+  assert.match(css, /fighter-combo-launch\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto !important;/);
+  assert.match(css, /fighter-combo-launch\s*\{[\s\S]*gap:\s*7px !important;/);
+  assert.match(css, /fighter-combo-launch\s*\{[\s\S]*background:\s*linear-gradient\([\s\S]*!important;/);
   assert.match(css, /fighter-combo-launch > small\s*\{\s*display:\s*none !important;/);
 });
 
