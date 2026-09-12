@@ -4,8 +4,18 @@ import test from "node:test";
 
 const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
 
+function sliceBetween(sourceText, startMarker, endMarker) {
+  const start = sourceText.indexOf(startMarker);
+  assert.ok(start >= 0, `missing start marker: ${startMarker}`);
+
+  const end = sourceText.indexOf(endMarker, start + startMarker.length);
+  assert.ok(end > start, `missing end marker after ${startMarker}: ${endMarker}`);
+
+  return sourceText.slice(start, end);
+}
+
 test("AI Air Horn cancels a player Reaction Consumable before structured effects resolve and returns both Consumables to supply", () => {
-  const playSupport = source.slice(source.indexOf("const playSupport ="), source.indexOf("const useDefensePractice ="));
+  const playSupport = sliceBetween(source, "const playSupport =", "const practiceDefense =");
   const cancellation = playSupport.indexOf("if (aiAirHorn)");
   const applyEffects = playSupport.indexOf("applyCardEffects(supportEntryBoard");
   assert.ok(cancellation >= 0 && applyEffects > cancellation, "Air Horn interception must happen before the target Reaction resolves");
@@ -16,9 +26,7 @@ test("AI Air Horn cancels a player Reaction Consumable before structured effects
 });
 
 test("AI Air Horn spends a player Defense before Guard/effects without resolving Defense or Block lifecycle", () => {
-  const start = source.indexOf("const resolveDefenseState =");
-  const end = source.indexOf("const resolveDefense =", start);
-  const resolveDefenseState = source.slice(start, end);
+  const resolveDefenseState = sliceBetween(source, "const resolveDefenseState =", "const resolveDefense =");
   const cancellation = resolveDefenseState.indexOf("if (aiAirHorn)");
   const defenseMath = resolveDefenseState.indexOf("const matchingArmor");
   assert.ok(cancellation >= 0 && defenseMath > cancellation, "Air Horn must intercept the played Defense before defense math/effects");

@@ -4,8 +4,18 @@ import test from "node:test";
 
 const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
 
+function sliceBetween(sourceText, startMarker, endMarker) {
+  const start = sourceText.indexOf(startMarker);
+  assert.ok(start >= 0, `missing start marker: ${startMarker}`);
+
+  const end = sourceText.indexOf(endMarker, start + startMarker.length);
+  assert.ok(end > start, `missing end marker after ${startMarker}: ${endMarker}`);
+
+  return sourceText.slice(start, end);
+}
+
 test("player Air Horn pauses the declared Attack before an AI Consumable Reaction resolves", () => {
-  const resolver = source.slice(source.indexOf("const resolvePlayerAttackState ="), source.indexOf("const declareAttack ="));
+  const resolver = sliceBetween(source, "const resolvePlayerAttackState =", "const declareAttack =");
   const candidate = resolver.indexOf("const aiConsumableCandidate");
   const autoResolve = resolver.indexOf("const aiConsumableReaction =");
   assert.ok(candidate >= 0 && autoResolve > candidate);
@@ -17,18 +27,18 @@ test("player Air Horn pauses the declared Attack before an AI Consumable Reactio
 });
 
 test("player Air Horn can cancel the AI's one Defense without allowing a replacement Defense", () => {
-  const resolver = source.slice(source.indexOf("const resolvePlayerAttackState ="), source.indexOf("const declareAttack ="));
+  const resolver = sliceBetween(source, "const resolvePlayerAttackState =", "const declareAttack =");
   assert.ok(resolver.includes("const defenseId = current.airHornAiDefenseSpentThisStrike"));
   assert.ok(resolver.includes("? null"));
   assert.ok(resolver.includes(": bestDefense"));
   assert.ok(resolver.includes('reactionKind: "defense"'));
-  const handler = source.slice(source.indexOf("const resolvePlayerAirHornChoice ="), source.indexOf("const playSupport ="));
+  const handler = sliceBetween(source, "const resolvePlayerAirHornChoice =", "const playSupport =");
   assert.ok(handler.includes("airHornAiDefenseSpentThisStrike = true"));
   assert.ok(handler.includes("return resolvePlayerAttackState(intercepted)"));
 });
 
 test("canceled AI Defense is spent but does not resolve Defense or Block lifecycle", () => {
-  const handler = source.slice(source.indexOf("const resolvePlayerAirHornChoice ="), source.indexOf("const playSupport ="));
+  const handler = sliceBetween(source, "const resolvePlayerAirHornChoice =", "const playSupport =");
   const start = handler.indexOf('if (choice.reactionKind === "consumable")');
   const end = handler.indexOf("airHornAiDefenseSpentThisStrike = true", start);
   assert.ok(start >= 0 && end > start);
@@ -44,7 +54,7 @@ test("canceled AI Defense is spent but does not resolve Defense or Block lifecyc
 });
 
 test("Air Horn player choice preserves Consumable lifecycle destinations", () => {
-  const handler = source.slice(source.indexOf("const resolvePlayerAirHornChoice ="), source.indexOf("const playSupport ="));
+  const handler = sliceBetween(source, "const resolvePlayerAirHornChoice =", "const playSupport =");
   assert.ok(handler.includes("player = returnResolvedConsumable(player, airHorn)"));
   assert.ok(handler.includes("cancelledAi = returnResolvedConsumable(cancelledAi, reaction)"));
 });
