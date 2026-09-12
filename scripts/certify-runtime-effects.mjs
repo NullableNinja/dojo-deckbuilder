@@ -26,6 +26,7 @@ const appFiles = await walk("app");
 const testFiles = await walk("tests");
 const appSources = new Map(await Promise.all(appFiles.map(async (path) => [path, await readText(path)])));
 const testSources = new Map(await Promise.all(testFiles.map(async (path) => [path, await readText(path)])));
+const quickDuelHost = appSources.get("app/quick-duel-playtest-host.ts") ?? "";
 
 const catalogCards = cardsCatalog.cards ?? [];
 const cardByCatalogId = new Map(catalogCards.map((card) => [card.catalogId, card]));
@@ -53,6 +54,9 @@ const familyFromId = (id) => {
 
 const countOccurrences = (source, token) => token ? source.split(token).length - 1 : 0;
 const callCount = (token) => countOccurrences(playtest, `${token}(`);
+const playtestPublishesLifecycleTrigger = (trigger) => new RegExp(`publishQuickDuelPlaytestLifecycleEvent\\([\\s\\S]{0,260}?["']${trigger}["']`, "m").test(playtest);
+const hostRoutesCharacterLifecycle = (trigger, eventName) => quickDuelHost.includes(`trigger === "${trigger}"`) && quickDuelHost.includes(`? "${eventName}"`);
+const playerCharacterChoiceUiLive = playtest.includes("resolveQuickDuelPlaytestCharacterChoice") && playtest.includes('kind: "character-runtime"');
 
 const familyHostEvidence = {
   Attack: () => /finalAttack|attackPiercing|effectPlanForCard/.test(playtest),
@@ -63,8 +67,18 @@ const familyHostEvidence = {
   Starter: () => /starterIds|applyCardEffects/.test(playtest),
   Combo: () => callCount("publishQuickDuelPlaytestLifecycleEvent") > 0 || callCount("prepareQuickDuelPlaytestAttack") > 0,
   Location: () => /resolveLocationEffects\(|structuredLocation|locationRuntimeDelta\(/.test(playtest),
-  Character: () => callCount("publishQuickDuelPlaytestCharacterEvent") > 0,
 };
+
+function characterHostEvidence(trigger) {
+  if (trigger === "onInitiate") return playtestPublishesLifecycleTrigger("onInitiate") && hostRoutesCharacterLifecycle("onInitiate", "initiate");
+  if (trigger === "onHide") return playtestPublishesLifecycleTrigger("onHide") && hostRoutesCharacterLifecycle("onHide", "hide");
+  return false;
+}
+
+function effectHostEvidence(family, trigger) {
+  if (family === "Character") return characterHostEvidence(trigger);
+  return Boolean(familyHostEvidence[family]?.());
+}
 
 function cardReachability(cardId, family) {
   const card = cardByCatalogId.get(cardId);
@@ -108,9 +122,11 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
       ...sourceFilesContaining(effectId, testSources),
       ...sourceFilesContaining(resolver, testSources),
     ])];
-    const familyHost = Boolean(familyHostEvidence[family]?.());
+    const familyHost = effectHostEvidence(family, trigger);
     const resolverEvidence = !resolver || resolverFiles.length > 0;
     const testEvidence = testFilesForEffect.length > 0;
+    const requiresPlayerChoiceUi = family === "Character" && mechanicalEffect === "core.choice";
+    const playerChoiceUiEvidence = !requiresPlayerChoiceUi || playerCharacterChoiceUiLive;
 
     let certification = "UNVERIFIED";
     let rootCause = "No effect-specific executable proof yet.";
@@ -119,7 +135,12 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
       rootCause = reachability.reason;
     } else if (!familyHost) {
       certification = "FAIL_HOST";
-      rootCause = `${family} structured runtime is not demonstrably published by app/playtest.tsx.`;
+      rootCause = family === "Character"
+        ? `Character trigger ${trigger || "(missing)"} is not demonstrably published by the live Quick Duel host.`
+        : `${family} structured runtime is not demonstrably published by app/playtest.tsx.`;
+    } else if (!playerChoiceUiEvidence) {
+      certification = "FAIL_CHOICE_UI";
+      rootCause = "The Character event reaches the structured host, but app/playtest.tsx does not yet surface and resume CharacterRuntimeChoice for the player.";
     } else if (!resolverEvidence) {
       certification = "FAIL_RESOLVER";
       rootCause = resolver ? `Resolver ${resolver} has no implementation reference in app source.` : "No executable generic/resolver evidence.";
@@ -142,6 +163,8 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
       cardReachable: reachability.reachable,
       reachabilityReason: reachability.reason,
       familyHostEvidence: familyHost,
+      requiresPlayerChoiceUi,
+      playerChoiceUiEvidence,
       resolverEvidence,
       resolverFiles,
       testEvidence,
@@ -173,6 +196,7 @@ const summary = {
   byFamily,
   quickDuelLocationPoolSize: quickDuelLocationNames.size,
   starterDeckCardCount: starterCatalogIds.size,
+  characterChoiceUiLive: playerCharacterChoiceUiLive,
   caveat: "STATIC_PASS is not final gameplay certification. It means static pool/host/resolver/test evidence exists. Final certification requires deterministic runtime scenarios for the exact effect.",
 };
 
@@ -189,6 +213,7 @@ const markdown = [
   `- Cards not fully certified: **${summary.cardsNotFullyCertified}**`,
   `- Quick Duel Location pool: **${summary.quickDuelLocationPoolSize}**`,
   `- Canonical Starter deck card identities: **${summary.starterDeckCardCount}**`,
+  `- Player Character choice UI wired: **${summary.characterChoiceUiLive ? "yes" : "no"}**`,
   "",
   "## Status totals",
   "",
