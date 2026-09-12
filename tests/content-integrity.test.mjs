@@ -151,11 +151,15 @@ test("rulings have stable IDs and filing dates", async () => {
 });
 
 test("rendered glossary deduplicates terms at the UI boundary", async () => {
-  const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
-  assert.match(source, /const GLOSSARY_ENTRIES = Array\.from\(new Map/);
-  assert.match(source, /const glossaryKey =/);
-  assert.ok(!source.includes("rulesData.glossary.filter("), "Glossary rendering/search must use the deduplicated collection");
-  assert.ok(source.includes("{GLOSSARY_ENTRIES.length} terms"), "Glossary count must reflect the deduplicated collection");
+  const [companion, search] = await Promise.all([
+    readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/search.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(search, /export const ALL_GLOSSARY_ENTRIES = Array\.from\(/);
+  assert.match(search, /new Map\(rulesData\.glossary\.map\(/);
+  assert.match(companion, /const GLOSSARY_ENTRIES = ALL_GLOSSARY_ENTRIES;/);
+  assert.ok(!companion.includes("rulesData.glossary.filter("), "Glossary rendering/search must use the shared deduplicated collection");
+  assert.ok(companion.includes("{GLOSSARY_ENTRIES.length} terms"), "Glossary count must reflect the deduplicated collection");
 });
 
 test("playtest uses the live Core catalog and actual uploaded card art", async () => {
@@ -197,16 +201,19 @@ test("playtest behaves like a complete guided game surface", async () => {
 });
 
 test("public field test is one desktop-only Quick Duel teaser", async () => {
-  const [companion, playtest, styles] = await Promise.all([
+  const [companion, playtest, styles, navigation] = await Promise.all([
     readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/site-navigation.ts", import.meta.url), "utf8"),
   ]);
   assert.match(playtest, /Certified Quick Duel/);
   assert.match(playtest, /MobilePlaytestNotice/);
   assert.doesNotMatch(playtest, /<SimulationLab/);
   assert.doesNotMatch(playtest, /className="difficulty-grid"/);
-  assert.match(companion, /MOBILE_MENU_ITEMS\.filter\(\(item\) => item\.id !== "playtest"\)/);
+  assert.match(navigation, /page: "playtest"[\s\S]*?mobileMenu: false,[\s\S]*?mobileBottom: false/);
+  assert.match(companion, /MOBILE_MENU_NAVIGATION\.map/);
+  assert.match(companion, /MOBILE_BOTTOM_NAVIGATION\.map/);
   assert.doesNotMatch(companion, />⚔<\/span>Play<\/button>/);
   assert.match(styles, /\.desktop-play-cta, \.route-playtest \{ display: none !important; \}/);
 });
