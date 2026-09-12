@@ -19,8 +19,8 @@ import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, sp
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
-import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction } from "./character-runtime";
-import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent } from "./quick-duel-playtest-host";
+import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
+import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -193,7 +193,8 @@ type PendingChoice =
   | { kind: "stage3c-lucky-reveal"; sourceCardId: string; revealKind: "market" | "location"; revealedCardId: string; marketSlot?: number }
   | { kind: "stage3c-sparring-pick"; sourceCardId: string; revealed: string[] }
   | { kind: "stage3c-sparring-junk"; sourceCardId: string; junkIds: string[]; optional: true }
-  | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] };
+  | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] }
+  | { kind: "character-runtime"; event: CharacterRuntimeEvent; choice: CharacterRuntimeChoice };
 
 type Match = {
   schema: 8;
@@ -974,6 +975,17 @@ const quickDuelHostOperations = {
   },
 };
 
+
+function withPlayerCharacterChoice(result: {
+  match: Match;
+  characterEvent: CharacterRuntimeEvent | null;
+  characterChoices: CharacterRuntimeChoice[];
+}): Match {
+  const choice = result.characterChoices[0];
+  if (!result.characterEvent || !choice) return result.match;
+  return { ...result.match, pendingChoice: { kind: "character-runtime", event: result.characterEvent, choice } };
+}
+
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
 
@@ -1690,11 +1702,8 @@ function playAreaCleanup(board: Board) {
   };
   if (hideResolution.focus) hideBoard = gainFocus(hideBoard, hideResolution.focus);
   const readyBoard = stage3cEndTurn(applyHideReady(hideBoard));
-  const borrowed = readyBoard.borrowedEquipmentId;
-  const equipment = borrowed ? readyBoard.equipment.filter((id) => id !== borrowed) : readyBoard.equipment;
-  const exhaustedEquipment = borrowed ? (readyBoard.exhaustedEquipment ?? []).filter((id) => id !== borrowed) : (readyBoard.exhaustedEquipment ?? []);
-  const discard = [...readyBoard.discard, ...readyBoard.hand, ...readyBoard.playArea.filter((id) => !readyBoard.equipment.includes(id)), ...(borrowed ? [borrowed] : [])];
-  return drawCards({ ...readyBoard, hand: [], playArea: [], equipment, exhaustedEquipment, equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, borrowedEquipmentId: null, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, reactionItemUsedSinceLastTurn: false, suppressedEquipmentPenaltyIds: [], completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (beltHasReward(readyBoard, "hand-size") ? 1 : 0));
+  const discard = [...readyBoard.discard, ...readyBoard.hand, ...readyBoard.playArea.filter((id) => !readyBoard.equipment.includes(id))];
+  return drawCards({ ...readyBoard, hand: [], playArea: [], equipment: readyBoard.equipment, exhaustedEquipment: readyBoard.exhaustedEquipment ?? [], equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, reactionItemUsedSinceLastTurn: false, suppressedEquipmentPenaltyIds: [], completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (beltHasReward(readyBoard, "hand-size") ? 1 : 0));
 }
 
 function cardLabel(card: CardEntry) { return `${card.name} · ${card.catalogId}`; }
@@ -1970,6 +1979,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
   const setMatch = (update: SetStateAction<Match | null>) => setRawMatch((previous) => {
     const next = typeof update === "function" ? update(previous) : update;
+    if (!previous && next?.phase === "player-initiate") {
+      const initiated = withPlayerCharacterChoice(publishQuickDuelPlaytestLifecycleEvent(next, "player", "onInitiate", quickDuelHostOperations, cardFor));
+      return { ...initiated, player: applyInitiateCarryover(initiated.player) };
+    }
     return previous && next ? applyQuickDuelPlaytestTransition(previous, next, cardFor) : next;
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
@@ -2084,15 +2097,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     return write(current, `${card.name} equipped during Initiate. ${cardEffectNote(card)}`, { player: nextPlayer, pendingChoice });
   });
 
-  const borrowEquipment = (id: string) => setMatch((current) => {
-    if (!current || current.phase !== "player-initiate" || current.player.abilityUsedRound || cardFor(current.player.fighterId)?.name !== "Sensei Ducktape") return current;
-    const card = cardFor(id);
-    if (!card || !isPermanent(card) || !current.player.discard.includes(id)) return current;
-    const nextPlayer = applyCardEffects({ ...current.player, discard: removeOne(current.player.discard, id), borrowedEquipmentId: id, abilityUsedRound: true }, card, "player");
-    return write(current, `Sensei Ducktape jury-rigs ${card.name} from the discard pile until Hide.`, { player: nextPlayer });
-  });
 
-  const beginYell = () => setMatch((current) => current?.phase === "player-initiate" ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: { ...current.player, usedEffectIdsThisTurn: [] } }) : current);
+  const beginYell = () => setMatch((current) => current?.phase === "player-initiate" && !current.pendingChoice ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: { ...current.player, usedEffectIdsThisTurn: [] } }) : current);
 
 
   const activateEquipment = (id: string) => {
@@ -2733,6 +2739,21 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     return current;
   });
 
+
+  const resolveCharacterRuntimeChoice = (selection: string) => setMatch((current) => {
+    const pending = current?.pendingChoice;
+    if (!current || !pending || pending.kind !== "character-runtime") return current;
+    const base = { ...current, pendingChoice: null };
+    const resolved = resolveQuickDuelPlaytestCharacterChoice(base, "player", pending.event, pending.choice, selection);
+    const nextChoice = resolved.choices[0];
+    const pendingChoice: PendingChoice | null = resolved.event && nextChoice
+      ? { kind: "character-runtime", event: resolved.event, choice: nextChoice }
+      : null;
+    const selectedCard = cardFor(selection);
+    const label = selectedCard?.name ?? (["skip", "decline", "cancel"].includes(selection) ? "declined" : selection);
+    return write(resolved.match, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} resolves ${pending.choice.prompt}: ${label}.`, { pendingChoice });
+  });
+
   const resolveStage3CZoneWard = (zone: string) => setMatch((current) => {
     const choice = current?.pendingChoice;
     if (!current || !choice || choice.kind !== "stage3c-zone-ward") return current;
@@ -2880,8 +2901,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     setDeskView(null);
     setMatch((current) => {
       if (!current || current.phase !== "player-ascend") return current;
-      const nextPlayer = playAreaCleanup(current.player);
-      const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? current.winner : "ai" });
+      const hostedHide = publishQuickDuelPlaytestLifecycleEvent(current, "player", "onHide", quickDuelHostOperations, cardFor).match;
+      const nextPlayer = playAreaCleanup(hostedHide.player);
+      const hidden = write(hostedHide, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? hostedHide.winner : "ai" });
       if (!nextPlayer.hp) return hidden;
       if (current.turnIndex === 0) return write(hidden, "The computer is second in this round's initiative order.", { phase: "ai-ready", turnIndex: 1 });
       return advanceRound(hidden, settings.locations, "Both fighters have completed the round.", settings.houseRuleIds);
@@ -3271,7 +3293,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                   : match.pendingChoice?.kind === "stage3c-sparring-junk"
                     ? match.pendingChoice.junkIds.map((id, index) => ({ id, source: "discard" as const, index }))
                     : [];
-  const effectChoiceTitle = match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"
+  const effectChoiceTitle = match.pendingChoice?.kind === "character-runtime" ? "Character ability"
+    : match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"
     : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? "Use Lucky Dumpling?"
     : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Call a protected zone"
     : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Remove a temporary penalty"
@@ -3293,7 +3316,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? "Reduce this damage?"
                   : match.pendingChoice?.kind === "post-block-cycle" ? "Use post-Block Equipment?"
                     : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
-  const effectChoicePrompt = match.pendingChoice?.kind === "stage3c-raffle" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`
+  const effectChoicePrompt = match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice.prompt
+    : match.pendingChoice?.kind === "stage3c-raffle" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`
     : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} was just revealed. Replace it from the same deck or keep it.`
     : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Choose High, Mid, or Low. The next Attack in that zone targeting you this round gets -2 Attack Power."
     : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Choose one currently active temporary -ATK, -DEF, or -Speed effect to remove."
@@ -3315,7 +3339,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} can exhaust now to reduce ${match.pendingChoice.damage} combat damage by ${match.pendingChoice.reduce}. Declining still consumes this round's first-damage timing window.`
                   : match.pendingChoice?.kind === "post-block-cycle" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} triggered after the Block. Exhaust it to draw ${match.pendingChoice.draw}, then choose ${match.pendingChoice.discard} discard${match.pendingChoice.discard === 1 ? "" : "s"}, or decline and continue combat.`
                     : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
-  const effectChoiceCanSkip = match.pendingChoice?.kind === "stage3c-trail-mix" || match.pendingChoice?.kind === "stage3c-discard-focus" || match.pendingChoice?.kind === "stage3c-sparring-junk" || (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
+  const effectChoiceCanSkip = (match.pendingChoice?.kind === "character-runtime" && match.pendingChoice.choice.optional) || match.pendingChoice?.kind === "stage3c-trail-mix" || match.pendingChoice?.kind === "stage3c-discard-focus" || match.pendingChoice?.kind === "stage3c-sparring-junk" || (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
   const inspectedBoard = inspected
     ? inspected.id === player.fighterId ? player : inspected.id === ai.fighterId ? ai : null
     : null;
@@ -3428,7 +3452,6 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const canReverse = match.phase === "reversal-window" && attack && attackAllowed;
           return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !(canDefend || canReactConsumable) : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={() => useHandCard(id)} onInspect={() => setInspectedId(id)} />;
         })}</div>
-        {match.phase === "player-initiate" && playerFighter.name === "Sensei Ducktape" && !player.abilityUsedRound && player.discard.some((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }) && <div className="ducktape-tray"><span>Sensei Ducktape · emergency repair</span>{player.discard.filter((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }).slice(0, 3).map((id) => <button onClick={() => borrowEquipment(id)} key={id}>Jury-rig {cardFor(id)?.name}</button>)}</div>}
         {match.phase === "reversal-window" && pendingAttack?.zone?.includes("Any") && <div className="hand-context-strip"><span>Choose reversal zone</span><fieldset className="zone-picker"><legend className="sr-only">Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
         {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && attackHasFlexibleZone(player, pendingAttack) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
       </section>
@@ -3479,7 +3502,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView === "belt" && <button className="button ghost" onClick={() => setDeskView("market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : "Next: check Belt progress."}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
       </section>
     </div>}
-    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "stage3c-raffle" ? <><button type="button" onClick={() => resolveStage3CRaffle(true)}><span>BUY</span><b>{cardFor(match.pendingChoice.revealedCardId)?.name}</b><small>Pay {marketPriceFor(player, cardFor(match.pendingChoice.revealedCardId))} Focus</small></button><button type="button" onClick={() => resolveStage3CRaffle(false)}><span>PASS</span><b>PUT ON BOTTOM</b><small>Do not buy the reveal</small></button></> : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? <><button type="button" onClick={() => resolveStage3CLucky(true)}><span>REACTION</span><b>USE LUCKY DUMPLING</b><small>Discard the reveal and replace it</small></button><button type="button" onClick={() => resolveStage3CLucky(false)}><span>PASS</span><b>KEEP REVEAL</b><small>Save Lucky Dumpling</small></button></> : match.pendingChoice?.kind === "stage3c-zone-ward" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => resolveStage3CZoneWard(zone)} key={zone}><span>PROTECT ZONE</span><b>{zone}</b><small>Next matching Attack gets -2 Power</small></button>) : match.pendingChoice?.kind === "stage3c-remove-negative" ? match.pendingChoice.stats.map((stat) => <button type="button" onClick={() => resolveStage3CNegative(stat)} key={stat}><span>REMOVE PENALTY</span><b>-{stat}</b><small>Remove one active temporary penalty</small></button>) : match.pendingChoice?.kind === "air-horn-reaction" ? <><button type="button" onClick={() => resolvePlayerAirHornChoice(true)}><span>REACTION</span><b>USE AIR HORN</b><small>Cancel {cardFor(match.pendingChoice.reactionCardId)?.name ?? "the Reaction"} before it resolves</small></button><button type="button" onClick={() => resolvePlayerAirHornChoice(false)}><span>PASS</span><b>ALLOW REACTION</b><small>Keep Air Horn in hand and resolve the announced Reaction</small></button></> : match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
+    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice.options.filter((option) => !["skip", "decline", "cancel"].includes(option)).map((option) => { const optionCard = cardFor(option); return <button type="button" onClick={() => resolveCharacterRuntimeChoice(option)} key={option}><span>CHARACTER ABILITY</span><b>{optionCard?.name ?? option}</b><small>{optionCard ? `${optionCard.catalogId} · ${optionCard.subtype || optionCard.cardType}` : "Resolve this option"}</small></button>; }) : match.pendingChoice?.kind === "stage3c-raffle" ? <><button type="button" onClick={() => resolveStage3CRaffle(true)}><span>BUY</span><b>{cardFor(match.pendingChoice.revealedCardId)?.name}</b><small>Pay {marketPriceFor(player, cardFor(match.pendingChoice.revealedCardId))} Focus</small></button><button type="button" onClick={() => resolveStage3CRaffle(false)}><span>PASS</span><b>PUT ON BOTTOM</b><small>Do not buy the reveal</small></button></> : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? <><button type="button" onClick={() => resolveStage3CLucky(true)}><span>REACTION</span><b>USE LUCKY DUMPLING</b><small>Discard the reveal and replace it</small></button><button type="button" onClick={() => resolveStage3CLucky(false)}><span>PASS</span><b>KEEP REVEAL</b><small>Save Lucky Dumpling</small></button></> : match.pendingChoice?.kind === "stage3c-zone-ward" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => resolveStage3CZoneWard(zone)} key={zone}><span>PROTECT ZONE</span><b>{zone}</b><small>Next matching Attack gets -2 Power</small></button>) : match.pendingChoice?.kind === "stage3c-remove-negative" ? match.pendingChoice.stats.map((stat) => <button type="button" onClick={() => resolveStage3CNegative(stat)} key={stat}><span>REMOVE PENALTY</span><b>-{stat}</b><small>Remove one active temporary penalty</small></button>) : match.pendingChoice?.kind === "air-horn-reaction" ? <><button type="button" onClick={() => resolvePlayerAirHornChoice(true)}><span>REACTION</span><b>USE AIR HORN</b><small>Cancel {cardFor(match.pendingChoice.reactionCardId)?.name ?? "the Reaction"} before it resolves</small></button><button type="button" onClick={() => resolvePlayerAirHornChoice(false)}><span>PASS</span><b>ALLOW REACTION</b><small>Keep Air Horn in hand and resolve the announced Reaction</small></button></> : match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={match.pendingChoice?.kind === "character-runtime" ? () => resolveCharacterRuntimeChoice(match.pendingChoice!.choice.options.find((option) => ["skip", "decline", "cancel"].includes(option)) ?? "decline") : skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
     {coachOpen && !match.winner && <div className="playtest-inspector-backdrop coach-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setCoachOpen(false)}><section className="coach-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="coach-dialog-title"><button className="modal-close" onClick={() => setCoachOpen(false)} aria-label="Close Decision Coach">×</button><span className="eyebrow">Decision coach · optional guidance</span><h2 id="coach-dialog-title">What should I do now?</h2><div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Recommended next step</span><p>{turnCoach}</p></div><div className="coach-dialog-actions"><button className="button primary" onClick={() => setCoachOpen(false)}>Back to the mat →</button><button className="button ghost" onClick={() => { setSettings({ ...settings, guided: false }); setCoachOpen(false); }}>Turn coach off</button></div><small>You can re-enable the Coach from the utility bar at any time.</small></section></div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><div className="fight-log-groups">{groupedFightLog(match.log).map((group, groupIndex) => <section key={`${group.label}-${groupIndex}`}><h3>{group.label}</h3><ol>{group.lines.map((line, index) => <li key={`${line}-${index}`}><b>{group.lines.length - index}</b><span>{line}</span></li>)}</ol></section>)}</div></section></div>}
     {inspected && inspectedBoard && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
@@ -3597,12 +3620,13 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean, house
     aiAfterPurchase = applyBeltPromotion(aiAfterPurchase, aiAfterPurchase.belt + 1);
     promotionLog = `Computer certifies ${nextBelt.name} Belt.${aiAfterPurchase.maxHp > before.maxHp ? ` Max HP ${before.maxHp} → ${aiAfterPurchase.maxHp}; HP ${before.hp} → ${aiAfterPurchase.hp}.` : ""}`;
   }
-  const nextAi = playAreaCleanup(aiAfterPurchase);
+  const hostedHide = publishQuickDuelPlaytestLifecycleEvent({ ...current, ai: aiAfterPurchase }, "ai", "onHide", quickDuelHostOperations, cardFor).match;
+  const nextAi = playAreaCleanup(hostedHide.ai);
   const purchaseLog = purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing.";
-  const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
+  const finished = { ...hostedHide, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
   if (!nextAi.hp) return finished;
   if (current.turnIndex === 0) {
-    const hostedFinished = publishQuickDuelPlaytestLifecycleEvent(finished, "player", "onInitiate", quickDuelHostOperations).match;
+    const hostedFinished = withPlayerCharacterChoice(publishQuickDuelPlaytestLifecycleEvent(finished, "player", "onInitiate", quickDuelHostOperations, cardFor));
     const player = applyInitiateCarryover(hostedFinished.player);
     const carryover = player.focus - finished.player.focus;
     return { ...hostedFinished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...hostedFinished.log].slice(0, 32) };
@@ -3623,16 +3647,16 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string, house
     : { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard };
   const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
   const stagedForInitiate: Match = { ...current, player, ai };
-  const hostedInitiate = playerFirst ? publishQuickDuelPlaytestLifecycleEvent(stagedForInitiate, "player", "onInitiate", quickDuelHostOperations).match : stagedForInitiate;
+  const hostedInitiate = playerFirst ? withPlayerCharacterChoice(publishQuickDuelPlaytestLifecycleEvent(stagedForInitiate, "player", "onInitiate", quickDuelHostOperations, cardFor)) : stagedForInitiate;
   const initiatedPlayer = playerFirst ? applyInitiateCarryover(hostedInitiate.player) : player;
   const initiatedAi = hostedInitiate.ai;
   const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
   const marketRefreshLabel = marketScramble ? "Market Scramble" : "Market Mercy";
   const marketNote = marketScramble ? "Market Scramble refreshes all seven slots." : current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
-  const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai: initiatedAi, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
+  const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai: initiatedAi, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: hostedInitiate.pendingChoice ?? null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
   const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033"));
-  if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
-  if (marketRefreshes && lucky) {
+  if (!advanced.pendingChoice && sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
+  if (!advanced.pendingChoice && marketRefreshes && lucky) {
     const revealedId = marketState.market.find((id) => !current.market.includes(id));
     const slot = revealedId ? marketState.market.indexOf(revealedId) : -1;
     if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during ${marketRefreshLabel}. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
