@@ -3,14 +3,19 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
+const search = await readFile(new URL("../app/search.ts", import.meta.url), "utf8");
 const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
-test("global search is grouped, ranked, and keyboard navigable", () => {
-  assert.match(source, /searchResultRank/);
+test("global search is grouped, ranked, shared, and keyboard navigable", () => {
+  assert.match(source, /searchDojo\(globalSearch\)/);
+  assert.match(source, /groupSearchResults\(globalResults\)/);
   assert.match(source, /groupedGlobalResults/);
   assert.match(source, /handleGlobalSearchKeyDown/);
   assert.match(source, /event\.key === "ArrowDown"/);
   assert.match(source, /role="listbox"/);
+  assert.match(search, /const resultRank =/);
+  assert.match(search, /export function searchDojo/);
+  assert.match(search, /export const groupSearchResults/);
   assert.match(css, /global-result-group/);
 });
 
