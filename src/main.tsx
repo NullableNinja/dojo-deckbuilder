@@ -15,6 +15,7 @@ import "../app/card-library-art-consistency.css";
 import "../app/playtest-layout.css";
 import "../app/playtest-live-skin.css";
 import "../app/playtest-visual-repair.css";
+import "../app/ascend-combo-popout";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
