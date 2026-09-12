@@ -1,0 +1,68 @@
+name: Temporary Rulings Variants Post-Merge Certification
+
+on:
+  push:
+    branches:
+      - rulings-variants-playtest-options-v2
+
+permissions:
+  contents: write
+
+jobs:
+  certify-final-tree:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact triggering commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Remove temporary certification workflow from tested tree
+        run: rm .github/workflows/tmp-rulings-variants-postmerge-certify.yml
+
+      - name: Run complete repository gate
+        id: repository-gate
+        shell: bash
+        env:
+          GITHUB_PAGES: true
+        run: |
+          set +e
+          npm test 2>&1 | tee /tmp/rulings-variants-postmerge-test.log
+          status=${PIPESTATUS[0]}
+          exit "$status"
+
+      - name: Upload failed repository gate log
+        if: failure() && steps.repository-gate.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rulings-variants-postmerge-test-log-${{ github.sha }}
+          path: /tmp/rulings-variants-postmerge-test.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Verify clean patch formatting
+        run: git diff --check
+
+      - name: Commit certified workflow cleanup
+        shell: bash
+        run: |
+          git config user.name "Dojo Deckbuilder Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "complete Rulings and Variants branch certification"
+          git push origin HEAD:rulings-variants-playtest-options-v2
