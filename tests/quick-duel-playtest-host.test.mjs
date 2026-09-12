@@ -6,6 +6,7 @@ import {
   prepareQuickDuelPlaytestAttack,
   publishQuickDuelPlaytestCharacterEvent,
   publishQuickDuelPlaytestLifecycleEvent,
+  resolveQuickDuelPlaytestCharacterChoice,
 } from "../app/quick-duel-playtest-host.ts";
 import { comboHostFactsFromBoard } from "../app/quick-duel-game-host.ts";
 
@@ -143,6 +144,46 @@ test("safe Character events resolve through canonical runtime with actor orienta
   assert.deepEqual(published.match.log, ["preserve-me"]);
 });
 
+test("Character choices survive the Playtest host boundary and resume through canonical selection fields", () => {
+  const borrowedId = "borrowed-permanent";
+  const current = match(
+    board({ fighterId: "DDB-CHR-CORE-030", discard: [borrowedId] }),
+    board({ fighterId: "DDB-CHR-CORE-001" }),
+    { phase: "player-initiate", turnIndex: 0 },
+  );
+
+  const offered = publishQuickDuelPlaytestCharacterEvent(current, "player", {
+    type: "initiate",
+    candidateIds: [borrowedId],
+  });
+
+  assert.equal(offered.published, true);
+  assert.equal(offered.choices.length, 1);
+  assert.equal(offered.choices[0].resolver, "character.equipDiscardPermanentUntilHide");
+  assert.equal(offered.choices[0].selectionField, "selectedId");
+  assert.deepEqual(offered.choices[0].options, [borrowedId, "skip"]);
+  assert.ok(offered.match.player.discard.includes(borrowedId));
+
+  const resolved = resolveQuickDuelPlaytestCharacterChoice(
+    offered.match,
+    "player",
+    offered.event,
+    offered.choices[0],
+    borrowedId,
+  );
+
+  assert.equal(resolved.choices.length, 0);
+  assert.equal(resolved.match.player.borrowedEquipmentId, borrowedId);
+  assert.ok(resolved.match.player.equipment.includes(borrowedId));
+  assert.ok(!resolved.match.player.discard.includes(borrowedId));
+  assert.ok(resolved.notes.includes("character.equipDiscardPermanentUntilHide"));
+
+  const hidden = publishQuickDuelPlaytestCharacterEvent(resolved.match, "player", { type: "hide" });
+  assert.equal(hidden.match.player.borrowedEquipmentId, null);
+  assert.ok(!hidden.match.player.equipment.includes(borrowedId));
+  assert.ok(hidden.match.player.discard.includes(borrowedId));
+});
+
 test("compatibility-owned Character events are blocked instead of double-resolving", () => {
   const current = match(board({ fighterId: "DDB-CHR-CORE-012" }), board({ fighterId: "DDB-CHR-CORE-001" }));
   const published = publishQuickDuelPlaytestCharacterEvent(current, "player", {
@@ -156,6 +197,7 @@ test("compatibility-owned Character events are blocked instead of double-resolvi
   assert.equal(published.conflict, true);
   assert.equal(published.match, current);
   assert.match(published.reason, /compatibility-owned/);
+  assert.deepEqual(published.choices, []);
 });
 
 test("transition adapter preserves full Playtest match fields while recording structured history", () => {
