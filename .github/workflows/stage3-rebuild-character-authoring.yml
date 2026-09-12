@@ -1,0 +1,56 @@
+name: Stage 3 rebuild Character authoring
+
+on:
+  push:
+    branches:
+      - stage3-rebuild-current-main
+    paths:
+      - scripts/reconcile-stage3-character-compat.mjs
+      - .github/workflows/stage3-rebuild-character-authoring.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  reconcile-character-runtime:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout reconstruction branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3-rebuild-current-main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply guarded Character reconciliation
+        run: node scripts/reconcile-stage3-character-compat.mjs
+
+      - name: TypeScript gate
+        run: npx tsc --noEmit
+
+      - name: Full test gate
+        run: npm test
+
+      - name: Remove one-time authoring machinery
+        run: rm scripts/reconcile-stage3-character-compat.mjs .github/workflows/stage3-rebuild-character-authoring.yml
+
+      - name: Commit reconciled Playtest
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx scripts/reconcile-stage3-character-compat.mjs .github/workflows/stage3-rebuild-character-authoring.yml
+          git commit -m "reconcile Stage 3 Character runtime with current Playtest"
+          git push origin HEAD:stage3-rebuild-current-main
