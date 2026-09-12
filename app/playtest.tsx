@@ -193,7 +193,8 @@ type PendingChoice =
   | { kind: "stage3c-lucky-reveal"; sourceCardId: string; revealKind: "market" | "location"; revealedCardId: string; marketSlot?: number }
   | { kind: "stage3c-sparring-pick"; sourceCardId: string; revealed: string[] }
   | { kind: "stage3c-sparring-junk"; sourceCardId: string; junkIds: string[]; optional: true }
-  | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] };
+  | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] }
+  | { kind: "character-runtime"; event: CharacterRuntimeEvent; choice: CharacterRuntimeChoice };
 
 type Match = {
   schema: 8;
