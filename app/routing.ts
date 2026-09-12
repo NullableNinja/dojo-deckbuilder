@@ -143,7 +143,9 @@ const installNativeListeners = () => {
 export function subscribeToRoute(listener: (route: SiteRoute) => void) {
   installNativeListeners();
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 const writeRoute = (route: SiteRoute, replace: boolean) => {
