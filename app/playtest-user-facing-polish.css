@@ -1,0 +1,64 @@
+/* Quick Duel user-facing polish -------------------------------------------
+   Final presentation-only corrections for the live playtest.
+
+   This layer intentionally does not change game state or rules. It fixes two
+   confusing presentation problems:
+   1) The fighter resource wrapper prevented Focus from reliably sharing the
+      combat-stat row, which could drop the opponent Focus seal beneath ATK/DEF/SPD.
+   2) Internal turn-state counters in the hand header looked like interactive
+      filters even though they were not controls.
+*/
+
+/* These are engine/status diagnostics, not player actions. Keep the state in
+   React for rules/runtime behavior, but do not present it as a row of pseudo-
+   filter chips above the hand. */
+.playtest-shell.playtest-shell--live .hand-counters {
+  display: none !important;
+}
+
+@media (min-width: 1200px) {
+  /* Later desktop layout layers give XP and Focus explicit fighter-card grid
+     areas, but both elements are still wrapped in .fighter-resource-strip.
+     display: contents lets those two semantic children participate in the
+     dossier grid directly, matching the layout those later rules already
+     describe. */
+  .playtest-shell.playtest-shell--live .fighter-resource-strip {
+    display: contents !important;
+  }
+
+  /* ATK / DEF / SPD own the left side of the combat row. Focus is a resource,
+     but visually belongs on the same row and must never wrap beneath it. */
+  .playtest-shell.playtest-shell--live .fighter-stats.fighter-stats--combat,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-stats.fighter-stats--combat {
+    grid-area: stats !important;
+    width: calc(100% - 78px) !important;
+    max-width: calc(100% - 78px) !important;
+    min-width: 0 !important;
+    justify-self: start !important;
+    align-self: stretch !important;
+  }
+
+  .playtest-shell.playtest-shell--live .fighter-focus-seal,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-focus-seal {
+    grid-area: stats !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    justify-self: end !important;
+    align-self: stretch !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+  }
+
+  /* Once the wrapper is transparent to the grid, XP becomes a real inhabitant
+     of the named xp row. Existing width rules still leave room for the player's
+     Combo docket and give the opponent a full-width certification meter. */
+  .playtest-shell.playtest-shell--live .fighter-xp-meter,
+  .playtest-shell.playtest-shell--live .fighter-panel.is-enemy .fighter-xp-meter {
+    grid-area: xp !important;
+  }
+}
