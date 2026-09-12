@@ -125,6 +125,54 @@ test("cardless lifecycle publication targets the acting AI board rather than the
   assert.deepEqual(published.activatedComboIds, []);
 });
 
+test("the live Initiate lifecycle seam derives Ducktape candidates and preserves its choice", () => {
+  const permanent = cards.find((card) => ["Weapon", "Defense Equipment", "Gear"].includes(card.subtype));
+  assert.ok(permanent, "canonical catalog must contain permanent Equipment");
+  const current = match(
+    board({ fighterId: "DDB-CHR-CORE-030", discard: [permanent.id] }),
+    board({ fighterId: "DDB-CHR-CORE-001" }),
+    { phase: "player-initiate", turnIndex: 0 },
+  );
+
+  const offered = publishQuickDuelPlaytestLifecycleEvent(current, "player", "onInitiate", operations);
+  assert.equal(offered.characterPublished, true);
+  assert.equal(offered.characterConflict, false);
+  assert.equal(offered.characterEvent?.type, "initiate");
+  assert.deepEqual(offered.characterEvent?.candidateIds, [permanent.id]);
+  assert.equal(offered.characterChoices.length, 1);
+  assert.equal(offered.characterChoices[0].resolver, "character.equipDiscardPermanentUntilHide");
+  assert.ok(offered.characterChoices[0].options.includes(permanent.id));
+
+  const resolved = resolveQuickDuelPlaytestCharacterChoice(
+    offered.match,
+    "player",
+    offered.characterEvent,
+    offered.characterChoices[0],
+    permanent.id,
+  );
+  assert.equal(resolved.match.player.borrowedEquipmentId, permanent.id);
+  assert.ok(resolved.match.player.equipment.includes(permanent.id));
+
+  const hidden = publishQuickDuelPlaytestLifecycleEvent(resolved.match, "player", "onHide", operations);
+  assert.equal(hidden.match.player.borrowedEquipmentId, null);
+  assert.ok(!hidden.match.player.equipment.includes(permanent.id));
+  assert.ok(hidden.match.player.discard.includes(permanent.id));
+});
+
+test("the live Initiate lifecycle seam lets AI resolve Character choices without React card logic", () => {
+  const current = match(
+    board({ fighterId: "DDB-CHR-CORE-001" }),
+    board({ fighterId: "DDB-CHR-CORE-024", nextAttackBonus: 0 }),
+    { phase: "ai-ready", turnIndex: 1 },
+  );
+
+  const published = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", operations);
+  assert.equal(published.characterPublished, true);
+  assert.equal(published.characterChoices.length, 0);
+  assert.equal(published.match.ai.nextAttackBonus, 1);
+  assert.equal(published.match.player.nextAttackBonus, 0);
+});
+
 test("safe Character events resolve through canonical runtime with actor orientation preserved", () => {
   const current = match(
     board({ fighterId: "DDB-CHR-CORE-001" }),
