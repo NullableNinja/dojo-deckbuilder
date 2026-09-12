@@ -24,6 +24,7 @@ import "./combo-rack.css";
 import "./playtest-production-mat.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 import { normalizePendingDamageChoice } from "./playtest-state-recovery";
+import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";
 
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
 
@@ -227,7 +228,7 @@ type Match = {
 
 type Difficulty = "student" | "certified" | "master";
 type MotionMode = "full" | "reduced" | "off";
-type HouseSettings = { tempo: boolean; locations: boolean; openMarket: boolean; guided: boolean; autoAi: boolean; balancedMarket: boolean; difficulty: Difficulty; motion: MotionMode };
+type HouseSettings = { tempo: boolean; locations: boolean; openMarket: boolean; guided: boolean; autoAi: boolean; balancedMarket: boolean; difficulty: Difficulty; motion: MotionMode; houseRuleIds: string[] };
 type DeskView = "market" | "combo" | "belt";
 
 const BINDER_STORAGE_KEY = "dojo-binder-v1";
@@ -1781,12 +1782,12 @@ function FighterEquipmentTabs({ board, enemy, onInspect }: { board: Board; enemy
   </section>;
 }
 
-function FighterPanel({ board, label, enemy, onInspect, onOpenCombo }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void; onOpenCombo?: () => void }) {
+function FighterPanel({ board, label, enemy, onInspect, onOpenCombo, beltThresholds }: { board: Board; label: string; enemy?: boolean; onInspect: (card: CardEntry) => void; onOpenCombo?: () => void; beltThresholds: number[] }) {
   const fighter = cardFor(board.fighterId)!;
   const art = fighterIllustrationUrl(fighter) ?? artistUrl(fighter) ?? cardPlaceholderUrl;
   const nextBelt = belts[board.belt + 1];
-  const currentBeltXp = belts[board.belt]?.xp ?? 0;
-  const xpSpan = Math.max(1, (nextBelt?.xp ?? currentBeltXp) - currentBeltXp);
+  const currentBeltXp = beltThresholds[board.belt] ?? belts[board.belt]?.xp ?? 0;
+  const xpSpan = Math.max(1, (nextBelt ? beltThresholds[board.belt + 1] : currentBeltXp) - currentBeltXp);
   const xpProgress = nextBelt ? Math.max(0, Math.min(100, (board.xp - currentBeltXp) / xpSpan * 100)) : 100;
   const hpProgress = Math.max(0, Math.min(100, board.hp / board.maxHp * 100));
   const statuses = boardStatusLabels(board);
@@ -1812,7 +1813,7 @@ function FighterPanel({ board, label, enemy, onInspect, onOpenCombo }: { board: 
       {combatStats.map((entry) => <b key={entry.stat}><StatGlyph stat={entry.stat} /><small>{entry.label}</small><span>{entry.value}</span></b>)}
     </div>
     <div className="fighter-resource-strip">
-      <div className="fighter-xp-meter"><span><b>{board.xp} XP</b><small>{nextBelt ? `${nextBelt.xp} for ${nextBelt.name}` : "Final certification"}</small></span><i role="progressbar" aria-label={`${fighter.name} Belt progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(xpProgress)}><em style={{ width: `${xpProgress}%` }} /></i></div>
+      <div className="fighter-xp-meter"><span><b>{board.xp} XP</b><small>{nextBelt ? `${beltThresholds[board.belt + 1]} for ${nextBelt.name}` : "Final certification"}</small></span><i role="progressbar" aria-label={`${fighter.name} Belt progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(xpProgress)}><em style={{ width: `${xpProgress}%` }} /></i></div>
       <b className="fighter-focus-seal"><StatGlyph stat="FP" /><span>{board.focus}</span><small>FOCUS</small></b>
     </div>
     <div className="fighter-status-tray" aria-label={`${fighter.name} current statuses`}>{statuses.length ? statuses.map((status) => <span key={status}>{status}</span>) : <span>Standing ready</span>}</div>
@@ -1943,11 +1944,12 @@ function SetupView({ selectedId, setSelectedId, settings, setSettings, begin }: 
     const next = choices[Math.floor(Math.random() * choices.length)] ?? filteredCharacters[0] ?? characters[0];
     setSelectedId(next.id);
   };
+  const toggleHouseRule = (id: string) => setSettings({ ...settings, houseRuleIds: settings.houseRuleIds.includes(id) ? settings.houseRuleIds.filter((entry) => entry !== id) : [...settings.houseRuleIds, id] });
   return <main className="playtest-shell playtest-shell--setup shell"><MobilePlaytestNotice />
     <section className="playtest-hero paper-stack"><span className="eyebrow">Department-certified digital field test</span><h1>Shuffle. Strike. Ascend.</h1><p>This is the actual Quick Duel loop: the fixed {starterIds.length}-card curriculum, all approved Market records, live fighter data, automated Locations, Reversals, Belt Exams, and a separate Combo docket.</p><div className="playtest-stamps"><span>{cards.length} approved records</span><span>Quick Duel vs. tactical AI</span><span>Progress saved on this device</span></div></section>
     <section className="playtest-setup-grid">
       <div className="playtest-roster paper-stack"><div className="roster-toolbar"><div><span className="eyebrow">1 · Choose a fighter</span><h2>Who signs the waiver?</h2></div><div><label><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a fighter" aria-label="Search fighters" /></label><button onClick={randomize}>Random draw</button></div></div><article className="selected-fighter-dossier"><img src={fighterIllustrationUrl(selected) ?? artistUrl(selected) ?? cardPlaceholderUrl} alt={selected.name} /><div><span>Selected delegation</span><h3>{selected.name}</h3><p>{selected.rulesText ?? "Ability pending an inspector with a functioning pen."}</p><div><b>{numberValue(selected.stats.ATK)}<small>ATK</small></b><b>{numberValue(selected.stats.DEF)}<small>DEF</small></b><b>{numberValue(selected.stats.Speed)}<small>SPD</small></b></div></div></article><div className="playtest-character-grid">{filteredCharacters.map((character) => <button key={character.id} className={selectedId === character.id ? "is-selected" : ""} onClick={() => setSelectedId(character.id)} aria-pressed={selectedId === character.id}><img src={fighterIllustrationUrl(character) ?? artistUrl(character) ?? cardPlaceholderUrl} alt="" loading="lazy" /><span>{character.name}</span><small>{numberValue(character.stats.ATK)} ATK · {numberValue(character.stats.DEF)} DEF · {numberValue(character.stats.Speed)} SPD</small></button>)}</div></div>
-      <aside className="playtest-rules-panel quick-duel-brief paper-stack"><span className="eyebrow">2 · One official teaser</span><h2>Certified Quick Duel</h2><p>One fighter. One tactical opponent. Fixed 25 Max HP, non-HP Belt rewards, the persistent Market, Locations, Reversals, Combos, and Belt progression. No mode selection and no setup maze—the Department has already made the questionable decisions.</p><div className="playtest-setup-options"><label><span>Opponent</span><select value={settings.difficulty} onChange={(event) => setSettings({ ...settings, difficulty: event.target.value as Difficulty })}>{Object.entries(DIFFICULTIES).map(([value, option]) => <option value={value} key={value}>{option.label}</option>)}</select></label><label><span>Combat motion</span><select value={settings.motion} onChange={(event) => setSettings({ ...settings, motion: event.target.value as MotionMode })}><option value="full">Full</option><option value="reduced">Reduced</option><option value="off">Off</option></select></label><label className="playtest-setup-check"><input type="checkbox" checked={settings.guided} onChange={(event) => setSettings({ ...settings, guided: event.target.checked })} /><span>Start with Decision Coach</span></label></div><ul><li>Desktop playtest</li><li>{DIFFICULTIES[settings.difficulty].detail}</li><li>Progress saved on this device</li></ul><button className="button primary field-test-launch" onClick={() => begin()}>Begin Quick Duel as {selected.name} <span>→</span></button></aside>
+      <aside className="playtest-rules-panel quick-duel-brief paper-stack"><span className="eyebrow">2 · One official teaser</span><h2>Certified Quick Duel</h2><p>One fighter. One tactical opponent. Fixed 25 Max HP, non-HP Belt rewards, the persistent Market, Locations, Reversals, Combos, and Belt progression. No mode selection and no setup maze—the Department has already made the questionable decisions.</p><div className="playtest-setup-options"><label><span>Opponent</span><select value={settings.difficulty} onChange={(event) => setSettings({ ...settings, difficulty: event.target.value as Difficulty })}>{Object.entries(DIFFICULTIES).map(([value, option]) => <option value={value} key={value}>{option.label}</option>)}</select></label><label><span>Combat motion</span><select value={settings.motion} onChange={(event) => setSettings({ ...settings, motion: event.target.value as MotionMode })}><option value="full">Full</option><option value="reduced">Reduced</option><option value="off">Off</option></select></label><label className="playtest-setup-check"><input type="checkbox" checked={settings.guided} onChange={(event) => setSettings({ ...settings, guided: event.target.checked })} /><span>Start with Decision Coach</span></label></div><fieldset className="playtest-house-rules"><legend>Optional house rules</legend><p>Only variants the current Quick Duel engine can enforce for both sides appear here.</p>{QUICK_DUEL_HOUSE_RULES.map((rule) => <label className="playtest-house-rule-option" key={rule.id}><input type="checkbox" checked={settings.houseRuleIds.includes(rule.id)} onChange={() => toggleHouseRule(rule.id)} /><span><b>{rule.name}</b><small>{rule.summary || rule.rule}</small></span></label>)}</fieldset><ul><li>Desktop playtest</li><li>{DIFFICULTIES[settings.difficulty].detail}</li><li>Progress saved on this device</li></ul><button className="button primary field-test-launch" onClick={() => begin()}>Begin Quick Duel as {selected.name} <span>→</span></button></aside>
     </section>
   </main>;
 }
@@ -1963,9 +1965,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-settings") ?? "null") as Partial<HouseSettings> | null;
       const storedMotion = window.localStorage.getItem("ddb-vfx-mode");
       const motion = saved?.motion ?? (storedMotion === "reduced" || storedMotion === "off" ? storedMotion : "full");
-      return { tempo: saved?.tempo ?? true, locations: saved?.locations ?? true, openMarket: saved?.openMarket ?? true, guided: saved?.guided ?? true, autoAi: saved?.autoAi ?? true, balancedMarket: saved?.balancedMarket ?? true, difficulty: saved?.difficulty && DIFFICULTIES[saved.difficulty] ? saved.difficulty : "certified", motion };
-    } catch { return { tempo: true, locations: true, openMarket: true, guided: true, autoAi: true, balancedMarket: true, difficulty: "certified", motion: "full" }; }
+      return { tempo: saved?.tempo ?? true, locations: saved?.locations ?? true, openMarket: saved?.openMarket ?? true, guided: saved?.guided ?? true, autoAi: saved?.autoAi ?? true, balancedMarket: saved?.balancedMarket ?? true, difficulty: saved?.difficulty && DIFFICULTIES[saved.difficulty] ? saved.difficulty : "certified", motion, houseRuleIds: sanitizeQuickDuelHouseRuleIds(saved?.houseRuleIds) };
+    } catch { return { tempo: true, locations: true, openMarket: true, guided: true, autoAi: true, balancedMarket: true, difficulty: "certified", motion: "full", houseRuleIds: [] }; }
   });
+  const beltThresholds = useMemo(() => effectiveBeltThresholds(belts, settings.houseRuleIds), [settings.houseRuleIds]);
   const [match, setMatch] = useState<Match | null>(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
@@ -2184,7 +2187,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return write(cleared, `Reversal window: the block is certified and ${reversalAttacks.length} counterattack${reversalAttacks.length === 1 ? " is" : "s are"} ready.`, { phase: "reversal-window", reversalRemainingAiAttacks: continuation.remainingAiAttacks, selectedAttackId: null });
     }
     if (continuation.remainingAiAttacks.length) return openAiStrike(cleared, continuation.remainingAiAttacks[0], continuation.remainingAiAttacks.slice(1), settings.tempo);
-    return finishAiTurn(cleared, "Computer finishes its Yell and clears the mat.", settings.locations);
+    return finishAiTurn(cleared, "Computer finishes its Yell and clears the mat.", settings.locations, settings.houseRuleIds);
   };
 
   const usePendingEquipmentChoice = () => setMatch((current) => {
@@ -2573,7 +2576,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       }
       if (card.catalogId === "DDB-CON-CORE-049" && current.phase === "defense-window" && current.pendingStrike) {
         const escaped = write(current, `Smoke Bomb invalidates ${cardFor(current.pendingStrike.cardId)?.name ?? "the incoming Attack"}'s only legal target. The strike is spent without dealing damage.`, { player: nextPlayer, ai: nextAi, pendingStrike: null, pendingChoice: null, pendingCombatContinuation: null });
-        return finishAiTurn(escaped, "Computer cannot legally target you through the Smoke Bomb and ends its Yell.", settings.locations);
+        return finishAiTurn(escaped, "Computer cannot legally target you through the Smoke Bomb and ends its Yell.", settings.locations, settings.houseRuleIds);
       }
       if (card.catalogId === "DDB-CON-CORE-051") {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.topThreeAttackSelection"]);
@@ -2871,7 +2874,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const promote = () => setMatch((current) => {
     if (!current || current.phase !== "player-ascend" || current.player.belt >= belts.length - 1) return current;
     const next = belts[current.player.belt + 1];
-    if (current.player.xp < next.xp || !current.player.completedTasks.includes(current.player.belt + 1)) return current;
+    if (current.player.xp < beltThresholds[current.player.belt + 1] || !current.player.completedTasks.includes(current.player.belt + 1)) return current;
     const nextPlayer = applyBeltPromotion(current.player, current.player.belt + 1);
     const vitality = nextPlayer.maxHp > current.player.maxHp ? ` Max HP ${current.player.maxHp} → ${nextPlayer.maxHp}; current HP ${current.player.hp} → ${nextPlayer.hp}.` : "";
     return write(current, `Certification approved: ${next.name} Belt. ${next.reward.summary}${next.reward.onPromotionFocus ? ` +${next.reward.onPromotionFocus} Focus.` : ""}${vitality}`, { player: nextPlayer });
@@ -2885,7 +2888,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? current.winner : "ai" });
       if (!nextPlayer.hp) return hidden;
       if (current.turnIndex === 0) return write(hidden, "The computer is second in this round's initiative order.", { phase: "ai-ready", turnIndex: 1 });
-      return advanceRound(hidden, settings.locations, "Both fighters have completed the round.");
+      return advanceRound(hidden, settings.locations, "Both fighters have completed the round.", settings.houseRuleIds);
     });
   };
 
@@ -2899,12 +2902,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "ai-ready" || current.winner || current.pendingChoice) return current;
     const prepared = prepareAiTurn(current);
     if (prepared.pendingChoice) return prepared;
-    if (hasUntargetableStatus(prepared.player.stage3cStatuses)) return finishAiTurn(prepared, "Smoke Bomb leaves the computer without a legal target this Yell.", settings.locations);
+    if (hasUntargetableStatus(prepared.player.stage3cStatuses)) return finishAiTurn(prepared, "Smoke Bomb leaves the computer without a legal target this Yell.", settings.locations, settings.houseRuleIds);
     const availableAttacks = stage3cRestrictionBlocks(prepared.ai.stage3cRestrictions, "attack")
       ? []
       : prepared.ai.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
     const aiAttackIds = settings.difficulty === "student" ? shuffle(availableAttacks) : availableAttacks.sort((left, right) => aiAttackScore(cardFor(right)!, prepared.ai, prepared.player, cardFor(prepared.locationId)) - aiAttackScore(cardFor(left)!, prepared.ai, prepared.player, cardFor(prepared.locationId)));
-    if (!aiAttackIds.length) return finishAiTurn(prepared, "Computer finds no Attack and files an awkward report.", settings.locations);
+    if (!aiAttackIds.length) return finishAiTurn(prepared, "Computer finds no Attack and files an awkward report.", settings.locations, settings.houseRuleIds);
     return openAiStrike(prepared, aiAttackIds[0], aiAttackIds.slice(1), settings.tempo);
   });
 
@@ -3106,7 +3109,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return write(resolved, `Reversal window: the block is certified and ${reversalAttacks.length} counterattack${reversalAttacks.length === 1 ? " is" : "s are"} ready.`, { phase: "reversal-window", reversalRemainingAiAttacks: pending.remainingAiAttacks, selectedAttackId: null });
     }
     if (pending.remainingAiAttacks.length) return openAiStrike(resolved, pending.remainingAiAttacks[0], pending.remainingAiAttacks.slice(1), settings.tempo);
-    return finishAiTurn(resolved, "Computer finishes its Yell and clears the mat.", settings.locations);
+    return finishAiTurn(resolved, "Computer finishes its Yell and clears the mat.", settings.locations, settings.houseRuleIds);
   };
 
   const resolveDefense = (defenseId: string | null) => setMatch((current) => current ? resolveDefenseState(current, defenseId) : current);
@@ -3115,7 +3118,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "reversal-window") return current;
     const resumed = write(current, "Reversal declined. Restraint has been noted and immediately questioned.", { selectedAttackId: null, player: { ...current.player, reversalAttackBonus: 0 } });
     if (current.reversalRemainingAiAttacks.length) return openAiStrike(resumed, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo);
-    return finishAiTurn(resumed, "Computer finishes its Yell and clears the mat.", settings.locations);
+    return finishAiTurn(resumed, "Computer finishes its Yell and clears the mat.", settings.locations, settings.houseRuleIds);
   });
 
   const resolveReversal = () => setMatch((current) => {
@@ -3193,7 +3196,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const resolved = write(current, `${result} Attack ${attackPower} vs Defense ${defensePower}.${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: nextAi.hp ? null : "player" });
     if (!nextAi.hp) return resolved;
     if (current.reversalRemainingAiAttacks.length) return openAiStrike(resolved, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo);
-    return finishAiTurn(resolved, "Computer finishes its Yell after surviving the Reversal paperwork.", settings.locations);
+    return finishAiTurn(resolved, "Computer finishes its Yell after surviving the Reversal paperwork.", settings.locations, settings.houseRuleIds);
   });
 
   const useHandCard = (id: string) => {
@@ -3232,7 +3235,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const currentLocation = cardFor(match.locationId);
   const comboOffer = match.comboOfferId ? cardFor(match.comboOfferId) : null;
   const nextBelt = belts[player.belt + 1];
-  const canPromote = Boolean(nextBelt && player.xp >= nextBelt.xp && playerTask);
+  const nextBeltXp = nextBelt ? beltThresholds[player.belt + 1] : 0;
+  const canPromote = Boolean(nextBelt && player.xp >= nextBeltXp && playerTask);
   const defenseOptions = match.pendingStrike ? legalDefenseIds(player, match.pendingStrike.zone) : [];
   const equipmentReactions = match.phase === "defense-window"
     ? player.equipment.map(cardFor).filter((card): card is CardEntry => {
@@ -3392,15 +3396,15 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         <div className="victory-certificate-footer"><div className="victory-signature"><span>Certified by</span><b>Assistant Deputy Sensei, Filing Division</b><small>No one verified this signature.</small></div><div className="match-result-actions"><button className="button primary" onClick={() => begin(player.fighterId)}>Instant rematch →</button><button className="button ghost" onClick={() => setMatch(null)}>Choose another fighter</button></div></div>
       </div>
     </section>}
-    <section className="playtest-arena">
+    <section className="playtest-arena">{settings.houseRuleIds.length > 0 && <div className="playtest-active-variants"><b>House rules active:</b>{QUICK_DUEL_HOUSE_RULES.filter((rule) => settings.houseRuleIds.includes(rule.id)).map((rule) => <span key={rule.id}>{rule.name}</span>)}</div>}
       <section className="playtest-table">
-        <div className="fighter-column fighter-column--player"><FighterPanel board={player} label="You" onInspect={(card) => setInspectedId(card.id)} onOpenCombo={() => setDeskView("combo")} /><LearnedComboRack states={learnedComboStates} onInspect={(card) => setInspectedId(card.id)} /></div>
+        <div className="fighter-column fighter-column--player"><FighterPanel board={player} label="You" beltThresholds={beltThresholds} onInspect={(card) => setInspectedId(card.id)} onOpenCombo={() => setDeskView("combo")} /><LearnedComboRack states={learnedComboStates} onInspect={(card) => setInspectedId(card.id)} /></div>
         <div className="combat-stage-column">
           <CombatStage match={match} currentLocation={currentLocation} selectedAttack={pendingAttack} turnCoach={turnCoach} guided={settings.guided} playerCards={player.playArea} aiCards={ai.playArea} onInspect={(card) => setInspectedId(card.id)} onDropCard={useHandCard} onOpenCoach={() => setCoachOpen(true)} />
           {match.phase === "ai-ready" && !match.winner && !settings.autoAi && <button className="button primary run-opponent-turn" onClick={runAiTurn}>Run computer turn →</button>}
           {match.phase === "ai-ready" && !match.winner && settings.autoAi && <span className="ai-thinking"><i /><i /><i /> Clipboard thinking</span>}
         </div>
-        <div className="fighter-column fighter-column--enemy"><FighterPanel board={ai} label="Computer" enemy onInspect={(card) => setInspectedId(card.id)} /></div>
+        <div className="fighter-column fighter-column--enemy"><FighterPanel board={ai} label="Computer" enemy beltThresholds={beltThresholds} onInspect={(card) => setInspectedId(card.id)} /></div>
       </section>
     </section>
     <section className="playtest-workspace playtest-workspace--hand">
@@ -3465,10 +3469,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           </section>}
           {deskView === "belt" && <section className="ascend-belt belt-panel">
             <span className="eyebrow">Certification ledger</span><h3>{belts[player.belt].name} Belt · {player.xp} XP</h3>
-            <p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBelt.xp} XP.</b> {nextBelt.exam.summary} <em>{nextBelt.reward.summary}</em></> : "Every available Belt has been certified."}</p>
-            <div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name} style={{ "--belt-rank": belt.color } as CSSProperties} title={`${belt.name} Belt · ${belt.xp} XP · ${belt.exam.title}`}>{belt.name.slice(0, 1)}</span>)}</div>
-            <div className="belt-ledger-list">{belts.map((belt, index) => <article className={index === player.belt ? "is-current" : index < player.belt ? "is-earned" : ""} key={belt.name} style={{ "--belt-rank": belt.color } as CSSProperties}><span>{index < player.belt ? "✓" : index === player.belt ? "●" : index + 1}</span><div><b>{belt.name} Belt · {belt.exam.title}</b><small>{belt.xp} XP · {belt.exam.summary}</small><small>{belt.reward.summary}</small></div></article>)}</div>
-            {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : `${nextBelt.name}: ${nextBelt.xp} XP + completed task`}</button>}
+            <p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBeltXp} XP.</b> {nextBelt.exam.summary} <em>{nextBelt.reward.summary}</em></> : "Every available Belt has been certified."}</p>
+            <div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name} style={{ "--belt-rank": belt.color } as CSSProperties} title={`${belt.name} Belt · ${beltThresholds[index]} XP · ${belt.exam.title}`}>{belt.name.slice(0, 1)}</span>)}</div>
+            <div className="belt-ledger-list">{belts.map((belt, index) => <article className={index === player.belt ? "is-current" : index < player.belt ? "is-earned" : ""} key={belt.name} style={{ "--belt-rank": belt.color } as CSSProperties}><span>{index < player.belt ? "✓" : index === player.belt ? "●" : index + 1}</span><div><b>{belt.name} Belt · {belt.exam.title}</b><small>{beltThresholds[index]} XP · {belt.exam.summary}</small><small>{belt.reward.summary}</small></div></article>)}</div>
+            {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : `${nextBelt.name}: ${nextBeltXp} XP + completed task`}</button>}
           </section>}
         </div>
         <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView === "belt" && <button className="button ghost" onClick={() => setDeskView("market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : "Next: check Belt progress."}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
@@ -3569,7 +3573,7 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage + comboModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, armorPenalty, conditionalCycle: conditionalCycle.draw || conditionalCycle.discard ? { draw: conditionalCycle.draw, discard: conditionalCycle.discard } : undefined, previousCardWasItem, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
 }
 
-function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
+function finishAiTurn(current: Match, line: string, sceneChanges: boolean, houseRuleIds: readonly string[]) {
   const aiPurchase = current.market.filter((id) => marketPriceFor(current.ai, cardFor(id)) <= marketFocusAvailable(current.ai, cardFor(id))).sort((left, right) => aiMarketScore(cardFor(right)!, current.ai) - aiMarketScore(cardFor(left)!, current.ai))[0];
   const purchasedCard = aiPurchase ? cardFor(aiPurchase) : null;
   let aiAfterPurchase = purchasedCard ? stage3cConsumePurchase(markCompletedTask({ ...spendMarketFocus(current.ai, purchasedCard, marketPriceFor(current.ai, purchasedCard)), discard: [...current.ai.discard, purchasedCard.id], purchasedTypes: [...current.ai.purchasedTypes, purchasedCard.cardType], cardsBought: current.ai.cardsBought + 1 }), purchasedCard) : current.ai;
@@ -3585,7 +3589,8 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
   }
   let promotionLog: string | null = null;
   const nextBelt = belts[aiAfterPurchase.belt + 1];
-  if (nextBelt && aiAfterPurchase.xp >= nextBelt.xp && aiAfterPurchase.completedTasks.includes(aiAfterPurchase.belt + 1)) {
+  const nextBeltXp = effectiveBeltThresholds(belts, houseRuleIds)[aiAfterPurchase.belt + 1];
+  if (nextBelt && aiAfterPurchase.xp >= nextBeltXp && aiAfterPurchase.completedTasks.includes(aiAfterPurchase.belt + 1)) {
     const before = aiAfterPurchase;
     aiAfterPurchase = applyBeltPromotion(aiAfterPurchase, aiAfterPurchase.belt + 1);
     promotionLog = `Computer certifies ${nextBelt.name} Belt.${aiAfterPurchase.maxHp > before.maxHp ? ` Max HP ${before.maxHp} → ${aiAfterPurchase.maxHp}; HP ${before.hp} → ${aiAfterPurchase.hp}.` : ""}`;
@@ -3599,29 +3604,32 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
     const carryover = player.focus - finished.player.focus;
     return { ...finished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...finished.log].slice(0, 32) };
   }
-  return advanceRound(finished, sceneChanges, "Both fighters have completed the round.");
+  return advanceRound(finished, sceneChanges, "Both fighters have completed the round.", houseRuleIds);
 }
 
-function advanceRound(current: Match, sceneChanges: boolean, line: string) {
+function advanceRound(current: Match, sceneChanges: boolean, line: string, houseRuleIds: readonly string[]) {
   const nextRound = current.round + 1;
   const freshLocations = current.locations.length ? current.locations : shuffle(quickDuelLocationPool.map((card) => card.id));
   const locationId = sceneChanges ? freshLocations[0] ?? current.locationId : current.locationId;
   const player = stage3cAdvanceRound({ ...current.player, xp: current.player.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, usedConsumableThisRound: false, lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] });
   const ai = stage3cAdvanceRound({ ...current.ai, xp: current.ai.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] });
-  const marketState = current.marketPurchasedThisRound
-    ? { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard }
-    : refreshMarketRow(current.market, current.marketDeck, current.marketDiscard);
+  const marketRefreshes = shouldRefreshMarketAtRoundEnd(current.marketPurchasedThisRound, houseRuleIds);
+  const marketScramble = hasQuickDuelHouseRule(houseRuleIds, "market-scramble");
+  const marketState = marketRefreshes
+    ? refreshMarketRow(current.market, current.marketDeck, current.marketDiscard)
+    : { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard };
   const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
   const initiatedPlayer = playerFirst ? applyInitiateCarryover(player) : player;
   const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
-  const marketNote = current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
+  const marketRefreshLabel = marketScramble ? "Market Scramble" : "Market Mercy";
+  const marketNote = marketScramble ? "Market Scramble refreshes all seven slots." : current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
   const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
   const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033"));
   if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
-  if (!current.marketPurchasedThisRound && lucky) {
+  if (marketRefreshes && lucky) {
     const revealedId = marketState.market.find((id) => !current.market.includes(id));
     const slot = revealedId ? marketState.market.indexOf(revealedId) : -1;
-    if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during Market Mercy. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
+    if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during ${marketRefreshLabel}. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
   }
   return advanced;
 }

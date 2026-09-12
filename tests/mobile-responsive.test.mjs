@@ -29,7 +29,9 @@ test("mobile navigation reaches every section without crowding the bottom bar", 
   }
   assert.match(app, /id="mobile-menu"/);
   assert.match(app, /aria-controls="mobile-menu"/);
-  assert.match(app, /view === "house-rules"/);
+  assert.match(app, /rawView === "house-rules"/);
+  assert.match(app, /id: "rulings", label: "Rulings & Variants"/);
+  assert.doesNotMatch(app, /view === "house-rules"/);
 });
 
 test("mobile overlays lock background scroll and rules expose a compact chapter picker", async () => {

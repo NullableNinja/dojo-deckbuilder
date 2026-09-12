@@ -39,7 +39,7 @@ test("Quick Duel exposes only canonically certified house-rule toggles", async (
   ]);
   assert.match(source, /QUICK_DUEL_HOUSE_RULES/);
   assert.match(source, /houseRuleIds: string\[\]/);
-  assert.match(source, /Quick Duel variants/);
+  assert.match(source, /Optional house rules/);
   assert.match(source, /effectiveBeltThresholds/);
   assert.match(source, /shouldRefreshMarketAtRoundEnd/);
   assert.match(registry, /canonicalHouseRules/);
