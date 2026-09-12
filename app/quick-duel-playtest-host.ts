@@ -12,6 +12,7 @@ import {
   type QuickDuelCharacterPublication,
   type QuickDuelComboEventFacts,
   type QuickDuelComboMatchBoard,
+  type QuickDuelRuntimeCommandBoards,
   type QuickDuelRuntimeCommandOperations,
   type QuickDuelRuntimeStatusEventFacts,
   type QuickDuelTransitionMatch,
@@ -45,24 +46,20 @@ function opposingActor(actor: QuickDuelPlaytestActor): QuickDuelPlaytestActor {
 function boardsForActor<Board extends QuickDuelComboMatchBoard, Match extends QuickDuelPlaytestHostMatch<Board>>(
   match: Match,
   actor: QuickDuelPlaytestActor,
-) {
-  return {
-    self: match[actor],
-    opponent: match[opposingActor(actor)],
-  };
+): QuickDuelRuntimeCommandBoards<Board> {
+  return actor === "player"
+    ? { self: match.player, opponent: match.ai }
+    : { self: match.ai, opponent: match.player };
 }
 
 function withActorBoards<Board extends QuickDuelComboMatchBoard, Match extends QuickDuelPlaytestHostMatch<Board>>(
   match: Match,
   actor: QuickDuelPlaytestActor,
-  boards: { self: Board; opponent: Board },
+  boards: QuickDuelRuntimeCommandBoards<Board>,
 ): Match {
-  const opponent = opposingActor(actor);
-  return {
-    ...match,
-    [actor]: boards.self,
-    [opponent]: boards.opponent,
-  } as Match;
+  return actor === "player"
+    ? { ...match, player: boards.self, ai: boards.opponent }
+    : { ...match, player: boards.opponent, ai: boards.self };
 }
 
 /**
@@ -77,7 +74,7 @@ export function applyQuickDuelPlaytestTransition<
   next: Match,
   lookup: ComboHostCardLookup,
 ): Match {
-  return applyQuickDuelStructuredTransition(previous, next, lookup) as Match;
+  return { ...next, ...applyQuickDuelStructuredTransition(previous, next, lookup) };
 }
 
 /**
@@ -94,8 +91,8 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   operations: QuickDuelRuntimeCommandOperations<Board>,
   statusEvent: QuickDuelRuntimeStatusEventFacts = {},
 ): QuickDuelPlaytestEventResult<Match> {
-  const published = publishQuickDuelComboEvent(
-    boardsForActor(match, actor),
+  const published = publishQuickDuelComboEvent<Board>(
+    boardsForActor<Board, Match>(match, actor),
     trigger,
     actor,
     operations,
@@ -125,7 +122,7 @@ export function publishQuickDuelPlaytestCharacterEvent<
   actor: QuickDuelPlaytestActor,
   event: CharacterRuntimeEvent,
 ): QuickDuelPlaytestCharacterEventResult<Match> {
-  const oriented = boardsForActor(match, actor);
+  const oriented = boardsForActor<Board, Match>(match, actor);
   const publication: QuickDuelCharacterPublication<Board, Board> = publishQuickDuelCharacterEventSafely(
     oriented.self,
     oriented.opponent,
@@ -169,8 +166,8 @@ export function hostQuickDuelPlaytestCardEvent<
   event: QuickDuelComboEventFacts = {},
   statusEvent: QuickDuelRuntimeStatusEventFacts = {},
 ): QuickDuelPlaytestEventResult<Match> {
-  const hosted = hostQuickDuelComboEvent(
-    boardsForActor(match, actor),
+  const hosted = hostQuickDuelComboEvent<Board>(
+    boardsForActor<Board, Match>(match, actor),
     card,
     zone,
     lookup,
@@ -205,8 +202,8 @@ export function prepareQuickDuelPlaytestAttack<
   event: QuickDuelComboEventFacts = {},
   statusEvent: QuickDuelRuntimeStatusEventFacts = {},
 ): QuickDuelPlaytestAttackResult<Match> {
-  const prepared = prepareQuickDuelComboAttack(
-    boardsForActor(match, actor),
+  const prepared = prepareQuickDuelComboAttack<Board>(
+    boardsForActor<Board, Match>(match, actor),
     attack,
     zone,
     lookup,
