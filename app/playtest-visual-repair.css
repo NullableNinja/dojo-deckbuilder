@@ -1,0 +1,244 @@
+/* Quick Duel production visual repair --------------------------------------
+   PRESENTATION ONLY.
+
+   This is a narrowly scoped production break/fix layered after the consolidated
+   layout and live skin. It corrects four verified visual regressions without
+   changing game state, canonical JSON, card effects, or Playtest behavior.
+*/
+
+/* -------------------------------------------------------------------------
+   TOP FIGHT HUD — keep both fighter HUD cards inside their shared backing mat
+   ---------------------------------------------------------------------- */
+.playtest-shell.playtest-shell--live > .playtest-topbar.battle-versus-hud {
+  box-sizing: border-box;
+  height: 80px;
+  min-height: 80px;
+  padding: 8px 12px;
+  align-items: center;
+}
+
+.playtest-shell--live .battle-versus-hud > .battle-hud-fighter {
+  height: 62px;
+  min-height: 62px;
+  max-height: 62px;
+  align-self: center;
+}
+
+.playtest-shell--live .battle-versus-hud > .versus-center {
+  height: 62px;
+  min-height: 62px;
+  align-self: center;
+}
+
+/* -------------------------------------------------------------------------
+   LOCATION HEADER — the retired Round cell must not keep an empty grid column
+   ---------------------------------------------------------------------- */
+.playtest-shell--live .combat-stage-heading {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.playtest-shell--live .combat-stage-heading > button {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.playtest-shell--live .combat-stage-heading > div {
+  display: none;
+}
+
+/* -------------------------------------------------------------------------
+   CHARACTER ABILITY — readable at normal desktop viewing distance
+   ---------------------------------------------------------------------- */
+.playtest-shell--live .fighter-panel.living-fighter-card,
+.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card {
+  grid-template-rows: 50px minmax(150px, 1fr) 46px 42px 28px minmax(96px, 110px) 40px;
+}
+
+.playtest-shell--live .fighter-ability,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-ability {
+  padding: 9px 10px;
+  color: #28382f;
+  font-size: clamp(10px, .72vw, 11.5px);
+  line-height: 1.45;
+}
+
+.playtest-shell--live .fighter-ability b,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-ability b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 7.5px;
+  line-height: 1.2;
+}
+
+.playtest-shell--live .fighter-ability span {
+  display: block;
+}
+
+:root[data-theme="dark"] .playtest-shell--live .fighter-ability,
+:root[data-theme="dark"] .playtest-shell--live .fighter-panel.is-enemy .fighter-ability {
+  color: #e5eee8;
+  background: rgba(255, 255, 255, .055);
+}
+
+/* -------------------------------------------------------------------------
+   ASCEND — enforce the real four-child DOM contract at the selector strength
+   used by the consolidated layout. Explicit grid-row ownership prevents the
+   progression guide, body, and footer from occupying one another's space.
+   ---------------------------------------------------------------------- */
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional {
+  grid-template-rows: 82px 54px minmax(0, 1fr) 62px;
+}
+
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional > .ascend-desk-header {
+  grid-row: 1;
+}
+
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional > .ascend-guide {
+  position: relative;
+  z-index: 2;
+  grid-row: 2;
+  min-height: 54px;
+}
+
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional > .ascend-desk-body {
+  position: relative;
+  z-index: 1;
+  grid-row: 3;
+  min-height: 0;
+  padding: 10px 14px 12px;
+}
+
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional > .ascend-desk-footer {
+  grid-row: 4;
+}
+
+/* The Market header must start below the guide, never underneath it. */
+.playtest-shell--live .ascend-desk--functional .ascend-market > header {
+  position: relative;
+  z-index: 1;
+  min-height: 46px;
+  margin: 0;
+  padding: 0 2px;
+  align-items: end;
+}
+
+.playtest-shell--live .ascend-desk--functional .ascend-market > header h3 {
+  font-size: 22px;
+}
+
+/* On full desktop, give the Market a fixed-height card lane and the Featured
+   Combo its own side rail. The Combo no longer sizes the Market row, which was
+   the source of the giant blank shelf above the cards. */
+@media (min-width: 1200px) {
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 330px);
+    grid-template-rows: auto 366px;
+    grid-template-areas:
+      "heading combo"
+      "market combo";
+    align-content: start;
+    align-items: start;
+    gap: 8px 14px;
+    min-height: 0;
+  }
+
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) > header {
+    grid-area: heading;
+  }
+
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) > .ascend-market-grid {
+    grid-area: market;
+    height: 366px;
+    min-height: 366px;
+    max-height: 366px;
+    align-self: start;
+    align-content: start;
+    align-items: start;
+    padding-top: 2px;
+    padding-bottom: 10px;
+  }
+
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) > .ascend-featured-combo {
+    grid-area: combo;
+    position: relative;
+    top: auto;
+    min-width: 0;
+    max-height: 420px;
+    align-self: start;
+    overflow: auto;
+    margin: 0;
+    padding: 9px 10px 10px;
+    border: 1px solid rgba(230, 196, 97, .28);
+    border-radius: 10px 3px 11px 4px;
+    background: rgba(15, 43, 33, .72);
+  }
+
+  .playtest-shell--live .ascend-featured-combo > header {
+    margin: 0 0 7px;
+  }
+
+  .playtest-shell--live .ascend-featured-combo > header h3 {
+    margin: 2px 0 0;
+    font-size: 20px;
+    line-height: 1.05;
+  }
+
+  .playtest-shell--live .ascend-featured-combo-card {
+    width: min(218px, 100%);
+    max-width: 218px;
+    max-height: 292px;
+    justify-self: center;
+    margin-inline: auto;
+    overflow: hidden;
+  }
+
+  .playtest-shell--live .ascend-featured-combo-card img {
+    width: 100%;
+    height: auto;
+    max-height: 292px;
+    object-fit: contain;
+  }
+
+  .playtest-shell--live .ascend-featured-combo-meta,
+  .playtest-shell--live .ascend-featured-combo-copy {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .playtest-shell--live .ascend-featured-combo-copy p {
+    margin: 5px 0;
+  }
+
+  .playtest-shell--live .ascend-featured-combo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .playtest-shell--live .ascend-featured-combo-actions .button {
+    min-height: 36px;
+    padding-inline: 10px;
+    font-size: 9px;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1199px) {
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) {
+    display: block;
+  }
+
+  .playtest-shell--live .ascend-featured-combo {
+    position: relative;
+    top: auto;
+    margin: 0 0 12px;
+  }
+}
