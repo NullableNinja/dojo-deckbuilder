@@ -80,6 +80,13 @@ function withActorBoards<Board extends QuickDuelComboMatchBoard, Match extends Q
     : { ...match, player: boards.opponent, ai: boards.self };
 }
 
+function chooseAiCharacterOption(choice: CharacterRuntimeChoice): string | null {
+  const preferred = choice.options.find((option) => !["skip", "decline", "cancel"].includes(option));
+  if (preferred) return preferred;
+  if (choice.optional && choice.selectionField === "optionalAccepted") return "decline";
+  return choice.options[0] ?? null;
+}
+
 export function applyQuickDuelPlaytestTransition<
   Board extends QuickDuelComboMatchBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
@@ -95,6 +102,10 @@ export function applyQuickDuelPlaytestTransition<
  * Publishes a lifecycle event through the generic structured-status/Combo host
  * and the Character runtime. The default lookup is the shared generated runtime
  * card catalog, derived from canonical content/cards.json.
+ *
+ * Human choices are returned to the caller for the UI to surface. AI choices
+ * are resumed through the exact same Character choice contract using a small,
+ * identity-free policy so an AI fighter never stalls waiting for React input.
  */
 export function publishQuickDuelPlaytestLifecycleEvent<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
@@ -134,7 +145,22 @@ export function publishQuickDuelPlaytestLifecycleEvent<
 
   const actingBoard = actor === "player" ? structuredMatch.player : structuredMatch.ai;
   const characterEvent = quickDuelCharacterLifecycleEvent(actingBoard, characterType, cardLookup, characterFacts);
-  const character = publishQuickDuelPlaytestCharacterEvent(structuredMatch, actor, characterEvent);
+  let character = publishQuickDuelPlaytestCharacterEvent(structuredMatch, actor, characterEvent);
+
+  if (actor === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(
+        character.match,
+        actor,
+        character.event,
+        choice,
+        selection,
+      );
+    }
+  }
 
   return {
     match: character.match,
