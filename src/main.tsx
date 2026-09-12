@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
+import PlaytestCardRouteLifecycle from "../app/playtest-card-route-lifecycle";
 import "../app/card-inspector.css";
 import "../app/mobile-site-polish.css";
 import "../app/card-inspector-host-fix.css";
@@ -57,6 +58,7 @@ createRoot(rootElement).render(
   <StrictMode>
     <>
       <CompanionApp />
+      <PlaytestCardRouteLifecycle />
     </>
   </StrictMode>,
 );
