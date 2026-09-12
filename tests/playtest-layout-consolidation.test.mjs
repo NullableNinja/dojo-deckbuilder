@@ -25,18 +25,58 @@ const retiredLayoutSheets = [
   "playtest-graphics-fix.css",
   "playtest-user-facing-polish.css",
   "playtest-house-rule-layout-fix.css",
+  // Post-consolidation regressions: these must never become a second patch stack.
+  "playtest-live-skin.css",
+  "playtest-visual-repair.css",
+  "ascend-combo-button.css",
+  "playtest-finishing-pass.css",
+  "playtest-last-mile.css",
 ];
 
-test("Quick Duel loads one final layout authority and retires the patch stack", async () => {
+test("Quick Duel loads one final presentation authority and retires every patch sheet", async () => {
   assert.match(main, /import "\.\.\/app\/playtest-layout\.css";/);
-  assert.ok(main.indexOf('playtest-layout.css') > main.indexOf('playtest-card-surface.css'));
-  assert.ok(main.indexOf('playtest-layout.css') > main.indexOf('playtest-market-card-polish.css'));
+  assert.equal((main.match(/import "\.\.\/app\/playtest-layout\.css";/g) ?? []).length, 1);
+  assert.ok(main.indexOf("playtest-layout.css") > main.indexOf("playtest-card-surface.css"));
+  assert.ok(main.indexOf("playtest-layout.css") > main.indexOf("playtest-market-card-polish.css"));
 
   for (const filename of retiredLayoutSheets) {
     assert.doesNotMatch(main, new RegExp(filename.replaceAll(".", "\\.")));
     assert.equal(appFiles.includes(filename), false, `${filename} should be deleted`);
     await assert.rejects(access(new URL(`../app/${filename}`, import.meta.url)));
   }
+});
+
+test("consolidated presentation explicitly forbids another post-layout patch stack", () => {
+  assert.match(layout, /single final presentation authority/);
+  assert.match(layout, /Do not add post-layout playtest fix\/polish\/pass stylesheets/);
+  assert.doesNotMatch(layout, /!important/);
+
+  const imports = [...main.matchAll(/import "\.\.\/app\/([^"']+\.css)";/g)].map((match) => match[1]);
+  const layoutIndex = imports.indexOf("playtest-layout.css");
+  assert.notEqual(layoutIndex, -1);
+  const laterPlaytestCss = imports.slice(layoutIndex + 1).filter((path) => /(?:^|\/)playtest-|ascend-combo/.test(path));
+  assert.deepEqual(laterPlaytestCss, [], `No Quick Duel CSS may load after playtest-layout.css: ${laterPlaytestCss.join(", ")}`);
+});
+
+test("consolidated presentation keeps the verified live HUD and fighter corrections", () => {
+  assert.match(layout, /\.battle-hud-fighter\s*\{/);
+  assert.match(layout, /\.battle-hud-fighter i\s*\{[^}]*background:\s*#6c2b27;/s);
+  for (const belt of ["white", "gold", "orange", "green", "purple", "blue", "red", "brown", "black"]) {
+    assert.match(layout, new RegExp(`fighter-belt-badge\\[data-belt=\\"${belt}\\"\\]`));
+  }
+  assert.match(layout, /\.fighter-focus-seal,[\s\S]*border-radius:\s*6px 2px 7px 3px;/);
+  assert.match(layout, /\.fighter-status-tray,[\s\S]*grid-area:\s*status;/);
+  assert.match(layout, /\.fighter-equipment-tabs,[\s\S]*grid-area:\s*tools;/);
+});
+
+test("consolidated presentation keeps the verified hand, Combo, and Belt Check repairs", () => {
+  assert.match(layout, /playtest-workspace\.playtest-workspace--hand\s*\{[^}]*grid-area:\s*hand \/ 1 \/ hand \/ -1;[^}]*display:\s*block;/s);
+  assert.match(layout, /playtest-workspace--hand \.play-card-row\s*\{[^}]*justify-content:\s*safe center;[^}]*overflow-x:\s*auto;/s);
+  assert.match(layout, /grid-template-columns:\s*minmax\(0, 1fr\) 116px;/);
+  assert.match(layout, /:not\(\.is-open\)[^}]*width:\s*108px;[^}]*height:\s*112px;/s);
+  assert.match(layout, /ascend-featured-combo\[data-combo-popout="ready"\]\.is-open\s*\{[^}]*position:\s*absolute;[^}]*width:\s*100%;[^}]*height:\s*366px;/s);
+  assert.match(layout, /ascend-guide-actions > div > small\s*\{\s*display:\s*none;/);
+  assert.match(layout, /ascend-desk\.ascend-desk--functional:has\(\.ascend-belt\) > \.ascend-desk-footer\s*\{[^}]*height:\s*52px;[^}]*max-height:\s*52px;/s);
 });
 
 test("consolidated layout has explicit spatial ownership", () => {
@@ -65,7 +105,6 @@ test("overlay hierarchy uses a small documented layer scale", () => {
   assert.match(layout, /\.ascend-desk-backdrop[\s\S]*?position:\s*fixed/);
   assert.match(layout, /\.playtest-inspector-backdrop[\s\S]*?position:\s*fixed/);
   assert.match(layout, /\.match-result[\s\S]*?position:\s*fixed/);
-  assert.doesNotMatch(layout, /!important/);
 });
 
 test("desktop layout has intentional wide, standard, and narrow-safe tiers", () => {
