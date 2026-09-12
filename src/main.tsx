@@ -24,6 +24,7 @@ import "../app/playtest-graphics-fix.css";
 import "../app/rulings-variants.css";
 import "../app/playtest-card-surface.css";
 import "../app/playtest-market-card-polish.css";
+import "../app/playtest-house-rule-layout-fix.css";
 import "../app/card-library-art-consistency.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
