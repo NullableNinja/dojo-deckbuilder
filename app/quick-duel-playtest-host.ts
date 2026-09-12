@@ -1,7 +1,17 @@
 import type { ComboHostCardLookup } from "./combo-host-facts.ts";
 import type { ComboRuntimeCard } from "./combo-runtime.ts";
-import type { CharacterRuntimeBoard, CharacterRuntimeEvent } from "./character-runtime.ts";
+import type {
+  CharacterRuntimeBoard,
+  CharacterRuntimeChoice,
+  CharacterRuntimeEvent,
+} from "./character-runtime.ts";
+import {
+  quickDuelCharacterLifecycleEvent,
+  type QuickDuelCharacterCardLookup,
+  type QuickDuelCharacterLifecycleFacts,
+} from "./quick-duel-character-event-context.ts";
 import type { RuntimeCommand, RuntimeTrigger } from "./family-effect-runtime.ts";
+import { runtimeCardFor } from "./runtime-card-catalog.ts";
 import {
   applyQuickDuelStructuredTransition,
   hostQuickDuelComboEvent,
@@ -37,11 +47,19 @@ export type QuickDuelPlaytestCharacterEventResult<Match> = {
   published: boolean;
   conflict: boolean;
   reason: string;
+  event: CharacterRuntimeEvent | null;
+  choices: CharacterRuntimeChoice[];
+  notes: string[];
 };
 
-function opposingActor(actor: QuickDuelPlaytestActor): QuickDuelPlaytestActor {
-  return actor === "player" ? "ai" : "player";
-}
+export type QuickDuelPlaytestLifecycleEventResult<Match> = QuickDuelPlaytestEventResult<Match> & {
+  characterEvent: CharacterRuntimeEvent | null;
+  characterChoices: CharacterRuntimeChoice[];
+  characterNotes: string[];
+  characterPublished: boolean;
+  characterConflict: boolean;
+  characterReason: string;
+};
 
 function boardsForActor<Board extends QuickDuelComboMatchBoard, Match extends QuickDuelPlaytestHostMatch<Board>>(
   match: Match,
@@ -62,10 +80,13 @@ function withActorBoards<Board extends QuickDuelComboMatchBoard, Match extends Q
     : { ...match, player: boards.opponent, ai: boards.self };
 }
 
-/**
- * Records durable machine-readable host facts at the existing React state-write
- * boundary. Extra Playtest match fields are preserved verbatim.
- */
+function chooseAiCharacterOption(choice: CharacterRuntimeChoice): string | null {
+  const preferred = choice.options.find((option) => !["skip", "decline", "cancel"].includes(option));
+  if (preferred) return preferred;
+  if (choice.optional && choice.selectionField === "optionalAccepted") return "decline";
+  return choice.options[0] ?? null;
+}
+
 export function applyQuickDuelPlaytestTransition<
   Board extends QuickDuelComboMatchBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
@@ -78,19 +99,26 @@ export function applyQuickDuelPlaytestTransition<
 }
 
 /**
- * Publishes a lifecycle event such as Initiate without fabricating a current
- * card. This advances canonical deferred statuses and active Combo sessions.
+ * Publishes a lifecycle event through the generic structured-status/Combo host
+ * and the Character runtime. The default lookup is the shared generated runtime
+ * card catalog, derived from canonical content/cards.json.
+ *
+ * Human choices are returned to the caller for the UI to surface. AI choices
+ * are resumed through the exact same Character choice contract using a small,
+ * identity-free policy so an AI fighter never stalls waiting for React input.
  */
 export function publishQuickDuelPlaytestLifecycleEvent<
-  Board extends QuickDuelComboMatchBoard,
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
 >(
   match: Match,
   actor: QuickDuelPlaytestActor,
   trigger: RuntimeTrigger,
   operations: QuickDuelRuntimeCommandOperations<Board>,
+  cardLookup: QuickDuelCharacterCardLookup = runtimeCardFor,
   statusEvent: QuickDuelRuntimeStatusEventFacts = {},
-): QuickDuelPlaytestEventResult<Match> {
+  characterFacts: QuickDuelCharacterLifecycleFacts = {},
+): QuickDuelPlaytestLifecycleEventResult<Match> {
   const published = publishQuickDuelComboEvent<Board>(
     boardsForActor<Board, Match>(match, actor),
     trigger,
@@ -98,22 +126,55 @@ export function publishQuickDuelPlaytestLifecycleEvent<
     operations,
     statusEvent,
   );
+  const structuredMatch = withActorBoards(match, actor, published.boards);
+  const characterType = trigger === "onInitiate" ? "initiate" : trigger === "onHide" ? "hide" : null;
+
+  if (!characterType) {
+    return {
+      match: structuredMatch,
+      commands: published.commands,
+      activatedComboIds: [],
+      characterEvent: null,
+      characterChoices: [],
+      characterNotes: [],
+      characterPublished: false,
+      characterConflict: false,
+      characterReason: "No Character lifecycle route for this trigger.",
+    };
+  }
+
+  const actingBoard = actor === "player" ? structuredMatch.player : structuredMatch.ai;
+  const characterEvent = quickDuelCharacterLifecycleEvent(actingBoard, characterType, cardLookup, characterFacts);
+  let character = publishQuickDuelPlaytestCharacterEvent(structuredMatch, actor, characterEvent);
+
+  if (actor === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(
+        character.match,
+        actor,
+        character.event,
+        choice,
+        selection,
+      );
+    }
+  }
+
   return {
-    match: withActorBoards(match, actor, published.boards),
+    match: character.match,
     commands: published.commands,
     activatedComboIds: [],
+    characterEvent: character.event,
+    characterChoices: character.choices,
+    characterNotes: character.notes,
+    characterPublished: character.published,
+    characterConflict: character.conflict,
+    characterReason: character.reason,
   };
 }
 
-/**
- * Publishes a Character event through the migration-safe canonical runtime.
- *
- * Events that still have a legacy compatibility helper in playtest.tsx are
- * deliberately rejected by the Character ownership registry so the same
- * structured effect cannot resolve twice. As those helpers are retired, the
- * registry automatically opens the corresponding generic event route without
- * adding fighter identities or rules to this adapter.
- */
 export function publishQuickDuelPlaytestCharacterEvent<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
@@ -135,6 +196,9 @@ export function publishQuickDuelPlaytestCharacterEvent<
       published: publication.published,
       conflict: publication.conflict,
       reason: publication.reason,
+      event: null,
+      choices: [],
+      notes: [],
     };
   }
   return {
@@ -145,13 +209,36 @@ export function publishQuickDuelPlaytestCharacterEvent<
     published: publication.published,
     conflict: publication.conflict,
     reason: publication.reason,
+    event: publication.result.event,
+    choices: publication.result.choices,
+    notes: publication.result.notes,
   };
 }
 
 /**
- * Publishes a real card event and evaluates learned Combos from canonical host
- * facts. Actor orientation is handled here so React never swaps self/opponent.
+ * Resumes a canonical Character choice without teaching the Playtest about
+ * individual resolver names. The runtime declares which event field receives
+ * the selected value.
  */
+export function resolveQuickDuelPlaytestCharacterChoice<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  event: CharacterRuntimeEvent,
+  choice: CharacterRuntimeChoice,
+  selection: string,
+): QuickDuelPlaytestCharacterEventResult<Match> {
+  const value = choice.selectionField === "optionalAccepted"
+    ? selection === "accept"
+    : selection;
+  return publishQuickDuelPlaytestCharacterEvent(match, actor, {
+    ...event,
+    [choice.selectionField]: value,
+  });
+}
+
 export function hostQuickDuelPlaytestCardEvent<
   Board extends QuickDuelComboMatchBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
@@ -184,11 +271,6 @@ export function hostQuickDuelPlaytestCardEvent<
   };
 }
 
-/**
- * Pre-combat Attack seam for both player and AI. Persistent RuntimeCommands are
- * projected back into the ordinary boards and ephemeral combat facts (currently
- * Piercing) are returned separately for the existing combat calculation.
- */
 export function prepareQuickDuelPlaytestAttack<
   Board extends QuickDuelComboMatchBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
