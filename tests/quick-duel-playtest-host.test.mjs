@@ -159,6 +159,29 @@ test("the live Initiate lifecycle seam derives Ducktape candidates and preserves
   assert.ok(hidden.match.player.discard.includes(permanent.id));
 });
 
+test("AI Ducktape resolves the same structured Initiate choice and returns the borrowed permanent at Hide", () => {
+  const permanent = cards.find((card) => ["Weapon", "Defense Equipment", "Gear"].includes(card.subtype));
+  assert.ok(permanent, "canonical catalog must contain permanent Equipment");
+  const current = match(
+    board({ fighterId: "DDB-CHR-CORE-001" }),
+    board({ fighterId: "DDB-CHR-CORE-030", discard: [permanent.id] }),
+    { phase: "ai-ready", turnIndex: 1 },
+  );
+
+  const initiated = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", operations, lookupWith());
+  assert.equal(initiated.characterPublished, true);
+  assert.equal(initiated.characterConflict, false);
+  assert.equal(initiated.characterChoices.length, 0, "AI must not leak an unresolved React choice");
+  assert.equal(initiated.match.ai.borrowedEquipmentId, permanent.id);
+  assert.ok(initiated.match.ai.equipment.includes(permanent.id));
+  assert.ok(!initiated.match.ai.discard.includes(permanent.id));
+
+  const hidden = publishQuickDuelPlaytestLifecycleEvent(initiated.match, "ai", "onHide", operations, lookupWith());
+  assert.equal(hidden.match.ai.borrowedEquipmentId, null);
+  assert.ok(!hidden.match.ai.equipment.includes(permanent.id));
+  assert.ok(hidden.match.ai.discard.includes(permanent.id));
+});
+
 test("the live Initiate lifecycle seam lets AI resolve Character abilities without React card logic", () => {
   const current = match(
     board({ fighterId: "DDB-CHR-CORE-001" }),
