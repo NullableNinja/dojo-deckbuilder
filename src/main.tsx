@@ -2,7 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
-import CardViewerLifecycle from "../app/card-viewer-lifecycle";
 import SearchPage from "../app/search-page";
 import MobileSitePolish from "../app/mobile-site-polish";
 import "../app/playtest-production-layout.css";
@@ -66,7 +65,6 @@ createRoot(rootElement).render(
   <StrictMode>
     <>
       <CompanionApp />
-      <CardViewerLifecycle />
       <SearchPage />
       <MobileSitePolish />
     </>

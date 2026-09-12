@@ -7,26 +7,20 @@ const lifecycle = await readFile(new URL("../app/card-viewer-lifecycle.tsx", imp
 const companion = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
 const playtest = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
 
-test("Dojo Dossier lifecycle coordinator is mounted and eagerly includes CardInspector", () => {
-  assert.match(main, /import CardViewerLifecycle from "\.\.\/app\/card-viewer-lifecycle";/);
-  assert.match(main, /<CardViewerLifecycle \/>/);
-  assert.match(lifecycle, /import \{ CardInspector \} from "\.\/card-inspector";/);
-  assert.match(lifecycle, /if \(!CardInspector\.name\) return;/);
+test("experimental global Dojo Dossier lifecycle stays isolated from the application root", () => {
+  assert.doesNotMatch(main, /import CardViewerLifecycle from "\.\.\/app\/card-viewer-lifecycle";/);
+  assert.doesNotMatch(main, /<CardViewerLifecycle \/>/);
+  assert.match(lifecycle, /export default function CardViewerLifecycle\(\)/);
 });
 
-test("viewer exposes canonical share URLs without changing the visible Quick Duel host", () => {
-  assert.match(lifecycle, /canonicalCardHash = \(catalogId: string\) => `#cards\/\$\{encodeURIComponent\(catalogId\)\}`/);
-  assert.match(lifecycle, /document\.querySelector\("\.playtest-shell"\) \? "playtest" : "cards"/);
-  assert.match(lifecycle, /window\.history\.replaceState\(null, "", shareHash\)/);
-  assert.match(lifecycle, /Do not emit popstate here/);
+test("Card Library still mounts exactly one shared CardInspector surface", () => {
+  assert.match(companion, /\{activeCard && <Suspense fallback=\{null\}><CardInspector/);
+  assert.doesNotMatch(companion, /<CardModal\b/);
 });
 
-test("viewer close clears routed card state before React can reveal an older card underneath", () => {
-  assert.match(lifecycle, /clearRoutedViewerState/);
-  assert.match(lifecycle, /window\.dispatchEvent\(new PopStateEvent\("popstate"\)\)/);
-  assert.match(lifecycle, /VIEWER_CLOSE_SELECTOR/);
-  assert.match(lifecycle, /VIEWER_BACKDROP_SELECTOR/);
-  assert.match(lifecycle, /event\.key !== "Escape"/);
+test("Quick Duel still mounts the shared CardInspector without a global DOM observer", () => {
+  assert.match(playtest, /\{inspected && !inspectedBoard && <Suspense fallback=\{null\}><CardInspector/);
+  assert.doesNotMatch(main, /MutationObserver/);
 });
 
 test("obsolete CardModal is definition-only and no longer mounted by the Card Library", () => {
