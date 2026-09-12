@@ -46,11 +46,19 @@ test("public companion copy is version-free and uses the current featured roster
   assert.ok(source.includes("publicCardDetails(card)"));
 });
 
-test("global search spans the whole companion", async () => {
-  const source = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
-  for (const expected of ['type: "Rule"', 'type: "Ruling"', 'type: "Card"', 'type: "Glossary"', 'type: "House Rule"', 'placeholder="Search the dojo"']) {
-    assert.ok(source.includes(expected), `Missing unified search behavior: ${expected}`);
+test("global search spans the whole companion through the shared canonical engine", async () => {
+  const [source, search] = await Promise.all([
+    readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/search.ts", import.meta.url), "utf8"),
+  ]);
+
+  for (const expected of ['type: "card"', 'type: "rule"', 'type: "glossary"', 'type: "ruling"', 'type: "house-rule"']) {
+    assert.ok(search.includes(expected), `Missing shared search result family: ${expected}`);
   }
+  assert.match(search, /CANONICAL_RULES/);
+  assert.match(source, /searchDojo\(globalSearch\)/);
+  assert.match(source, /placeholder="Search the dojo"/);
+  assert.match(source, /navigate\(\{ page: "search", query \}\)/);
 });
 
 test("Quick Duel has a stable static render boundary and missing artwork is presented intentionally", async () => {
