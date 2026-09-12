@@ -15,13 +15,22 @@ test("AI Air Horn cancels a player Reaction Consumable before structured effects
   assert.doesNotMatch(cancellationBlock, /discard: \[...current.player.discard, card.id\]/, "cancelled Consumable must not be incorrectly sent to the fighter discard pile");
 });
 
-test("AI Air Horn cancels a player Defense before Guard and printed effects resolve, then resumes the strike with no Defense card", () => {
+test("AI Air Horn spends a player Defense before Guard/effects without resolving Defense or Block lifecycle", () => {
   const start = source.indexOf("const resolveDefenseState =");
   const end = source.indexOf("const resolveDefense =", start);
   const resolveDefenseState = source.slice(start, end);
   const cancellation = resolveDefenseState.indexOf("if (aiAirHorn)");
   const defenseMath = resolveDefenseState.indexOf("const matchingArmor");
   assert.ok(cancellation >= 0 && defenseMath > cancellation, "Air Horn must intercept the played Defense before defense math/effects");
-  assert.match(resolveDefenseState, /discard: \[...current.player.discard, defenseCard.id\]/, "cancelled Defense must still leave the hand and go to its normal discard destination");
-  assert.match(resolveDefenseState, /return resolveDefenseState\(intercepted, null, prevention, skipOptionalPrompt\)/, "the strike must resume with no Defense card after cancellation");
+  const cancellationBlock = resolveDefenseState.slice(cancellation, defenseMath);
+  assert.match(cancellationBlock, /hand: removeOne\(current\.player\.hand, defenseCard\.id\)/, "cancelled Defense must leave the hand");
+  assert.match(cancellationBlock, /discard: \[\.\.\.current\.player\.discard, defenseCard\.id\]/, "cancelled Defense must go to discard");
+  assert.match(cancellationBlock, /return resolveDefenseState\(intercepted, null, prevention, skipOptionalPrompt\)/, "the strike must resume with no Defense card after cancellation");
+  assert.doesNotMatch(cancellationBlock, /stage3cConsumeDefenseStatuses/);
+  assert.doesNotMatch(cancellationBlock, /markCompletedTask/);
+  assert.doesNotMatch(cancellationBlock, /\bxp:/);
+  assert.doesNotMatch(cancellationBlock, /defendedThisRound/);
+  assert.doesNotMatch(cancellationBlock, /playedDefenseSinceLastTurn/);
+  assert.doesNotMatch(cancellationBlock, /nextDefenseCardBonus/);
+  assert.doesNotMatch(cancellationBlock, /blockedSinceLastTurn|blockedThisRound/);
 });
