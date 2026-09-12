@@ -2,7 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
-import { CardInspector } from "../app/card-inspector";
 import SearchPage from "../app/search-page";
 import MobileSitePolish from "../app/mobile-site-polish";
 import "../app/playtest-production-layout.css";
@@ -25,11 +24,6 @@ import "../app/reference-desk.css";
 import "../app/playtest-card-surface.css";
 import "../app/playtest-market-card-polish.css";
 import "../app/card-library-art-consistency.css";
-
-// playtest.tsx currently reaches the already-eager Card Inspector through a lazy
-// chunk boundary. Rolldown rewrites that dynamic import to this entry chunk, so
-// the entry must expose the named export the lazy resolver asks for.
-export { CardInspector };
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
@@ -66,12 +60,6 @@ if ("serviceWorker" in navigator) {
 }
 
 const rootElement = document.getElementById("root")!;
-
-// CardInspector is intentionally part of the initial application graph. Quick Duel and
-// the Card Library both open it after user interaction; keeping it eager prevents a stale
-// deployed app shell from trying to fetch a no-longer-present lazy chunk and taking down
-// the entire React root when that import rejects.
-rootElement.dataset.cardInspectorModule = CardInspector.name || "ready";
 
 createRoot(rootElement).render(
   <StrictMode>
