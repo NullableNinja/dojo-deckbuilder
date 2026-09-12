@@ -1,4 +1,4 @@
-name: Stage 3 rebuild TypeScript diagnostics
+name: Stage 3 rebuild diagnostics
 
 on:
   push:
@@ -11,9 +11,9 @@ permissions:
   issues: write
 
 jobs:
-  typescript-diagnostics:
+  rebuild-diagnostics:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout committed source
         uses: actions/checkout@v4
@@ -37,21 +37,40 @@ jobs:
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Capture full-suite diagnostics
+        id: tests
+        shell: bash
+        run: |
+          set +e
+          npm test > test-diagnostics.txt 2>&1
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
       - name: Publish diagnostics to reconstruction PR
         env:
           GH_TOKEN: ${{ github.token }}
-          EXIT_CODE: ${{ steps.tsc.outputs.exit_code }}
+          TSC_EXIT_CODE: ${{ steps.tsc.outputs.exit_code }}
+          TEST_EXIT_CODE: ${{ steps.tests.outputs.exit_code }}
         shell: bash
         run: |
           {
-            echo '### Stage 3 rebuild TypeScript diagnostics'
+            echo '### Stage 3 rebuild diagnostics'
             echo
             echo "Commit: $GITHUB_SHA"
-            echo "Exit code: $EXIT_CODE"
+            echo "TypeScript exit code: $TSC_EXIT_CODE"
+            echo "Full-suite exit code: $TEST_EXIT_CODE"
             echo
+            echo '#### TypeScript'
             echo '```text'
             cat tsc-diagnostics.txt
             echo '```'
+            echo
+            echo '#### npm test'
+            echo '```text'
+            tail -n 220 test-diagnostics.txt
+            echo '```'
           } > diagnostic-comment.md
           gh pr comment 48 --body-file diagnostic-comment.md
-          test "$EXIT_CODE" -eq 0
+          test "$TSC_EXIT_CODE" -eq 0
+          test "$TEST_EXIT_CODE" -eq 0
