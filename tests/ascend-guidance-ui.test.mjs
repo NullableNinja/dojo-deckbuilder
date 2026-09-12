@@ -20,14 +20,14 @@ test("the persistent action dock cannot prematurely Hide during Ascend", async (
 });
 
 test("visual overhaul keeps every major Quick Duel surface represented", async () => {
-  const [css, recovery, source] = await Promise.all([
+  const [css, layout, source] = await Promise.all([
     readFile(new URL("../app/playtest-production-mat.css", import.meta.url), "utf8"),
-    readFile(new URL("../app/playtest-functional-recovery.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/playtest-layout.css", import.meta.url), "utf8"),
     readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
   ]);
   for (const selector of [".battle-versus-hud", ".combat-stage-heading", ".living-fighter-card", ".combat-stage", ".hand-panel", ".ascend-guide", ".ascend-step-coach"]) {
     assert.match(css, new RegExp(selector.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")));
   }
   assert.match(source, /className="ascend-market-grid"/);
-  assert.match(recovery, /\.ascend-market-grid/);
+  assert.match(layout, /\.ascend-market-grid/);
 });
