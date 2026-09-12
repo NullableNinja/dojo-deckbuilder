@@ -6,14 +6,16 @@ const readText = (path) => readFile(new URL(path, root), "utf8");
 const readJson = async (path) => JSON.parse(await readText(path));
 const writeJson = async (path, value) => writeFile(new URL(path, root), `${JSON.stringify(value, null, 2)}\n`, "utf8");
 
-const [source, rules, cards, effectsText, effectArchitecture] = await Promise.all([
+const [source, rules, cards, effectsText, comboRequirementsText, effectArchitecture] = await Promise.all([
   readJson("content/dojo-game.json"),
   readJson("content/rules.json"),
   readJson("content/cards.json"),
   readText("content/effects.json"),
+  readText("content/combo-requirements.json"),
   expectedCardEffectAggregate(),
 ]);
 const effects = JSON.parse(effectsText);
+const comboRequirements = JSON.parse(comboRequirementsText);
 const { aggregate: cardEffects, families } = effectArchitecture;
 
 if (!source?.definition) throw new Error("content/dojo-game.json is missing definition");
@@ -23,6 +25,8 @@ if (!String(rules.version ?? "").startsWith(source.rulesVersion)) throw new Erro
 if (!String(cards.version ?? "").startsWith(source.rulesVersion)) throw new Error(`content/cards.json version '${cards.version ?? "missing"}' does not match ${source.rulesVersion}`);
 if (effects.rulesVersion !== source.rulesVersion) throw new Error(`content/effects.json rulesVersion '${effects.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
 if (effects.rulesRevision !== source.rulesRevision) throw new Error(`content/effects.json rulesRevision '${effects.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
+if (comboRequirements.rulesVersion !== source.rulesVersion) throw new Error(`content/combo-requirements.json rulesVersion '${comboRequirements.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
+if (comboRequirements.rulesRevision !== source.rulesRevision) throw new Error(`content/combo-requirements.json rulesRevision '${comboRequirements.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
 if (cardEffects.rulesVersion !== source.rulesVersion) throw new Error(`Generated card-effects rulesVersion '${cardEffects.rulesVersion ?? "missing"}' does not match ${source.rulesVersion}`);
 if (cardEffects.rulesRevision !== source.rulesRevision) throw new Error(`Generated card-effects rulesRevision '${cardEffects.rulesRevision ?? "missing"}' does not match ${source.rulesRevision}`);
 if (cards.total !== cards.cards?.length) throw new Error("content/cards.json total does not match cards.length");
@@ -34,11 +38,14 @@ await Promise.all([
   writeJson("app/data/cards.json", cards),
   writeFile(new URL("app/data/effects.json", root), effectsText.endsWith("\n") ? effectsText : `${effectsText}\n`, "utf8"),
   writeJson("app/data/card-effects.json", cardEffects),
+  writeFile(new URL("app/data/combo-requirements.json", root), comboRequirementsText.endsWith("\n") ? comboRequirementsText : `${comboRequirementsText}\n`, "utf8"),
 ]);
 
 console.log(`Generated content/card-effects.json from ${families.length} active family source file${families.length === 1 ? "" : "s"}.`);
 console.log(`Validated and copied content/effects.json (${Object.keys(effects.effects ?? {}).length} canonical reusable effects).`);
+console.log(`Validated and copied content/combo-requirements.json (${Object.keys(comboRequirements.cards ?? {}).length} Core Combo requirement definitions).`);
 console.log(`Generated app/data/game-definition.json from content/dojo-game.json (${source.rulesRevision}).`);
 console.log("Generated app/data/rules.json from content/rules.json.");
 console.log(`Generated app/data/cards.json from content/cards.json (${cards.total} cards).`);
 console.log(`Generated app/data/card-effects.json from the unified registry (${Object.keys(cardEffects.cards ?? {}).length} migrated cards).`);
+console.log("Generated app/data/combo-requirements.json as a byte-for-byte copy of content/combo-requirements.json.");

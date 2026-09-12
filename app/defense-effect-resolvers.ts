@@ -110,30 +110,30 @@ function baseConditionValues(context: DefenseRuntimeContext) {
   };
 }
 
-function resolverConditionMatches(catalogId: string, effect: StructuredRuntimeEffect, context: DefenseRuntimeContext) {
+function resolverConditionMatches(effect: StructuredRuntimeEffect, context: DefenseRuntimeContext) {
   if (!conditionsMatch(effect, baseConditionValues(context))) return false;
   const resolver = effect.resolver;
   if (!resolver) return true;
 
   switch (resolver) {
     case "defense.conditionalGuard": {
-      switch (catalogId) {
-        case "DDB-DEF-CORE-002": return Boolean(context.defenderAttackedThisRound);
-        case "DDB-DEF-CORE-009":
-        case "DDB-DEF-CORE-026": return Boolean(context.weaponAttack);
-        case "DDB-DEF-CORE-012": return (context.incomingAttackPower ?? 0) >= 8;
-        case "DDB-DEF-CORE-022": return (context.incomingAttackPower ?? 0) >= 5;
-        case "DDB-DEF-CORE-027": return Boolean(context.usedConsumableThisRound);
-        case "DDB-DEF-CORE-038": return (context.defensesPlayedThisRound ?? 0) === 0;
-        case "DDB-DEF-CORE-043": return String(context.incomingZone ?? "").toLocaleLowerCase() === "low" || isGrapple(context);
-        case "DDB-DEF-CORE-047": return Boolean(context.wasHitThisRound);
-        case "DDB-DEF-CORE-050": return (context.defensesPlayedThisRound ?? 0) === 0;
+      switch (effect.id) {
+        case "defense-after-hours-attack-round-guard": return Boolean(context.defenderAttackedThisRound);
+        case "defense-clipboard-cover-weapon-guard":
+        case "defense-long-guard-weapon-guard": return Boolean(context.weaponAttack);
+        case "defense-double-forearm-threshold-guard": return (context.incomingAttackPower ?? 0) >= 8;
+        case "defense-inspection-head-tilt-power-guard": return (context.incomingAttackPower ?? 0) >= 5;
+        case "defense-lunch-tray-consumable-guard": return Boolean(context.usedConsumableThisRound);
+        case "defense-hands-up-first-defense-guard": return (context.defensesPlayedThisRound ?? 0) === 0;
+        case "defense-sprawl-low-grapple-guard": return String(context.incomingZone ?? "").toLocaleLowerCase() === "low" || isGrapple(context);
+        case "defense-technical-stand-up-hit-round-guard": return Boolean(context.wasHitThisRound);
+        case "defense-witness-only-defense-guard": return (context.defensesPlayedThisRound ?? 0) === 0;
         default: return true;
       }
     }
     case "defense.failedBlockDamagePrevention":
       if (context.blockSucceeded !== false) return false;
-      return catalogId !== "DDB-DEF-CORE-028" || (context.incomingDamage ?? Number.POSITIVE_INFINITY) <= 2;
+      return effect.id !== "defense-not-face-small-hit-prevent" || (context.incomingDamage ?? Number.POSITIVE_INFINITY) <= 2;
     case "defense.conditionalFocus":
       return context.blockSucceeded === true && (context.attacksReceivedThisRound ?? 1) <= 1;
     case "defense.blockCounterDamage":
@@ -159,7 +159,7 @@ function choicePayload(effect: StructuredRuntimeEffect) {
   return payload;
 }
 
-function qualifyDefenseCommand(catalogId: string, effect: StructuredRuntimeEffect): RuntimeCommand {
+function qualifyDefenseCommand(effect: StructuredRuntimeEffect): RuntimeCommand {
   const command = runtimeCommand(effect);
   const resolver = effect.resolver;
   if (!resolver) return command;
@@ -179,17 +179,15 @@ function qualifyDefenseCommand(catalogId: string, effect: StructuredRuntimeEffec
   switch (resolver) {
     case "defense.delayedAttackModifier":
       command.duration = "nextAttack";
-      if (catalogId === "DDB-DEF-CORE-008") command.qualifier = { nextAttackZone: "Low", opponent: true };
-      else if (catalogId === "DDB-DEF-CORE-031") command.qualifier = { nextAttackTag: "Hand", opponent: true };
+      if (effect.id === "defense-catch-sweep-next-low-counter") command.qualifier = { nextAttackZone: "Low", opponent: true };
+      else if (effect.id === "defense-pak-sao-hand-counter") command.qualifier = { nextAttackTag: "Hand", opponent: true };
       else command.qualifier = { nextAttack: true, opponent: true };
       break;
     case "defense.targetNextAttackModifier":
       command.duration = "nextAttack";
-      command.qualifier = catalogId === "DDB-DEF-CORE-023" ? { nextAttackTag: "Kick" } : { nextAttack: true };
+      command.qualifier = effect.id === "defense-jam-kick-next-kick-penalty" ? { nextAttackTag: "Kick" } : { nextAttack: true };
       break;
     case "defense.nextRoundSpeedModifier":
-      // This is deliberately not an end-of-current-round modifier. It arms now,
-      // becomes active at the next Honor boundary, and is consumed by that round.
       command.duration = "nextRound";
       command.qualifier = { activateAt: "nextHonor", expires: "followingHonor" };
       break;
@@ -217,7 +215,7 @@ function qualifyDefenseCommand(catalogId: string, effect: StructuredRuntimeEffec
       break;
     case "defense.playRestriction":
       command.duration = "endOfTurn";
-      command.qualifier = { restriction: catalogId === "DDB-DEF-CORE-010" ? "defense" : "attack" };
+      command.qualifier = { restriction: effect.id === "defense-cross-block-defense-lock" ? "defense" : "attack" };
       break;
     case "defense.beltExam":
       command.qualifier = { beltExamTask: "attack-and-defend" };
@@ -233,8 +231,8 @@ export function defenseRuntimeCommands(card: RuntimeCardLike, trigger: RuntimeTr
   for (const effect of structuredRuntimeEffects(card)) {
     if (effect.trigger !== trigger) continue;
     if (effect.resolver && !isSupportedDefenseResolver(effect.resolver)) continue;
-    if (!resolverConditionMatches(catalogId, effect, context)) continue;
-    commands.push(qualifyDefenseCommand(catalogId, effect));
+    if (!resolverConditionMatches(effect, context)) continue;
+    commands.push(qualifyDefenseCommand(effect));
   }
   return commands;
 }

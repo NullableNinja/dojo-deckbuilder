@@ -9,6 +9,8 @@
       "content/rules.json",
       "content/cards.json",
       "content/effects.json",
+      "content/combo-requirements.json",
+      "content/combo-requirements.schema.json",
       "content/card-effect.schema.json",
       "content/card-effect-family.schema.json"
     ],
@@ -22,11 +24,13 @@
       "app/data/rules.json",
       "app/data/cards.json",
       "app/data/effects.json",
-      "app/data/card-effects.json"
+      "app/data/card-effects.json",
+      "app/data/combo-requirements.json"
     ],
     "legacySourcesPendingMigration": [],
     "generatedFileRule": "Do not hand-edit generated game data. Change the canonical source under content/ and regenerate instead.",
-    "effectRegistryRule": "Reusable semantics are authored in content/effects.json; card behavior is authored by family in content/card-effects/*.json; content/card-effects.json is generated from those family sources."
+    "effectRegistryRule": "Reusable semantics are authored in content/effects.json; card behavior is authored by family in content/card-effects/*.json; content/card-effects.json is generated from those family sources.",
+    "comboRequirementRule": "Core Combo fulfillment requirements are authored only in content/combo-requirements.json under content/combo-requirements.schema.json and copied deterministically to app/data/combo-requirements.json for runtime use."
   },
   "definition": {
     "schemaVersion": 1,
@@ -54,56 +58,20 @@
       "focusExpiresAt": "next-own-Hide"
     },
     "starterDeck": [
-      {
-        "catalogId": "DDB-STA-CORE-001",
-        "copies": 5
-      },
-      {
-        "catalogId": "DDB-STA-CORE-002",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-003",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-004",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-005",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-006",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-007",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-008",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-009",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-010",
-        "copies": 1
-      },
-      {
-        "catalogId": "DDB-STA-CORE-011",
-        "copies": 1
-      }
+      { "catalogId": "DDB-STA-CORE-001", "copies": 5 },
+      { "catalogId": "DDB-STA-CORE-002", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-003", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-004", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-005", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-006", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-007", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-008", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-009", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-010", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-011", "copies": 1 }
     ],
     "openingMulligan": {
-      "requiredTypes": [
-        "Attack",
-        "Kata"
-      ],
+      "requiredTypes": ["Attack", "Kata"],
       "attempts": 1
     },
     "economy": {
@@ -115,10 +83,7 @@
       },
       "market": {
         "rowSize": 7,
-        "decks": [
-          "Technique Deck",
-          "Item Deck"
-        ],
+        "decks": ["Technique Deck", "Item Deck"],
         "refill": "top-card-after-purchase",
         "stagnationRefresh": "after-full-round-without-purchase"
       },
@@ -130,18 +95,8 @@
       }
     },
     "combat": {
-      "attackFormula": [
-        "printedAttackPower",
-        "characterAtk",
-        "tempo",
-        "modifiers"
-      ],
-      "defenseFormula": [
-        "characterDef",
-        "guard",
-        "armor",
-        "modifiers"
-      ],
+      "attackFormula": ["printedAttackPower", "characterAtk", "tempo", "modifiers"],
+      "defenseFormula": ["characterDef", "guard", "armor", "modifiers"],
       "damageFloor": 0,
       "defensesPerAttack": 1,
       "playerWinsBossSpeedTies": true

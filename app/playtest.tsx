@@ -1,11 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent, type SetStateAction } from "react";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
-import { compileCardEffects, describeEffectPlan, effectPlanForCard } from "./card-effects";
-import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroyJunkChoicePlan, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
+import { describeEffectPlan, effectPlanForCard } from "./card-effects";
+import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroyJunkChoicePlan, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
@@ -18,7 +18,10 @@ import { firstEventReactionCard, hasUntargetableStatus } from "./stage3c-consuma
 import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, spendableFocusForPurchase, spendFocusForPurchase } from "./stage3c-consumable-surface.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
-import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
+import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
+import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction } from "./character-runtime";
+import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent } from "./quick-duel-playtest-host";
+import { structuredLocationAttackForHost, structuredLocationDefenseForHost, structuredLocationKataForHost } from "./location-playtest-bridge";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -119,6 +122,10 @@ type Board = {
   wasHitSinceLastTurn: boolean;
   borrowedEquipmentId: string | null;
   abilityUsedRound: boolean;
+  usedCharacterEffectIdsThisTurn?: string[];
+  usedCharacterEffectIdsThisRound?: string[];
+  usedCharacterEffectIdsThisGame?: string[];
+  characterMarks?: Record<string, unknown>;
   reversalUsedRound: boolean;
   learnedCombos: string[];
   triggeredCombos: string[];
@@ -175,18 +182,18 @@ type PendingChoice =
   | { kind: "attack-cost-discard"; sourceCardId: string; bonus: number; optional: true }
   | { kind: "fire-drill-discard"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[]; optional: true }
   | { kind: "fire-drill-zone"; sourceCardId: string; defenseId: string; originalZone: string; alternativeZones: string[] }
-  | { kind: "air-horn-reaction"; sourceCardId: string; reactionCardId: string; reactionKind: "consumable" | "defense" }
-  | { kind: "stage3c-trail-mix"; sourceCardId: string; equipmentIds: string[] }
-  | { kind: "stage3c-zone-ward"; sourceCardId: string; amount: number }
-  | { kind: "stage3c-remove-negative"; sourceCardId: string; bonusAttack: number; stats: ("ATK" | "DEF" | "Speed")[] }
-  | { kind: "stage3c-discard-focus"; sourceCardId: string; remaining: number; focusPerDiscard: number; optional: true }
-  | { kind: "stage3c-weapon-suppress"; sourceCardId: string; equipmentIds: string[] }
-  | { kind: "stage3c-exhaust-focus"; sourceCardId: string; equipmentIds: string[]; focus: number }
-  | { kind: "stage3c-raffle"; sourceCardId: string; revealedCardId: string }
-  | { kind: "stage3c-lucky-reveal"; sourceCardId: string; revealKind: "market" | "location"; revealedCardId: string; marketSlot?: number }
-  | { kind: "stage3c-sparring-pick"; sourceCardId: string; revealed: string[] }
-  | { kind: "stage3c-sparring-junk"; sourceCardId: string; junkIds: string[]; optional: true }
-  | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] };
+  | { kind: "cancel-reaction"; sourceCardId: string; reactionCardId: string; reactionKind: "consumable" | "defense" }
+  | { kind: "equipment-cycle"; sourceCardId: string; equipmentIds: string[] }
+  | { kind: "zone-call"; sourceCardId: string; amount: number }
+  | { kind: "remove-negative-stat"; sourceCardId: string; bonusAttack: number; stats: ("ATK" | "DEF" | "Speed")[] }
+  | { kind: "discard-for-focus"; sourceCardId: string; remaining: number; focusPerDiscard: number; optional: true }
+  | { kind: "suppress-equipment-clause"; sourceCardId: string; equipmentIds: string[] }
+  | { kind: "exhaust-equipment-for-focus"; sourceCardId: string; equipmentIds: string[]; focus: number }
+  | { kind: "market-reveal-purchase"; sourceCardId: string; revealedCardId: string }
+  | { kind: "replace-revealed-card"; sourceCardId: string; revealKind: "market" | "location"; revealedCardId: string; marketSlot?: number }
+  | { kind: "deck-attack-pick"; sourceCardId: string; revealed: string[] }
+  | { kind: "destroy-revealed-junk"; sourceCardId: string; junkIds: string[]; optional: true }
+  | { kind: "discard-reaction"; sourceCardId: string; reactionIds: string[] };
 
 type Match = {
   schema: 8;
@@ -285,6 +292,8 @@ const QUICK_DUEL_LOCATION_NAMES = new Set([
   "Traditional Dojo",
   "Yoga Studio",
 ]);
+const DEFAULT_QUICK_DUEL_FIGHTER_NAME = "Sensei Ducktape";
+const DEFAULT_QUICK_DUEL_LOCATION_NAME = "Tournament Mat";
 const quickDuelLocationPool = locationPool.filter((card) => QUICK_DUEL_LOCATION_NAMES.has(card.name));
 const belts = gameDefinition.progression.belts;
 const DIFFICULTIES: Record<Difficulty, { label: string; eyebrow: string; detail: string; aiHp: number; statBoost: number }> = {
@@ -435,85 +444,36 @@ function refreshMarketRow(market: string[], marketDeck: string[], marketDiscard:
 
 type CombatModifier = { value: number; notes: string[] };
 type AttackModifier = { power: number; damage: number; notes: string[] };
-type ComboModifier = AttackModifier & { focusOnHit: number; grantsFlow: boolean; speedOnTrigger: number; piercing: number; triggeredIds: string[] };
-
-function comboAttackModifier(board: Board, card: CardEntry, zone: string, isReversal = false): ComboModifier {
-  const result: ComboModifier = { power: 0, damage: 0, focusOnHit: 0, grantsFlow: false, speedOnTrigger: 0, piercing: 0, triggeredIds: [], notes: [] };
-  const priorCards = board.cardsThisTurn.map(cardFor).filter(Boolean) as CardEntry[];
-  const equipment = board.equipment.map(cardFor).filter(Boolean) as CardEntry[];
-  for (const comboId of board.learnedCombos) {
-    if (board.triggeredCombos.includes(comboId)) continue;
-    const combo = cardFor(comboId);
-    if (!combo) continue;
-    const evaluation = evaluateCombo(combo, {
-      priorCards,
-      attacksThisTurn: board.attacksThisTurn,
-      defendedThisRound: board.defendedThisRound,
-      hitThisTurn: board.hitThisTurn,
-      zonesPlayed: board.zonesPlayed,
-      equipment,
-      currentCard: card,
-      currentZone: zone,
-      isReversal,
-    });
-    if (!evaluation.eligible) continue;
-    result.power += evaluation.power;
-    result.damage += evaluation.damage;
-    result.focusOnHit += evaluation.focusOnHit;
-    result.grantsFlow ||= evaluation.grantsFlow;
-    result.speedOnTrigger += evaluation.speedOnTrigger;
-    result.piercing += evaluation.piercing;
-    result.triggeredIds.push(combo.id);
-    const payoffBits = [evaluation.power ? `+${evaluation.power} power` : "", evaluation.damage ? `+${evaluation.damage} damage` : "", evaluation.grantsFlow ? "Flow" : "", evaluation.focusOnHit ? `${evaluation.focusOnHit} Focus on Hit` : "", evaluation.speedOnTrigger ? `+${evaluation.speedOnTrigger} Speed` : "", evaluation.piercing ? `Piercing ${evaluation.piercing}` : ""].filter(Boolean);
-    result.notes.push(`COMBO — ${combo.name}: ${payoffBits.join(", ")}`);
-  }
-  return result;
-}
-
 function locationAttackModifier(location: CardEntry | undefined, card: CardEntry, board: Board, zone: string): AttackModifier {
   if (!location) return { power: 0, damage: 0, notes: [] };
   const firstAttack = board.attacksThisTurn === 0;
   const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
-  const parsed = locationAttackRuleModifiers(location, {
+  const parsed = structuredLocationAttackForHost(location, {
     zone,
     firstAttack,
     attackTags: card.tags,
     hasWeapon: equipped.some(isWeapon),
     equipmentTags: equipped.flatMap((item) => item.tags),
   });
-  if (parsed.matched) return { power: parsed.power, damage: parsed.damage, notes: parsed.notes };
-
-  // Legacy fallback for unusual Quick Duel stages whose printed sentence has not
-  // yet been generalized. Keep this list small and delete entries as parsers land.
-  let power = 0;
-  let damage = 0;
-  const notes: string[] = [];
-  const applyPower = (amount: number, reason: string) => { power += amount; notes.push(`${reason} ${amount > 0 ? "+" : ""}${amount} Attack Power`); };
-  if (location.name === "River Dock" && hasTag(card, "Push")) applyPower(2, "dock edge");
-  if (location.name === "Yoga Studio") applyPower(-1, "indoor voice");
-  return { power, damage, notes };
+  return { power: parsed.power, damage: parsed.damage, notes: parsed.notes };
 }
 
 function locationDefenseModifier(location: CardEntry | undefined, card: CardEntry | null | undefined, board: Board, zone: string): CombatModifier {
   if (!location || !card) return { value: 0, notes: [] };
-  const firstDefense = !board.defendedThisRound;
-  let value = 0;
-  const notes: string[] = [];
-  const apply = (amount: number, reason: string) => { value += amount; notes.push(`${reason} ${amount > 0 ? "+" : ""}${amount}`); };
-  if (location.name === "City Bus in Motion" && (hasTag(card, "Dodge") || hasTag(card, "Movement"))) apply(-1, "moving bus");
-  if (location.name === "Community Ice Rink" && hasTag(card, "Dodge")) apply(1, "ice-rink Dodge");
-  if (location.name === "River Dock" && zone === "Low") apply(1, "dockside Low Guard");
-  if (location.name === "School Gymnasium" && firstDefense) apply(1, "first Defense");
-  if (location.name === "Strip-Mall McDojo") apply(-1, "discount instruction");
-  if (location.name === "Traditional Dojo" && firstDefense) apply(1, "first Defense");
-  return { value, notes };
+  const parsed = structuredLocationDefenseForHost(location, {
+    zone,
+    defenseTags: card.tags,
+    firstDefenseThisRound: !board.defendedThisRound,
+  });
+  return { value: parsed.guard, notes: parsed.notes };
 }
 
 function locationFocusModifier(location: CardEntry | undefined, card: CardEntry, board: Board): CombatModifier {
   const kataAlreadyPlayed = board.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; });
   if (!location || !isKata(card) || kataAlreadyPlayed) return { value: 0, notes: [] };
-  if (["Public Library", "Strip-Mall McDojo", "Traditional Dojo", "Yoga Studio"].includes(location.name)) return { value: 1, notes: [`${location.name} first-Kata Focus +1`] };
-  return { value: 0, notes: [] };
+  const parsed = structuredLocationKataForHost(location, { firstKataThisTurn: true });
+  const value = parsed.setFocusTo === null ? parsed.focus : parsed.setFocusTo - cardFocus(card);
+  return { value, notes: parsed.notes };
 }
 
 function printedAttackRuleModifier(attacker: Board, defender: Board, card: CardEntry, zone: string, isReversal = false): AttackModifier {
@@ -921,13 +881,14 @@ function autoActivateAiDefenseGuardEquipment(board: Board) {
 }
 
 function attackAllowedZones(board: Board, card: CardEntry) {
+  const allZones = ["High", "Mid", "Low"];
   const conditional = finalAttackAllowedZones(card, { boughtCardLastAscend: board.boughtCardLastAscend });
   if (conditional.handled && conditional.zones.length > 1) return conditional.zones;
-  if (board.nextAttackAnyZone || card.zone?.includes("Any")) return ["High", "Mid", "Low"];
+  if (board.nextAttackAnyZone || card.zone?.includes("Any")) return allZones;
   const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
-  if (attackCanChooseAnyZone(card, board.attacksThisTurn === 0, equipped)) return ["High", "Mid", "Low"];
-  if (cardFor(board.fighterId)?.name === "Whirlwind Wynn" && board.attacksThisTurn === 0 && hasTag(card, "Spin")) return ["High", "Mid", "Low"];
-  return [card.zone?.split(",")[0] ?? "High"];
+  if (attackCanChooseAnyZone(card, board.attacksThisTurn === 0, equipped)) return allZones;
+  const printedZones = [card.zone?.split(",")[0] ?? "High"];
+  return characterAllowedAttackZones(board, card, printedZones);
 }
 function attackHasFlexibleZone(board: Board, card: CardEntry) {
   return attackAllowedZones(board, card).length > 1;
@@ -944,11 +905,23 @@ function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry
   const fighter = cardFor(attacker.fighterId);
   if (!fighter) return { power: 0, damage: 0, notes: [] };
   const firstAttack = attacker.attacksThisTurn === 0;
-  if (fighter.name === "El Pollo Rojo" && firstAttack && defender.xp > attacker.xp) return { power: 0, damage: 1, notes: ["El Pollo Rojo refuses to trail +1 damage"] };
-  if (fighter.name === "Knuckleton the Brawler" && firstAttack && !attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; })) return { power: 0, damage: 1, notes: ["Knuckleton's first unarmed strike +1 damage"] };
-  if (fighter.name === "Wavey Davey" && firstAttack && attacker.wasHitSinceLastTurn) return { power: 0, damage: 1, notes: ["Wavey Davey found the opening +1 damage"] };
-  if (fighter.name === "Whirlwind Wynn" && firstAttack && hasTag(card, "Spin")) return { power: 0, damage: 0, notes: ["Whirlwind Wynn opens the Spin zone"] };
-  return { power: 0, damage: 0, notes: [] };
+  const hasWeaponEquipped = attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
+  const printedZone = card.zone?.split(",")[0] ?? null;
+  const previousZone = attacker.zonesPlayed.at(-1) ?? null;
+  const structured = characterAttackModifier(attacker, defender, card, {
+    firstAttackThisTurn: firstAttack,
+    usedConsumableThisTurn: attacker.usedConsumableThisRound,
+    hasWeaponEquipped,
+    playedKataEarlierThisTurn: attacker.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; }),
+    zone: printedZone ?? undefined,
+    previousAttackZone: previousZone,
+    differentZoneFromPreviousAttack: Boolean(previousZone && printedZone && previousZone !== printedZone),
+  });
+  const catchupEffect = structuredRuntimeResolvers(fighter, "character.xpTrailFirstHit")[0];
+  const catchupDamage = firstAttack && defender.xp > attacker.xp ? Number(catchupEffect?.amount ?? 0) : 0;
+  const notes = [...structured.notes];
+  if (catchupDamage) notes.push(`Character: XP-trail first Hit +${catchupDamage} damage`);
+  return { power: structured.power, damage: structured.damage + catchupDamage, notes };
 }
 
 function reduceDamageForFighter(board: Board, damage: number): { board: Board; damage: number; note: string | null } {
@@ -957,14 +930,12 @@ function reduceDamageForFighter(board: Board, damage: number): { board: Board; d
   let next = equipmentReduction.board;
   let remaining = equipmentReduction.damage;
   const notes = [...structuredReduction.notes, ...equipmentReduction.notes];
-  const fighter = cardFor(next.fighterId);
-  if (fighter && !next.damageReductionUsed && remaining > 0) {
-    const protects = fighter.name === "Sentry Bobby" || (fighter.name === "Crash Test Dummy" && remaining >= 4);
-    if (protects) {
-      next = { ...next, damageReductionUsed: true };
-      remaining = Math.max(0, remaining - 1);
-      notes.push(`${fighter.name} reduces the Hit by 1`);
-    }
+  if (remaining > 0) {
+    const before = remaining;
+    const characterReduction = characterDamageReduction(next, remaining);
+    next = { ...next, ...characterReduction.board, damageReductionUsed: next.damageReductionUsed || characterReduction.damage < before };
+    remaining = characterReduction.damage;
+    notes.push(...characterReduction.notes);
   }
   return { board: next, damage: remaining, note: notes.length ? notes.join("; ") : null };
 }
@@ -981,8 +952,30 @@ function drawCards(board: Board, count: number) {
   return { ...board, deck, discard, hand };
 }
 
+const quickDuelHostOperations = {
+  draw: (board: Board, amount: number) => drawCards(board, amount),
+  discardForAi: (board: Board, amount: number) => {
+    const count = Math.min(Math.max(0, amount), board.hand.length);
+    const ranked = [...board.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right)));
+    const discarded = ranked.slice(0, count);
+    let hand = [...board.hand];
+    for (const id of discarded) hand = removeOne(hand, id);
+    return { ...board, hand, discard: [...board.discard, ...discarded] };
+  },
+};
+
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
+
+function cardHasRuntimeResolver(card: CardEntry | null | undefined, resolver: string) {
+  return Boolean(card && structuredRuntimeResolvers(card, resolver).length);
+}
+
+function cardHasRuntimeCondition(card: CardEntry | null | undefined, resolver: string, kind: string, value: unknown) {
+  return Boolean(card && structuredRuntimeResolvers(card, resolver).some((effect) =>
+    (effect.conditions ?? []).some((condition) => condition.kind === kind && condition.value === value),
+  ));
+}
 
 function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {
   return {
@@ -1285,10 +1278,10 @@ function stage3cAiPreferredAttackZone(board: Board) {
 function beginStage3CSparringDummy(board: Board, sourceCardId: string) {
   const revealedState = revealDeckTop(board, 3);
   const attacks = revealedState.revealed.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
-  if (attacks.length) return { board: revealedState.board, pendingChoice: { kind: "stage3c-sparring-pick", sourceCardId, revealed: revealedState.revealed } as PendingChoice };
+  if (attacks.length) return { board: revealedState.board, pendingChoice: { kind: "deck-attack-pick", sourceCardId, revealed: revealedState.revealed } as PendingChoice };
   const junkIds = revealedState.revealed.filter((id) => isJunk(cardFor(id)));
   const discarded = { ...revealedState.board, discard: [...revealedState.board.discard, ...revealedState.revealed] };
-  return { board: discarded, pendingChoice: junkIds.length ? { kind: "stage3c-sparring-junk", sourceCardId, junkIds, optional: true } as PendingChoice : null };
+  return { board: discarded, pendingChoice: junkIds.length ? { kind: "destroy-revealed-junk", sourceCardId, junkIds, optional: true } as PendingChoice : null };
 }
 
 
@@ -1470,17 +1463,20 @@ function emptyBoard(fighterId: string): Board {
     tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false, reactionItemUsedSinceLastTurn: false,
     defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
     damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false, completedBeltExamThisRound: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false, boughtCardThisAscend: false, boughtCardLastAscend: false, targetEquipmentDefPenalties: {}, nextItemCostPenalty: 0, attackLockedThisTurn: false,
-    reversalUsedRound: false, learnedCombos: [], triggeredCombos: [], comboAttemptedTurn: false,
+    reversalUsedRound: false, usedCharacterEffectIdsThisTurn: [], usedCharacterEffectIdsThisRound: [], usedCharacterEffectIdsThisGame: [], characterMarks: {}, learnedCombos: [], triggeredCombos: [], comboAttemptedTurn: false,
     damageDealt: 0, damageTaken: 0, cardsBought: 0, destroyed: [], returnedToSupply: [], stage3cStatuses: [], stage3cChoices: [], stage3cRestrictions: [], stage3cDefenseModifier: 0, stage3cAttackModifier: 0, stage3cSpeedOverride: null, stage3cPurchaseCostModifier: 0, suppressedEquipmentPenaltyIds: [],
   }, gameDefinition.turn.handSize);
 }
 
+const STARTER_ART_BY_NAME: Readonly<Record<string, string>> = {
+  "Basic Jab": starterJabArtUrl,
+  "High Guard": highGuardArtUrl,
+};
+
 function artistUrl(card: CardEntry) {
   if (card.image && CARD_ART[card.image]) return CARD_ART[card.image];
   if (COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId]) return COMPLETE_CARD_ART_BY_CATALOG_ID[card.catalogId];
-  if (card.name === "Basic Jab") return starterJabArtUrl;
-  if (card.name === "High Guard") return highGuardArtUrl;
-  return undefined;
+  return STARTER_ART_BY_NAME[card.name];
 }
 
 function presentationSlug(value: string) {
@@ -1590,12 +1586,13 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   });
   if (structuredFlow.grant) next.nextAttackHasFlow = true;
   if (structuredAnyZone.handled || structuredFlow.handled) return next;
+  if (card.catalogId.includes("-CORE-")) return next;
   const text = card.rulesText ?? "";
   if (timing === "onPlay" && /After your first Attack resolves[^.]*next Attack gains Flow/i.test(text) && board.attacksThisTurn === 0) {
     next.flowAfterFirstAttack = true;
   } else if (timing === "onPlay" && /(?:^|[.!?]\s+)(?:Your|The) next [^.]*Attack[^.]*gains Flow/i.test(text)) {
     next.nextAttackHasFlow = true;
-  } else if (timing === "onPlay" && card.name === "Second Wind Form" && board.hp > board.maxHp / 2) {
+  } else if (timing === "onPlay" && cardHasRuntimeCondition(card, "kata.branch", "grantFlowTo", "nextAttack") && board.hp > board.maxHp / 2) {
     next.nextAttackHasFlow = true;
   } else if (timing === "onHit" && /(?:On Hit|If (?:this Attack|it|that Attack) Hits?)[^.]*next [^.]*Attack[^.]*gains Flow/i.test(text)) {
     next.nextAttackHasFlow = true;
@@ -1605,16 +1602,27 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   return next;
 }
 
-function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {
-  if (board.nextAttackHasFlow || combo.grantsFlow || stage3cAttackFlow(board, card, zone, isReversal)) return true;
+function attackHasFlow(board: Board, card: CardEntry, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {
+  if (board.nextAttackHasFlow || stage3cAttackFlow(board, card, zone, isReversal)) return true;
   const hasWeaponEquipped = board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
   const structuredFlow = structuredCurrentAttackFlow(card, { hasWeaponEquipped });
   if (structuredFlow.handled) return structuredFlow.hasFlow;
+  if (card.catalogId.includes("-CORE-")) {
+    const pairedWeapons = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item && isWeapon(item) && hasTag(item, "Paired")));
+    const attackNumber = board.attacksThisTurn + 1;
+    return pairedWeapons.length >= 2 && board.equipment.some((id) => {
+      const item = cardFor(id);
+      return Boolean(item && structuredRuntimeResolvers(item, "equipment.structured").some((effect) => {
+        if (effect.effect !== "combat.grantFlow" || effect.trigger !== "onAttackDeclared") return false;
+        const attackNumberCondition = (effect.conditions ?? []).find((condition) => condition.kind === "attackNumber");
+        const pairedCondition = (effect.conditions ?? []).find((condition) => condition.kind === "hasTwoPairedWeapons");
+        return Number(attackNumberCondition?.value ?? -1) === attackNumber && pairedCondition?.value === true;
+      }));
+    });
+  }
   if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {
     return !/Weapon equipped/i.test(card.rulesText ?? "") || hasWeaponEquipped;
   }
-  const pairedWeapons = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item && isWeapon(item) && hasTag(item, "Paired")));
-  if (board.attacksThisTurn === 1 && pairedWeapons.length >= 2 && board.equipment.some((id) => cardFor(id)?.name === "Escrima Sticks")) return true;
   return false;
 }
 
@@ -1701,7 +1709,7 @@ function playAreaCleanup(board: Board) {
   const equipment = borrowed ? readyBoard.equipment.filter((id) => id !== borrowed) : readyBoard.equipment;
   const exhaustedEquipment = borrowed ? (readyBoard.exhaustedEquipment ?? []).filter((id) => id !== borrowed) : (readyBoard.exhaustedEquipment ?? []);
   const discard = [...readyBoard.discard, ...readyBoard.hand, ...readyBoard.playArea.filter((id) => !readyBoard.equipment.includes(id)), ...(borrowed ? [borrowed] : [])];
-  return drawCards({ ...readyBoard, hand: [], playArea: [], equipment, exhaustedEquipment, equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, borrowedEquipmentId: null, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, reactionItemUsedSinceLastTurn: false, suppressedEquipmentPenaltyIds: [], completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (beltHasReward(readyBoard, "hand-size") ? 1 : 0));
+  return drawCards({ ...readyBoard, hand: [], playArea: [], equipment, exhaustedEquipment, equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, borrowedEquipmentId: null, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], usedCharacterEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, reactionItemUsedSinceLastTurn: false, suppressedEquipmentPenaltyIds: [], completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (beltHasReward(readyBoard, "hand-size") ? 1 : 0));
 }
 
 function cardLabel(card: CardEntry) { return `${card.name} · ${card.catalogId}`; }
@@ -1957,7 +1965,7 @@ function MobilePlaytestNotice() {
 }
 
 export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards") => void }) {
-  const [selectedId, setSelectedId] = useState(() => characters.find((card) => card.name === "Sensei Ducktape")?.id ?? characters[0].id);
+  const [selectedId, setSelectedId] = useState(() => characters.find((card) => card.name === DEFAULT_QUICK_DUEL_FIGHTER_NAME)?.id ?? characters[0].id);
   const [settings, setSettings] = useState<HouseSettings>(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-settings") ?? "null") as Partial<HouseSettings> | null;
@@ -1966,12 +1974,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return { tempo: saved?.tempo ?? true, locations: saved?.locations ?? true, openMarket: saved?.openMarket ?? true, guided: saved?.guided ?? true, autoAi: saved?.autoAi ?? true, balancedMarket: saved?.balancedMarket ?? true, difficulty: saved?.difficulty && DIFFICULTIES[saved.difficulty] ? saved.difficulty : "certified", motion };
     } catch { return { tempo: true, locations: true, openMarket: true, guided: true, autoAi: true, balancedMarket: true, difficulty: "certified", motion: "full" }; }
   });
-  const [match, setMatch] = useState<Match | null>(() => {
+  const [match, setRawMatch] = useState<Match | null>(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
       const validSavedMatch = saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;
       return validSavedMatch ? normalizePendingDamageChoice(validSavedMatch) : null;
     } catch { return null; }
+  });
+  const setMatch = (update: SetStateAction<Match | null>) => setRawMatch((previous) => {
+    const next = typeof update === "function" ? update(previous) : update;
+    return previous && next ? applyQuickDuelPlaytestTransition(previous, next, cardFor) : next;
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
   const [inspectorZoomed, setInspectorZoomed] = useState(false);
@@ -2036,7 +2048,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const shuffledMarket = shuffle(marketPool.filter((card) => settings.openMarket || Boolean(artistUrl(card))).map((card) => card.id));
     const openingMarket = curateOpeningMarket(shuffledMarket, settings.balancedMarket);
     const comboDeck = shuffle(comboPool.map((card) => card.id));
-    const currentLocation = settings.locations ? locations[0] : locationPool.find((card) => card.name === "Tournament Mat")?.id ?? locations[0];
+    const currentLocation = settings.locations ? locations[0] : locationPool.find((card) => card.name === DEFAULT_QUICK_DUEL_LOCATION_NAME)?.id ?? locations[0];
     const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
     const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
     setDeskView(null);
@@ -2065,7 +2077,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-initiate" || current.winner) return current;
     const card = cardFor(id);
     if (!card || !isPermanent(card)) return current;
-    if (cardFor(current.player.fighterId)?.name === "Knuckleton the Brawler" && isWeapon(card)) return write(current, "Knuckleton refuses the Weapon. The waiver cites 'personal reasons.'");
+    if (!characterCanEquip(current.player, card)) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);
     let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id] }, card, "player");
     let pendingChoice: PendingChoice | null = null;
     const beltName = belts[nextPlayer.belt]?.name ?? "White";
@@ -2086,11 +2098,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
 
   const borrowEquipment = (id: string) => setMatch((current) => {
-    if (!current || current.phase !== "player-initiate" || current.player.abilityUsedRound || cardFor(current.player.fighterId)?.name !== "Sensei Ducktape") return current;
+    if (!current || current.phase !== "player-initiate" || current.player.abilityUsedRound || !cardHasRuntimeResolver(cardFor(current.player.fighterId), "character.equipDiscardPermanentUntilHide")) return current;
     const card = cardFor(id);
     if (!card || !isPermanent(card) || !current.player.discard.includes(id)) return current;
     const nextPlayer = applyCardEffects({ ...current.player, discard: removeOne(current.player.discard, id), borrowedEquipmentId: id, abilityUsedRound: true }, card, "player");
-    return write(current, `Sensei Ducktape jury-rigs ${card.name} from the discard pile until Hide.`, { player: nextPlayer });
+    return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} jury-rigs ${card.name} from the discard pile until Hide.`, { player: nextPlayer });
   });
 
   const beginYell = () => setMatch((current) => current?.phase === "player-initiate" ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: { ...current.player, usedEffectIdsThisTurn: [] } }) : current);
@@ -2218,6 +2230,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (hasUntargetableStatus(current.ai.stage3cStatuses)) return write(current, `${cardFor(current.ai.fighterId)?.name ?? "The opponent"} cannot be targeted through Smoke Bomb. Choose a different action.`, { selectedAttackId: null });
     const anyZone = attackHasFlexibleZone(current.player, card);
     const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
+    const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "player", card, zone, cardFor, quickDuelHostOperations);
+    current = preparedComboAttack.match;
     const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;
     const previousCardIsItem = Boolean(previousCard && previousCard.cardType === "Item");
     const conditionalCycle = structuredAttackCyclePlan(current.player, card, zone, current.nonHonorSceneChangedThisRound);
@@ -2227,18 +2241,17 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
     const printedModifier = printedAttackRuleModifier(current.player, current.ai, card, zone);
     const incomingModifier = incomingAttackEquipmentModifier(current.ai);
-    const comboModifier = comboAttackModifier(current.player, card, zone);
     const armedEquipment = armedEquipmentAttackModifier(current.player, zone);
     const aiIncomingReaction = autoActivateAiIncomingEquipment(current.ai, zone);
     const rawArmorModifier = equipmentDefenseModifier(aiIncomingReaction.board, zone);
     const persistentSuppression = equipmentSuppressionForZone(current.player, aiIncomingReaction.board, zone);
     const armorPenalty = current.player.nextAttackArmorPenalty ?? 0;
     const penalizedArmorModifier = applyNextAttackArmorPenalty(rawArmorModifier, armorPenalty + persistentSuppression);
-    const piercingModifier = attackPiercingModifier(current.player, aiIncomingReaction.board, card, zone, comboModifier.piercing + armedEquipment.piercing);
+    const piercingModifier = attackPiercingModifier(current.player, aiIncomingReaction.board, card, zone, preparedComboAttack.attackFacts.piercing + armedEquipment.piercing);
     const armorModifier = piercedArmorModifier(penalizedArmorModifier, piercingModifier.value);
-    const hasFlow = attackHasFlow(current.player, card, comboModifier, zone);
+    const hasFlow = attackHasFlow(current.player, card, zone);
     const stage3cAttackBonus = stage3cAttackPowerBonus(current.player, card, zone);
-    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
+    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
     const playerAirHorn = firstEventReactionCard(current.player.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
     const expectedIncomingDamage = Math.max(0, baseAttackPower - fighterStat(aiIncomingReaction.board, "DEF"));
     const aiConsumableCandidate = current.airHornAiConsumableSpentThisStrike
@@ -2252,7 +2265,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         }) as CardEntry | null;
     if (aiConsumableCandidate && playerAirHorn && !(current.airHornPassedReactionIds ?? []).includes(aiConsumableCandidate.id)) {
       return write(current, `${aiConsumableCandidate.name} is played as the computer's Reaction. Air Horn can cancel it before resolution.`, {
-        pendingChoice: { kind: "air-horn-reaction", sourceCardId: playerAirHorn.id, reactionCardId: aiConsumableCandidate.id, reactionKind: "consumable" },
+        pendingChoice: { kind: "cancel-reaction", sourceCardId: playerAirHorn.id, reactionCardId: aiConsumableCandidate.id, reactionKind: "consumable" },
       });
     }
     const aiConsumableReaction = current.airHornAiConsumableSpentThisStrike
@@ -2270,7 +2283,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     if (defenseCard && playerAirHorn && !(current.airHornPassedReactionIds ?? []).includes(defenseCard.id)) {
       return write(current, `${defenseCard.name} is played as the computer's one Defense for this strike. Air Horn can cancel it before Guard or printed effects resolve.`, {
-        pendingChoice: { kind: "air-horn-reaction", sourceCardId: playerAirHorn.id, reactionCardId: defenseCard.id, reactionKind: "defense" },
+        pendingChoice: { kind: "cancel-reaction", sourceCardId: playerAirHorn.id, reactionCardId: defenseCard.id, reactionKind: "defense" },
       });
     }
     const postDefensePower = afterDefenseAttackPowerBonus(card, Boolean(defenseCard));
@@ -2280,18 +2293,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(aiDefenseReaction.board, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
     const defensePower = Math.max(0, fighterStat(aiDefenseReaction.board, "DEF") + armorModifier.value + stage3cIncomingAttackDefenseBonus(aiDefenseReaction.board) + (defenseCard ? cardPower(defenseCard) + (aiDefenseReaction.board.nextDefenseCardBonus ?? 0) + stage3cNextDefenseGuardBonus(aiDefenseReaction.board) + aiDefenseReaction.guard : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
-    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
+    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage) : 0;
     const reduced = reduceDamageForFighter(aiDefenseReaction.board, rawDamage);
     const optionalReduced = applyOptionalCombatDamageReductionAi(reduced.board, reduced.damage);
     const damage = optionalReduced.damage;
-    const attackState = { ...stage3cConsumeAttackStatuses(current.player, card, zone), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage, lastAttackHit: hit, currentAttackIsReversal: false, attackLockedThisTurn: current.player.attackLockedThisTurn || finalAttackOnlyAttackLock(card, current.player.attacksThisTurn === 0) };
+    const attackState = { ...stage3cConsumeAttackStatuses(current.player, card, zone), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: current.player.triggeredCombos, comboTriggered: current.player.comboTriggered, damageDealt: current.player.damageDealt + damage, lastAttackHit: hit, currentAttackIsReversal: false, attackLockedThisTurn: current.player.attackLockedThisTurn || finalAttackOnlyAttackLock(card, current.player.attacksThisTurn === 0) };
     const completesActiveBeltExam = !beltTaskMet(current.player) && beltTaskMet(attackState);
     let nextPlayer = applyCardEffects({ ...attackState, completesActiveBeltExamThisAttack: completesActiveBeltExam }, card, "player");
     const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
     if (flowDraw) nextPlayer = drawCards({ ...nextPlayer, flowUsedThisTurn: true }, 1);
     if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
-    if (hit && comboModifier.focusOnHit) nextPlayer = gainFocus(nextPlayer, comboModifier.focusOnHit);
-    if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
     if (!hit && armedEquipment.blockedFocus) nextPlayer = gainFocus(nextPlayer, armedEquipment.blockedFocus);
     let nextAi: Board = { ...optionalReduced.board, hp: Math.max(0, optionalReduced.board.hp - damage), attacksReceivedThisRound: (optionalReduced.board.attacksReceivedThisRound ?? 0) + 1, combatDamageEventsThisRound: (optionalReduced.board.combatDamageEventsThisRound ?? 0) + (reduced.damage > 0 ? 1 : 0), wasHitSinceLastTurn: optionalReduced.board.wasHitSinceLastTurn || hit, damageTaken: optionalReduced.board.damageTaken + damage };
     nextAi = stage3cConsumeIncomingAttackStatuses(nextAi);
@@ -2362,7 +2373,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       ? { kind: "ready-equipment", sourceCardId: card.id, optional: true }
       : cycleDiscardCount ? { kind: "discard-hand", sourceCardId: card.id, remaining: cycleDiscardCount, sourceFollowup: false }
       : optionalCycle && nextPlayer.hand.length ? { kind: "discard-draw", sourceCardId: card.id, remaining: optionalCycle.discard, draw: optionalCycle.draw } : null;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : [])];
+    let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
+    if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "onHit", quickDuelHostOperations, { currentAttackHit: true }).match;
+    hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
+    nextPlayer = hostedComboMatch.player;
+    nextAi = hostedComboMatch.ai;
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
     return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, airHornPassedReactionIds: [], airHornAiConsumableSpentThisStrike: false, airHornAiDefenseSpentThisStrike: false, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
   };
@@ -2371,7 +2387,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const resolvePlayerAirHornChoice = (useAirHorn: boolean) => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "air-horn-reaction") return current;
+    if (!current || !choice || choice.kind !== "cancel-reaction") return current;
     const reaction = cardFor(choice.reactionCardId);
     const airHorn = cardFor(choice.sourceCardId);
     if (!reaction || !airHorn || !current.player.hand.includes(airHorn.id)) {
@@ -2521,7 +2537,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       if (defensePenalty) nextAi = { ...nextAi, nextDefenseCardBonus: (nextAi.nextDefenseCardBonus ?? 0) - defensePenalty };
     }
     if (isCoreConsumableCard(card)) {
-      if (card.catalogId === "DDB-CON-CORE-009") {
+      if (cardHasRuntimeResolver(card, "consumable.chooseOpponentDiscardReactionIfAble")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.chooseOpponentDiscardReactionIfAble"]);
         const reactions = nextAi.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && String(candidate.timing ?? "").toLocaleLowerCase() === "reaction"));
         if (reactions.length) {
@@ -2529,53 +2545,53 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           nextAi = { ...nextAi, hand: removeOne(nextAi.hand, chosen.id), discard: [...nextAi.discard, chosen.id] };
         }
       }
-      if (card.catalogId === "DDB-CON-CORE-010") {
+      if (cardHasRuntimeResolver(card, "consumable.optionalExhaustToCycle")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.optionalExhaustToCycle"]);
         const equipmentIds = stage3cReadyEquipmentIds(nextPlayer);
-        if (!pendingChoice && equipmentIds.length) pendingChoice = { kind: "stage3c-trail-mix", sourceCardId: id, equipmentIds };
+        if (!pendingChoice && equipmentIds.length) pendingChoice = { kind: "equipment-cycle", sourceCardId: id, equipmentIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-012" && current.phase === "player-ascend") {
+      if (cardHasRuntimeResolver(card, "consumable.raffleTicket") && current.phase === "player-ascend") {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.raffleTicket"]);
         const reveal = revealMarketCards(nextMarketDeck, nextMarketDiscard, 1);
         nextMarketDeck = reveal.marketDeck;
         nextMarketDiscard = reveal.marketDiscard;
-        if (reveal.revealed[0]) pendingChoice = { kind: "stage3c-raffle", sourceCardId: id, revealedCardId: reveal.revealed[0] };
+        if (reveal.revealed[0]) pendingChoice = { kind: "market-reveal-purchase", sourceCardId: id, revealedCardId: reveal.revealed[0] };
       }
-      if (card.catalogId === "DDB-CON-CORE-021") {
+      if (cardHasRuntimeResolver(card, "consumable.zoneSpecificIncomingAttackPenalty")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.zoneSpecificIncomingAttackPenalty"]);
-        pendingChoice = { kind: "stage3c-zone-ward", sourceCardId: id, amount: -2 };
+        pendingChoice = { kind: "zone-call", sourceCardId: id, amount: -2 };
       }
-      if (card.catalogId === "DDB-CON-CORE-022") {
+      if (cardHasRuntimeResolver(card, "consumable.reorderTopThree")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.reorderTopThree"]);
         const reveal = revealDeckTop(nextPlayer, 3);
         const types = new Set(reveal.revealed.map((candidate) => cardFor(candidate)?.cardType ?? "Unknown"));
         nextPlayer = reveal.board;
         if (reveal.revealed.length) pendingChoice = { kind: "deck-order", sourceCardId: id, revealed: reveal.revealed, ordered: [], bonusFocus: reveal.revealed.length === 3 && types.size === 3 ? 1 : 0 };
       }
-      if (card.catalogId === "DDB-CON-CORE-031" || card.catalogId === "DDB-CON-CORE-056") {
+      if (cardHasRuntimeResolver(card, "consumable.pepTalkConditionalAttackBonus") || cardHasRuntimeResolver(card, "consumable.removeTemporaryNegativeStatModifier")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.removeTemporaryNegativeStatModifier"]);
         const stats = stage3cNegativeStatOptions(nextPlayer);
-        if (stats.length) pendingChoice = { kind: "stage3c-remove-negative", sourceCardId: id, bonusAttack: card.catalogId === "DDB-CON-CORE-031" ? 1 : 0, stats };
+        if (stats.length) pendingChoice = { kind: "remove-negative-stat", sourceCardId: id, bonusAttack: cardHasRuntimeResolver(card, "consumable.pepTalkConditionalAttackBonus") ? 1 : 0, stats };
       }
-      if (card.catalogId === "DDB-CON-CORE-032") {
+      if (cardHasRuntimeResolver(card, "consumable.discardUpToForFocus")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.discardUpToForFocus"]);
-        if (nextPlayer.hand.length) pendingChoice = { kind: "stage3c-discard-focus", sourceCardId: id, remaining: Math.min(2, nextPlayer.hand.length), focusPerDiscard: 2, optional: true };
+        if (nextPlayer.hand.length) pendingChoice = { kind: "discard-for-focus", sourceCardId: id, remaining: Math.min(2, nextPlayer.hand.length), focusPerDiscard: 2, optional: true };
       }
-      if (card.catalogId === "DDB-CON-CORE-035") {
+      if (cardHasRuntimeResolver(card, "consumable.suppressChosenWeaponClause")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.suppressChosenWeaponClause"]);
         const equipmentIds = nextPlayer.equipment.filter((equipmentId) => { const item = cardFor(equipmentId); return Boolean(item && isWeapon(item)); });
-        if (equipmentIds.length) pendingChoice = { kind: "stage3c-weapon-suppress", sourceCardId: id, equipmentIds };
+        if (equipmentIds.length) pendingChoice = { kind: "suppress-equipment-clause", sourceCardId: id, equipmentIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-045") {
+      if (cardHasRuntimeResolver(card, "consumable.exhaustEquipmentForFocus")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.exhaustEquipmentForFocus"]);
         const equipmentIds = stage3cReadyEquipmentIds(nextPlayer);
-        if (equipmentIds.length) pendingChoice = { kind: "stage3c-exhaust-focus", sourceCardId: id, equipmentIds, focus: 3 };
+        if (equipmentIds.length) pendingChoice = { kind: "exhaust-equipment-for-focus", sourceCardId: id, equipmentIds, focus: 3 };
       }
-      if (card.catalogId === "DDB-CON-CORE-049" && current.phase === "defense-window" && current.pendingStrike) {
+      if (cardHasRuntimeResolver(card, "consumable.untargetableUntilTurnOrAttack") && current.phase === "defense-window" && current.pendingStrike) {
         const escaped = write(current, `Smoke Bomb invalidates ${cardFor(current.pendingStrike.cardId)?.name ?? "the incoming Attack"}'s only legal target. The strike is spent without dealing damage.`, { player: nextPlayer, ai: nextAi, pendingStrike: null, pendingChoice: null, pendingCombatContinuation: null });
         return finishAiTurn(escaped, "Computer cannot legally target you through the Smoke Bomb and ends its Yell.", settings.locations);
       }
-      if (card.catalogId === "DDB-CON-CORE-051") {
+      if (cardHasRuntimeResolver(card, "consumable.topThreeAttackSelection")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.topThreeAttackSelection"]);
         const sparring = beginStage3CSparringDummy(nextPlayer, id);
         nextPlayer = sparring.board;
@@ -2592,7 +2608,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current?.pendingDiscard || !current.player.hand.includes(id)) return current;
     const discarded = cardFor(id);
     const source = cardFor(current.pendingDiscard.sourceCardId);
-    const gainsFocus = source?.name === "Morning-Shift Meditation" && cardFocus(discarded) === 0;
+    const gainsFocus = Boolean(source && discarded && cardHasRuntimeResolver(source, "kata.discardBranch") && structuredRuntimeResolvers(source, "kata.discardBranch").some((effect) =>
+      effect.action === "gainFocus" && Number(effect.amount ?? 0) > 0 && (effect.conditions ?? []).some((condition) => condition.kind === "discardedFocusValue" && Number(condition.value) === cardFocus(discarded)),
+    ));
     const remaining = current.pendingDiscard.remaining - 1;
     const player = {
       ...current.player,
@@ -2609,7 +2627,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const selected = cardFor(cardId);
     if (!selected) return current;
 
-    if (choice.kind === "stage3c-trail-mix") {
+    if (choice.kind === "equipment-cycle") {
       if (source !== "equipment" || !choice.equipmentIds.includes(cardId) || !current.player.equipment.includes(cardId) || isEquipmentExhausted(current.player, cardId)) return current;
       let player = exhaustEquipment(current.player, cardId);
       player = drawCards(player, 1);
@@ -2617,7 +2635,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return write(current, `${selected.name} exhausted for ${cardFor(choice.sourceCardId)?.name ?? "Department-Issue Trail Mix"}; draw 1${pendingChoice ? " and choose 1 discard" : ""}.`, { player, pendingChoice });
     }
 
-    if (choice.kind === "stage3c-discard-focus") {
+    if (choice.kind === "discard-for-focus") {
       if (!current.player.hand.includes(cardId)) return current;
       const player = gainFocus({ ...current.player, hand: removeOne(current.player.hand, cardId), discard: [...current.player.discard, cardId] }, choice.focusPerDiscard);
       const remaining = choice.remaining - 1;
@@ -2625,34 +2643,34 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return write(current, `${selected.name} discarded for +${choice.focusPerDiscard} Focus.${pendingChoice ? " Up to " + remaining + " more may be discarded." : " Choice complete."}`, { player, pendingChoice });
     }
 
-    if (choice.kind === "stage3c-weapon-suppress") {
+    if (choice.kind === "suppress-equipment-clause") {
       if (source !== "equipment" || !choice.equipmentIds.includes(cardId) || !current.player.equipment.includes(cardId)) return current;
       const player = { ...current.player, suppressedEquipmentPenaltyIds: [...new Set([...(current.player.suppressedEquipmentPenaltyIds ?? []), cardId])] };
       return write(current, `Muscle Ointment suppresses ${selected.name}'s drawback/self-penalty until Hide.`, { player, pendingChoice: null });
     }
 
-    if (choice.kind === "stage3c-exhaust-focus") {
+    if (choice.kind === "exhaust-equipment-for-focus") {
       if (source !== "equipment" || !choice.equipmentIds.includes(cardId) || !current.player.equipment.includes(cardId) || isEquipmentExhausted(current.player, cardId)) return current;
       const player = gainFocus(exhaustEquipment(current.player, cardId), choice.focus);
       return write(current, `${selected.name} exhausted; Receipt-Printer Ribbon grants +${choice.focus} Focus.`, { player, pendingChoice: null });
     }
 
-    if (choice.kind === "stage3c-reaction-discard") {
+    if (choice.kind === "discard-reaction") {
       if (!choice.reactionIds.includes(cardId) || !current.player.hand.includes(cardId) || String(selected.timing ?? "").toLocaleLowerCase() !== "reaction") return current;
       const player = { ...current.player, hand: removeOne(current.player.hand, cardId), discard: [...current.player.discard, cardId] };
       return write(current, `${selected.name} discarded to satisfy Confetti Cannon.`, { player, pendingChoice: null });
     }
 
-    if (choice.kind === "stage3c-sparring-pick") {
+    if (choice.kind === "deck-attack-pick") {
       if (source !== "deck" || !choice.revealed.includes(cardId) || !isAttack(selected)) return current;
       const rest = removeOne(choice.revealed, cardId);
       const junkIds = rest.filter((candidate) => isJunk(cardFor(candidate)));
       const player = { ...current.player, hand: [...current.player.hand, cardId], discard: [...current.player.discard, ...rest] };
-      const pendingChoice = junkIds.length ? { kind: "stage3c-sparring-junk", sourceCardId: choice.sourceCardId, junkIds, optional: true } as PendingChoice : null;
+      const pendingChoice = junkIds.length ? { kind: "destroy-revealed-junk", sourceCardId: choice.sourceCardId, junkIds, optional: true } as PendingChoice : null;
       return write(current, `${selected.name} taken from Sparring Dummy's reveal; the rest are discarded.${pendingChoice ? " You may destroy one Junk discarded this way." : ""}`, { player, pendingChoice });
     }
 
-    if (choice.kind === "stage3c-sparring-junk") {
+    if (choice.kind === "destroy-revealed-junk") {
       if (source !== "discard" || !choice.junkIds.includes(cardId) || !current.player.discard.includes(cardId) || !isJunk(selected)) return current;
       const player = { ...current.player, discard: removeOne(current.player.discard, cardId), destroyed: [...(current.player.destroyed ?? []), cardId] };
       return write(current, `${selected.name} destroyed from Sparring Dummy's discarded reveal.`, { player, pendingChoice: null });
@@ -2736,14 +2754,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const resolveStage3CZoneWard = (zone: string) => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "stage3c-zone-ward") return current;
+    if (!current || !choice || choice.kind !== "zone-call") return current;
     const ai = stage3cArmZoneWard(current.ai, choice.sourceCardId, zone, choice.amount);
     return write(current, `Foam Finger calls ${zone}; the next ${zone} Attack targeting you this round gets ${choice.amount} Attack Power.`, { ai, pendingChoice: null });
   });
 
   const resolveStage3CNegative = (stat: "ATK" | "DEF" | "Speed") => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "stage3c-remove-negative" || !choice.stats.includes(stat)) return current;
+    if (!current || !choice || choice.kind !== "remove-negative-stat" || !choice.stats.includes(stat)) return current;
     const removed = stage3cRemoveTemporaryNegative(current.player, stat);
     let player = removed.board;
     if (removed.removed && choice.bonusAttack) {
@@ -2755,7 +2773,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const resolveStage3CRaffle = (buy: boolean) => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "stage3c-raffle") return current;
+    if (!current || !choice || choice.kind !== "market-reveal-purchase") return current;
     const revealed = cardFor(choice.revealedCardId);
     if (!revealed) return { ...current, pendingChoice: null };
     const price = marketPriceFor(current.player, revealed);
@@ -2770,7 +2788,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const resolveStage3CLucky = (use: boolean) => setMatch((current) => {
     const choice = current?.pendingChoice;
-    if (!current || !choice || choice.kind !== "stage3c-lucky-reveal") return current;
+    if (!current || !choice || choice.kind !== "replace-revealed-card") return current;
     if (!use) return write(current, "Lucky Dumpling held; the revealed card remains.", { pendingChoice: null });
     const lucky = cardFor(choice.sourceCardId);
     if (!lucky || !current.player.hand.includes(lucky.id)) return { ...current, pendingChoice: null };
@@ -2803,9 +2821,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return resolveDefenseState(current, choice.defenseId, null, true);
     }
     if (current.pendingChoice.kind === "post-block-cycle") return resumeAfterDefense(write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional Equipment"}: post-Block cycle declined.`, { pendingChoice: null }));
-    if (current.pendingChoice.kind === "stage3c-trail-mix") return write(current, "Department-Issue Trail Mix: optional Equipment cycle declined.", { pendingChoice: null });
-    if (current.pendingChoice.kind === "stage3c-discard-focus") return write(current, "Last-Call Electrolytes: stop discarding; keep the Focus already earned.", { pendingChoice: null });
-    if (current.pendingChoice.kind === "stage3c-sparring-junk") return write(current, "Sparring Dummy: optional Junk destruction declined.", { pendingChoice: null });
+    if (current.pendingChoice.kind === "equipment-cycle") return write(current, "Department-Issue Trail Mix: optional Equipment cycle declined.", { pendingChoice: null });
+    if (current.pendingChoice.kind === "discard-for-focus") return write(current, "Last-Call Electrolytes: stop discarding; keep the Focus already earned.", { pendingChoice: null });
+    if (current.pendingChoice.kind === "destroy-revealed-junk") return write(current, "Sparring Dummy: optional Junk destruction declined.", { pendingChoice: null });
     if (current.pendingChoice.kind === "destroy-junk" && current.pendingChoice.optional) return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: Junk destruction declined.`, { pendingChoice: null });
     if (current.pendingChoice.kind === "discard-draw") return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: discard/draw declined.`, { pendingChoice: null });
     if (current.pendingChoice.kind === "ready-equipment" && current.pendingChoice.optional) return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional effect"}: ready effect declined.`, { pendingChoice: null });
@@ -2850,8 +2868,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const refilled = refillPurchasedMarketSlot(current.market, current.marketDeck, current.marketDiscard, slot);
     const purchased = write(current, `Bought ${card.name} for ${price} Focus (${focusBefore} → ${nextPlayer.focus}). The top Market card immediately fills the slot.`, { player: nextPlayer, ...refilled, marketPurchasedThisRound: true });
     const revealedId = refilled.market[slot];
-    const lucky = revealedId ? nextPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033")) : null;
-    return lucky && revealedId ? write(purchased, `${cardFor(revealedId)?.name ?? "A Market card"} was revealed. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } }) : purchased;
+    const lucky = revealedId ? nextPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && cardHasRuntimeResolver(candidate, "consumable.replaceRevealedMarketOrLocation"))) : null;
+    return lucky && revealedId ? write(purchased, `${cardFor(revealedId)?.name ?? "A Market card"} was revealed. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "replace-revealed-card", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } }) : purchased;
   });
 
   const cycleCombo = (learn: boolean) => setMatch((current) => {
@@ -3042,6 +3060,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve", familyDefenseContext);
       nextAi = applyStage3CTiming(nextAi, defenseCard, "afterResolve", "ai", familyDefenseContext, "opponent");
     }
+    let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
+    if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "onHit", quickDuelHostOperations, { currentAttackHit: true }).match;
+    hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
+    nextPlayer = hostedComboMatch.player;
+    nextAi = hostedComboMatch.ai;
     const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...aiConsumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "ai", aiCard.id),
@@ -3124,6 +3147,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
     if (hasUntargetableStatus(current.ai.stage3cStatuses)) return write(current, `${cardFor(current.ai.fighterId)?.name ?? "The opponent"} cannot be targeted through Smoke Bomb. Choose a different action.`, { selectedAttackId: null });
     const zone = attackHasFlexibleZone(current.player, card) ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
+    const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "player", card, zone, cardFor, quickDuelHostOperations, { isReversal: true });
+    current = preparedComboAttack.match;
     const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;
     const previousCardIsItem = Boolean(previousCard && previousCard.cardType === "Item");
     const location = cardFor(current.locationId);
@@ -3131,12 +3156,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
     const printedModifier = printedAttackRuleModifier(current.player, current.ai, card, zone, true);
     const incomingModifier = incomingAttackEquipmentModifier(current.ai);
-    const comboModifier = comboAttackModifier(current.player, card, zone, true);
     const rawArmorModifier = equipmentDefenseModifier(current.ai, zone);
-    const piercingModifier = attackPiercingModifier(current.player, current.ai, card, zone, comboModifier.piercing);
+    const piercingModifier = attackPiercingModifier(current.player, current.ai, card, zone, preparedComboAttack.attackFacts.piercing);
     const armorModifier = piercedArmorModifier(rawArmorModifier, piercingModifier.value);
     const stage3cReversalBonus = stage3cAttackPowerBonus(current.player, card, zone, true);
-    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cReversalBonus + (current.player.reversalAttackBonus ?? 0) + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power);
+    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cReversalBonus + (current.player.reversalAttackBonus ?? 0) + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power);
     const defenseScenarioPower = afterDefenseAttackPowerBonus(card, true);
     const defenseId = bestDefense(current.ai, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
@@ -3146,14 +3170,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(current.ai, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
     const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + stage3cIncomingAttackDefenseBonus(current.ai) + (defenseCard ? cardPower(defenseCard) + (current.ai.nextDefenseCardBonus ?? 0) + stage3cNextDefenseGuardBonus(current.ai) : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
-    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
+    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage) : 0;
     const reduced = reduceDamageForFighter(current.ai, rawDamage);
     const optionalReduced = applyOptionalCombatDamageReductionAi(reduced.board, reduced.damage);
     const damage = optionalReduced.damage;
-    let nextPlayer = applyCardEffects({ ...stage3cConsumeAttackStatuses(current.player, card, zone, true), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], nextAttackAnyZone: false, reversalUsedRound: true, reversalAttackBonus: 0, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
+    let nextPlayer = applyCardEffects({ ...stage3cConsumeAttackStatuses(current.player, card, zone, true), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], nextAttackAnyZone: false, reversalUsedRound: true, reversalAttackBonus: 0, triggeredCombos: current.player.triggeredCombos, comboTriggered: current.player.comboTriggered, damageDealt: current.player.damageDealt + damage }, card, "player");
     nextPlayer.focus = Math.max(0, nextPlayer.focus - cardFocus(card));
-    if (hit && comboModifier.focusOnHit) nextPlayer = gainFocus(nextPlayer, comboModifier.focusOnHit);
-    if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
     let nextAi: Board = { ...optionalReduced.board, hp: Math.max(0, optionalReduced.board.hp - damage), attacksReceivedThisRound: (optionalReduced.board.attacksReceivedThisRound ?? 0) + 1, combatDamageEventsThisRound: (optionalReduced.board.combatDamageEventsThisRound ?? 0) + (reduced.damage > 0 ? 1 : 0), damageTaken: optionalReduced.board.damageTaken + damage, wasHitSinceLastTurn: optionalReduced.board.wasHitSinceLastTurn || hit };
     nextAi = stage3cConsumeIncomingAttackStatuses(nextAi);
     const targetDebuff = hit ? applyTargetHitDebuffs(nextAi, card, { previousCardIsItem }) : { board: nextAi, notes: [] as string[] };
@@ -3173,8 +3195,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
+    let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
+    if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "onHit", quickDuelHostOperations, { isReversal: true, currentAttackHit: true }).match;
+    hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { isReversal: true, currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
+    nextPlayer = hostedComboMatch.player;
+    nextAi = hostedComboMatch.ai;
     nextPlayer = markCompletedTask(nextPlayer);
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "player", card.id),
       actor: "player",
@@ -3257,27 +3284,27 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           ? match.pendingChoice.revealed.map((id, index) => ({ id, source: "deck" as const, index }))
           : match.pendingChoice?.kind === "ready-equipment"
             ? (player.exhaustedEquipment ?? []).filter((id) => player.equipment.includes(id)).map((id, index) => ({ id, source: "equipment" as const, index }))
-            : match.pendingChoice?.kind === "stage3c-trail-mix" || match.pendingChoice?.kind === "stage3c-weapon-suppress" || match.pendingChoice?.kind === "stage3c-exhaust-focus"
+            : match.pendingChoice?.kind === "equipment-cycle" || match.pendingChoice?.kind === "suppress-equipment-clause" || match.pendingChoice?.kind === "exhaust-equipment-for-focus"
               ? match.pendingChoice.equipmentIds.map((id, index) => ({ id, source: "equipment" as const, index }))
-              : match.pendingChoice?.kind === "stage3c-discard-focus" || match.pendingChoice?.kind === "stage3c-reaction-discard"
-                ? (match.pendingChoice.kind === "stage3c-reaction-discard" ? match.pendingChoice.reactionIds : player.hand).map((id, index) => ({ id, source: "hand" as const, index }))
-                : match.pendingChoice?.kind === "stage3c-sparring-pick"
+              : match.pendingChoice?.kind === "discard-for-focus" || match.pendingChoice?.kind === "discard-reaction"
+                ? (match.pendingChoice.kind === "discard-reaction" ? match.pendingChoice.reactionIds : player.hand).map((id, index) => ({ id, source: "hand" as const, index }))
+                : match.pendingChoice?.kind === "deck-attack-pick"
                   ? match.pendingChoice.revealed.map((id, index) => ({ id, source: "deck" as const, index })).filter((entry) => isAttack(cardFor(entry.id)!))
-                  : match.pendingChoice?.kind === "stage3c-sparring-junk"
+                  : match.pendingChoice?.kind === "destroy-revealed-junk"
                     ? match.pendingChoice.junkIds.map((id, index) => ({ id, source: "discard" as const, index }))
                     : [];
-  const effectChoiceTitle = match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"
-    : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? "Use Lucky Dumpling?"
-    : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Call a protected zone"
-    : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Remove a temporary penalty"
-    : match.pendingChoice?.kind === "stage3c-trail-mix" ? "Exhaust Equipment to cycle?"
-    : match.pendingChoice?.kind === "stage3c-discard-focus" ? "Discard for Focus"
-    : match.pendingChoice?.kind === "stage3c-weapon-suppress" ? "Choose a Weapon"
-    : match.pendingChoice?.kind === "stage3c-exhaust-focus" ? "Exhaust Equipment for Focus"
-    : match.pendingChoice?.kind === "stage3c-sparring-pick" ? "Choose an Attack"
-    : match.pendingChoice?.kind === "stage3c-sparring-junk" ? "Destroy revealed Junk?"
-    : match.pendingChoice?.kind === "stage3c-reaction-discard" ? "Discard a Reaction"
-    : match.pendingChoice?.kind === "air-horn-reaction" ? "Sound the Air Horn?"
+  const effectChoiceTitle = match.pendingChoice?.kind === "market-reveal-purchase" ? "Buy the raffle reveal?"
+    : match.pendingChoice?.kind === "replace-revealed-card" ? "Use Lucky Dumpling?"
+    : match.pendingChoice?.kind === "zone-call" ? "Call a protected zone"
+    : match.pendingChoice?.kind === "remove-negative-stat" ? "Remove a temporary penalty"
+    : match.pendingChoice?.kind === "equipment-cycle" ? "Exhaust Equipment to cycle?"
+    : match.pendingChoice?.kind === "discard-for-focus" ? "Discard for Focus"
+    : match.pendingChoice?.kind === "suppress-equipment-clause" ? "Choose a Weapon"
+    : match.pendingChoice?.kind === "exhaust-equipment-for-focus" ? "Exhaust Equipment for Focus"
+    : match.pendingChoice?.kind === "deck-attack-pick" ? "Choose an Attack"
+    : match.pendingChoice?.kind === "destroy-revealed-junk" ? "Destroy revealed Junk?"
+    : match.pendingChoice?.kind === "discard-reaction" ? "Discard a Reaction"
+    : match.pendingChoice?.kind === "cancel-reaction" ? "Sound the Air Horn?"
     : match.pendingChoice?.kind === "destroy-junk" ? "Choose Junk to destroy"
     : match.pendingChoice?.kind === "discard-draw" ? "Discard to draw?"
       : match.pendingChoice?.kind === "discard-hand" ? "Choose what to discard"
@@ -3288,18 +3315,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? "Reduce this damage?"
                   : match.pendingChoice?.kind === "post-block-cycle" ? "Use post-Block Equipment?"
                     : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
-  const effectChoicePrompt = match.pendingChoice?.kind === "stage3c-raffle" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`
-    : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} was just revealed. Replace it from the same deck or keep it.`
-    : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Choose High, Mid, or Low. The next Attack in that zone targeting you this round gets -2 Attack Power."
-    : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Choose one currently active temporary -ATK, -DEF, or -Speed effect to remove."
-    : match.pendingChoice?.kind === "stage3c-trail-mix" ? "You may exhaust one ready Equipment you control to draw 1, then discard 1."
-    : match.pendingChoice?.kind === "stage3c-discard-focus" ? `Discard up to ${match.pendingChoice.remaining} more card${match.pendingChoice.remaining === 1 ? "" : "s"}; each is worth +${match.pendingChoice.focusPerDiscard} Focus.`
-    : match.pendingChoice?.kind === "stage3c-weapon-suppress" ? "Choose one equipped Weapon. Its negative stat contribution is ignored until Hide."
-    : match.pendingChoice?.kind === "stage3c-exhaust-focus" ? `Choose one ready Equipment to exhaust for +${match.pendingChoice.focus} Focus.`
-    : match.pendingChoice?.kind === "stage3c-sparring-pick" ? "Choose one Attack among the top-three reveal; the rest are discarded."
-    : match.pendingChoice?.kind === "stage3c-sparring-junk" ? "You may destroy one Junk that Sparring Dummy just discarded."
-    : match.pendingChoice?.kind === "stage3c-reaction-discard" ? "Confetti Cannon requires you to choose one Reaction card from hand to discard."
-    : match.pendingChoice?.kind === "air-horn-reaction" ? `${cardFor(match.pendingChoice.reactionCardId)?.name ?? "The computer Reaction"} was just played. Use Air Horn now to cancel it before the Dojo Stack resolves, or allow it to resolve normally.`
+  const effectChoicePrompt = match.pendingChoice?.kind === "market-reveal-purchase" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`
+    : match.pendingChoice?.kind === "replace-revealed-card" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} was just revealed. Replace it from the same deck or keep it.`
+    : match.pendingChoice?.kind === "zone-call" ? "Choose High, Mid, or Low. The next Attack in that zone targeting you this round gets -2 Attack Power."
+    : match.pendingChoice?.kind === "remove-negative-stat" ? "Choose one currently active temporary -ATK, -DEF, or -Speed effect to remove."
+    : match.pendingChoice?.kind === "equipment-cycle" ? "You may exhaust one ready Equipment you control to draw 1, then discard 1."
+    : match.pendingChoice?.kind === "discard-for-focus" ? `Discard up to ${match.pendingChoice.remaining} more card${match.pendingChoice.remaining === 1 ? "" : "s"}; each is worth +${match.pendingChoice.focusPerDiscard} Focus.`
+    : match.pendingChoice?.kind === "suppress-equipment-clause" ? "Choose one equipped Weapon. Its negative stat contribution is ignored until Hide."
+    : match.pendingChoice?.kind === "exhaust-equipment-for-focus" ? `Choose one ready Equipment to exhaust for +${match.pendingChoice.focus} Focus.`
+    : match.pendingChoice?.kind === "deck-attack-pick" ? "Choose one Attack among the top-three reveal; the rest are discarded."
+    : match.pendingChoice?.kind === "destroy-revealed-junk" ? "You may destroy one Junk that Sparring Dummy just discarded."
+    : match.pendingChoice?.kind === "discard-reaction" ? "Confetti Cannon requires you to choose one Reaction card from hand to discard."
+    : match.pendingChoice?.kind === "cancel-reaction" ? `${cardFor(match.pendingChoice.reactionCardId)?.name ?? "The computer Reaction"} was just played. Use Air Horn now to cancel it before the Dojo Stack resolves, or allow it to resolve normally.`
     : match.pendingChoice?.kind === "destroy-junk" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more Junk card${match.pendingChoice.remaining === 1 ? "" : "s"} from your hand or discard pile.`
     : match.pendingChoice?.kind === "discard-draw" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Attack"} lets you discard ${match.pendingChoice.remaining} card${match.pendingChoice.remaining === 1 ? "" : "s"} to draw ${match.pendingChoice.draw}. You may decline.`
       : match.pendingChoice?.kind === "discard-hand" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} requires ${match.pendingChoice.remaining} more discard${match.pendingChoice.remaining === 1 ? "" : "s"}. You choose the card.`
@@ -3310,7 +3337,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} can exhaust now to reduce ${match.pendingChoice.damage} combat damage by ${match.pendingChoice.reduce}. Declining still consumes this round's first-damage timing window.`
                   : match.pendingChoice?.kind === "post-block-cycle" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} triggered after the Block. Exhaust it to draw ${match.pendingChoice.draw}, then choose ${match.pendingChoice.discard} discard${match.pendingChoice.discard === 1 ? "" : "s"}, or decline and continue combat.`
                     : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
-  const effectChoiceCanSkip = match.pendingChoice?.kind === "stage3c-trail-mix" || match.pendingChoice?.kind === "stage3c-discard-focus" || match.pendingChoice?.kind === "stage3c-sparring-junk" || (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
+  const effectChoiceCanSkip = match.pendingChoice?.kind === "equipment-cycle" || match.pendingChoice?.kind === "discard-for-focus" || match.pendingChoice?.kind === "destroy-revealed-junk" || (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
   const inspectedBoard = inspected
     ? inspected.id === player.fighterId ? player : inspected.id === ai.fighterId ? ai : null
     : null;
@@ -3414,7 +3441,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card); const badHabit = card.catalogId === gameDefinition.economy.badHabitFocus.catalogId;
           const choosingDiscard = Boolean(match.pendingDiscard);
           const choosingEffect = Boolean(match.pendingChoice);
-          const canInitiate = match.phase === "player-initiate" && permanent && !(playerFighter.name === "Knuckleton the Brawler" && isWeapon(card));
+          const canInitiate = match.phase === "player-initiate" && permanent && characterCanEquip(player, card);
           const attackAllowed = !stage3cRestrictionBlocks(player.stage3cRestrictions, "attack");
           const consumableAllowed = !isCoreConsumableCard(card) || (!stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(player)));
           const canUse = match.phase === "player-yell" && (attack ? attackAllowed : (defense ? !player.defensePracticeUsed : !permanent && consumableAllowed));
@@ -3423,9 +3450,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const canReverse = match.phase === "reversal-window" && attack && attackAllowed;
           return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !(canDefend || canReactConsumable) : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={() => useHandCard(id)} onInspect={() => setInspectedId(id)} />;
         })}</div>
-        {match.phase === "player-initiate" && playerFighter.name === "Sensei Ducktape" && !player.abilityUsedRound && player.discard.some((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }) && <div className="ducktape-tray"><span>Sensei Ducktape · emergency repair</span>{player.discard.filter((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }).slice(0, 3).map((id) => <button onClick={() => borrowEquipment(id)} key={id}>Jury-rig {cardFor(id)?.name}</button>)}</div>}
+        {match.phase === "player-initiate" && cardHasRuntimeResolver(playerFighter, "character.equipDiscardPermanentUntilHide") && !player.abilityUsedRound && player.discard.some((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }) && <div className="ducktape-tray"><span>{playerFighter.name} · emergency repair</span>{player.discard.filter((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }).slice(0, 3).map((id) => <button onClick={() => borrowEquipment(id)} key={id}>Jury-rig {cardFor(id)?.name}</button>)}</div>}
         {match.phase === "reversal-window" && pendingAttack?.zone?.includes("Any") && <div className="hand-context-strip"><span>Choose reversal zone</span><fieldset className="zone-picker"><legend className="sr-only">Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
-        {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && (pendingAttack.zone?.includes("Any") || (playerFighter.name === "Whirlwind Wynn" && player.attacksThisTurn === 0 && hasTag(pendingAttack, "Spin"))) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
+        {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && attackHasFlexibleZone(player, pendingAttack) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
       </section>
     </section>
     <footer className="playtest-utility-dock" aria-label="Quick Duel utilities">
@@ -3474,7 +3501,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView === "belt" && <button className="button ghost" onClick={() => setDeskView("market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : "Next: check Belt progress."}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
       </section>
     </div>}
-    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "stage3c-raffle" ? <><button type="button" onClick={() => resolveStage3CRaffle(true)}><span>BUY</span><b>{cardFor(match.pendingChoice.revealedCardId)?.name}</b><small>Pay {marketPriceFor(player, cardFor(match.pendingChoice.revealedCardId))} Focus</small></button><button type="button" onClick={() => resolveStage3CRaffle(false)}><span>PASS</span><b>PUT ON BOTTOM</b><small>Do not buy the reveal</small></button></> : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? <><button type="button" onClick={() => resolveStage3CLucky(true)}><span>REACTION</span><b>USE LUCKY DUMPLING</b><small>Discard the reveal and replace it</small></button><button type="button" onClick={() => resolveStage3CLucky(false)}><span>PASS</span><b>KEEP REVEAL</b><small>Save Lucky Dumpling</small></button></> : match.pendingChoice?.kind === "stage3c-zone-ward" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => resolveStage3CZoneWard(zone)} key={zone}><span>PROTECT ZONE</span><b>{zone}</b><small>Next matching Attack gets -2 Power</small></button>) : match.pendingChoice?.kind === "stage3c-remove-negative" ? match.pendingChoice.stats.map((stat) => <button type="button" onClick={() => resolveStage3CNegative(stat)} key={stat}><span>REMOVE PENALTY</span><b>-{stat}</b><small>Remove one active temporary penalty</small></button>) : match.pendingChoice?.kind === "air-horn-reaction" ? <><button type="button" onClick={() => resolvePlayerAirHornChoice(true)}><span>REACTION</span><b>USE AIR HORN</b><small>Cancel {cardFor(match.pendingChoice.reactionCardId)?.name ?? "the Reaction"} before it resolves</small></button><button type="button" onClick={() => resolvePlayerAirHornChoice(false)}><span>PASS</span><b>ALLOW REACTION</b><small>Keep Air Horn in hand and resolve the announced Reaction</small></button></> : match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
+    {match.pendingChoice && <div className="playtest-inspector-backdrop effect-choice-backdrop"><section className="effect-choice-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="effect-choice-title"><span className="eyebrow">Printed effect · your decision</span><h2 id="effect-choice-title">{effectChoiceTitle}</h2><p>{effectChoicePrompt}</p><div className="effect-choice-options">{match.pendingChoice?.kind === "market-reveal-purchase" ? <><button type="button" onClick={() => resolveStage3CRaffle(true)}><span>BUY</span><b>{cardFor(match.pendingChoice.revealedCardId)?.name}</b><small>Pay {marketPriceFor(player, cardFor(match.pendingChoice.revealedCardId))} Focus</small></button><button type="button" onClick={() => resolveStage3CRaffle(false)}><span>PASS</span><b>PUT ON BOTTOM</b><small>Do not buy the reveal</small></button></> : match.pendingChoice?.kind === "replace-revealed-card" ? <><button type="button" onClick={() => resolveStage3CLucky(true)}><span>REACTION</span><b>USE LUCKY DUMPLING</b><small>Discard the reveal and replace it</small></button><button type="button" onClick={() => resolveStage3CLucky(false)}><span>PASS</span><b>KEEP REVEAL</b><small>Save Lucky Dumpling</small></button></> : match.pendingChoice?.kind === "zone-call" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => resolveStage3CZoneWard(zone)} key={zone}><span>PROTECT ZONE</span><b>{zone}</b><small>Next matching Attack gets -2 Power</small></button>) : match.pendingChoice?.kind === "remove-negative-stat" ? match.pendingChoice.stats.map((stat) => <button type="button" onClick={() => resolveStage3CNegative(stat)} key={stat}><span>REMOVE PENALTY</span><b>-{stat}</b><small>Remove one active temporary penalty</small></button>) : match.pendingChoice?.kind === "cancel-reaction" ? <><button type="button" onClick={() => resolvePlayerAirHornChoice(true)}><span>REACTION</span><b>USE AIR HORN</b><small>Cancel {cardFor(match.pendingChoice.reactionCardId)?.name ?? "the Reaction"} before it resolves</small></button><button type="button" onClick={() => resolvePlayerAirHornChoice(false)}><span>PASS</span><b>ALLOW REACTION</b><small>Keep Air Horn in hand and resolve the announced Reaction</small></button></> : match.pendingChoice?.kind === "prevent-combat-damage" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Reduce damage</b><small>{match.pendingChoice.damage} → {Math.max(0, match.pendingChoice.damage - match.pendingChoice.reduce)} combat damage</small></button> : match.pendingChoice?.kind === "post-block-cycle" ? <button type="button" onClick={usePendingEquipmentChoice}><span>EXHAUST EQUIPMENT</span><b>Draw {match.pendingChoice.draw}</b><small>Then choose {match.pendingChoice.discard} discard{match.pendingChoice.discard === 1 ? "" : "s"}</small></button> : match.pendingChoice?.kind === "equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseEquipmentZone(zone)} key={zone}><span>COMMIT ZONE</span><b>{zone}</b><small>Applies to the next Attack only</small></button>) : match.pendingChoice?.kind === "incoming-equipment-zone" ? ["High", "Mid", "Low"].map((zone) => <button type="button" onClick={() => chooseIncomingEquipmentZone(zone)} key={zone}><span>CALL ZONE</span><b>{zone}</b><small>{zone === match.pendingStrike?.zone ? "Matches the declared Attack" : "Does not match the declared Attack"}</small></button>) : pendingChoiceOptions.map((entry) => { const option = cardFor(entry.id); if (!option) return null; return <button type="button" onClick={() => resolvePendingChoice(entry.id, entry.source)} key={`${entry.source}-${entry.id}-${entry.index}`}><span>{entry.source === "discard" ? "DISCARD PILE" : entry.source === "deck" ? "REVEALED" : entry.source === "equipment" ? "EQUIPMENT" : "HAND"}</span><b>{option.name}</b><small>{option.catalogId} · {option.subtype || option.cardType}</small></button>; })}</div>{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}</section></div>}
     {coachOpen && !match.winner && <div className="playtest-inspector-backdrop coach-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setCoachOpen(false)}><section className="coach-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="coach-dialog-title"><button className="modal-close" onClick={() => setCoachOpen(false)} aria-label="Close Decision Coach">×</button><span className="eyebrow">Decision coach · optional guidance</span><h2 id="coach-dialog-title">What should I do now?</h2><div className={`turn-coach turn-coach--${match.phase}`} aria-live="polite"><span>Recommended next step</span><p>{turnCoach}</p></div><div className="coach-dialog-actions"><button className="button primary" onClick={() => setCoachOpen(false)}>Back to the mat →</button><button className="button ghost" onClick={() => { setSettings({ ...settings, guided: false }); setCoachOpen(false); }}>Turn coach off</button></div><small>You can re-enable the Coach from the utility bar at any time.</small></section></div>}
     {logOpen && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setLogOpen(false)}><section className="fight-log-dialog paper-stack" role="dialog" aria-modal="true" aria-labelledby="fight-log-title"><button className="modal-close" onClick={() => setLogOpen(false)} aria-label="Close Fight Log">×</button><span className="eyebrow">Department combat archive</span><h2 id="fight-log-title">Fight Log</h2><p>Newest filing first. Nobody has checked the handwriting.</p><div className="fight-log-groups">{groupedFightLog(match.log).map((group, groupIndex) => <section key={`${group.label}-${groupIndex}`}><h3>{group.label}</h3><ol>{group.lines.map((line, index) => <li key={`${line}-${index}`}><b>{group.lines.length - index}</b><span>{line}</span></li>)}</ol></section>)}</div></section></div>}
     {inspected && inspectedBoard && <div className="playtest-inspector-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setInspectedId(null)}>
@@ -3545,6 +3572,8 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   const fighter = cardFor(current.ai.fighterId);
   const anyZone = attackHasFlexibleZone(current.ai, card);
   const zone = anyZone ? ["High", "Mid", "Low"][Math.floor(Math.random() * 3)] : card.zone?.split(",")[0] ?? "High";
+  const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "ai", card, zone, cardFor, quickDuelHostOperations);
+  current = preparedComboAttack.match;
   const previousCard = current.ai.cardsThisTurn.length ? cardFor(current.ai.cardsThisTurn[current.ai.cardsThisTurn.length - 1]) : null;
   const previousCardWasItem = Boolean(previousCard && previousCard.cardType === "Item");
   const conditionalCycle = structuredAttackCyclePlan(current.ai, card, zone);
@@ -3554,19 +3583,18 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   const fighterModifier = fighterAttackModifier(current.ai, current.player, card);
   const printedModifier = printedAttackRuleModifier(current.ai, current.player, card, zone);
   const incomingModifier = incomingAttackEquipmentModifier(current.player);
-  const comboModifier = comboAttackModifier(current.ai, card, zone);
   const activeEquipment = autoActivateAiAttackEquipment(current.ai, zone);
-  const piercingModifier = attackPiercingModifier(activeEquipment.board, current.player, card, zone, comboModifier.piercing + activeEquipment.piercing);
-  const hasFlow = attackHasFlow(activeEquipment.board, card, comboModifier, zone);
+  const piercingModifier = attackPiercingModifier(activeEquipment.board, current.player, card, zone, preparedComboAttack.attackFacts.piercing + activeEquipment.piercing);
+  const hasFlow = attackHasFlow(activeEquipment.board, card, zone);
   const stage3cAttackBonus = stage3cAttackPowerBonus(activeEquipment.board, card, zone);
-  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + activeEquipment.power);
+  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + activeEquipment.power);
   const consumedAttackBoard = stage3cConsumeAttackStatuses(activeEquipment.board, card, zone);
-  let nextAi = applyCardEffects({ ...consumedAttackBoard, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0 }, card, "ai");
+  let nextAi = applyCardEffects({ ...consumedAttackBoard, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: current.ai.triggeredCombos, comboTriggered: current.ai.comboTriggered }, card, "ai");
   const flowDraw = hasFlow && !current.ai.flowUsedThisTurn;
   if (flowDraw) nextAi = drawCards({ ...nextAi, flowUsedThisTurn: true }, 1);
   if (current.ai.flowAfterFirstAttack && current.ai.attacksThisTurn === 0) nextAi = { ...nextAi, flowAfterFirstAttack: false, nextAttackHasFlow: true };
-  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...activeEquipment.notes, ...piercingModifier.notes];
-  return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage + comboModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, armorPenalty, conditionalCycle: conditionalCycle.draw || conditionalCycle.discard ? { draw: conditionalCycle.draw, discard: conditionalCycle.discard } : undefined, previousCardWasItem, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
+  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...activeEquipment.notes, ...piercingModifier.notes];
+  return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, armorPenalty, conditionalCycle: conditionalCycle.draw || conditionalCycle.discard ? { draw: conditionalCycle.draw, discard: conditionalCycle.discard } : undefined, previousCardWasItem, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
 }
 
 function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
@@ -3595,9 +3623,10 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean) {
   const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
   if (!nextAi.hp) return finished;
   if (current.turnIndex === 0) {
-    const player = applyInitiateCarryover(finished.player);
+    const hostedFinished = publishQuickDuelPlaytestLifecycleEvent(finished, "player", "onInitiate", quickDuelHostOperations).match;
+    const player = applyInitiateCarryover(hostedFinished.player);
     const carryover = player.focus - finished.player.focus;
-    return { ...finished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...finished.log].slice(0, 32) };
+    return { ...hostedFinished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...hostedFinished.log].slice(0, 32) };
   }
   return advanceRound(finished, sceneChanges, "Both fighters have completed the round.");
 }
@@ -3606,27 +3635,31 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string) {
   const nextRound = current.round + 1;
   const freshLocations = current.locations.length ? current.locations : shuffle(quickDuelLocationPool.map((card) => card.id));
   const locationId = sceneChanges ? freshLocations[0] ?? current.locationId : current.locationId;
-  const player = stage3cAdvanceRound({ ...current.player, xp: current.player.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, usedConsumableThisRound: false, lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] });
-  const ai = stage3cAdvanceRound({ ...current.ai, xp: current.ai.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] });
+  const player = stage3cAdvanceRound({ ...current.player, xp: current.player.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, usedConsumableThisRound: false, lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], usedCharacterEffectIdsThisTurn: [], usedCharacterEffectIdsThisRound: [], characterMarks: {}, nextAttackArmorPenalty: 0, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] });
+  const ai = stage3cAdvanceRound({ ...current.ai, xp: current.ai.xp + 1, tempo: true, tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, exhaustedEquipment: [], readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, lastAttackHit: false, attackedThisRound: false, defendedThisRound: false, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], damageReductionUsed: false, blockedThisRound: false, usedEffectIdsThisTurn: [], usedCharacterEffectIdsThisTurn: [], usedCharacterEffectIdsThisRound: [], characterMarks: {}, nextAttackArmorPenalty: 0, abilityUsedRound: false, reversalUsedRound: false, triggeredCombos: [] });
   const marketState = current.marketPurchasedThisRound
     ? { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard }
     : refreshMarketRow(current.market, current.marketDeck, current.marketDiscard);
   const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
-  const initiatedPlayer = playerFirst ? applyInitiateCarryover(player) : player;
+  const stagedForInitiate: Match = { ...current, player, ai };
+  const hostedInitiate = playerFirst ? publishQuickDuelPlaytestLifecycleEvent(stagedForInitiate, "player", "onInitiate", quickDuelHostOperations).match : stagedForInitiate;
+  const initiatedPlayer = playerFirst ? applyInitiateCarryover(hostedInitiate.player) : player;
+  const initiatedAi = hostedInitiate.ai;
   const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
   const marketNote = current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
-  const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
-  const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033"));
-  if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
+  const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai: initiatedAi, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
+  const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && cardHasRuntimeResolver(candidate, "consumable.replaceRevealedMarketOrLocation")));
+  if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "replace-revealed-card", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
   if (!current.marketPurchasedThisRound && lucky) {
     const revealedId = marketState.market.find((id) => !current.market.includes(id));
     const slot = revealedId ? marketState.market.indexOf(revealedId) : -1;
-    if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during Market Mercy. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
+    if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during Market Mercy. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "replace-revealed-card", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
   }
   return advanced;
 }
 
 function prepareAiTurn(current: Match) {
+  current = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", quickDuelHostOperations).match;
   const fighter = cardFor(current.ai.fighterId);
   const initiatedAi = applyInitiateCarryover({ ...current.ai, usedEffectIdsThisTurn: [] });
   const turnEquipment = autoActivateAiTurnEquipment(initiatedAi);
@@ -3655,7 +3688,7 @@ function prepareAiTurn(current: Match) {
   }
   const supportIds = nextAi.hand.filter((id) => {
     const card = cardFor(id);
-    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || (fighter?.name === "Knuckleton the Brawler" && isWeapon(card))) return false;
+    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || !characterCanEquip(nextAi, card)) return false;
     if (isCoreConsumableCard(card)) return canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(nextAi));
     return true;
   });
@@ -3678,12 +3711,12 @@ function prepareAiTurn(current: Match) {
       nextPlayer = applyStage3CTiming(nextPlayer, card, "afterResolve", "player", stage3cConsumableContext(nextAi), "opponent");
     }
     if (isCoreConsumableCard(card)) {
-      if (card.catalogId === "DDB-CON-CORE-009") {
+      if (cardHasRuntimeResolver(card, "consumable.chooseOpponentDiscardReactionIfAble")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.chooseOpponentDiscardReactionIfAble"]);
         const reactionIds = nextPlayer.hand.filter((candidate) => String(cardFor(candidate)?.timing ?? "").toLocaleLowerCase() === "reaction");
-        if (reactionIds.length) pendingChoice = { kind: "stage3c-reaction-discard", sourceCardId: card.id, reactionIds };
+        if (reactionIds.length) pendingChoice = { kind: "discard-reaction", sourceCardId: card.id, reactionIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-010") {
+      if (cardHasRuntimeResolver(card, "consumable.optionalExhaustToCycle")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.optionalExhaustToCycle"]);
         const equipmentId = stage3cReadyEquipmentIds(nextAi)[0];
         if (equipmentId) {
@@ -3693,11 +3726,11 @@ function prepareAiTurn(current: Match) {
           if (discardId) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, discardId), discard: [...nextAi.discard, discardId] };
         }
       }
-      if (card.catalogId === "DDB-CON-CORE-021") {
+      if (cardHasRuntimeResolver(card, "consumable.zoneSpecificIncomingAttackPenalty")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.zoneSpecificIncomingAttackPenalty"]);
         nextPlayer = stage3cArmZoneWard(nextPlayer, card.id, stage3cAiPreferredAttackZone(nextPlayer), -2);
       }
-      if (card.catalogId === "DDB-CON-CORE-022") {
+      if (cardHasRuntimeResolver(card, "consumable.reorderTopThree")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.reorderTopThree"]);
         const reveal = revealDeckTop(nextAi, 3);
         const ordered = [...reveal.revealed].sort((left, right) => cardCost(cardFor(right)) - cardCost(cardFor(left)));
@@ -3705,34 +3738,34 @@ function prepareAiTurn(current: Match) {
         nextAi = { ...reveal.board, deck: [...reveal.board.deck, ...ordered.slice().reverse()] };
         if (reveal.revealed.length === 3 && types.size === 3) nextAi = gainFocus(nextAi, 1);
       }
-      if (card.catalogId === "DDB-CON-CORE-031" || card.catalogId === "DDB-CON-CORE-056") {
+      if (cardHasRuntimeResolver(card, "consumable.pepTalkConditionalAttackBonus") || cardHasRuntimeResolver(card, "consumable.removeTemporaryNegativeStatModifier")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.removeTemporaryNegativeStatModifier"]);
         const stat = stage3cNegativeStatOptions(nextAi)[0];
         if (stat) {
           const removed = stage3cRemoveTemporaryNegative(nextAi, stat);
           nextAi = removed.board;
-          if (removed.removed && card.catalogId === "DDB-CON-CORE-031") {
+          if (removed.removed && cardHasRuntimeResolver(card, "consumable.pepTalkConditionalAttackBonus")) {
             const status: RuntimeStatus = { sourceEffectId: `consumable-pep-talk-bonus:${card.id}`, effect: "combat.modifyAttackPower", target: "self", amount: 1, duration: "nextAttack", resolver: "consumable.pepTalkConditionalAttackBonus", qualifier: { nextAttack: true, expires: "endOfTurn" }, appliedImmediately: false };
             nextAi = { ...nextAi, stage3cStatuses: [...(nextAi.stage3cStatuses ?? []), status] };
           }
         }
       }
-      if (card.catalogId === "DDB-CON-CORE-032") {
+      if (cardHasRuntimeResolver(card, "consumable.discardUpToForFocus")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.discardUpToForFocus"]);
         const discarded = [...nextAi.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right))).slice(0, 2);
         nextAi = gainFocus({ ...nextAi, hand: nextAi.hand.filter((candidate) => !discarded.includes(candidate)), discard: [...nextAi.discard, ...discarded] }, discarded.length * 2);
       }
-      if (card.catalogId === "DDB-CON-CORE-035") {
+      if (cardHasRuntimeResolver(card, "consumable.suppressChosenWeaponClause")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.suppressChosenWeaponClause"]);
         const weaponId = nextAi.equipment.find((candidate) => { const item = cardFor(candidate); return Boolean(item && isWeapon(item)); });
         if (weaponId) nextAi = { ...nextAi, suppressedEquipmentPenaltyIds: [...new Set([...(nextAi.suppressedEquipmentPenaltyIds ?? []), weaponId])] };
       }
-      if (card.catalogId === "DDB-CON-CORE-045") {
+      if (cardHasRuntimeResolver(card, "consumable.exhaustEquipmentForFocus")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.exhaustEquipmentForFocus"]);
         const equipmentId = stage3cReadyEquipmentIds(nextAi)[0];
         if (equipmentId) nextAi = gainFocus(exhaustEquipment(nextAi, equipmentId), 3);
       }
-      if (card.catalogId === "DDB-CON-CORE-051") {
+      if (cardHasRuntimeResolver(card, "consumable.topThreeAttackSelection")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.topThreeAttackSelection"]);
         const reveal = revealDeckTop(nextAi, 3);
         const attackId = reveal.revealed.filter((candidate) => isAttack(cardFor(candidate)!)).sort((left, right) => cardPower(cardFor(right)!) - cardPower(cardFor(left)!))[0];

@@ -1,6 +1,8 @@
 import {
   isStructuredLocation,
   resolveLocationEffects,
+  structuredLocationDefenseGuardModifier,
+  structuredLocationKataFocusModifier,
   type LocationCardLike,
   type LocationContext,
 } from "./location-effect-resolvers.ts";
@@ -84,6 +86,44 @@ export function structuredLocationAttackForHost(
     power: delta.attackPower,
     damage: delta.damage,
     notes: delta.commands.map((command) => {
+      const amount = command.amount ? ` ${command.amount >= 0 ? "+" : ""}${command.amount}` : "";
+      return `${command.effectId}${amount}`;
+    }),
+  };
+}
+
+export function structuredLocationDefenseForHost(
+  card: LocationCardLike,
+  context: { zone?: string; defenseTags?: readonly string[]; firstDefenseThisRound?: boolean },
+) {
+  const resolution = structuredLocationDefenseGuardModifier(card, {
+    defenseZone: context.zone,
+    defenseTagAny: [...(context.defenseTags ?? [])],
+    firstDefenseThisRound: Boolean(context.firstDefenseThisRound),
+  });
+  return {
+    matched: isStructuredLocation(card),
+    guard: resolution.guard,
+    notes: resolution.commands.map((command) => {
+      const amount = command.amount ? ` ${command.amount >= 0 ? "+" : ""}${command.amount}` : "";
+      return `${command.effectId}${amount}`;
+    }),
+  };
+}
+
+export function structuredLocationKataForHost(
+  card: LocationCardLike,
+  context: { firstKataThisTurn?: boolean },
+) {
+  const resolution = structuredLocationKataFocusModifier(card, {
+    firstKataThisTurn: Boolean(context.firstKataThisTurn),
+  });
+  return {
+    matched: isStructuredLocation(card),
+    focus: resolution.bonus,
+    setFocusTo: resolution.setTo,
+    commands: resolution.commands,
+    notes: resolution.commands.map((command) => {
       const amount = command.amount ? ` ${command.amount >= 0 ? "+" : ""}${command.amount}` : "";
       return `${command.effectId}${amount}`;
     }),
