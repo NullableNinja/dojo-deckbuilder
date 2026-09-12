@@ -79,10 +79,6 @@ function withActorBoards<Board extends QuickDuelComboMatchBoard, Match extends Q
     : { ...match, player: boards.opponent, ai: boards.self };
 }
 
-/**
- * Records durable machine-readable host facts at the existing React state-write
- * boundary. Extra Playtest match fields are preserved verbatim.
- */
 export function applyQuickDuelPlaytestTransition<
   Board extends QuickDuelComboMatchBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
@@ -95,12 +91,10 @@ export function applyQuickDuelPlaytestTransition<
 }
 
 /**
- * Publishes a lifecycle event such as Initiate through both the generic
- * structured-status/Combo host and the canonical Character event runtime.
- *
- * This is deliberately identity-free: Character facts are derived from board
- * state and resolver capabilities. The host supplies its existing canonical
- * card lookup, so this adapter never imports a second card catalog.
+ * Publishes a lifecycle event through the generic structured-status/Combo host
+ * and, when the live caller supplies its canonical card lookup, the Character
+ * runtime as well. Older callers that have not yet been migrated remain safe:
+ * Character publication is skipped rather than guessing card classifications.
  */
 export function publishQuickDuelPlaytestLifecycleEvent<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
@@ -110,7 +104,7 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   actor: QuickDuelPlaytestActor,
   trigger: RuntimeTrigger,
   operations: QuickDuelRuntimeCommandOperations<Board>,
-  cardLookup: QuickDuelCharacterCardLookup,
+  cardLookup?: QuickDuelCharacterCardLookup,
   statusEvent: QuickDuelRuntimeStatusEventFacts = {},
   characterFacts: QuickDuelCharacterLifecycleFacts = {},
 ): QuickDuelPlaytestLifecycleEventResult<Match> {
@@ -124,7 +118,7 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   const structuredMatch = withActorBoards(match, actor, published.boards);
   const characterType = trigger === "onInitiate" ? "initiate" : trigger === "onHide" ? "hide" : null;
 
-  if (!characterType) {
+  if (!characterType || !cardLookup) {
     return {
       match: structuredMatch,
       commands: published.commands,
@@ -134,7 +128,9 @@ export function publishQuickDuelPlaytestLifecycleEvent<
       characterNotes: [],
       characterPublished: false,
       characterConflict: false,
-      characterReason: "No Character lifecycle route for this trigger.",
+      characterReason: !characterType
+        ? "No Character lifecycle route for this trigger."
+        : "Character lifecycle publication requires the host canonical card lookup.",
     };
   }
 
@@ -155,17 +151,6 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   };
 }
 
-/**
- * Publishes a Character event through the migration-safe canonical runtime.
- *
- * Events that still have a legacy compatibility helper in playtest.tsx are
- * deliberately rejected by the Character ownership registry so the same
- * structured effect cannot resolve twice. As those helpers are retired, the
- * registry automatically opens the corresponding generic event route without
- * adding fighter identities or rules to this adapter.
- *
- * Choices, the resolved event and resolver notes are intentionally preserved.
- */
 export function publishQuickDuelPlaytestCharacterEvent<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
@@ -208,8 +193,8 @@ export function publishQuickDuelPlaytestCharacterEvent<
 
 /**
  * Resumes a canonical Character choice without teaching the Playtest about
- * individual resolver names. The runtime itself declares which event field the
- * selected value belongs in.
+ * individual resolver names. The runtime declares which event field receives
+ * the selected value.
  */
 export function resolveQuickDuelPlaytestCharacterChoice<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
@@ -230,7 +215,6 @@ export function resolveQuickDuelPlaytestCharacterChoice<
   });
 }
 
-/** Publishes a real card event and evaluates learned Combos from canonical host facts. */
 export function hostQuickDuelPlaytestCardEvent<
   Board extends QuickDuelComboMatchBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
@@ -263,7 +247,6 @@ export function hostQuickDuelPlaytestCardEvent<
   };
 }
 
-/** Pre-combat Attack seam for both player and AI. */
 export function prepareQuickDuelPlaytestAttack<
   Board extends QuickDuelComboMatchBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
