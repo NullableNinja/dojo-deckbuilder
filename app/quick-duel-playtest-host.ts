@@ -11,6 +11,7 @@ import {
   type QuickDuelCharacterLifecycleFacts,
 } from "./quick-duel-character-event-context.ts";
 import type { RuntimeCommand, RuntimeTrigger } from "./family-effect-runtime.ts";
+import { runtimeCardFor } from "./runtime-card-catalog.ts";
 import {
   applyQuickDuelStructuredTransition,
   hostQuickDuelComboEvent,
@@ -92,9 +93,8 @@ export function applyQuickDuelPlaytestTransition<
 
 /**
  * Publishes a lifecycle event through the generic structured-status/Combo host
- * and, when the live caller supplies its canonical card lookup, the Character
- * runtime as well. Older callers that have not yet been migrated remain safe:
- * Character publication is skipped rather than guessing card classifications.
+ * and the Character runtime. The default lookup is the shared generated runtime
+ * card catalog, derived from canonical content/cards.json.
  */
 export function publishQuickDuelPlaytestLifecycleEvent<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
@@ -104,7 +104,7 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   actor: QuickDuelPlaytestActor,
   trigger: RuntimeTrigger,
   operations: QuickDuelRuntimeCommandOperations<Board>,
-  cardLookup?: QuickDuelCharacterCardLookup,
+  cardLookup: QuickDuelCharacterCardLookup = runtimeCardFor,
   statusEvent: QuickDuelRuntimeStatusEventFacts = {},
   characterFacts: QuickDuelCharacterLifecycleFacts = {},
 ): QuickDuelPlaytestLifecycleEventResult<Match> {
@@ -118,7 +118,7 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   const structuredMatch = withActorBoards(match, actor, published.boards);
   const characterType = trigger === "onInitiate" ? "initiate" : trigger === "onHide" ? "hide" : null;
 
-  if (!characterType || !cardLookup) {
+  if (!characterType) {
     return {
       match: structuredMatch,
       commands: published.commands,
@@ -128,9 +128,7 @@ export function publishQuickDuelPlaytestLifecycleEvent<
       characterNotes: [],
       characterPublished: false,
       characterConflict: false,
-      characterReason: !characterType
-        ? "No Character lifecycle route for this trigger."
-        : "Character lifecycle publication requires the host canonical card lookup.",
+      characterReason: "No Character lifecycle route for this trigger.",
     };
   }
 
