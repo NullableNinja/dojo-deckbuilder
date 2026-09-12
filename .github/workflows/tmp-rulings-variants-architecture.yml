@@ -52,17 +52,8 @@ jobs:
           from pathlib import Path
           path = Path("app/playtest.tsx")
           text = path.read_text()
-          old_block = '''const suggestedAction = pickQuickAction(
-    player,
-    match.market,
-    actionUsability,
-  );'''
-          new_block = '''const suggestedAction = pickQuickAction(
-    player,
-    match.market,
-    settings,
-    actionUsability,
-  );'''
+          old_block = "const suggestedAction = pickQuickAction(\n    player,\n    match.market,\n    actionUsability,\n  );"
+          new_block = "const suggestedAction = pickQuickAction(\n    player,\n    match.market,\n    settings,\n    actionUsability,\n  );"
           old_inline = 'const recommended = canAct ? pickQuickAction(player, match.market, actionUsability) : null;'
           new_inline = 'const recommended = canAct ? pickQuickAction(player, match.market, settings, actionUsability) : null;'
           if text.count(old_block) != 1:
