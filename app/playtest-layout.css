@@ -1,17 +1,14 @@
-/* Quick Duel consolidated layout ---------------------------------------------
+/* Quick Duel consolidated presentation ---------------------------------------
    PRESENTATION ONLY.
 
-   This is the single final geometry authority for the live Quick Duel surface.
-   Paper-Fu component styling remains in playtest-production-mat.css and the
-   card-specific surface sheets. Game state, rules, card effects, and canonical
-   values remain owned by the JSON/runtime pipeline.
+   This is the single final presentation authority for the live Quick Duel
+   surface. Do not add post-layout playtest fix/polish/pass stylesheets. Base
+   component styling remains in playtest-production-mat.css and card-specific
+   face sheets; every Quick Duel layout or live-presentation correction belongs
+   here so cascade ownership remains inspectable and deterministic.
 
-   Ownership:
-   - shell / combat status / arena / hand / utility chrome: this file
-   - fighter + combat component skin: playtest-production-mat.css
-   - hand card face: playtest-card-surface.css
-   - Market card face: playtest-market-card-polish.css
-   - dialogs / inspectors: component CSS, positioned here
+   Game state, rules, card effects, and canonical values remain owned by the
+   JSON/runtime pipeline.
 
    Layer scale:
    board < cards < sticky chrome < floating board utilities < backdrops <
@@ -27,7 +24,6 @@
   --playtest-side-min: 228px;
   --playtest-center-min: 430px;
   --playtest-hud-center: 88px;
-
   --layer-board: 0;
   --layer-card: 10;
   --layer-chrome: 20;
@@ -38,18 +34,13 @@
   --layer-dialog: 80;
   --layer-nested-dialog: 90;
   --layer-critical: 100;
-
   position: relative;
   isolation: isolate;
   width: var(--playtest-shell-width);
   min-width: 0;
   min-height: 100dvh;
   display: grid;
-  grid-template-areas:
-    "status"
-    "arena"
-    "hand"
-    "utility";
+  grid-template-areas: "status" "arena" "hand" "utility";
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto var(--playtest-arena-height) auto auto;
   gap: var(--playtest-gap);
@@ -58,13 +49,7 @@
   padding: 8px 0 18px;
 }
 
-.site-frame:has(.playtest-shell--live) {
-  min-height: 100dvh;
-  overflow-x: clip;
-  overflow-y: auto;
-}
-
-/* Combat status ------------------------------------------------------------- */
+.site-frame:has(.playtest-shell--live) { min-height: 100dvh; overflow-x: clip; overflow-y: auto; }
 
 .playtest-shell--live > .playtest-topbar {
   grid-area: status;
@@ -85,21 +70,11 @@
   padding-inline: 10px;
 }
 
-.playtest-shell--live .versus-center {
-  position: relative;
-  z-index: 1;
-}
+.playtest-shell--live .versus-center { position: relative; z-index: 1; }
 
-/* The live HP elements are authored inside fighter cards, but visually belong
-   to the status HUD. Fixed positioning is intentional here: HP stays aligned
-   with the viewport HUD while the board/hand can scroll. */
 @media (min-width: 1024px) {
   .playtest-shell--live .fighter-column,
-  .playtest-shell--live .living-fighter-card {
-    transform: none;
-    contain: none;
-  }
-
+  .playtest-shell--live .living-fighter-card { transform: none; contain: none; }
   .playtest-shell--live .fighter-column--player .fighter-hp-track,
   .playtest-shell--live .fighter-column--enemy .fighter-hp-track {
     position: fixed;
@@ -114,18 +89,9 @@
     border-radius: 999px;
     pointer-events: none;
   }
-
-  .playtest-shell--live .fighter-column--player .fighter-hp-track {
-    left: calc(var(--playtest-shell-edge) + 14px);
-  }
-
-  .playtest-shell--live .fighter-column--enemy .fighter-hp-track {
-    right: calc(var(--playtest-shell-edge) + 14px);
-    left: auto;
-  }
+  .playtest-shell--live .fighter-column--player .fighter-hp-track { left: calc(var(--playtest-shell-edge) + 14px); }
+  .playtest-shell--live .fighter-column--enemy .fighter-hp-track { right: calc(var(--playtest-shell-edge) + 14px); left: auto; }
 }
-
-/* Arena --------------------------------------------------------------------- */
 
 .playtest-shell--live > .playtest-arena {
   grid-area: arena;
@@ -147,10 +113,7 @@
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns:
-    minmax(var(--playtest-side-min), .76fr)
-    minmax(var(--playtest-center-min), 1.62fr)
-    minmax(var(--playtest-side-min), .76fr);
+  grid-template-columns: minmax(var(--playtest-side-min), .76fr) minmax(var(--playtest-center-min), 1.62fr) minmax(var(--playtest-side-min), .76fr);
   gap: var(--playtest-gap);
   align-items: stretch;
   overflow: visible;
@@ -158,18 +121,8 @@
 }
 
 .playtest-shell--live .fighter-column,
-.playtest-shell--live .combat-stage-column {
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
-}
+.playtest-shell--live .combat-stage-column { min-width: 0; min-height: 0; height: 100%; overflow: hidden; margin: 0; padding: 0; }
 
-/* House Rule state is a HUD badge, never a grid participant. This is the
-   structural guard against the regression where enabling a rule displaced the
-   center board. */
 .playtest-shell--live .playtest-active-variants {
   position: absolute;
   z-index: var(--layer-floating);
@@ -185,16 +138,9 @@
   pointer-events: none;
   transform: translateX(-50%);
 }
+.playtest-shell--live .playtest-active-variants > * { max-width: 100%; }
 
-.playtest-shell--live .playtest-active-variants > * {
-  max-width: 100%;
-}
-
-/* Fighter dossiers ---------------------------------------------------------- */
-
-.playtest-shell--live .fighter-combo-rack {
-  display: none;
-}
+.playtest-shell--live .fighter-combo-rack { display: none; }
 
 .playtest-shell--live .fighter-panel.living-fighter-card,
 .playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
@@ -204,13 +150,7 @@
   min-height: 0;
   max-height: none;
   display: grid;
-  grid-template-areas:
-    "heading"
-    "vitality"
-    "art"
-    "stats"
-    "xp"
-    "ability";
+  grid-template-areas: "heading" "vitality" "art" "stats" "xp" "ability";
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 42px minmax(140px, 1fr) 46px 42px minmax(74px, auto);
   gap: 5px;
@@ -218,652 +158,402 @@
   box-sizing: border-box;
   padding: 9px;
 }
-
-.playtest-shell--live .fighter-card-heading {
-  grid-area: heading;
-  min-width: 0;
-  min-height: 0;
-  align-items: flex-start;
-}
-
-.playtest-shell--live .fighter-dossier-name {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-
-.playtest-shell--live .fighter-vitality {
-  grid-area: vitality;
-  width: 48%;
-  height: 42px;
-  min-height: 42px;
-  align-self: center;
-  justify-self: start;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-.playtest-shell--live .fighter-status-tray {
-  grid-area: vitality;
-  width: 50%;
-  max-width: 50%;
-  height: 42px;
-  min-height: 42px;
-  align-self: center;
-  justify-self: end;
-  display: flex;
-  align-items: center;
-  align-content: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 3px;
-  overflow: hidden;
-}
-
-.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality {
-  justify-self: end;
-}
-
-.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality > div {
-  flex-direction: row-reverse;
-}
-
-.playtest-shell--live .fighter-panel.is-enemy .fighter-status-tray {
-  justify-self: start;
-  justify-content: flex-start;
-}
-
+.playtest-shell--live .fighter-card-heading { grid-area: heading; min-width: 0; min-height: 0; align-items: flex-start; }
+.playtest-shell--live .fighter-dossier-name { max-width: 100%; overflow-wrap: anywhere; }
+.playtest-shell--live .fighter-vitality { grid-area: vitality; width: 48%; height: 42px; min-height: 42px; align-self: center; justify-self: start; display: flex; align-items: center; overflow: hidden; }
+.playtest-shell--live .fighter-status-tray { grid-area: vitality; width: 50%; max-width: 50%; height: 42px; min-height: 42px; align-self: center; justify-self: end; display: flex; align-items: center; align-content: center; justify-content: flex-end; flex-wrap: wrap; gap: 3px; overflow: hidden; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality { justify-self: end; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality > div { flex-direction: row-reverse; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-status-tray { justify-self: start; justify-content: flex-start; }
 .playtest-shell--live .fighter-panel-art.fighter-card-illustration,
-.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration {
-  grid-area: art;
-  min-width: 0;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  overflow: hidden;
-  padding: 2px 6px 0;
-}
-
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration { grid-area: art; min-width: 0; min-height: 0; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; padding: 2px 6px 0; }
 .playtest-shell--live .fighter-panel-art.fighter-card-illustration img,
 .playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration img,
-.playtest-shell--live .fighter-panel-art.fighter-card-illustration:hover img {
-  position: static;
-  width: auto;
-  height: 100%;
-  max-width: 96%;
-  max-height: 100%;
-  margin: 0 auto;
-  object-fit: contain;
-  object-position: center bottom;
-  translate: none;
-  scale: none;
-}
-
+.playtest-shell--live .fighter-panel-art.fighter-card-illustration:hover img { position: static; width: auto; height: 100%; max-width: 96%; max-height: 100%; margin: 0 auto; object-fit: contain; object-position: center bottom; translate: none; scale: none; }
 .playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration img,
-.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration:hover img {
-  transform: scaleX(-1);
-}
-
-.playtest-shell--live .fighter-resource-strip {
-  display: contents;
-}
-
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration:hover img { transform: scaleX(-1); }
+.playtest-shell--live .fighter-resource-strip { display: contents; }
 .playtest-shell--live .fighter-stats.fighter-stats--combat,
-.playtest-shell--live .fighter-panel.is-enemy .fighter-stats.fighter-stats--combat {
-  grid-area: stats;
-  width: calc(75% - 2px);
-  min-width: 0;
-  max-width: calc(75% - 2px);
-  height: 46px;
-  min-height: 46px;
-  justify-self: start;
-  align-self: center;
-}
-
-.playtest-shell--live .fighter-stats--combat > b {
-  min-width: 0;
-  height: 46px;
-  min-height: 46px;
-  box-sizing: border-box;
-}
-
+.playtest-shell--live .fighter-panel.is-enemy .fighter-stats.fighter-stats--combat { grid-area: stats; width: calc(75% - 2px); min-width: 0; max-width: calc(75% - 2px); height: 46px; min-height: 46px; justify-self: start; align-self: center; }
+.playtest-shell--live .fighter-stats--combat > b { min-width: 0; height: 46px; min-height: 46px; box-sizing: border-box; }
 .playtest-shell--live .fighter-focus-seal,
-.playtest-shell--live .fighter-panel.is-enemy .fighter-focus-seal {
-  grid-area: stats;
-  width: calc(25% - 3px);
-  min-width: 0;
-  max-width: calc(25% - 3px);
-  height: 46px;
-  min-height: 46px;
-  align-self: center;
-  justify-self: end;
-  margin: 0;
-  box-sizing: border-box;
-  transform: none;
-}
-
+.playtest-shell--live .fighter-panel.is-enemy .fighter-focus-seal { grid-area: stats; width: calc(25% - 3px); min-width: 0; max-width: calc(25% - 3px); height: 46px; min-height: 46px; align-self: center; justify-self: end; margin: 0; box-sizing: border-box; transform: none; }
 .playtest-shell--live .fighter-xp-meter,
-.playtest-shell--live .fighter-panel.is-enemy .fighter-xp-meter {
-  grid-area: xp;
-  height: 42px;
-  min-height: 42px;
-  align-self: stretch;
-}
-
-.playtest-shell--live .fighter-xp-meter {
-  width: 62%;
-  justify-self: start;
-}
-
-.playtest-shell--live .fighter-panel.is-enemy .fighter-xp-meter {
-  width: 100%;
-  justify-self: stretch;
-}
-
-.playtest-shell--live .fighter-combo-launch {
-  grid-area: xp;
-  z-index: var(--layer-card);
-  width: 35%;
-  min-width: 0;
-  height: 42px;
-  min-height: 42px;
-  align-self: stretch;
-  justify-self: end;
-  overflow: hidden;
-}
-
+.playtest-shell--live .fighter-panel.is-enemy .fighter-xp-meter { grid-area: xp; height: 42px; min-height: 42px; align-self: stretch; }
+.playtest-shell--live .fighter-xp-meter { width: 62%; justify-self: start; }
+.playtest-shell--live .fighter-panel.is-enemy .fighter-xp-meter { width: 100%; justify-self: stretch; }
+.playtest-shell--live .fighter-combo-launch { grid-area: xp; z-index: var(--layer-card); width: 35%; min-width: 0; height: 42px; min-height: 42px; align-self: stretch; justify-self: end; overflow: hidden; }
 .playtest-shell--live .fighter-ability,
-.playtest-shell--live .fighter-panel.is-enemy .fighter-ability {
-  grid-area: ability;
-  min-width: 0;
-  min-height: 0;
-  max-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-
+.playtest-shell--live .fighter-panel.is-enemy .fighter-ability { grid-area: ability; min-width: 0; min-height: 0; max-height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .playtest-shell--live .fighter-equipment-tabs,
-.playtest-shell--live .fighter-equipment-tabs.is-enemy {
-  top: clamp(94px, 17%, 132px);
-}
+.playtest-shell--live .fighter-equipment-tabs.is-enemy { top: clamp(94px, 17%, 132px); }
 
-/* Center combat mat --------------------------------------------------------- */
-
-.playtest-shell--live .playtest-combat-desk.combat-stage {
-  width: 100%;
-  min-width: 0;
-  height: 100%;
-  min-height: 0;
-  display: grid;
-  grid-template-rows:
-    auto
-    minmax(138px, 1fr)
-    34px
-    76px
-    minmax(68px, auto)
-    auto;
-  row-gap: 7px;
-  overflow: hidden;
-}
-
-.playtest-shell--live .combat-stage-heading {
-  min-width: 0;
-}
-
-.playtest-shell--live .clash-field {
-  min-width: 0;
-  min-height: 138px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
-  gap: 9px;
-  align-items: stretch;
-  overflow: hidden;
-  padding: 8px 9px;
-}
-
-.playtest-shell--live .clash-field:has(.clash-card-slot--player.is-occupied):has(.clash-card-slot--ai:not(.is-occupied)) {
-  grid-template-columns: minmax(0, 1fr) 58px;
-}
-
-.playtest-shell--live .clash-field:has(.clash-card-slot--player.is-occupied):has(.clash-card-slot--ai:not(.is-occupied)) .clash-card-slot--ai {
-  display: none;
-}
-
-.playtest-shell--live .clash-field:has(.clash-card-slot--ai.is-occupied):has(.clash-card-slot--player:not(.is-occupied)) {
-  grid-template-columns: 58px minmax(0, 1fr);
-}
-
-.playtest-shell--live .clash-field:has(.clash-card-slot--ai.is-occupied):has(.clash-card-slot--player:not(.is-occupied)) .clash-card-slot--player {
-  display: none;
-}
-
-.playtest-shell--live .clash-card-slot {
-  min-width: 0;
-  min-height: 0;
-  height: auto;
-  display: grid;
-  grid-template-rows: 16px minmax(0, 1fr);
-  gap: 5px;
-  overflow: hidden;
-}
-
-.playtest-shell--live .clash-card-slot > button {
-  min-width: 0;
-  min-height: 0;
-  height: auto;
-  max-height: 100%;
-  align-self: stretch;
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  gap: 9px;
-  align-items: center;
-  overflow: hidden;
-  padding: 6px 8px;
-}
-
-.playtest-shell--live .clash-card-slot--ai > button {
-  grid-template-columns: minmax(0, 1fr) 68px;
-}
-
-.playtest-shell--live .clash-card-art {
-  width: 68px;
-  min-width: 68px;
-  max-width: 68px;
-  height: 94px;
-  min-height: 94px;
-  max-height: 94px;
-  align-self: center;
-  overflow: hidden;
-}
-
-.playtest-shell--live .clash-card-art > img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-}
-
-.playtest-shell--live .clash-card-copy {
-  min-width: 0;
-  align-content: center;
-}
-
-.playtest-shell--live .clash-seal {
-  width: 52px;
-  height: 52px;
-  align-self: center;
-  justify-self: center;
-}
-
-.playtest-shell--live .combat-zone-board {
-  height: 34px;
-  min-height: 34px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  overflow: hidden;
-}
-
+.playtest-shell--live .playtest-combat-desk.combat-stage { width: 100%; min-width: 0; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(138px, 1fr) 34px 76px minmax(68px, auto) auto; row-gap: 7px; overflow: hidden; }
+.playtest-shell--live .combat-stage-heading { min-width: 0; }
+.playtest-shell--live .clash-field { min-width: 0; min-height: 138px; display: grid; grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); gap: 9px; align-items: stretch; overflow: hidden; padding: 8px 9px; }
+.playtest-shell--live .clash-field:has(.clash-card-slot--player.is-occupied):has(.clash-card-slot--ai:not(.is-occupied)) { grid-template-columns: minmax(0, 1fr) 58px; }
+.playtest-shell--live .clash-field:has(.clash-card-slot--player.is-occupied):has(.clash-card-slot--ai:not(.is-occupied)) .clash-card-slot--ai { display: none; }
+.playtest-shell--live .clash-field:has(.clash-card-slot--ai.is-occupied):has(.clash-card-slot--player:not(.is-occupied)) { grid-template-columns: 58px minmax(0, 1fr); }
+.playtest-shell--live .clash-field:has(.clash-card-slot--ai.is-occupied):has(.clash-card-slot--player:not(.is-occupied)) .clash-card-slot--player { display: none; }
+.playtest-shell--live .clash-card-slot { min-width: 0; min-height: 0; height: auto; display: grid; grid-template-rows: 16px minmax(0, 1fr); gap: 5px; overflow: hidden; }
+.playtest-shell--live .clash-card-slot > button { min-width: 0; min-height: 0; height: auto; max-height: 100%; align-self: stretch; display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 9px; align-items: center; overflow: hidden; padding: 6px 8px; }
+.playtest-shell--live .clash-card-slot--ai > button { grid-template-columns: minmax(0, 1fr) 68px; }
+.playtest-shell--live .clash-card-art { width: 68px; min-width: 68px; max-width: 68px; height: 94px; min-height: 94px; max-height: 94px; align-self: center; overflow: hidden; }
+.playtest-shell--live .clash-card-art > img { width: 100%; height: 100%; object-fit: contain; object-position: center; }
+.playtest-shell--live .clash-card-copy { min-width: 0; align-content: center; }
+.playtest-shell--live .clash-seal { width: 52px; height: 52px; align-self: center; justify-self: center; }
+.playtest-shell--live .combat-zone-board { height: 34px; min-height: 34px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; overflow: hidden; }
 .playtest-shell--live .combat-zone-board span,
-.playtest-shell--live .combat-zone-board span.is-hot {
-  min-width: 0;
-  height: 34px;
-  min-height: 34px;
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: 5px;
-  align-items: center;
-  transform: none;
-}
+.playtest-shell--live .combat-zone-board span.is-hot { min-width: 0; height: 34px; min-height: 34px; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 5px; align-items: center; transform: none; }
+.playtest-shell--live .live-mat-play--stage { min-width: 0; min-height: 0; height: 76px; max-height: 76px; overflow: hidden; }
+.playtest-shell--live .live-mat-play--stage .mat-lane-cards { display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; }
+.playtest-shell--live .impact-readout { min-width: 0; min-height: 68px; overflow: auto; overscroll-behavior: contain; }
+.playtest-shell--live .contextual-coach-slip { display: none; }
 
-.playtest-shell--live .live-mat-play--stage {
-  min-width: 0;
-  min-height: 0;
-  height: 76px;
-  max-height: 76px;
-  overflow: hidden;
-}
-
-.playtest-shell--live .live-mat-play--stage .mat-lane-cards {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-inline: contain;
-}
-
-.playtest-shell--live .impact-readout {
-  min-width: 0;
-  min-height: 68px;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
-/* Contextual coach information is available from the persistent Coach control.
-   The old in-mat duplicate is intentionally removed from the primary board. */
-.playtest-shell--live .contextual-coach-slip {
-  display: none;
-}
-
-/* Hand ---------------------------------------------------------------------- */
-
-.playtest-shell--live > .playtest-workspace--hand {
-  grid-area: hand;
-  position: relative;
-  z-index: var(--layer-card);
-  min-width: 0;
-  width: 100%;
-  margin: 0;
-}
-
-.playtest-shell--live .hand-panel {
-  min-width: 0;
-  width: 100%;
-  display: grid;
-  grid-template-rows: auto minmax(0, auto) auto;
-  gap: 7px;
-  overflow: visible;
-}
-
-.playtest-shell--live .hand-panel > header {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-}
-
-/* These are runtime diagnostics, not player filters or actions. */
-.playtest-shell--live .hand-counters {
-  display: none;
-}
-
-/* The action cluster is authored inside the hand header and remains there.
-   It is never fixed over the cards and therefore cannot obscure the hand. */
-.playtest-shell--live .hand-panel > header > .playtest-action-dock {
-  position: relative;
-  inset: auto;
-  z-index: auto;
-  grid-column: 2;
-  min-width: 0;
-  width: auto;
-  max-width: none;
-  justify-self: stretch;
-  margin: 0;
-  transform: none;
-}
-
-.playtest-shell--live .play-card-row {
-  min-width: 0;
-  width: 100%;
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 9px;
-  overflow-x: auto;
-  overflow-y: visible;
-  overscroll-behavior-inline: contain;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-  padding: 7px 5px 12px;
-}
-
-.playtest-shell--live .play-card-row .play-card {
-  position: relative;
-  flex-shrink: 0;
-  margin: 0;
-  scroll-snap-align: center;
-}
-
-.playtest-shell--live .play-card-row .play-card-main {
-  transform-origin: center bottom;
-  transition: transform 130ms ease, filter 130ms ease;
-}
-
+.playtest-shell--live > .playtest-workspace--hand { grid-area: hand; position: relative; z-index: var(--layer-card); min-width: 0; width: 100%; margin: 0; }
+.playtest-shell--live .hand-panel { min-width: 0; width: 100%; display: grid; grid-template-rows: auto minmax(0, auto) auto; gap: 7px; overflow: visible; }
+.playtest-shell--live .hand-panel > header { min-width: 0; display: grid; grid-template-columns: minmax(150px, auto) minmax(0, 1fr); align-items: center; gap: 10px; }
+.playtest-shell--live .hand-counters { display: none; }
+.playtest-shell--live .hand-panel > header > .playtest-action-dock { position: relative; inset: auto; z-index: auto; grid-column: 2; min-width: 0; width: auto; max-width: none; justify-self: stretch; margin: 0; transform: none; }
+.playtest-shell--live .play-card-row { min-width: 0; width: 100%; display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 9px; overflow-x: auto; overflow-y: visible; overscroll-behavior-inline: contain; scroll-snap-type: x proximity; scrollbar-width: thin; padding: 7px 5px 12px; }
+.playtest-shell--live .play-card-row .play-card { position: relative; flex-shrink: 0; margin: 0; scroll-snap-align: center; }
+.playtest-shell--live .play-card-row .play-card-main { transform-origin: center bottom; transition: transform 130ms ease, filter 130ms ease; }
 @media (hover: hover) and (pointer: fine) {
   .playtest-shell--live .play-card-row .play-card:hover .play-card-main,
-  .playtest-shell--live .play-card-row .play-card:focus-within .play-card-main {
-    position: relative;
-    z-index: var(--layer-floating);
-    transform: translateY(-4px) scale(1.015);
-  }
+  .playtest-shell--live .play-card-row .play-card:focus-within .play-card-main { position: relative; z-index: var(--layer-floating); transform: translateY(-4px) scale(1.015); }
 }
 
-/* Utility chrome ------------------------------------------------------------ */
-
-.playtest-shell--live > .playtest-utility-dock {
-  grid-area: utility;
-  position: sticky;
-  z-index: var(--layer-chrome);
-  bottom: 0;
-  min-width: 0;
-  width: 100%;
-  min-height: 44px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px 10px;
-  margin: 0;
-  overflow: visible;
-  backdrop-filter: blur(10px);
-}
-
-/* Dialogs / drawers / popovers --------------------------------------------- */
+.playtest-shell--live > .playtest-utility-dock { grid-area: utility; position: sticky; z-index: var(--layer-chrome); bottom: 0; min-width: 0; width: 100%; min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin: 0; overflow: visible; backdrop-filter: blur(10px); }
 
 body:has(.playtest-shell--live .ascend-desk-backdrop),
 body:has(.playtest-shell--live .playtest-inspector-backdrop),
-body:has(.playtest-shell--live .match-result) {
-  overflow: hidden;
-}
-
+body:has(.playtest-shell--live .match-result) { overflow: hidden; }
 .playtest-shell--live > .ascend-desk-backdrop,
 .playtest-shell--live .ascend-desk-backdrop,
 .playtest-shell--live > .playtest-inspector-backdrop,
 .playtest-shell--live .playtest-inspector-backdrop,
 .playtest-shell--live > .match-result,
-.playtest-shell--live .match-result {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100dvh;
-  margin: 0;
-}
-
+.playtest-shell--live .match-result { position: fixed; inset: 0; width: 100vw; height: 100dvh; margin: 0; }
 .playtest-shell--live > .ascend-desk-backdrop,
-.playtest-shell--live .ascend-desk-backdrop {
-  z-index: var(--layer-backdrop);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  padding: clamp(12px, 2vw, 28px);
-}
-
-.playtest-shell--live .ascend-desk-backdrop > .ascend-desk {
-  position: relative;
-  z-index: var(--layer-dialog);
-  width: min(1500px, 96vw);
-  max-width: 96vw;
-  max-height: 92dvh;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
-}
-
-.playtest-shell--live .ascend-desk-body {
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.playtest-shell--live .ascend-market-grid {
-  min-width: 0;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(180px, 1fr);
-  grid-template-columns: repeat(7, minmax(180px, 1fr));
-  gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-inline: contain;
-  padding-bottom: 6px;
-}
-
+.playtest-shell--live .ascend-desk-backdrop { z-index: var(--layer-backdrop); display: grid; place-items: center; overflow: hidden; padding: clamp(12px, 2vw, 28px); }
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk { position: relative; z-index: var(--layer-dialog); width: min(1500px, 96vw); max-width: 96vw; max-height: 92dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+.playtest-shell--live .ascend-desk-body { min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.playtest-shell--live .ascend-market-grid { min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(180px, 1fr); grid-template-columns: repeat(7, minmax(180px, 1fr)); gap: 10px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; padding-bottom: 6px; }
 .playtest-shell--live > .playtest-inspector-backdrop,
-.playtest-shell--live .playtest-inspector-backdrop {
-  z-index: var(--layer-nested-dialog);
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: clamp(10px, 2vw, 24px);
-}
-
-.playtest-shell--live .playtest-inspector-backdrop > * {
-  position: relative;
-  z-index: var(--layer-nested-dialog);
-  max-height: calc(100dvh - 32px);
-}
-
+.playtest-shell--live .playtest-inspector-backdrop { z-index: var(--layer-nested-dialog); overflow: auto; overscroll-behavior: contain; padding: clamp(10px, 2vw, 24px); }
+.playtest-shell--live .playtest-inspector-backdrop > * { position: relative; z-index: var(--layer-nested-dialog); max-height: calc(100dvh - 32px); }
 .playtest-shell--live > .match-result,
-.playtest-shell--live .match-result {
-  z-index: var(--layer-critical);
-  overflow: auto;
-  overscroll-behavior: contain;
-}
+.playtest-shell--live .match-result { z-index: var(--layer-critical); overflow: auto; overscroll-behavior: contain; }
 
-/* The integrated Combo summary belongs to the acquisition dialog, not to board
-   geometry. Keep it beside the Market only when the viewport has room. */
 @media (min-width: 1200px) {
-  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(290px, 350px);
-    grid-template-areas:
-      "heading combo"
-      "market combo";
-    gap: 12px 16px;
-    align-items: start;
-  }
-
-  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market > header {
-    grid-area: heading;
-  }
-
-  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market-grid {
-    grid-area: market;
-  }
-
-  .playtest-shell--live .ascend-featured-combo {
-    grid-area: combo;
-    position: sticky;
-    top: 0;
-    min-width: 0;
-    align-self: start;
-  }
+  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 350px); grid-template-areas: "heading combo" "market combo"; gap: 12px 16px; align-items: start; }
+  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market > header { grid-area: heading; }
+  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market-grid { grid-area: market; }
+  .playtest-shell--live .ascend-featured-combo { grid-area: combo; position: sticky; top: 0; min-width: 0; align-self: start; }
 }
-
-/* Responsive desktop tiers -------------------------------------------------- */
 
 @media (min-width: 1440px) {
-  .playtest-shell.playtest-shell--live {
-    --playtest-side-min: 260px;
-    --playtest-center-min: 520px;
-    --playtest-arena-height: clamp(540px, 60dvh, 660px);
-  }
+  .playtest-shell.playtest-shell--live { --playtest-side-min: 260px; --playtest-center-min: 520px; --playtest-arena-height: clamp(540px, 60dvh, 660px); }
 }
-
 @media (min-width: 1024px) and (max-width: 1439px) {
-  .playtest-shell.playtest-shell--live {
-    --playtest-side-min: 220px;
-    --playtest-center-min: 420px;
-    --playtest-arena-height: clamp(500px, 57dvh, 600px);
-  }
+  .playtest-shell.playtest-shell--live { --playtest-side-min: 220px; --playtest-center-min: 420px; --playtest-arena-height: clamp(500px, 57dvh, 600px); }
 }
-
-/* Narrow desktop/tablet is a safe degradation, not a separate game client.
-   The complete board remains reachable horizontally instead of collapsing
-   controls or forcing overlapping columns. */
 @media (min-width: 761px) and (max-width: 1023px) {
-  .playtest-shell.playtest-shell--live {
-    --playtest-arena-height: 540px;
-    width: calc(100vw - 16px);
-    padding-inline: 0;
-  }
-
-  .playtest-shell--live > .playtest-arena {
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-inline: contain;
-  }
-
-  .playtest-shell--live .playtest-table {
-    min-width: 960px;
-    grid-template-columns: minmax(220px, .72fr) minmax(480px, 1.5fr) minmax(220px, .72fr);
-  }
-
-  .playtest-shell--live .playtest-active-variants {
-    width: min(520px, calc(100vw - 48px));
-  }
-
-  .playtest-shell--live .hand-panel > header {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .playtest-shell--live .hand-panel > header > .playtest-action-dock {
-    grid-column: 1;
-  }
+  .playtest-shell.playtest-shell--live { --playtest-arena-height: 540px; width: calc(100vw - 16px); padding-inline: 0; }
+  .playtest-shell--live > .playtest-arena { overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; }
+  .playtest-shell--live .playtest-table { min-width: 960px; grid-template-columns: minmax(220px, .72fr) minmax(480px, 1.5fr) minmax(220px, .72fr); }
+  .playtest-shell--live .playtest-active-variants { width: min(520px, calc(100vw - 48px)); }
+  .playtest-shell--live .hand-panel > header { grid-template-columns: minmax(0, 1fr); }
+  .playtest-shell--live .hand-panel > header > .playtest-action-dock { grid-column: 1; }
 }
-
-/* Mobile remains intentionally governed by the existing mobile Playtest policy
-   and component styles; this task does not create a new mobile game client. */
 @media (max-width: 760px) {
-  .playtest-shell.playtest-shell--live {
-    display: block;
-    width: calc(100% - 16px);
-    min-height: 0;
-    overflow: visible;
-  }
-
-  .playtest-shell--live .playtest-active-variants {
-    top: 6px;
-    left: 50%;
-    width: calc(100% - 24px);
-    max-width: calc(100% - 24px);
-  }
-
-  .playtest-shell--live > .playtest-utility-dock {
-    position: relative;
-    bottom: auto;
-  }
+  .playtest-shell.playtest-shell--live { display: block; width: calc(100% - 16px); min-height: 0; overflow: visible; }
+  .playtest-shell--live .playtest-active-variants { top: 6px; left: 50%; width: calc(100% - 24px); max-width: calc(100% - 24px); }
+  .playtest-shell--live > .playtest-utility-dock { position: relative; bottom: auto; }
 }
-
-/* Theme + accessibility ----------------------------------------------------- */
-
-:root[data-theme="dark"] .playtest-shell--live > .playtest-utility-dock {
-  background: rgba(17, 42, 32, .96);
-}
-
-:root[data-theme="light"] .playtest-shell--live > .playtest-utility-dock {
-  background: rgba(247, 237, 211, .96);
-}
-
-.playtest-shell--live :where(button, [role="button"], a):focus-visible {
-  outline: 3px solid var(--mat-gold, #d6a528);
-  outline-offset: 2px;
-}
-
+:root[data-theme="dark"] .playtest-shell--live > .playtest-utility-dock { background: rgba(17, 42, 32, .96); }
+:root[data-theme="light"] .playtest-shell--live > .playtest-utility-dock { background: rgba(247, 237, 211, .96); }
+.playtest-shell--live :where(button, [role="button"], a):focus-visible { outline: 3px solid var(--mat-gold, #d6a528); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
-  .playtest-shell--live .play-card-row .play-card-main {
-    transition: none;
-  }
-
+  .playtest-shell--live .play-card-row .play-card-main { transition: none; }
   .playtest-shell--live .play-card-row .play-card:hover .play-card-main,
-  .playtest-shell--live .play-card-row .play-card:focus-within .play-card-main {
-    transform: none;
-  }
+  .playtest-shell--live .play-card-row .play-card:focus-within .play-card-main { transform: none; }
+}
+
+/* Live HUD and fighter presentation ---------------------------------------- */
+.playtest-shell.playtest-shell--live > .playtest-topbar.battle-versus-hud {
+  min-height: 72px;
+  grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  overflow: visible;
+  border: 1px solid rgba(246, 225, 171, .25);
+  border-radius: 13px 5px 15px 7px;
+  padding: 7px 10px;
+  background: rgba(26, 38, 31, .965);
+  box-shadow: 0 5px 0 rgba(83, 56, 28, .42), 0 12px 30px rgba(18, 12, 7, .22);
+  backdrop-filter: blur(10px);
+}
+.playtest-shell--live .battle-versus-hud::before,
+.playtest-shell--live .battle-versus-hud::after { content: none; display: none; }
+.playtest-shell--live .fighter-column--player .fighter-hp-track,
+.playtest-shell--live .fighter-column--enemy .fighter-hp-track { display: none; }
+.playtest-shell--live .battle-hud-fighter {
+  width: 100%; min-width: 0; height: 100%; display: grid;
+  grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(10px, 1fr);
+  align-items: center; gap: 2px; box-sizing: border-box;
+  border: 2px solid rgba(255, 243, 207, .82); border-radius: 8px 15px 6px 12px;
+  padding: 5px 10px 6px; color: #fff8df; background: linear-gradient(180deg, #294639, #13271f);
+  box-shadow: inset 0 0 0 2px rgba(9, 20, 15, .35);
+}
+.playtest-shell--live .battle-hud-fighter--ai { text-align: right; }
+.playtest-shell--live .battle-hud-fighter > span { grid-row: 1; overflow: hidden; color: #e3c55d; font-size: 8px; font-weight: 950; letter-spacing: .12em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.playtest-shell--live .battle-hud-fighter > b { grid-row: 2; min-width: 0; overflow: hidden; font-family: var(--display); font-size: clamp(15px, 1.45vw, 21px); line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+.playtest-shell--live .battle-hud-fighter > div { grid-row: 3; width: 100%; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.playtest-shell--live .battle-hud-fighter--ai > div { grid-template-columns: minmax(0, 1fr) auto; }
+.playtest-shell--live .battle-hud-fighter--ai > div > strong { grid-column: 2; }
+.playtest-shell--live .battle-hud-fighter--ai > div > i { grid-column: 1; grid-row: 1; }
+.playtest-shell--live .battle-hud-fighter strong { color: #fff; font-size: 18px; line-height: 1; }
+.playtest-shell--live .battle-hud-fighter strong small { color: #c7d3ca; font-size: 7px; white-space: nowrap; }
+.playtest-shell--live .battle-hud-fighter i { width: 100%; min-width: 0; height: 10px; overflow: hidden; border: 1px solid rgba(10, 20, 15, .9); border-radius: 999px; background: #6c2b27; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .56), 0 1px 0 rgba(255, 243, 207, .12); }
+.playtest-shell--live .battle-hud-fighter i em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #64cb7c, #b4df79); }
+.playtest-shell--live .battle-hud-fighter--ai i em { margin-left: auto; background: linear-gradient(270deg, #64cb7c, #b4df79); }
+.playtest-shell--live .versus-center { width: 68px; height: 60px; align-self: center; justify-self: center; }
+.playtest-shell--live .versus-center > span { top: 3px; font-size: 9px; letter-spacing: .12em; }
+.playtest-shell--live .versus-center > b { width: 56px; height: 56px; font-size: 30px; }
+.playtest-shell--live .combat-stage-heading > div { display: none; }
+
+.playtest-shell--live .fighter-panel.living-fighter-card,
+.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card {
+  grid-template-areas: "heading" "art" "stats" "xp" "status" "ability" "tools";
+  grid-template-rows: 50px minmax(170px, 1fr) 46px 42px 28px minmax(68px, 86px) 40px;
+  gap: 5px;
+}
+.playtest-shell--live .fighter-vitality,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality { display: none; }
+.playtest-shell--live .fighter-card-heading { min-height: 50px; height: 50px; align-items: center; overflow: hidden; padding: 0 2px; }
+.playtest-shell--live .fighter-belt-badge,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-belt-badge { min-width: 58px; max-width: 68px; margin-inline: 2px; overflow: hidden; border: 2px solid var(--belt-edge, #b8ad92); border-radius: 6px 2px 7px 3px; padding: 5px 7px; color: var(--belt-fg, #17211d); background: var(--belt-bg, #f5f0df); box-shadow: 2px 3px 0 rgba(15, 15, 11, .28); line-height: 1; text-overflow: ellipsis; white-space: nowrap; transform: none; }
+.playtest-shell--live .fighter-belt-badge small,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-belt-badge small { max-width: 100%; overflow: hidden; color: var(--belt-sub, currentColor); text-overflow: ellipsis; white-space: nowrap; }
+.playtest-shell--live .fighter-belt-badge[data-belt="white"] { --belt-bg:#f5f0df; --belt-fg:#17211d; --belt-sub:#5e5c52; --belt-edge:#c9c1aa; }
+.playtest-shell--live .fighter-belt-badge[data-belt="gold"] { --belt-bg:#e0b42b; --belt-fg:#211b0c; --belt-sub:#4e3b08; --belt-edge:#f4d763; }
+.playtest-shell--live .fighter-belt-badge[data-belt="orange"] { --belt-bg:#e88939; --belt-fg:#24170c; --belt-sub:#5b2f0d; --belt-edge:#f4ae69; }
+.playtest-shell--live .fighter-belt-badge[data-belt="green"] { --belt-bg:#58a86a; --belt-fg:#102417; --belt-sub:#173c23; --belt-edge:#85c692; }
+.playtest-shell--live .fighter-belt-badge[data-belt="purple"] { --belt-bg:#8055a2; --belt-fg:#fff8e7; --belt-sub:#ead9f6; --belt-edge:#ad87ca; }
+.playtest-shell--live .fighter-belt-badge[data-belt="blue"] { --belt-bg:#4f83bf; --belt-fg:#fffaf0; --belt-sub:#dbeaff; --belt-edge:#80a9d8; }
+.playtest-shell--live .fighter-belt-badge[data-belt="red"] { --belt-bg:#c94a3d; --belt-fg:#fff7e8; --belt-sub:#ffd9d3; --belt-edge:#e67a6e; }
+.playtest-shell--live .fighter-belt-badge[data-belt="brown"] { --belt-bg:#7f5233; --belt-fg:#fff7e8; --belt-sub:#ead5c4; --belt-edge:#aa7957; }
+.playtest-shell--live .fighter-belt-badge[data-belt="black"] { --belt-bg:#171b18; --belt-fg:#fff8e7; --belt-sub:#d7ddd9; --belt-edge:#626a64; }
+.playtest-shell--live .fighter-focus-seal,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-focus-seal { width: calc(25% - 3.75px); min-width: calc(25% - 3.75px); max-width: calc(25% - 3.75px); height: 46px; min-height: 46px; grid-template-columns: 23px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 5px; align-items: center; justify-self: end; overflow: hidden; margin: 0; border: 1px solid #b7a783; border-radius: 6px 2px 7px 3px; padding: 5px; box-sizing: border-box; color: #30473b; background: rgba(255, 250, 236, .68); box-shadow: none; transform: none; }
+.playtest-shell--live .fighter-focus-seal svg { grid-row: 1 / 3; width: 21px; height: 21px; stroke: var(--mat-green); }
+.playtest-shell--live .fighter-focus-seal > span { min-width: 0; overflow: hidden; font-size: 17px; line-height: .9; }
+.playtest-shell--live .fighter-focus-seal small { min-width: 0; overflow: hidden; color: #787265; font-size: 6px; letter-spacing: .1em; text-overflow: ellipsis; white-space: nowrap; }
+.playtest-shell--live .fighter-status-tray,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-status-tray { position: static; grid-area: status; width: 100%; max-width: 100%; height: 28px; min-height: 28px; align-self: stretch; justify-self: stretch; justify-content: flex-start; align-items: center; flex-wrap: nowrap; gap: 4px; overflow-x: auto; overflow-y: hidden; }
+.playtest-shell--live .fighter-status-tray span { flex: 0 0 auto; padding: 4px 7px; font-size: 7px; line-height: 1; }
+.playtest-shell--live .fighter-equipment-tabs,
+.playtest-shell--live .fighter-equipment-tabs.is-enemy { position: relative; z-index: var(--layer-card); inset: auto; grid-area: tools; width: 100%; min-width: 0; height: 40px; min-height: 40px; align-self: end; justify-self: stretch; overflow: hidden; margin: 0; pointer-events: auto; }
+.playtest-shell--live .fighter-equipment-tabs > div,
+.playtest-shell--live .fighter-equipment-tabs:hover > div,
+.playtest-shell--live .fighter-equipment-tabs:focus-within > div { display: none; }
+.playtest-shell--live .fighter-loadout-launch,
+.playtest-shell--live .fighter-equipment-tabs.is-enemy .fighter-loadout-launch { width: 100%; max-width: 100%; height: 40px; min-height: 40px; box-sizing: border-box; border: 1px solid #877858; border-radius: 6px 2px 7px 3px; padding: 4px 7px; box-shadow: none; }
+.playtest-shell--live .fighter-card-illustration > span:last-child,
+.playtest-shell--live .play-card-inspect { border: 1px solid #8e7b57; border-radius: 5px 2px 6px 3px; padding: 4px 7px; color: #26352d; background: #f2dfb8; box-shadow: 2px 2px 0 rgba(71, 50, 25, .24); font-size: 7px; font-weight: 950; letter-spacing: .06em; line-height: 1; text-transform: uppercase; }
+.playtest-shell--live .fighter-card-illustration > span:last-child { right: 7px; bottom: 7px; }
+.playtest-shell--live .play-card-inspect { top: 7px; right: 7px; }
+
+/* Hand final presentation -------------------------------------------------- */
+.playtest-shell--live .hand-panel > header { min-height: 64px; grid-template-columns: minmax(220px, 1fr) minmax(320px, .9fr); align-items: center; gap: 10px 14px; }
+.playtest-shell--live .hand-panel > header > .playtest-action-dock { grid-column: 2; position: relative; inset: auto; width: min(560px, 100%); min-width: 0; max-width: 560px; min-height: 50px; height: auto; justify-self: end; display: flex; align-items: center; justify-content: space-between; gap: 7px 10px; overflow: visible; margin: 0; border: 1px solid rgba(239, 220, 166, .34); border-left: 6px solid #dba92e; border-radius: 11px 4px 12px 5px; padding: 5px 7px 5px 10px; color: #f6f3e6; background: #102f25; box-shadow: 3px 4px 0 rgba(214, 165, 40, .48); transform: none; }
+.playtest-shell--live .hand-panel > header > .playtest-action-dock > div:first-child { min-width: 0; flex: 1 1 auto; }
+.playtest-shell--live .hand-panel > header > .playtest-action-dock > div:first-child > span { display: block; color: #e5bc4c; font-size: 7px; letter-spacing: .12em; }
+.playtest-shell--live .hand-panel > header > .playtest-action-dock > div:first-child > b { display: block; overflow: hidden; color: #fff8e2; font-size: clamp(12px, 1vw, 15px); line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+.playtest-shell--live .hand-panel > header > .playtest-action-dock button,
+.playtest-shell--live .hand-panel > header > .playtest-action-dock .dock-action-group > button { min-height: 38px; padding: 6px 10px; white-space: normal; }
+.playtest-shell--live .play-card-row { justify-content: center; align-items: flex-start; gap: 9px; padding: 5px 5px 12px; }
+
+/* Ascend workspace --------------------------------------------------------- */
+.playtest-shell--live .ascend-desk-backdrop { background: rgba(5, 13, 9, .76); backdrop-filter: blur(12px); }
+.playtest-shell--live .ascend-desk { width: min(1760px, calc(100vw - 44px)); max-width: calc(100vw - 44px); height: min(920px, calc(100dvh - 90px)); min-height: min(600px, calc(100dvh - 40px)); max-height: calc(100dvh - 40px); display: grid; grid-template-rows: 82px 50px minmax(0, 1fr) 62px; overflow: hidden; border: 1px solid rgba(237, 215, 160, .32); border-top: 7px solid var(--mat-gold); border-radius: 15px 5px 17px 7px; padding: 0; color: #edf4ef; background: linear-gradient(160deg, #173d30, #102b22 58%, #0d241c); box-shadow: 0 34px 90px rgba(0,0,0,.58), 8px 10px 0 rgba(198,69,48,.28); }
+.playtest-shell--live .ascend-desk-header { min-width: 0; min-height: 82px; display: grid; grid-template-columns: minmax(0, 1fr) 190px 42px; align-items: center; gap: 16px; overflow: hidden; padding: 12px 16px 10px 20px; border-bottom: 1px dashed rgba(230,212,164,.28); background: rgba(23,55,43,.94); }
+.playtest-shell--live .ascend-desk-header .eyebrow { margin-bottom: 3px; color: #f2c65d; font-size: 10px; }
+.playtest-shell--live .ascend-desk-header h2 { margin: 0; color: #fff; font-size: 30px; line-height: 1; }
+.playtest-shell--live .ascend-desk-header p { max-width: 900px; margin: 4px 0 0; overflow: hidden; color: #c5d5ca; font-size: 11px; line-height: 1.28; text-overflow: ellipsis; white-space: nowrap; }
+.playtest-shell--live .ascend-desk-balance { min-height: 58px; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 0 10px; border: 1px solid rgba(230,196,97,.42); border-radius: 9px 3px 10px 4px; padding: 8px 10px; background: rgba(69,58,31,.48); }
+.playtest-shell--live .ascend-desk-balance span { font-size: 9px; }
+.playtest-shell--live .ascend-desk-balance b { grid-row: 1 / 3; grid-column: 2; color: #7ed29b; font-size: 30px; }
+.playtest-shell--live .ascend-desk-balance small { color: #dfd4ae; font-size: 8px; }
+.playtest-shell--live .ascend-desk .modal-close { width: 38px; height: 38px; color: #fff; border-color: rgba(255,255,255,.26); background: rgba(9,27,20,.82); }
+.playtest-shell--live .ascend-guide { min-width: 0; min-height: 50px; display: block; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,.08); padding: 5px 12px; background: rgba(11,35,26,.92); }
+.playtest-shell--live .ascend-guide-kicker { display: none; }
+.playtest-shell--live .ascend-guide ol { height: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; }
+.playtest-shell--live .ascend-guide li { min-width: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 7px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px 3px 9px 4px; padding: 4px 8px; color: #9fb6a7; background: rgba(31,66,51,.44); }
+.playtest-shell--live .ascend-guide li.is-current { color: #fff; border-color: #e0b43c; background: rgba(85,66,25,.56); box-shadow: inset 0 -3px 0 #e0b43c; }
+.playtest-shell--live .ascend-guide li.is-complete { color: #b8d7c1; border-color: rgba(101,182,130,.44); }
+.playtest-shell--live .ascend-guide li > b { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; font-size: 11px; }
+.playtest-shell--live .ascend-guide li span { font-size: 10px; }
+.playtest-shell--live .ascend-guide li small { font-size: 8px; }
+.playtest-shell--live .ascend-desk-body { width: 100%; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 14px 16px 18px; scrollbar-width: thin; background: linear-gradient(rgba(255,255,255,.018), rgba(255,255,255,.018)), repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 6px); }
+.playtest-shell--live .ascend-step-coach { display: none; }
+.playtest-shell--live .ascend-market,
+.playtest-shell--live .ascend-combo,
+.playtest-shell--live .ascend-belt { width: 100%; min-width: 0; min-height: 100%; }
+.playtest-shell--live .ascend-market > header,
+.playtest-shell--live .ascend-combo > header { min-width: 0; min-height: 54px; display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 10px; }
+.playtest-shell--live .ascend-market > header > * { min-width: 0; }
+.playtest-shell--live .ascend-market > header h3,
+.playtest-shell--live .ascend-combo > header h3,
+.playtest-shell--live .ascend-belt > h3 { margin: 2px 0 0; color: #fff; font-size: 24px; }
+.playtest-shell--live .ascend-market > header p,
+.playtest-shell--live .combo-digital-note,
+.playtest-shell--live .ascend-belt > p { color: #c8d7cc; font-size: 11.5px; line-height: 1.35; }
+.playtest-shell--live .ascend-market-grid { width: 100%; min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 195px; grid-template-columns: repeat(7, 195px); gap: 10px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; padding: 4px 3px 14px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.playtest-shell--live .ascend-market-grid .play-card { width: 195px; min-width: 195px; max-width: 195px; height: 350px; min-height: 350px; flex: 0 0 195px; scroll-snap-align: start; }
+.playtest-shell--live .ascend-market-grid .play-card-main { height: 350px; min-height: 350px; grid-template-rows: 158px 22px minmax(112px, 1fr) 50px; }
+.playtest-shell--live .ascend-market-grid .play-card-fallback b { font-size: 15px; }
+.playtest-shell--live .ascend-market-grid .play-card-fallback small { font-size: 11px; line-height: 1.3; -webkit-line-clamp: 5; }
+.playtest-shell--live .ascend-market-grid .play-card-meta b,
+.playtest-shell--live .ascend-market-grid .play-card-meta strong { font-size: 12px; }
+.playtest-shell--live .ascend-combo .combo-digital-note { margin: 0 0 10px; border-left: 5px solid #8055a2; padding: 9px 11px; background: rgba(93,62,109,.23); }
+.playtest-shell--live .ascend-combo .combo-offer { min-height: 360px; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: stretch; }
+.playtest-shell--live .ascend-combo .combo-offer > div h3 { font-size: 27px; }
+.playtest-shell--live .ascend-combo .combo-offer > div p { font-size: 13px; line-height: 1.45; -webkit-line-clamp: 8; }
+.playtest-shell--live .ascend-combo .combo-actions { margin-top: 12px; gap: 10px; }
+.playtest-shell--live .ascend-combo .learned-combos { margin-top: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.playtest-shell--live .ascend-belt .belt-track { margin: 14px 0; }
+.playtest-shell--live .ascend-belt .belt-track span { width: 30px; height: 30px; font-size: 10px; }
+.playtest-shell--live .ascend-belt .belt-ledger-list { max-height: 360px; overflow: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-right: 5px; }
+.playtest-shell--live .ascend-belt .belt-ledger-list article { min-height: 62px; padding: 9px 10px; }
+.playtest-shell--live .ascend-belt .belt-ledger-list b { font-size: 12px; }
+.playtest-shell--live .ascend-belt .belt-ledger-list small { font-size: 9px; line-height: 1.25; }
+.playtest-shell--live .ascend-desk-footer { min-width: 0; min-height: 62px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; overflow: hidden; border-top: 1px dashed rgba(230,212,164,.28); padding: 8px 14px; background: rgba(11,35,26,.96); }
+.playtest-shell--live .ascend-desk-footer > details { display: none; }
+.playtest-shell--live .ascend-guide-actions { width: 100%; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.playtest-shell--live .ascend-guide-actions > div { display: flex; align-items: center; gap: 10px; }
+.playtest-shell--live .ascend-guide-actions small { color: #b7c8bc; font-size: 9px; }
+.playtest-shell--live .ascend-desk-footer .button { min-height: 42px; padding-inline: 14px; font-size: 10.5px; }
+
+:root[data-theme="dark"] .playtest-shell--live .fighter-focus-seal { border-color: #607568; color: #eef5ef; background: rgba(41, 65, 54, .96); }
+:root[data-theme="dark"] .playtest-shell--live .fighter-focus-seal small { color: #c9d4ce; }
+
+/* Verified repair geometry ------------------------------------------------- */
+.playtest-shell.playtest-shell--live > .playtest-topbar.battle-versus-hud { box-sizing: border-box; height: 80px; min-height: 80px; padding: 8px 12px; align-items: center; }
+.playtest-shell--live .battle-versus-hud > .battle-hud-fighter { height: 62px; min-height: 62px; max-height: 62px; align-self: center; }
+.playtest-shell--live .battle-versus-hud > .versus-center { height: 62px; min-height: 62px; align-self: center; }
+.playtest-shell--live .combat-stage-heading { grid-template-columns: minmax(0, 1fr); }
+.playtest-shell--live .combat-stage-heading > button { grid-column: 1 / -1; width: 100%; min-width: 0; max-width: none; }
+.playtest-shell--live .combat-stage-heading > div { display: none; }
+.playtest-shell--live .fighter-panel.living-fighter-card,
+.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card { grid-template-rows: 50px minmax(150px, 1fr) 46px 42px 28px minmax(96px, 110px) 40px; }
+.playtest-shell--live .fighter-ability,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-ability { padding: 9px 10px; color: #28382f; font-size: clamp(10px, .72vw, 11.5px); line-height: 1.45; }
+.playtest-shell--live .fighter-ability b,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-ability b { display: block; margin-bottom: 4px; font-size: 7.5px; line-height: 1.2; }
+.playtest-shell--live .fighter-ability span { display: block; }
+:root[data-theme="dark"] .playtest-shell--live .fighter-ability,
+:root[data-theme="dark"] .playtest-shell--live .fighter-panel.is-enemy .fighter-ability { color: #e5eee8; background: rgba(255, 255, 255, .055); }
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional { grid-template-rows: 82px 54px minmax(0, 1fr) 62px; }
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional > .ascend-desk-header { grid-row: 1; }
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional > .ascend-guide { position: relative; z-index: 2; grid-row: 2; min-height: 54px; }
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional > .ascend-desk-body { position: relative; z-index: 1; grid-row: 3; min-height: 0; padding: 10px 14px 12px; }
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional > .ascend-desk-footer { grid-row: 4; }
+.playtest-shell--live .ascend-desk--functional .ascend-market > header { position: relative; z-index: 1; min-height: 46px; margin: 0; padding: 0 2px; align-items: end; }
+.playtest-shell--live .ascend-desk--functional .ascend-market > header h3 { font-size: 22px; }
+
+/* Featured Combo launcher and acquisition geometry ------------------------ */
+@media (min-width: 1200px) {
+  .playtest-shell--live .ascend-desk--functional .ascend-market { position: relative; overflow: visible; }
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo[data-combo-popout="ready"]) { display: grid; grid-template-columns: minmax(0, 1fr) 116px; grid-template-rows: auto 366px; grid-template-areas: "heading heading" "market combo"; align-content: start; align-items: start; gap: 8px 10px; min-height: 0; }
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo[data-combo-popout="ready"]) > header { grid-area: heading; }
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo[data-combo-popout="ready"]) > .ascend-market-grid { grid-area: market; width: 100%; min-width: 0; height: 366px; min-height: 366px; max-height: 366px; align-self: start; align-content: start; align-items: start; padding-top: 2px; padding-bottom: 10px; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) { grid-area: combo; position: relative; inset: auto; z-index: 3; width: 108px; min-width: 108px; max-width: 108px; height: 112px; min-height: 112px; max-height: 112px; align-self: center; justify-self: center; display: block; margin: 0; padding: 0; overflow: hidden; border: 2px solid rgba(236, 205, 112, .78); border-radius: 10px 4px 11px 5px; background: linear-gradient(165deg, rgba(34, 79, 59, .99), rgba(13, 47, 35, .99)); box-shadow: 3px 4px 0 rgba(214, 165, 40, .26); cursor: pointer; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header { box-sizing: border-box; width: 100%; height: 100%; display: grid; grid-template-rows: auto minmax(0, auto) auto; place-content: center; place-items: center; gap: 7px; margin: 0; padding: 12px 8px; text-align: center; cursor: pointer; outline: none; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header::before { content: "COMBO"; color: #f1c84f; font-size: 14px; font-weight: 1000; line-height: 1; letter-spacing: .09em; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header::after { content: "OPEN ↗"; color: #f7e5a9; font-size: 8px; font-weight: 950; line-height: 1; letter-spacing: .12em; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header:focus-visible { outline: 3px solid #f1c84f; outline-offset: -5px; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header > div { min-width: 0; width: 100%; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header .eyebrow,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) .ascend-featured-combo-state,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > .ascend-featured-combo-card,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > .ascend-featured-combo-meta,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > .ascend-featured-combo-copy,
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > .ascend-featured-combo-actions { display: none; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"]:not(.is-open) > header h3 { display: -webkit-box; width: 100%; overflow: hidden; margin: 0; color: #f5f0dd; font-size: 10px; font-weight: 900; line-height: 1.1; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open { grid-area: unset; position: absolute; inset: auto; top: 54px; left: 0; right: 0; bottom: auto; z-index: 24; box-sizing: border-box; width: 100%; min-width: 100%; max-width: 100%; height: 366px; min-height: 366px; max-height: 366px; display: grid; grid-template-columns: minmax(235px, 310px) minmax(0, 1fr); grid-template-rows: 46px minmax(0, 1fr) 54px; grid-template-areas: "combo-head combo-head" "combo-card combo-copy" "combo-meta combo-actions"; column-gap: 28px; row-gap: 8px; overflow: hidden; margin: 0; padding: 12px 20px 14px; justify-self: stretch; transform: none; cursor: default; border: 2px solid rgba(236, 205, 112, .78); border-left-width: 7px; border-radius: 11px 4px 12px 5px; background: linear-gradient(155deg, rgba(18, 55, 42, .998), rgba(8, 35, 26, .998)); box-shadow: 0 8px 24px rgba(0, 0, 0, .34); }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header { grid-area: combo-head; display: flex; align-items: center; justify-content: space-between; gap: 18px; min-width: 0; margin: 0; padding: 0 4px 4px; cursor: pointer; border-bottom: 1px dashed rgba(236, 205, 112, .32); }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header::before { content: none; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header::after { content: "CLOSE ×"; flex: 0 0 auto; color: #f4d267; font-size: 10px; font-weight: 1000; letter-spacing: .1em; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header .eyebrow { display: block; font-size: 8px; line-height: 1.15; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > header h3 { display: block; overflow: visible; margin: 2px 0 0; color: #f7f3e5; font-size: 20px; line-height: 1.05; -webkit-line-clamp: initial; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open .ascend-featured-combo-state { display: inline-flex; flex: 0 0 auto; font-size: 11px; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-card { grid-area: combo-card; display: block; width: 180px; min-width: 180px; max-width: 180px; max-height: 252px; align-self: center; justify-self: center; margin: 0; overflow: hidden; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-card img { width: 100%; height: auto; max-height: 252px; object-fit: contain; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-meta { grid-area: combo-meta; display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 0; overflow: hidden; font-size: 10px; line-height: 1.2; text-align: center; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-copy { grid-area: combo-copy; display: grid; align-content: center; gap: 12px; min-width: 0; overflow: hidden; font-size: clamp(12px, .82vw, 14px); line-height: 1.38; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-copy p { margin: 0; padding: 10px 12px; border: 1px solid rgba(236, 205, 112, .22); border-radius: 7px 2px 8px 3px; background: rgba(255, 255, 255, .045); }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-copy p b { display: block; margin-bottom: 4px; color: #f1c84f; font-size: 9px; letter-spacing: .08em; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-copy em { margin: 0; font-size: 10px; line-height: 1.25; opacity: .78; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-actions { grid-area: combo-actions; display: flex; align-items: center; justify-content: flex-end; flex-wrap: nowrap; gap: 8px; min-width: 0; margin: 0; }
+  .playtest-shell--live .ascend-featured-combo[data-combo-popout="ready"].is-open > .ascend-featured-combo-actions .button { min-height: 38px; padding: 8px 14px; font-size: 10px; white-space: nowrap; }
+
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-market) { height: auto; min-height: 0; max-height: calc(100dvh - 40px); grid-template-rows: 82px 54px auto 52px; align-self: center; }
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-market) > .ascend-desk-body { height: auto; min-height: 0; max-height: calc(100dvh - 238px); padding-bottom: 6px; overflow-x: hidden; overflow-y: auto; }
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) > .ascend-desk-footer { height: 52px; min-height: 52px; max-height: 52px; align-items: center; padding-block: 5px; }
+
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-belt) { height: auto; min-height: 0; max-height: calc(100dvh - 40px); grid-template-rows: 82px 54px auto 52px; align-self: center; }
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-belt) > .ascend-desk-body { max-height: calc(100dvh - 238px); overflow-x: hidden; overflow-y: auto; }
+  .playtest-shell--live .ascend-desk--functional .ascend-belt.belt-panel { width: 100%; min-width: 0; max-width: none; min-height: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); grid-template-areas: "belt-eyebrow belt-track" "belt-title belt-track" "belt-copy belt-track" "belt-ledger belt-ledger" "belt-promote belt-promote"; grid-template-rows: auto auto auto auto auto; align-items: start; column-gap: 24px; row-gap: 7px; padding: 16px 18px 14px; }
+  .playtest-shell--live .ascend-belt.belt-panel > .eyebrow { grid-area: belt-eyebrow; margin: 0; }
+  .playtest-shell--live .ascend-belt.belt-panel > h3 { grid-area: belt-title; margin: 0; font-size: clamp(27px, 2vw, 34px); line-height: 1; }
+  .playtest-shell--live .ascend-belt.belt-panel > p { grid-area: belt-copy; max-width: 900px; margin: 1px 0 4px; font-size: 11.5px; line-height: 1.42; }
+  .playtest-shell--live .ascend-belt.belt-panel > .belt-track { grid-area: belt-track; width: 100%; min-width: 0; align-self: center; display: flex; align-items: center; justify-content: space-between; gap: 7px; margin: 0; border: 1px solid rgba(230, 212, 164, .2); border-radius: 9px 3px 10px 4px; padding: 12px 14px; background: rgba(255, 255, 255, .035); }
+  .playtest-shell--live .ascend-belt.belt-panel > .belt-track span { width: 31px; min-width: 31px; height: 31px; font-size: 9px; }
+  .playtest-shell--live .ascend-belt.belt-panel > .belt-ledger-list { grid-area: belt-ledger; width: 100%; max-height: none; overflow: visible; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; padding: 0; }
+  .playtest-shell--live .ascend-belt.belt-panel > .belt-ledger-list article { min-height: 66px; }
+  .playtest-shell--live .ascend-belt.belt-panel > .button { grid-area: belt-promote; justify-self: start; margin: 4px 0 0; }
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-belt) > .ascend-desk-footer { height: 52px; min-height: 52px; max-height: 52px; align-items: center; padding-block: 5px; }
+}
+
+/* Final hand/Combo/footer invariants --------------------------------------- */
+.playtest-shell.playtest-shell--live > .playtest-workspace.playtest-workspace--hand { grid-area: hand / 1 / hand / -1; grid-column: 1 / -1; width: 100%; min-width: 0; max-width: none; display: block; grid-template-columns: minmax(0, 1fr); gap: 0; overflow: visible; margin: 0; justify-self: stretch; }
+.playtest-shell.playtest-shell--live > .playtest-workspace--hand > .hand-panel.paper-stack { width: 100%; min-width: 0; max-width: none; margin: 0; box-sizing: border-box; }
+.playtest-shell--live .playtest-workspace--hand .play-card-row { width: 100%; min-width: 0; max-width: none; flex-wrap: nowrap; justify-content: safe center; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; scrollbar-gutter: stable both-edges; scroll-padding-inline: 10px; }
+.playtest-shell--live .playtest-workspace--hand .play-card-row .play-card { flex-shrink: 0; }
+.playtest-shell--live .fighter-combo-launch { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 1fr; align-items: center; gap: 7px; padding: 0 8px; overflow: hidden; border: 1px solid rgba(230, 205, 143, .54); border-radius: 6px 2px 7px 3px; color: #f7efd7; background: linear-gradient(160deg, rgba(38, 82, 63, .98), rgba(18, 49, 37, .98)); box-shadow: inset 0 0 0 1px rgba(7, 24, 17, .35); line-height: 1; }
+.playtest-shell--live .fighter-combo-launch > span { min-width: 0; overflow: hidden; color: #f0d36d; font-size: 8px; font-weight: 950; letter-spacing: .045em; text-overflow: ellipsis; white-space: nowrap; }
+.playtest-shell--live .fighter-combo-launch > b { margin: 0; color: #fff8df; font-size: 14px; line-height: 1; white-space: nowrap; }
+.playtest-shell--live .fighter-combo-launch > small { display: none; }
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions > div { min-height: 42px; height: 42px; display: flex; flex-direction: row; align-items: center; gap: 0; }
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions > div > small { display: none; }
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions > .button,
+.playtest-shell--live .ascend-desk-footer .ascend-guide-actions > div > .button { height: 42px; min-height: 42px; margin: 0; align-self: center; white-space: nowrap; }
+
+@media (min-width: 761px) and (max-width: 1199px) {
+  .playtest-shell--live .hand-panel > header { min-height: 0; grid-template-columns: minmax(0, 1fr); }
+  .playtest-shell--live .hand-panel > header > .playtest-action-dock { grid-column: 1; width: 100%; max-width: none; justify-self: stretch; }
+  .playtest-shell--live .ascend-desk { width: calc(100vw - 24px); max-width: calc(100vw - 24px); height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); }
+  .playtest-shell--live .ascend-market-grid { grid-template-columns: repeat(7, 180px); grid-auto-columns: 180px; }
+  .playtest-shell--live .ascend-market-grid .play-card { width: 180px; min-width: 180px; max-width: 180px; flex-basis: 180px; }
+  .playtest-shell.playtest-shell--live > .playtest-workspace.playtest-workspace--hand,
+  .playtest-shell.playtest-shell--live > .playtest-workspace--hand > .hand-panel.paper-stack { width: 100%; max-width: none; }
+  .playtest-shell--live .playtest-workspace--hand .play-card-row { justify-content: safe flex-start; }
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) { display: block; }
+  .playtest-shell--live .ascend-featured-combo { position: relative; top: auto; margin: 0 0 12px; }
+}
+
+@media (max-width: 760px) {
+  .playtest-shell--live .ascend-desk { width: calc(100vw - 16px); max-width: calc(100vw - 16px); height: calc(100dvh - 16px); min-height: 0; max-height: calc(100dvh - 16px); grid-template-rows: auto auto minmax(0, 1fr) auto; }
+  .playtest-shell--live .ascend-desk-header { grid-template-columns: minmax(0, 1fr) 40px; }
+  .playtest-shell--live .ascend-desk-balance { display: none; }
+  .playtest-shell--live .ascend-guide ol { grid-template-columns: 1fr; height: auto; }
+  .playtest-shell--live .ascend-guide li:not(.is-current) { display: none; }
+  .playtest-shell--live .ascend-combo .combo-offer { grid-template-columns: 1fr; }
+  .playtest-shell--live .ascend-belt .belt-ledger-list { grid-template-columns: 1fr; }
 }
