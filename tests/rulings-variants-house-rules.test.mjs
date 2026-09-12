@@ -4,13 +4,19 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
-test("Rulings & Variants keeps official and optional guidance on one route", async () => {
-  const source = await read("../app/companion-app.tsx");
+test("Rulings & Variants keeps official and optional guidance on one routed surface", async () => {
+  const [source, routing] = await Promise.all([
+    read("../app/companion-app.tsx"),
+    read("../app/routing.ts"),
+  ]);
   assert.match(source, /Rulings & Variants/);
   assert.match(source, /OFFICIAL · APPLIES TO ALL GAMES/);
   assert.match(source, /OPTIONAL · AGREE BEFORE PLAY/);
-  assert.match(source, /type RulingsTab = "official" \| "house"/);
-  assert.match(source, /rawView === "house-rules"/);
+  assert.match(routing, /export type RulingsTab = "official" \| "house"/);
+  assert.match(routing, /page: "rulings"; tab\?: RulingsTab; query\?: string/);
+  assert.match(source, /type RulingsTab/);
+  assert.match(source, /route\.page === "rulings" && <RulingsView initialTab=\{route\.tab \?\? "official"\} initialQuery=\{route\.query \?\? ""\} \/>/);
+  assert.doesNotMatch(source, /rawView === "house-rules"/);
   assert.doesNotMatch(source, /import \{ ReferenceDesk \}/);
   assert.doesNotMatch(source, /view === "reference"/);
   assert.doesNotMatch(source, /view === "house-rules"/);
