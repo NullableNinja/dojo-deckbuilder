@@ -2,9 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import CompanionApp from "../app/companion-app";
-import CardViewerLifecycle, { prepareCardRouteAlias } from "../app/card-viewer-lifecycle";
-import SearchPage from "../app/search-page";
-import MobileSitePolish from "../app/mobile-site-polish";
 import "../app/card-inspector.css";
 import "../app/mobile-site-polish.css";
 import "../app/card-inspector-host-fix.css";
@@ -22,11 +19,6 @@ import "../app/playtest-last-mile.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
-
-// #card/DDB-... is the public Dossier route. Translate it to the Card Library's
-// existing internal route before CompanionApp performs its first hash sync; the
-// lifecycle restores the canonical singular route once the inspector mounts.
-prepareCardRouteAlias();
 
 if (currentBuild && currentBuild !== "__DDB_BUILD__") {
   fetch(`${import.meta.env.BASE_URL}build.json?ts=${Date.now()}`, { cache: "no-store" })
@@ -65,9 +57,6 @@ createRoot(rootElement).render(
   <StrictMode>
     <>
       <CompanionApp />
-      <SearchPage />
-      <MobileSitePolish />
-      <CardViewerLifecycle />
     </>
   </StrictMode>,
 );
