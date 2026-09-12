@@ -1,0 +1,210 @@
+name: Temporary Character Choice UI Patch
+
+on:
+  push:
+    branches:
+      - effect-certification-character-choice-ui
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: effect-certification-character-choice-ui
+          fetch-depth: 0
+
+      - name: Patch live Quick Duel Character choice path
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('app/playtest.tsx')
+          src = path.read_text()
+
+          def replace_once(old, new, label):
+              global src
+              count = src.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              src = src.replace(old, new, 1)
+
+          replace_once(
+              'import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction } from "./character-runtime";',
+              'import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";',
+              'Character runtime type imports',
+          )
+          replace_once(
+              'import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent } from "./quick-duel-playtest-host";',
+              'import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";',
+              'Character choice host import',
+          )
+          replace_once(
+              '  | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] };',
+              '  | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] }\n  | { kind: "character-runtime"; event: CharacterRuntimeEvent; choice: CharacterRuntimeChoice };',
+              'PendingChoice character-runtime variant',
+          )
+
+          helper = '''\nfunction withPlayerCharacterChoice(result: {\n  match: Match;\n  characterEvent: CharacterRuntimeEvent | null;\n  characterChoices: CharacterRuntimeChoice[];\n}): Match {\n  const choice = result.characterChoices[0];\n  if (!result.characterEvent || !choice) return result.match;\n  return { ...result.match, pendingChoice: { kind: "character-runtime", event: result.characterEvent, choice } };\n}\n\n'''
+          replace_once(
+              'function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }',
+              helper + 'function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }',
+              'Character choice bridge helper',
+          )
+
+          old_setter = '''  const setMatch = (update: SetStateAction<Match | null>) => setRawMatch((previous) => {\n    const next = typeof update === "function" ? update(previous) : update;\n    return previous && next ? applyQuickDuelPlaytestTransition(previous, next, cardFor) : next;\n  });'''
+          new_setter = '''  const setMatch = (update: SetStateAction<Match | null>) => setRawMatch((previous) => {\n    const next = typeof update === "function" ? update(previous) : update;\n    if (!previous && next?.phase === "player-initiate") {\n      const initiated = withPlayerCharacterChoice(publishQuickDuelPlaytestLifecycleEvent(next, "player", "onInitiate", quickDuelHostOperations, cardFor));\n      return { ...initiated, player: applyInitiateCarryover(initiated.player) };\n    }\n    return previous && next ? applyQuickDuelPlaytestTransition(previous, next, cardFor) : next;\n  });'''
+          replace_once(old_setter, new_setter, 'First-turn player Initiate publication')
+
+          borrow_pattern = re.compile(r'''\n  const borrowEquipment = \(id: string\) => setMatch\(\(current\) => \{\n    if \(!current \|\| current\.phase !== "player-initiate" \|\| current\.player\.abilityUsedRound \|\| cardFor\(current\.player\.fighterId\)\?\.name !== "Sensei Ducktape"\) return current;\n    const card = cardFor\(id\);\n    if \(!card \|\| !isPermanent\(card\) \|\| !current\.player\.discard\.includes\(id\)\) return current;\n    const nextPlayer = applyCardEffects\(\{ \.\.\.current\.player, discard: removeOne\(current\.player\.discard, id\), borrowedEquipmentId: id, abilityUsedRound: true \}, card, "player"\);\n    return write\(current, `Sensei Ducktape jury-rigs \$\{card\.name\} from the discard pile until Hide\.`, \{ player: nextPlayer \}\);\n  \}\);\n''')
+          src, n = borrow_pattern.subn('\n', src, count=1)
+          if n != 1:
+              raise SystemExit(f'legacy borrowEquipment removal: expected 1, found {n}')
+
+          replace_once(
+              '  const beginYell = () => setMatch((current) => current?.phase === "player-initiate" ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: { ...current.player, usedEffectIdsThisTurn: [] } }) : current);',
+              '  const beginYell = () => setMatch((current) => current?.phase === "player-initiate" && !current.pendingChoice ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: { ...current.player, usedEffectIdsThisTurn: [] } }) : current);',
+              'Initiate choice gating',
+          )
+
+          replace_once(
+              '    const hostedFinished = publishQuickDuelPlaytestLifecycleEvent(finished, "player", "onInitiate", quickDuelHostOperations).match;',
+              '    const hostedFinished = withPlayerCharacterChoice(publishQuickDuelPlaytestLifecycleEvent(finished, "player", "onInitiate", quickDuelHostOperations, cardFor));',
+              'Second-player Initiate choice preservation',
+          )
+          replace_once(
+              '  const hostedInitiate = playerFirst ? publishQuickDuelPlaytestLifecycleEvent(stagedForInitiate, "player", "onInitiate", quickDuelHostOperations).match : stagedForInitiate;',
+              '  const hostedInitiate = playerFirst ? withPlayerCharacterChoice(publishQuickDuelPlaytestLifecycleEvent(stagedForInitiate, "player", "onInitiate", quickDuelHostOperations, cardFor)) : stagedForInitiate;',
+              'Round-start Initiate choice preservation',
+          )
+          replace_once(
+              'pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId,',
+              'pendingDiscard: null, pendingChoice: hostedInitiate.pendingChoice ?? null, pendingCombatContinuation: null, locationId,',
+              'Round-start pending Character choice',
+          )
+          replace_once(
+              '  if (sceneChanges && lucky && locationId !== current.locationId) {',
+              '  if (!advanced.pendingChoice && sceneChanges && lucky && locationId !== current.locationId) {',
+              'Character choice priority over Location Lucky reveal',
+          )
+          replace_once(
+              '  if (marketRefreshes && lucky) {',
+              '  if (!advanced.pendingChoice && marketRefreshes && lucky) {',
+              'Character choice priority over Market Lucky reveal',
+          )
+
+          replace_once(
+              '  const nextAi = playAreaCleanup(aiAfterPurchase);',
+              '  const hostedHide = publishQuickDuelPlaytestLifecycleEvent({ ...current, ai: aiAfterPurchase }, "ai", "onHide", quickDuelHostOperations, cardFor).match;\n  const nextAi = playAreaCleanup(hostedHide.ai);',
+              'AI Hide Character publication',
+          )
+          replace_once(
+              '  const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard,',
+              '  const finished = { ...hostedHide, ai: nextAi, market, marketDeck, marketDiscard,',
+              'AI Hide hosted match preservation',
+          )
+
+          # Remove the manual Ducktape borrowed-equipment return from generic cleanup.
+          start = src.index('function playAreaCleanup(board: Board) {')
+          end = src.index('\nfunction cardLabel(', start)
+          cleanup = src[start:end]
+          old_manual = '''  const borrowed = readyBoard.borrowedEquipmentId;\n  const equipment = borrowed ? readyBoard.equipment.filter((id) => id !== borrowed) : readyBoard.equipment;\n  const exhaustedEquipment = borrowed ? (readyBoard.exhaustedEquipment ?? []).filter((id) => id !== borrowed) : (readyBoard.exhaustedEquipment ?? []);\n  const discard = [...readyBoard.discard, ...readyBoard.hand, ...readyBoard.playArea.filter((id) => !readyBoard.equipment.includes(id)), ...(borrowed ? [borrowed] : [])];'''
+          new_manual = '''  const discard = [...readyBoard.discard, ...readyBoard.hand, ...readyBoard.playArea.filter((id) => !readyBoard.equipment.includes(id))];'''
+          if cleanup.count(old_manual) != 1:
+              raise SystemExit('playAreaCleanup manual Character cleanup block did not match')
+          cleanup = cleanup.replace(old_manual, new_manual, 1)
+          cleanup = cleanup.replace('equipment, exhaustedEquipment, equipmentAttackPlan: null,', 'equipment: readyBoard.equipment, exhaustedEquipment: readyBoard.exhaustedEquipment ?? [], equipmentAttackPlan: null,', 1)
+          cleanup = cleanup.replace('borrowedEquipmentId: null, ', '', 1)
+          src = src[:start] + cleanup + src[end:]
+
+          # Publish player Hide before generic cleanup.
+          old_complete = '''      const nextPlayer = playAreaCleanup(current.player);\n      const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? current.winner : "ai" });'''
+          new_complete = '''      const hostedHide = publishQuickDuelPlaytestLifecycleEvent(current, "player", "onHide", quickDuelHostOperations, cardFor).match;\n      const nextPlayer = playAreaCleanup(hostedHide.player);\n      const hidden = write(hostedHide, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? hostedHide.winner : "ai" });'''
+          replace_once(old_complete, new_complete, 'Player Hide Character publication')
+
+          resolver_fn = '''\n  const resolveCharacterRuntimeChoice = (selection: string) => setMatch((current) => {\n    const pending = current?.pendingChoice;\n    if (!current || !pending || pending.kind !== "character-runtime") return current;\n    const base = { ...current, pendingChoice: null };\n    const resolved = resolveQuickDuelPlaytestCharacterChoice(base, "player", pending.event, pending.choice, selection);\n    const nextChoice = resolved.choices[0];\n    const pendingChoice: PendingChoice | null = resolved.event && nextChoice\n      ? { kind: "character-runtime", event: resolved.event, choice: nextChoice }\n      : null;\n    const selectedCard = cardFor(selection);\n    const label = selectedCard?.name ?? (["skip", "decline", "cancel"].includes(selection) ? "declined" : selection);\n    return write(resolved.match, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} resolves ${pending.choice.prompt}: ${label}.`, { pendingChoice });\n  });\n\n'''
+          replace_once(
+              '  const resolveStage3CZoneWard = (zone: string) => setMatch((current) => {',
+              resolver_fn + '  const resolveStage3CZoneWard = (zone: string) => setMatch((current) => {',
+              'Character runtime choice resolver UI bridge',
+          )
+
+          tray_pattern = re.compile(r'''\n        \{match\.phase === "player-initiate" && playerFighter\.name === "Sensei Ducktape" && !player\.abilityUsedRound && player\.discard\.some\(\(id\) => \{ const card = cardFor\(id\); return card \? isPermanent\(card\) : false; \}\) && <div className="ducktape-tray"><span>Sensei Ducktape · emergency repair</span>\{player\.discard\.filter\(\(id\) => \{ const card = cardFor\(id\); return card \? isPermanent\(card\) : false; \}\)\.slice\(0, 3\)\.map\(\(id\) => <button onClick=\{\(\) => borrowEquipment\(id\)\} key=\{id\}>Jury-rig \{cardFor\(id\)\?\.name\}</button>\)\}</div>\}''')
+          src, n = tray_pattern.subn('', src, count=1)
+          if n != 1:
+              raise SystemExit(f'legacy Ducktape tray removal: expected 1, found {n}')
+
+          replace_once(
+              '  const effectChoiceTitle = match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"',
+              '  const effectChoiceTitle = match.pendingChoice?.kind === "character-runtime" ? "Character ability"\n    : match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"',
+              'Character choice title',
+          )
+          replace_once(
+              '  const effectChoicePrompt = match.pendingChoice?.kind === "stage3c-raffle" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`',
+              '  const effectChoicePrompt = match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice.prompt\n    : match.pendingChoice?.kind === "stage3c-raffle" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`',
+              'Character choice prompt',
+          )
+          replace_once(
+              '  const effectChoiceCanSkip = match.pendingChoice?.kind === "stage3c-trail-mix"',
+              '  const effectChoiceCanSkip = (match.pendingChoice?.kind === "character-runtime" && match.pendingChoice.choice.optional) || match.pendingChoice?.kind === "stage3c-trail-mix"',
+              'Character optional choice skip',
+          )
+
+          modal_old = '<div className="effect-choice-options">{match.pendingChoice?.kind === "stage3c-raffle" ?'
+          modal_new = '''<div className="effect-choice-options">{match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice.options.filter((option) => !["skip", "decline", "cancel"].includes(option)).map((option) => { const optionCard = cardFor(option); return <button type="button" onClick={() => resolveCharacterRuntimeChoice(option)} key={option}><span>CHARACTER ABILITY</span><b>{optionCard?.name ?? option}</b><small>{optionCard ? `${optionCard.catalogId} · ${optionCard.subtype || optionCard.cardType}` : "Resolve this option"}</small></button>; }) : match.pendingChoice?.kind === "stage3c-raffle" ?'''
+          replace_once(modal_old, modal_new, 'Character choice modal options')
+
+          footer_old = '{effectChoiceCanSkip && <footer><button className="button ghost" onClick={skipPendingChoice}>Skip this optional effect</button></footer>}'
+          footer_new = '''{effectChoiceCanSkip && <footer><button className="button ghost" onClick={match.pendingChoice?.kind === "character-runtime" ? () => resolveCharacterRuntimeChoice(match.pendingChoice!.choice.options.find((option) => ["skip", "decline", "cancel"].includes(option)) ?? "decline") : skipPendingChoice}>Skip this optional effect</button></footer>}'''
+          replace_once(footer_old, footer_new, 'Character choice optional footer')
+
+          # Final guardrails: no identity-specific Ducktape UI/runtime rule remains.
+          if 'const borrowEquipment =' in src or 'playerFighter.name === "Sensei Ducktape"' in src or 'ducktape-tray' in src:
+              raise SystemExit('legacy Ducktape-specific UI/runtime path remains')
+          if 'kind: "character-runtime"' not in src or 'resolveQuickDuelPlaytestCharacterChoice' not in src:
+              raise SystemExit('generic Character choice path was not wired')
+          if src.count('"onHide"') < 2:
+              raise SystemExit('both player and AI Hide publication were not wired')
+
+          path.write_text(src)
+          PY
+
+          cat > tests/playtest-character-choice-ui.test.mjs <<'TEST'
+          import assert from "node:assert/strict";
+          import { readFile } from "node:fs/promises";
+          import test from "node:test";
+
+          const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+
+          test("Quick Duel exposes generic Character runtime choices instead of a Ducktape-specific UI", () => {
+            assert.match(source, /resolveQuickDuelPlaytestCharacterChoice/);
+            assert.match(source, /kind: "character-runtime"/);
+            assert.match(source, /withPlayerCharacterChoice/);
+            assert.ok((source.match(/"onHide"/g) ?? []).length >= 2, "player and AI Hide must publish through the Character runtime");
+            assert.doesNotMatch(source, /const borrowEquipment\s*=/);
+            assert.doesNotMatch(source, /playerFighter\.name === "Sensei Ducktape"/);
+            assert.doesNotMatch(source, /ducktape-tray/);
+          });
+
+          test("player Character choices block Initiate progression and use the shared pending-choice modal", () => {
+            assert.match(source, /current\?\.phase === "player-initiate" && !current\.pendingChoice/);
+            assert.match(source, /effectChoiceTitle = match\.pendingChoice\?\.kind === "character-runtime"/);
+            assert.match(source, /effectChoicePrompt = match\.pendingChoice\?\.kind === "character-runtime" \? match\.pendingChoice\.choice\.prompt/);
+          });
+          TEST
+
+          rm .github/workflows/temp-character-choice-patch.yml
+
+      - name: Commit patched runtime UI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx tests/playtest-character-choice-ui.test.mjs .github/workflows/temp-character-choice-patch.yml
+          git commit -m "Wire player Character choices through Quick Duel runtime"
+          git push origin HEAD:effect-certification-character-choice-ui
