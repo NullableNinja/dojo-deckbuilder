@@ -1,5 +1,5 @@
 import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
-import { extname, join, relative } from "node:path";
+import { extname } from "node:path";
 
 const root = new URL("../", import.meta.url);
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -19,14 +19,13 @@ async function walk(dir, extensions = new Set([".ts", ".tsx", ".mjs", ".js"])) {
 
 const effectsRegistry = await readJson("content/card-effects.json");
 const cardsCatalog = await readJson("content/cards.json");
-const gameDefinition = await readJson("content/dojo-game.json");
+const dojoGame = await readJson("content/dojo-game.json");
+const gameDefinition = dojoGame.definition ?? dojoGame;
 const playtest = await readText("app/playtest.tsx");
 const appFiles = await walk("app");
 const testFiles = await walk("tests");
 const appSources = new Map(await Promise.all(appFiles.map(async (path) => [path, await readText(path)])));
 const testSources = new Map(await Promise.all(testFiles.map(async (path) => [path, await readText(path)])));
-const allAppSource = [...appSources.values()].join("\n");
-const allTestSource = [...testSources.values()].join("\n");
 
 const catalogCards = cardsCatalog.cards ?? [];
 const cardByCatalogId = new Map(catalogCards.map((card) => [card.catalogId, card]));
@@ -173,6 +172,7 @@ const summary = {
   byStatus,
   byFamily,
   quickDuelLocationPoolSize: quickDuelLocationNames.size,
+  starterDeckCardCount: starterCatalogIds.size,
   caveat: "STATIC_PASS is not final gameplay certification. It means static pool/host/resolver/test evidence exists. Final certification requires deterministic runtime scenarios for the exact effect.",
 };
 
@@ -188,6 +188,7 @@ const markdown = [
   `- Cards with structured effects: **${summary.cardsWithStructuredEffects}**`,
   `- Cards not fully certified: **${summary.cardsNotFullyCertified}**`,
   `- Quick Duel Location pool: **${summary.quickDuelLocationPoolSize}**`,
+  `- Canonical Starter deck card identities: **${summary.starterDeckCardCount}**`,
   "",
   "## Status totals",
   "",
