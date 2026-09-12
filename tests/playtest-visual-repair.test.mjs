@@ -54,6 +54,13 @@ test("Acquisition Desk removes the Combo-sized blank shelf above Market cards", 
   assert.match(repair, /\.ascend-featured-combo-card\s*\{[\s\S]*max-width:\s*218px;[\s\S]*max-height:\s*292px;/);
 });
 
+test("Acquisition Desk shrink-wraps its one-row Market instead of stretching to viewport height", () => {
+  assert.match(repair, /ascend-desk\.ascend-desk--functional:has\(\.ascend-market\)\s*\{[\s\S]*height:\s*auto;[\s\S]*min-height:\s*0;[\s\S]*grid-template-rows:\s*82px 54px auto 62px;/);
+  assert.match(repair, /ascend-desk--functional:has\(\.ascend-market\) > \.ascend-desk-body\s*\{[\s\S]*max-height:\s*calc\(100dvh - 238px\);[\s\S]*overflow-y:\s*auto;/);
+  assert.match(repair, /ascend-desk--functional:has\(\.ascend-market\) \.ascend-market\s*\{\s*min-height:\s*0;/);
+  assert.match(repair, /ascend-market:has\(\.ascend-featured-combo\)\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(300px, 330px\);[\s\S]*grid-template-rows:\s*auto 366px;/);
+});
+
 test("visual break/fix does not use important escalation", () => {
   assert.doesNotMatch(repair, /!important/);
 });
