@@ -1,0 +1,90 @@
+name: Stage 3 rebuild Attack host replay
+
+on:
+  push:
+    branches:
+      - stage3-rebuild-current-main
+    paths:
+      - .github/workflows/stage3-rebuild-attack-replay.yml
+      - scripts/reconcile-stage3-transition-host.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  replay-attack-host:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout reconstruction branch
+        uses: actions/checkout@v4
+        with:
+          ref: stage3-rebuild-current-main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install current-main transition host seam
+        run: node scripts/reconcile-stage3-transition-host.mjs
+
+      - name: Create local transition checkpoint
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx
+          git commit -m "reconcile Stage 3 transition host seam"
+
+      - name: Fetch remaining historical Stage 3 integration commits
+        run: |
+          git fetch origin \
+            b0557f1a2b8e77af65c063afe75196e73d03c593 \
+            4a3bafb5e2754fab1efa607c90e319cd4e0c36fa \
+            5c78b98b8e12abf7a20036f43572e949f2c0713f \
+            58ae0f5da2f63aa645745b3e74c65a7475bc6a0e
+
+      - name: Replay lifecycle and Attack-host deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          for commit in \
+            b0557f1a2b8e77af65c063afe75196e73d03c593 \
+            4a3bafb5e2754fab1efa607c90e319cd4e0c36fa \
+            5c78b98b8e12abf7a20036f43572e949f2c0713f \
+            58ae0f5da2f63aa645745b3e74c65a7475bc6a0e
+          do
+            echo "Replaying $commit"
+            git show --format= --binary "$commit" -- app/playtest.tsx | git apply --3way
+            git add app/playtest.tsx
+            git commit -m "replay Stage 3 Playtest delta $commit"
+          done
+
+      - name: TypeScript gate
+        run: npx tsc --noEmit
+
+      - name: Stage 3 host certification
+        run: |
+          node --experimental-strip-types --test \
+            tests/quick-duel-playtest-host.test.mjs \
+            tests/quick-duel-player-attack-host-certification.test.mjs \
+            tests/quick-duel-combo-next-turn-payoff.test.mjs \
+            tests/quick-duel-character-migration.test.mjs \
+            tests/quick-duel-deferred-status-window.test.mjs
+
+      - name: Remove one-time replay machinery
+        run: rm scripts/reconcile-stage3-transition-host.mjs .github/workflows/stage3-rebuild-attack-replay.yml
+
+      - name: Commit cleanup and push reconstruction
+        shell: bash
+        run: |
+          git add scripts/reconcile-stage3-transition-host.mjs .github/workflows/stage3-rebuild-attack-replay.yml
+          git commit -m "remove one-time Stage 3 Attack replay machinery"
+          git push origin HEAD:stage3-rebuild-current-main

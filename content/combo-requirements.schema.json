@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nullableninja.github.io/dojo-deckbuilder/schema/combo-requirements.schema.json",
+  "title": "Dojo Deckbuilder Combo Requirement Registry",
+  "description": "Canonical machine-readable fulfillment requirements for Core Combos. The runtime evaluates this vocabulary from host facts and never infers Core Combo requirements from printed prose.",
+  "type": "object",
+  "required": ["schemaVersion", "rulesVersion", "rulesRevision", "family", "cards"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "rulesVersion": { "type": "string", "minLength": 1 },
+    "rulesRevision": { "type": "string", "minLength": 1 },
+    "family": { "const": "Combo" },
+    "description": { "type": "string" },
+    "cards": {
+      "type": "object",
+      "patternProperties": {
+        "^DDB-CMB-CORE-\\d{3}$": { "$ref": "#/$defs/card" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "family": { "type": "string", "minLength": 1 },
+        "families": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "tags": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "tagsAny": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "zone": { "enum": ["High", "Mid", "Low"] },
+        "zones": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["High", "Mid", "Low"] } },
+        "minimumFocusValue": { "type": "number" },
+        "alternatives": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } }
+      },
+      "minProperties": 1
+    },
+    "requirement": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "orderedSequence",
+            "orderedAttackHits",
+            "differentZoneFromPreviousAttack",
+            "defenseBlocksAttack",
+            "defendedThisRound",
+            "minimumDefenseTag",
+            "differentComboAfterCombo",
+            "beltExamThenAttackHit",
+            "priorCardFamily",
+            "reversal",
+            "attackOrdinal",
+            "minimumPriorAttacks",
+            "priorAttackHit",
+            "minimumEquipment",
+            "weaponAttack",
+            "zonesPresent",
+            "priorAttackTag",
+            "currentCardMatches",
+            "priorCardMatches",
+            "equippedCardMatches",
+            "noWeaponEquipped",
+            "previousAttackBlocked",
+            "blockHistory",
+            "speedGainHistory",
+            "startingHandTagCount",
+            "purchaseHistory",
+            "minimumAttackHits",
+            "playedCardHistory",
+            "attackHistory",
+            "cardFamiliesPresent"
+          ]
+        },
+        "family": { "type": "string", "minLength": 1 },
+        "families": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "tags": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "tagsAny": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "zone": { "enum": ["High", "Mid", "Low"] },
+        "zones": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["High", "Mid", "Low"] } },
+        "minimumFocusValue": { "type": "number" },
+        "alternatives": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } },
+        "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } },
+        "sameOpponent": { "type": "boolean" },
+        "window": { "enum": ["turn", "round", "sinceLastTurn", "sinceLastAscend"] },
+        "tag": { "type": "string", "minLength": 1 },
+        "amount": { "type": "integer", "minimum": 1 },
+        "minimumPriorCombos": { "type": "integer", "minimum": 1 },
+        "ordinal": { "type": "integer", "minimum": 1 },
+        "minimumPriorAttacks": { "type": "integer", "minimum": 1 },
+        "hit": { "type": "boolean" },
+        "reversal": { "type": "boolean" },
+        "blocked": { "type": "boolean" },
+        "requiredFamilies": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "anyFamilies": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "minimumEquipmentAtEvent": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "card": {
+      "type": "object",
+      "required": ["name", "displayText", "requirements"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "displayText": { "type": "string", "minLength": 1 },
+        "requirements": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/requirement" } }
+      }
+    }
+  }
+}
