@@ -5,14 +5,14 @@ on:
     branches:
       - stage3-main-integration-authoring
     paths:
-      - scripts/reconcile-stage3-ai-attack-host.mjs
+      - scripts/reconcile-stage3-reversal-host.mjs
       - .github/workflows/stage3-main-integration-authoring.yml
 
 permissions:
   contents: write
 
 jobs:
-  author-ai-attack-candidate:
+  author-reversal-candidate:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -37,11 +37,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Reconcile AI Attack host
+      - name: Reconcile Reversal host
         run: |
-          node scripts/reconcile-stage3-ai-attack-host.mjs
+          node scripts/reconcile-stage3-reversal-host.mjs
           git add app/playtest.tsx
-          git commit -m "candidate: route AI Attack through unified Combo host"
+          git commit -m "candidate: route Reversal through unified Combo host"
 
       - name: TypeScript gate
         run: npx tsc --noEmit
@@ -49,5 +49,5 @@ jobs:
       - name: Playtest host gate
         run: node --experimental-strip-types --test tests/quick-duel-playtest-host.test.mjs
 
-      - name: Push AI Attack candidate
+      - name: Push Reversal candidate
         run: git push origin HEAD:stage3-main-integration-authoring
