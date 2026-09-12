@@ -1,0 +1,120 @@
+/* Quick Duel last-mile production repair -----------------------------------
+   PRESENTATION ONLY.
+
+   This file is intentionally imported after the Combo pop-out runtime hook.
+   A handful of legacy playtest component rules are lazy-loaded with the
+   playtest chunk, so these narrowly-scoped overrides protect the final live
+   geometry until the remaining legacy component CSS is fully retired.
+*/
+
+/* Hand: the live hand owns the same shell width as HUD + arena. */
+.playtest-shell.playtest-shell--live .playtest-workspace.playtest-workspace--hand {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+  justify-self: stretch !important;
+}
+
+.playtest-shell.playtest-shell--live .playtest-workspace--hand > .hand-panel.paper-stack {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+  box-sizing: border-box;
+}
+
+.playtest-shell.playtest-shell--live .playtest-workspace--hand .play-card-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+}
+
+/* Fighter Combo docket: keep the compact XP-row launcher readable. */
+.playtest-shell--live .fighter-combo-launch {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-rows: 1fr !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 0 8px !important;
+  line-height: 1 !important;
+}
+
+.playtest-shell--live .fighter-combo-launch > span {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 8px !important;
+  font-weight: 900;
+  letter-spacing: .035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playtest-shell--live .fighter-combo-launch > b {
+  margin: 0 !important;
+  font-size: 15px !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+}
+
+.playtest-shell--live .fighter-combo-launch > small {
+  display: none !important;
+}
+
+/* Acquisition Combo pop-out: anchor the absolute panel to the whole Market,
+   never to the narrow launcher column. */
+@media (min-width: 1200px) {
+  .playtest-shell--live .ascend-desk--functional .ascend-market {
+    position: relative !important;
+    overflow: visible !important;
+  }
+
+  .playtest-shell--live .ascend-desk--functional .ascend-featured-combo[data-combo-popout="ready"].is-open {
+    position: absolute !important;
+    inset: 54px 0 auto 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 366px !important;
+    min-height: 366px !important;
+    max-height: 366px !important;
+    justify-self: stretch !important;
+    overflow: hidden !important;
+    z-index: 24 !important;
+  }
+
+  /* Acquisition footer hugs the desk instead of creating a low hanging action. */
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) {
+    grid-template-rows: 82px 54px auto 52px !important;
+  }
+
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) > .ascend-desk-footer {
+    min-height: 52px !important;
+    height: 52px !important;
+    align-items: center !important;
+    padding-block: 5px !important;
+  }
+
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-guide-actions,
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-guide-actions > div {
+    min-height: 42px !important;
+    height: 42px !important;
+    align-items: center !important;
+  }
+
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-guide-actions > div {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 10px !important;
+  }
+
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-guide-actions small,
+  .playtest-shell--live .ascend-desk.ascend-desk--functional:has(.ascend-market) .ascend-next {
+    margin: 0 !important;
+    align-self: center !important;
+  }
+}
