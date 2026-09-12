@@ -34,43 +34,18 @@ jobs:
       - name: Validate canonical game data
         run: npm run game:check
 
-      - name: Capture repository hygiene test diagnostics
-        continue-on-error: true
-        shell: bash
-        run: |
-          mkdir -p cleanup-audit
-          set -o pipefail
-          node --test tests/repository-hygiene.test.mjs 2>&1 | tee cleanup-audit/hygiene-test.txt
-
       - name: Run complete repository test gate
-        id: full_test
-        continue-on-error: true
         env:
           GITHUB_PAGES: true
-        shell: bash
-        run: |
-          mkdir -p cleanup-audit
-          set -o pipefail
-          npm test 2>&1 | tee cleanup-audit/npm-test.txt
+        run: npm test
 
       - name: Runtime effect certification
-        id: runtime_cert
-        continue-on-error: true
-        shell: bash
-        run: |
-          mkdir -p cleanup-audit
-          set -o pipefail
-          node scripts/certify-runtime-effects.mjs 2>&1 | tee cleanup-audit/runtime-certification.txt
+        run: node scripts/certify-runtime-effects.mjs
 
-      - name: TypeScript unused-symbol diagnostic
-        continue-on-error: true
-        shell: bash
-        run: |
-          mkdir -p cleanup-audit
-          set -o pipefail
-          npx tsc --noEmit --noUnusedLocals --noUnusedParameters 2>&1 | tee cleanup-audit/tsc-unused.txt
+      - name: Check branch diff whitespace
+        run: git diff --check 6c7dff42b0c2ac54b487f35dc242f2183c036a39..HEAD
 
-      - name: Repository inventory and reachability candidates
+      - name: Repository inventory
         shell: bash
         run: |
           set -euo pipefail
@@ -79,8 +54,7 @@ jobs:
           import hashlib, json, pathlib, re, subprocess
 
           tracked_raw = subprocess.check_output(['git','ls-files','-z']).split(b'\0')
-          tracked = [pathlib.Path(p.decode()) for p in tracked_raw if p]
-          files = [p for p in tracked if p.is_file()]
+          files = [pathlib.Path(p.decode()) for p in tracked_raw if p and pathlib.Path(p.decode()).is_file()]
           hashes={}
           ext={}
           dirs={}
@@ -107,40 +81,15 @@ jobs:
               except Exception: pass
 
           dups=[{'sha256':h,'paths':ps,'bytes_each':pathlib.Path(ps[0]).stat().st_size} for h,ps in hashes.items() if len(ps)>1]
-
           left='<' * 7
-          middle='=' * 7
           right='>' * 7
-          conflict=[]
+          middle='=' * 7
+          conflicts=[]
           for path,text in text_cache.items():
             if path == '.github/workflows/repository-cleanup-audit.yml':
               continue
             if left in text or right in text or re.search(rf'(?m)^\\s*{middle}\\s*$', text):
-              conflict.append(path)
-
-          all_text='\n'.join(text_cache.values())
-          source_ext={'.ts','.tsx','.js','.mjs','.css','.py'}
-          code_candidates=[]
-          protected_prefixes=('content/','tests/')
-          explicit_entries={
-            'src/main.tsx','src/playtest-vfx-runtime.ts','vite.config.ts',
-            'scripts/generate-game-data.mjs','scripts/check-generated-game-data.mjs',
-            'scripts/certify-runtime-effects.mjs','scripts/verify-card-inspector-bundle.mjs',
-          }
-          for p in files:
-            sp=str(p)
-            if p.suffix.lower() not in source_ext or sp in explicit_entries or sp.startswith(protected_prefixes):
-              continue
-            if sp.startswith('.github/'):
-              continue
-            stem_path=sp.rsplit('.',1)[0]
-            name_no_ext=p.name.rsplit('.',1)[0]
-            own=text_cache.get(sp,'')
-            haystack=all_text.replace(own,'',1) if own else all_text
-            probes=(sp, stem_path, './'+p.name, '../'+p.name, name_no_ext)
-            hits=[probe for probe in probes if probe and probe in haystack]
-            if not hits:
-              code_candidates.append({'path':sp,'size':p.stat().st_size,'reason':'no path/stem/basename reference found in tracked UTF-8 text'})
+              conflicts.append(path)
 
           dist=[p for p in pathlib.Path('dist').rglob('*') if p.is_file()] if pathlib.Path('dist').exists() else []
           bundle={
@@ -155,40 +104,18 @@ jobs:
             'tracked_files':len(files),'tracked_bytes':total,
             'by_extension':dict(sorted(ext.items())),'by_top_directory':dict(sorted(dirs.items())),
             'zero_byte_files':zero,'temporary_files':temp,'duplicate_groups':dups,
-            'conflict_marker_files':conflict,'static_unreferenced_code_candidates':code_candidates,
-            'bundle':bundle,
+            'conflict_marker_files':conflicts,'bundle':bundle,
           }
           pathlib.Path('cleanup-audit/inventory.json').write_text(json.dumps(out,indent=2)+'\n')
           print(json.dumps(out,indent=2))
           PY
 
       - name: Ensure generated source is clean
-        id: generated_clean
-        continue-on-error: true
-        shell: bash
-        run: |
-          mkdir -p cleanup-audit
-          set -o pipefail
-          git diff --exit-code 2>&1 | tee cleanup-audit/generated-clean.txt
+        run: git diff --exit-code
 
       - name: Upload audit artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: repository-cleanup-audit
-          path: |
-            cleanup-audit/inventory.json
-            cleanup-audit/hygiene-test.txt
-            cleanup-audit/npm-test.txt
-            cleanup-audit/runtime-certification.txt
-            cleanup-audit/tsc-unused.txt
-            cleanup-audit/generated-clean.txt
-          if-no-files-found: warn
-
-      - name: Enforce certification result
-        if: always()
-        shell: bash
-        run: |
-          test "${{ steps.full_test.outcome }}" = "success"
-          test "${{ steps.runtime_cert.outcome }}" = "success"
-          test "${{ steps.generated_clean.outcome }}" = "success"
+          path: cleanup-audit/inventory.json
+          if-no-files-found: error
