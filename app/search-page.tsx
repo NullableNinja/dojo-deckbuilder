@@ -156,6 +156,16 @@ const searchDojo = (query: string): SearchResult[] => {
 
 const searchGroupId = (type: SearchResultType) => `search-${type.toLocaleLowerCase().replace(/\s+/g, "-")}`;
 
+const clearQuickSearch = () => {
+  const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  document.querySelectorAll<HTMLInputElement>(".header-search input, .mobile-global-search input").forEach((input) => {
+    if (valueSetter) valueSetter.call(input, "");
+    else input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.blur();
+  });
+};
+
 export default function SearchPage() {
   const initialRoute = readSearchRoute();
   const [active, setActive] = useState(initialRoute.active);
@@ -234,7 +244,10 @@ export default function SearchPage() {
   };
 
   const openResult = (result: SearchResult) => {
-    window.location.hash = result.hash;
+    clearQuickSearch();
+    window.setTimeout(() => {
+      window.location.hash = result.hash;
+    }, 0);
   };
 
   return <main className="search-page shell page-shell" aria-labelledby="dojo-search-title">
