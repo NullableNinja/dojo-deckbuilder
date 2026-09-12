@@ -13,6 +13,11 @@ test("experimental global Dojo Dossier lifecycle stays isolated from the applica
   assert.match(lifecycle, /export default function CardViewerLifecycle\(\)/);
 });
 
+test("shared CardInspector is eager in the application graph so inspect cannot depend on a late chunk", () => {
+  assert.match(main, /import \{ CardInspector \} from "\.\.\/app\/card-inspector";/);
+  assert.match(main, /rootElement\.dataset\.cardInspectorModule = CardInspector\.name \|\| "ready";/);
+});
+
 test("Card Library still mounts exactly one shared CardInspector surface", () => {
   assert.match(companion, /\{activeCard && <Suspense fallback=\{null\}><CardInspector/);
   assert.doesNotMatch(companion, /<CardModal\b/);
