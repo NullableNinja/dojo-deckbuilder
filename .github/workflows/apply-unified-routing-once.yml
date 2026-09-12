@@ -22,7 +22,10 @@ jobs:
         with:
           node-version: 22.12.0
       - name: Apply routing integration
-        run: node scripts/apply-unified-routing.mjs
+        run: |
+          node scripts/fix-unified-routing-transform.mjs
+          node scripts/apply-unified-routing.mjs
+          rm -f scripts/fix-unified-routing-transform.mjs
       - name: Commit integrated source
         run: |
           git config user.name "github-actions[bot]"
