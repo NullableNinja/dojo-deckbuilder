@@ -1,0 +1,271 @@
+/* Search Dashboard layout correction — isolated hotfix.
+   Keeps filters and navigation conceptually separate, prevents duplicate dashboard
+   instances from displaying, and fixes clipped category result tiles. */
+
+/* A stale/cached shell can temporarily leave two SearchPage roots in #root.
+   The application source mounts one SearchPage; only the first rendered instance
+   should ever be visible. */
+body.ddb-search-page #root > .search-page ~ .search-page {
+  display: none !important;
+}
+
+/* Treat the search page as a real dashboard: hero, horizontal filters, then
+   left navigation + right results. */
+.search-page {
+  grid-template-columns: 238px minmax(0, 1fr) !important;
+  gap: 16px 22px !important;
+}
+
+.search-page-hero {
+  grid-column: 1 / -1 !important;
+}
+
+/* Remove the old combined filter/navigation paper box. Its children become
+   independent dashboard regions in the parent grid. */
+.search-page-summary {
+  display: contents !important;
+}
+
+.search-page-summary::before,
+.search-page-summary::after {
+  display: none !important;
+}
+
+/* FILTERS — full-width control strip across the top. */
+.search-dashboard-filter-heading {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-height: 40px;
+  margin: 0 !important;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  padding: 8px 12px 6px;
+  background:
+    linear-gradient(90deg, rgba(200, 70, 46, .07), transparent 34%),
+    rgba(255, 250, 240, .86);
+  box-shadow: 6px 0 0 rgba(26, 34, 30, .04);
+}
+
+.search-dashboard-filter-heading::before {
+  content: "FILTER RESULTS";
+  color: var(--red);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .16em;
+}
+
+.search-dashboard-filter-heading > span {
+  display: none !important;
+}
+
+.search-dashboard-filter-heading button {
+  min-height: 26px;
+  border: 1px solid var(--line) !important;
+  padding: 3px 10px !important;
+  font-size: 9px !important;
+}
+
+.search-dashboard-filters {
+  grid-column: 1 / -1 !important;
+  grid-row: 3 !important;
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+  margin: 0 0 8px !important;
+  border: 1px solid var(--line);
+  border-top: 0;
+  padding: 5px 10px 10px;
+  background: rgba(255, 250, 240, .86);
+  box-shadow: 6px 7px 0 rgba(26, 34, 30, .045);
+}
+
+.search-filter {
+  min-height: 38px !important;
+  grid-template-columns: 27px minmax(0, 1fr) auto !important;
+  padding: 4px 8px 4px 5px !important;
+}
+
+.search-filter:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+}
+
+/* NAVIGATION — left rail only. */
+.search-dashboard-total {
+  position: sticky;
+  top: 88px;
+  grid-column: 1 !important;
+  grid-row: 4 !important;
+  align-self: start;
+  margin: 0 !important;
+  border: 1px solid var(--line);
+  padding: 16px 14px 14px !important;
+  background:
+    linear-gradient(180deg, rgba(200, 70, 46, .07), transparent 38%),
+    rgba(255, 250, 240, .88);
+  box-shadow: 7px 8px 0 rgba(26, 34, 30, .055);
+}
+
+.search-dashboard-total::before {
+  content: "RESULTS";
+  grid-column: 1 / -1;
+  margin-bottom: 7px;
+  color: var(--red);
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .16em;
+}
+
+.search-dashboard-jumps {
+  position: sticky;
+  top: 190px;
+  grid-column: 1 !important;
+  grid-row: 5 !important;
+  align-self: start;
+  display: grid !important;
+  gap: 3px !important;
+  margin-top: -8px;
+  border: 1px solid var(--line);
+  padding: 13px 14px !important;
+  background: rgba(255, 250, 240, .84);
+  box-shadow: 7px 8px 0 rgba(26, 34, 30, .045);
+}
+
+.search-dashboard-jumps > span {
+  margin-bottom: 5px !important;
+  color: var(--red) !important;
+  letter-spacing: .16em !important;
+}
+
+.search-dashboard-jumps button {
+  min-height: 30px;
+  padding: 6px 3px !important;
+}
+
+.search-page-results {
+  grid-column: 2 !important;
+  grid-row: 4 / span 2 !important;
+  align-self: start;
+}
+
+/* CATEGORY TILES — remove the sticky-header/overflow combination that could
+   mask most of the first result row, and let tiles size to their content. */
+.search-page-group {
+  overflow: visible !important;
+}
+
+.search-page-group > header {
+  position: relative !important;
+  top: auto !important;
+}
+
+.search-page-result-grid {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)) !important;
+  grid-auto-rows: minmax(118px, auto) !important;
+  align-items: stretch;
+}
+
+.search-page-group .search-page-result {
+  height: auto !important;
+  min-height: 118px !important;
+  overflow: hidden !important;
+}
+
+.search-page-group .search-page-result h3,
+.search-page-group .search-page-result p,
+.search-page-group .search-result-type,
+.search-page-group .search-page-result > b {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.search-page-group .search-page-result p {
+  -webkit-line-clamp: 1 !important;
+}
+
+/* Preserve the more spacious Top Matches tray. */
+.search-page-top-grid {
+  grid-auto-rows: minmax(118px, auto);
+}
+
+.search-page-top-result {
+  height: auto !important;
+  min-height: 118px !important;
+}
+
+:root[data-theme="dark"] .search-dashboard-filter-heading,
+:root[data-theme="dark"] .search-dashboard-filters,
+:root[data-theme="dark"] .search-dashboard-total,
+:root[data-theme="dark"] .search-dashboard-jumps {
+  border-color: rgba(232, 220, 185, .17);
+  background-color: #1f2d26;
+  box-shadow: 7px 8px 0 rgba(0, 0, 0, .14);
+}
+
+@media (max-width: 860px) {
+  .search-page {
+    grid-template-columns: 1fr !important;
+  }
+
+  .search-page-hero,
+  .search-dashboard-filter-heading,
+  .search-dashboard-filters,
+  .search-dashboard-total,
+  .search-dashboard-jumps,
+  .search-page-results {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+
+  .search-dashboard-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .search-dashboard-total,
+  .search-dashboard-jumps {
+    position: relative !important;
+    top: auto !important;
+  }
+
+  .search-dashboard-total {
+    display: none !important;
+  }
+
+  .search-dashboard-jumps {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 5px 10px !important;
+    margin-top: 0;
+  }
+
+  .search-dashboard-jumps > span {
+    width: 100%;
+  }
+
+  .search-dashboard-jumps button {
+    flex: 1 1 120px;
+  }
+
+  .search-page-result-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 650px) {
+  .search-dashboard-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .search-page-result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .search-dashboard-filters,
+  .search-page-result-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
