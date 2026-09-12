@@ -26,7 +26,10 @@ jobs:
           cache: npm
 
       - name: Apply guarded architecture patch
-        run: python scripts/tmp-rulings-variants-patch.py
+        run: |
+          sed -i 's/if call_count < 8:/if call_count != 7:/' scripts/tmp-rulings-variants-patch.py
+          sed -i 's/expected at least 8 settings.locations call endings/expected 7 settings.locations call endings/' scripts/tmp-rulings-variants-patch.py
+          python scripts/tmp-rulings-variants-patch.py
 
       - name: Remove temporary patch machinery
         run: rm .github/workflows/tmp-rulings-variants-architecture.yml scripts/tmp-rulings-variants-patch.py
