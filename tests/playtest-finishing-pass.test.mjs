@@ -30,7 +30,8 @@ test("larger hands remain one horizontal row and scroll safely", () => {
 test("Belt Check drops the legacy narrow cap and uses a composed full-width grid", () => {
   assert.match(css, /ascend-belt\.belt-panel\s*\{[\s\S]*width:\s*100%;[\s\S]*max-width:\s*none;[\s\S]*grid-template-columns:\s*minmax\(0, 1\.25fr\) minmax\(320px, \.75fr\);/);
   assert.match(css, /grid-template-areas:[\s\S]*"belt-eyebrow belt-track"[\s\S]*"belt-ledger belt-ledger"[\s\S]*"belt-promote belt-promote"/);
-  assert.match(css, /belt-ledger-list\s*\{[\s\S]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);[\s\S]*max-height:\s*none;/);
+  assert.match(css, /ascend-belt\.belt-panel > \.belt-ledger-list\s*\{[\s\S]*max-height:\s*none;/);
+  assert.match(css, /ascend-belt\.belt-panel > \.belt-ledger-list\s*\{[\s\S]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/);
 });
 
 test("Belt Check content fits its real height instead of stretching the dialog", () => {
@@ -39,7 +40,7 @@ test("Belt Check content fits its real height instead of stretching the dialog",
 
 test("Previous review and Finish Ascend actions share the same 42px row", () => {
   assert.match(css, /ascend-guide-actions > div\s*\{[\s\S]*min-height:\s*42px;[\s\S]*height:\s*42px;[\s\S]*align-items:\s*center;/);
-  assert.match(css, /ascend-guide-actions > div > \.button\s*\{[\s\S]*height:\s*42px;[\s\S]*min-height:\s*42px;[\s\S]*margin:\s*0;/);
+  assert.match(css, /ascend-guide-actions > \.button,[\s\S]*ascend-guide-actions > div > \.button\s*\{[\s\S]*height:\s*42px;[\s\S]*min-height:\s*42px;[\s\S]*margin:\s*0;/);
 });
 
 test("finishing pass does not use important escalation", () => {
