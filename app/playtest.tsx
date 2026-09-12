@@ -975,6 +975,17 @@ const quickDuelHostOperations = {
   },
 };
 
+
+function withPlayerCharacterChoice(result: {
+  match: Match;
+  characterEvent: CharacterRuntimeEvent | null;
+  characterChoices: CharacterRuntimeChoice[];
+}): Match {
+  const choice = result.characterChoices[0];
+  if (!result.characterEvent || !choice) return result.match;
+  return { ...result.match, pendingChoice: { kind: "character-runtime", event: result.characterEvent, choice } };
+}
+
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
 
