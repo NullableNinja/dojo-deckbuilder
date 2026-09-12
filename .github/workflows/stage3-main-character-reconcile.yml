@@ -42,7 +42,30 @@ jobs:
         run: node --experimental-strip-types --test tests/quick-duel-character-migration.test.mjs
 
       - name: Full repository test gate
-        run: npm test
+        shell: bash
+        run: |
+          set +e
+          npm test > stage3-full-test.log 2>&1
+          status=$?
+          set -e
+          {
+            echo "## Stage 3 full-suite diagnostic"
+            echo '```text'
+            grep -n -E 'not ok|AssertionError|ERR_ASSERTION|# fail|Error:' stage3-full-test.log | tail -n 120 || true
+            echo '```'
+          } | tee stage3-full-test-failure.txt >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Upload full-suite diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage3-character-reconcile-test-log
+          path: |
+            stage3-full-test.log
+            stage3-full-test-failure.txt
+          if-no-files-found: warn
+          retention-days: 3
 
       - name: Remove one-time authoring machinery
         run: rm scripts/reconcile-stage3-character-compat.mjs .github/workflows/stage3-main-character-reconcile.yml
