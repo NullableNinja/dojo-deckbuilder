@@ -26,6 +26,11 @@ import "../app/playtest-card-surface.css";
 import "../app/playtest-market-card-polish.css";
 import "../app/card-library-art-consistency.css";
 
+// playtest.tsx currently reaches the already-eager Card Inspector through a lazy
+// chunk boundary. Rolldown rewrites that dynamic import to this entry chunk, so
+// the entry must expose the named export the lazy resolver asks for.
+export { CardInspector };
+
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
 
