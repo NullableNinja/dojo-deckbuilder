@@ -54,7 +54,15 @@ jobs:
       - name: Run full repository gate
         env:
           GITHUB_PAGES: true
-        run: npm test
+        shell: bash
+        run: |
+          if ! npm test; then
+            echo '--- diagnostic: app/playtest.tsx 2490-2515 ---'
+            nl -ba app/playtest.tsx | sed -n '2490,2515p'
+            echo '--- diagnostic: app/playtest.tsx 2888-2912 ---'
+            nl -ba app/playtest.tsx | sed -n '2888,2912p'
+            exit 1
+          fi
 
       - name: Commit certified patch
         shell: bash
