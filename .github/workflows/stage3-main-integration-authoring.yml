@@ -5,14 +5,16 @@ on:
     branches:
       - stage3-main-integration-authoring
     paths:
-      - scripts/reconcile-stage3-reversal-host.mjs
+      - scripts/reconcile-stage3-air-horn-defense-cancellation.mjs
+      - tests/stage3c-air-horn-play-surface.test.mjs
+      - tests/stage3c-player-air-horn-play-surface.test.mjs
       - .github/workflows/stage3-main-integration-authoring.yml
 
 permissions:
   contents: write
 
 jobs:
-  author-reversal-candidate:
+  author-air-horn-defense-candidate:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -37,17 +39,20 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Reconcile Reversal host
+      - name: Reconcile canceled Defense lifecycle
         run: |
-          node scripts/reconcile-stage3-reversal-host.mjs
+          node scripts/reconcile-stage3-air-horn-defense-cancellation.mjs
           git add app/playtest.tsx
-          git commit -m "candidate: route Reversal through unified Combo host"
+          git commit -m "candidate: keep canceled Defense out of resolved lifecycle"
 
       - name: TypeScript gate
         run: npx tsc --noEmit
 
-      - name: Playtest host gate
-        run: node --experimental-strip-types --test tests/quick-duel-playtest-host.test.mjs
+      - name: Air Horn surface gates
+        run: node --experimental-strip-types --test tests/stage3c-air-horn-play-surface.test.mjs tests/stage3c-player-air-horn-play-surface.test.mjs
 
-      - name: Push Reversal candidate
+      - name: Stage3C Defense and Consumable gate
+        run: npm run test:stage3c:defense-consumable
+
+      - name: Push Air Horn candidate
         run: git push origin HEAD:stage3-main-integration-authoring
