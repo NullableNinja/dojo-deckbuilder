@@ -12,100 +12,102 @@ function replaceOnce(label, before, after) {
 }
 
 replaceOnce(
-  "Quick Duel Attack host imports",
-  'import { applyQuickDuelPlaytestTransition, publishQuickDuelPlaytestLifecycleEvent } from "./quick-duel-playtest-host";',
-  'import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent } from "./quick-duel-playtest-host";',
+  "AI Attack declaration host",
+  `  const anyZone = attackHasFlexibleZone(current.ai, card);
+  const zone = anyZone ? ["High", "Mid", "Low"][Math.floor(Math.random() * 3)] : card.zone?.split(",")[0] ?? "High";
+  const previousCard = current.ai.cardsThisTurn.length ? cardFor(current.ai.cardsThisTurn[current.ai.cardsThisTurn.length - 1]) : null;`,
+  `  const anyZone = attackHasFlexibleZone(current.ai, card);
+  const zone = anyZone ? ["High", "Mid", "Low"][Math.floor(Math.random() * 3)] : card.zone?.split(",")[0] ?? "High";
+  const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "ai", card, zone, cardFor, quickDuelHostOperations);
+  current = preparedComboAttack.match;
+  const previousCard = current.ai.cardsThisTurn.length ? cardFor(current.ai.cardsThisTurn[current.ai.cardsThisTurn.length - 1]) : null;`,
 );
 
 replaceOnce(
-  "Flow helper accepts canonical-host path",
-  'function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {',
-  'function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier | null, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {',
-);
-replaceOnce(
-  "Flow helper canonical-host state",
-  '  if (board.nextAttackHasFlow || combo.grantsFlow || stage3cAttackFlow(board, card, zone, isReversal)) return true;',
-  '  if (board.nextAttackHasFlow || combo?.grantsFlow || stage3cAttackFlow(board, card, zone, isReversal)) return true;',
-);
-
-replaceOnce(
-  "player Attack declaration host",
-  `    const anyZone = attackHasFlexibleZone(current.player, card);
-    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
-    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;`,
-  `    const anyZone = attackHasFlexibleZone(current.player, card);
-    const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
-    const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "player", card, zone, cardFor, quickDuelHostOperations);
-    current = preparedComboAttack.match;
-    const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;`,
-);
-
-replaceOnce(
-  "remove player legacy Combo evaluator",
-  '    const comboModifier = comboAttackModifier(current.player, card, zone);\n',
+  "remove AI legacy Combo evaluator",
+  '  const comboModifier = comboAttackModifier(current.ai, card, zone);\n',
   '',
 );
 replaceOnce(
-  "player canonical Combo piercing",
-  '    const piercingModifier = attackPiercingModifier(current.player, aiIncomingReaction.board, card, zone, comboModifier.piercing + armedEquipment.piercing);',
-  '    const piercingModifier = attackPiercingModifier(current.player, aiIncomingReaction.board, card, zone, preparedComboAttack.attackFacts.piercing + armedEquipment.piercing);',
+  "AI canonical Combo piercing",
+  '  const piercingModifier = attackPiercingModifier(activeEquipment.board, current.player, card, zone, comboModifier.piercing + activeEquipment.piercing);',
+  '  const piercingModifier = attackPiercingModifier(activeEquipment.board, current.player, card, zone, preparedComboAttack.attackFacts.piercing + activeEquipment.piercing);',
 );
 replaceOnce(
-  "player canonical Combo Flow",
-  '    const hasFlow = attackHasFlow(current.player, card, comboModifier, zone);',
-  '    const hasFlow = attackHasFlow(current.player, card, null, zone);',
+  "AI canonical Combo Flow",
+  '  const hasFlow = attackHasFlow(activeEquipment.board, card, comboModifier, zone);',
+  '  const hasFlow = attackHasFlow(activeEquipment.board, card, null, zone);',
 );
 replaceOnce(
-  "player canonical Combo Attack Power",
-  '    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);',
-  '    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);',
+  "AI canonical Combo Attack Power",
+  '  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + activeEquipment.power);',
+  '  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + activeEquipment.power);',
 );
 replaceOnce(
-  "player canonical Combo damage",
-  `    const hit = attackPower > defensePower;
-    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
-    const reduced = reduceDamageForFighter(aiDefenseReaction.board, rawDamage);`,
-  `    const hit = attackPower > defensePower;
-    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage) : 0;
-    const reduced = reduceDamageForFighter(aiDefenseReaction.board, rawDamage);`,
+  "AI canonical Combo activation markers",
+  'triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0',
+  'triggeredCombos: current.ai.triggeredCombos, comboTriggered: current.ai.comboTriggered',
 );
 replaceOnce(
-  "player canonical Combo activation markers",
-  'attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage',
-  'attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: current.player.triggeredCombos, comboTriggered: current.player.comboTriggered, damageDealt: current.player.damageDealt + damage',
+  "AI canonical Combo declaration notes",
+  '  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...activeEquipment.notes, ...piercingModifier.notes];',
+  '  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...activeEquipment.notes, ...piercingModifier.notes];',
 );
 replaceOnce(
-  "remove player legacy Combo hit payoff",
-  `    const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
-    if (flowDraw) nextPlayer = drawCards({ ...nextPlayer, flowUsedThisTurn: true }, 1);
-    if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
-    if (hit && comboModifier.focusOnHit) nextPlayer = gainFocus(nextPlayer, comboModifier.focusOnHit);
-    if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
-    if (!hit && armedEquipment.blockedFocus) nextPlayer = gainFocus(nextPlayer, armedEquipment.blockedFocus);`,
-  `    const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
-    if (flowDraw) nextPlayer = drawCards({ ...nextPlayer, flowUsedThisTurn: true }, 1);
-    if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
-    if (!hit && armedEquipment.blockedFocus) nextPlayer = gainFocus(nextPlayer, armedEquipment.blockedFocus);`,
+  "AI canonical Combo pending damage",
+  'damageModifier: locationModifier.damage + fighterModifier.damage + comboModifier.damage,',
+  'damageModifier: locationModifier.damage + fighterModifier.damage,',
 );
+
 replaceOnce(
-  "player Combo post-combat event host",
-  '    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : [])];',
-  `    let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
-    if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "onHit", quickDuelHostOperations, { currentAttackHit: true }).match;
-    hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
+  "AI Combo post-combat event host",
+  `    if (defenseCard) {
+      if (!hit) {
+        const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, finalAttackPower, rawDamage, true);
+        nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onBlock", familyDefenseContext);
+        nextAi = applyStage3CTiming(nextAi, defenseCard, "onBlock", "ai", familyDefenseContext, "opponent");
+        blockDiscardChoice = playerDiscardChoiceCount(defenseCard, "onBlock");
+      }
+      const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, finalAttackPower, rawDamage, !hit);
+      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve", familyDefenseContext);
+      nextAi = applyStage3CTiming(nextAi, defenseCard, "afterResolve", "ai", familyDefenseContext, "opponent");
+    }
+    const modifiers = [...(pending.modifierNotes ?? []),`,
+  `    if (defenseCard) {
+      if (!hit) {
+        const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, finalAttackPower, rawDamage, true);
+        nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "onBlock", familyDefenseContext);
+        nextAi = applyStage3CTiming(nextAi, defenseCard, "onBlock", "ai", familyDefenseContext, "opponent");
+        blockDiscardChoice = playerDiscardChoiceCount(defenseCard, "onBlock");
+      }
+      const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, finalAttackPower, rawDamage, !hit);
+      nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve", familyDefenseContext);
+      nextAi = applyStage3CTiming(nextAi, defenseCard, "afterResolve", "ai", familyDefenseContext, "opponent");
+    }
+    let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
+    if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "onHit", quickDuelHostOperations, { currentAttackHit: true }).match;
+    hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : [])];`,
+    const modifiers = [...(pending.modifierNotes ?? []),`,
 );
 
-const playerAttackStart = source.indexOf("  const resolvePlayerAttackState = (current: Match): Match => {");
-const playerAttackEnd = source.indexOf("\n  const declareAttack =", playerAttackStart);
-if (playerAttackStart < 0 || playerAttackEnd < 0) throw new Error("player Attack function boundaries were not found after migration");
-const playerAttackSource = source.slice(playerAttackStart, playerAttackEnd);
-if (playerAttackSource.includes("comboAttackModifier") || playerAttackSource.includes("comboModifier")) throw new Error("player Attack still contains legacy Combo gameplay authority");
-if (!playerAttackSource.includes("prepareQuickDuelPlaytestAttack")) throw new Error("player Attack declaration host was not installed");
-if (!playerAttackSource.includes('hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "onHit"')) throw new Error("player Attack onHit host was not installed");
-if (!playerAttackSource.includes('hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve"')) throw new Error("player Attack afterResolve host was not installed");
+const aiAttackStart = source.indexOf("function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string[], useTempo: boolean) {");
+const aiAttackEnd = source.indexOf("\nfunction ", aiAttackStart + 10);
+if (aiAttackStart < 0 || aiAttackEnd < 0) throw new Error("AI Attack function boundaries were not found after migration");
+const aiAttackSource = source.slice(aiAttackStart, aiAttackEnd);
+if (aiAttackSource.includes("comboAttackModifier") || aiAttackSource.includes("comboModifier")) throw new Error("AI Attack still contains legacy Combo gameplay authority");
+if (!aiAttackSource.includes('prepareQuickDuelPlaytestAttack(current, "ai", card, zone, cardFor, quickDuelHostOperations)')) throw new Error("AI Attack declaration host was not installed");
+
+const defenseStart = source.indexOf("  const resolveDefenseState = (current: Match, defenseId: string | null");
+const defenseEnd = source.indexOf("\n  const resolveDefense =", defenseStart);
+if (defenseStart < 0 || defenseEnd < 0) throw new Error("Defense resolution boundaries were not found after migration");
+const defenseSource = source.slice(defenseStart, defenseEnd);
+if (!defenseSource.includes('hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "onHit"')) throw new Error("AI Attack onHit host was not installed");
+if (!defenseSource.includes('hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "afterResolve"')) throw new Error("AI Attack afterResolve host was not installed");
+
+const remainingLegacyAttackCalls = source.match(/comboAttackModifier\(current\./g) ?? [];
+if (remainingLegacyAttackCalls.length !== 1) throw new Error(`expected exactly one legacy Combo Attack call after AI migration; found ${remainingLegacyAttackCalls.length}`);
 
 await writeFile(path, source);
-console.log("Applied guarded Stage 3 player Attack Combo-host migration.");
+console.log("Applied guarded Stage 3 AI Attack Combo-host migration.");
