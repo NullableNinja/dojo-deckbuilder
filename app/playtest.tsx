@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent, type SetStateAction } from "react";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
@@ -18,7 +18,9 @@ import { firstEventReactionCard, hasUntargetableStatus } from "./stage3c-consuma
 import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, spendableFocusForPurchase, spendFocusForPurchase } from "./stage3c-consumable-surface.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
-import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
+import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
+import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction } from "./character-runtime";
+import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -120,6 +122,10 @@ type Board = {
   wasHitSinceLastTurn: boolean;
   borrowedEquipmentId: string | null;
   abilityUsedRound: boolean;
+  usedCharacterEffectIdsThisTurn?: string[];
+  usedCharacterEffectIdsThisRound?: string[];
+  usedCharacterEffectIdsThisGame?: string[];
+  characterMarks?: Record<string, unknown>;
   reversalUsedRound: boolean;
   learnedCombos: string[];
   triggeredCombos: string[];
@@ -436,41 +442,6 @@ function refreshMarketRow(market: string[], marketDeck: string[], marketDiscard:
 
 type CombatModifier = { value: number; notes: string[] };
 type AttackModifier = { power: number; damage: number; notes: string[] };
-type ComboModifier = AttackModifier & { focusOnHit: number; grantsFlow: boolean; speedOnTrigger: number; piercing: number; triggeredIds: string[] };
-
-function comboAttackModifier(board: Board, card: CardEntry, zone: string, isReversal = false): ComboModifier {
-  const result: ComboModifier = { power: 0, damage: 0, focusOnHit: 0, grantsFlow: false, speedOnTrigger: 0, piercing: 0, triggeredIds: [], notes: [] };
-  const priorCards = board.cardsThisTurn.map(cardFor).filter(Boolean) as CardEntry[];
-  const equipment = board.equipment.map(cardFor).filter(Boolean) as CardEntry[];
-  for (const comboId of board.learnedCombos) {
-    if (board.triggeredCombos.includes(comboId)) continue;
-    const combo = cardFor(comboId);
-    if (!combo) continue;
-    const evaluation = evaluateCombo(combo, {
-      priorCards,
-      attacksThisTurn: board.attacksThisTurn,
-      defendedThisRound: board.defendedThisRound,
-      hitThisTurn: board.hitThisTurn,
-      zonesPlayed: board.zonesPlayed,
-      equipment,
-      currentCard: card,
-      currentZone: zone,
-      isReversal,
-    });
-    if (!evaluation.eligible) continue;
-    result.power += evaluation.power;
-    result.damage += evaluation.damage;
-    result.focusOnHit += evaluation.focusOnHit;
-    result.grantsFlow ||= evaluation.grantsFlow;
-    result.speedOnTrigger += evaluation.speedOnTrigger;
-    result.piercing += evaluation.piercing;
-    result.triggeredIds.push(combo.id);
-    const payoffBits = [evaluation.power ? `+${evaluation.power} power` : "", evaluation.damage ? `+${evaluation.damage} damage` : "", evaluation.grantsFlow ? "Flow" : "", evaluation.focusOnHit ? `${evaluation.focusOnHit} Focus on Hit` : "", evaluation.speedOnTrigger ? `+${evaluation.speedOnTrigger} Speed` : "", evaluation.piercing ? `Piercing ${evaluation.piercing}` : ""].filter(Boolean);
-    result.notes.push(`COMBO — ${combo.name}: ${payoffBits.join(", ")}`);
-  }
-  return result;
-}
-
 function locationAttackModifier(location: CardEntry | undefined, card: CardEntry, board: Board, zone: string): AttackModifier {
   if (!location) return { power: 0, damage: 0, notes: [] };
   const firstAttack = board.attacksThisTurn === 0;
@@ -927,8 +898,8 @@ function attackAllowedZones(board: Board, card: CardEntry) {
   if (board.nextAttackAnyZone || card.zone?.includes("Any")) return ["High", "Mid", "Low"];
   const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
   if (attackCanChooseAnyZone(card, board.attacksThisTurn === 0, equipped)) return ["High", "Mid", "Low"];
-  if (cardFor(board.fighterId)?.name === "Whirlwind Wynn" && board.attacksThisTurn === 0 && hasTag(card, "Spin")) return ["High", "Mid", "Low"];
-  return [card.zone?.split(",")[0] ?? "High"];
+  const printedZones = [card.zone?.split(",")[0] ?? "High"];
+  return characterAllowedAttackZones(board, card, printedZones);
 }
 function attackHasFlexibleZone(board: Board, card: CardEntry) {
   return attackAllowedZones(board, card).length > 1;
@@ -945,27 +916,36 @@ function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry
   const fighter = cardFor(attacker.fighterId);
   if (!fighter) return { power: 0, damage: 0, notes: [] };
   const firstAttack = attacker.attacksThisTurn === 0;
-  if (fighter.name === "El Pollo Rojo" && firstAttack && defender.xp > attacker.xp) return { power: 0, damage: 1, notes: ["El Pollo Rojo refuses to trail +1 damage"] };
-  if (fighter.name === "Knuckleton the Brawler" && firstAttack && !attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; })) return { power: 0, damage: 1, notes: ["Knuckleton's first unarmed strike +1 damage"] };
-  if (fighter.name === "Wavey Davey" && firstAttack && attacker.wasHitSinceLastTurn) return { power: 0, damage: 1, notes: ["Wavey Davey found the opening +1 damage"] };
-  if (fighter.name === "Whirlwind Wynn" && firstAttack && hasTag(card, "Spin")) return { power: 0, damage: 0, notes: ["Whirlwind Wynn opens the Spin zone"] };
-  return { power: 0, damage: 0, notes: [] };
+  const hasWeaponEquipped = attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
+  const printedZone = card.zone?.split(",")[0] ?? null;
+  const previousZone = attacker.zonesPlayed.at(-1) ?? null;
+  const structured = characterAttackModifier(attacker, defender, card, {
+    firstAttackThisTurn: firstAttack,
+    usedConsumableThisTurn: attacker.usedConsumableThisRound,
+    hasWeaponEquipped,
+    playedKataEarlierThisTurn: attacker.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; }),
+    zone: printedZone ?? undefined,
+    previousAttackZone: previousZone,
+    differentZoneFromPreviousAttack: Boolean(previousZone && printedZone && previousZone !== printedZone),
+  });
+  const catchupEffect = structuredRuntimeResolvers(fighter, "character.xpTrailFirstHit")[0];
+  const catchupDamage = firstAttack && defender.xp > attacker.xp ? Number(catchupEffect?.amount ?? 0) : 0;
+  const notes = [...structured.notes];
+  if (catchupDamage) notes.push(`Character: XP-trail first Hit +${catchupDamage} damage`);
+  return { power: structured.power, damage: structured.damage + catchupDamage, notes };
 }
-
 function reduceDamageForFighter(board: Board, damage: number): { board: Board; damage: number; note: string | null } {
   const structuredReduction = stage3cTakeDamagePrevention(board, damage);
   const equipmentReduction = applyMandatoryEquipmentDamageReduction(structuredReduction.board, structuredReduction.damage);
   let next = equipmentReduction.board;
   let remaining = equipmentReduction.damage;
   const notes = [...structuredReduction.notes, ...equipmentReduction.notes];
-  const fighter = cardFor(next.fighterId);
-  if (fighter && !next.damageReductionUsed && remaining > 0) {
-    const protects = fighter.name === "Sentry Bobby" || (fighter.name === "Crash Test Dummy" && remaining >= 4);
-    if (protects) {
-      next = { ...next, damageReductionUsed: true };
-      remaining = Math.max(0, remaining - 1);
-      notes.push(`${fighter.name} reduces the Hit by 1`);
-    }
+  if (remaining > 0) {
+    const before = remaining;
+    const characterReduction = characterDamageReduction(next, remaining);
+    next = { ...next, ...characterReduction.board, damageReductionUsed: next.damageReductionUsed || characterReduction.damage < before };
+    remaining = characterReduction.damage;
+    notes.push(...characterReduction.notes);
   }
   return { board: next, damage: remaining, note: notes.length ? notes.join("; ") : null };
 }
@@ -981,6 +961,18 @@ function drawCards(board: Board, count: number) {
   }
   return { ...board, deck, discard, hand };
 }
+
+const quickDuelHostOperations = {
+  draw: (board: Board, amount: number) => drawCards(board, amount),
+  discardForAi: (board: Board, amount: number) => {
+    const count = Math.min(Math.max(0, amount), board.hand.length);
+    const ranked = [...board.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right)));
+    const discarded = ranked.slice(0, count);
+    let hand = [...board.hand];
+    for (const id of discarded) hand = removeOne(hand, id);
+    return { ...board, hand, discard: [...board.discard, ...discarded] };
+  },
+};
 
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
@@ -1606,8 +1598,8 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   return next;
 }
 
-function attackHasFlow(board: Board, card: CardEntry, combo: ComboModifier, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {
-  if (board.nextAttackHasFlow || combo.grantsFlow || stage3cAttackFlow(board, card, zone, isReversal)) return true;
+function attackHasFlow(board: Board, card: CardEntry, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {
+  if (board.nextAttackHasFlow || stage3cAttackFlow(board, card, zone, isReversal)) return true;
   const hasWeaponEquipped = board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
   const structuredFlow = structuredCurrentAttackFlow(card, { hasWeaponEquipped });
   if (structuredFlow.handled) return structuredFlow.hasFlow;
@@ -1969,12 +1961,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     } catch { return { tempo: true, locations: true, openMarket: true, guided: true, autoAi: true, balancedMarket: true, difficulty: "certified", motion: "full", houseRuleIds: [] }; }
   });
   const beltThresholds = useMemo(() => effectiveBeltThresholds(belts, settings.houseRuleIds), [settings.houseRuleIds]);
-  const [match, setMatch] = useState<Match | null>(() => {
+  const [match, setRawMatch] = useState<Match | null>(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
       const validSavedMatch = saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;
       return validSavedMatch ? normalizePendingDamageChoice(validSavedMatch) : null;
     } catch { return null; }
+  });
+  const setMatch = (update: SetStateAction<Match | null>) => setRawMatch((previous) => {
+    const next = typeof update === "function" ? update(previous) : update;
+    return previous && next ? applyQuickDuelPlaytestTransition(previous, next, cardFor) : next;
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
   const [inspectorZoomed, setInspectorZoomed] = useState(false);
@@ -2068,7 +2064,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-initiate" || current.winner) return current;
     const card = cardFor(id);
     if (!card || !isPermanent(card)) return current;
-    if (cardFor(current.player.fighterId)?.name === "Knuckleton the Brawler" && isWeapon(card)) return write(current, "Knuckleton refuses the Weapon. The waiver cites 'personal reasons.'");
+    if (!characterCanEquip(current.player, card)) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);
     let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id] }, card, "player");
     let pendingChoice: PendingChoice | null = null;
     const beltName = belts[nextPlayer.belt]?.name ?? "White";
@@ -2221,6 +2217,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (hasUntargetableStatus(current.ai.stage3cStatuses)) return write(current, `${cardFor(current.ai.fighterId)?.name ?? "The opponent"} cannot be targeted through Smoke Bomb. Choose a different action.`, { selectedAttackId: null });
     const anyZone = attackHasFlexibleZone(current.player, card);
     const zone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
+    const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "player", card, zone, cardFor, quickDuelHostOperations);
+    current = preparedComboAttack.match;
     const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;
     const previousCardIsItem = Boolean(previousCard && previousCard.cardType === "Item");
     const conditionalCycle = structuredAttackCyclePlan(current.player, card, zone, current.nonHonorSceneChangedThisRound);
@@ -2230,18 +2228,17 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
     const printedModifier = printedAttackRuleModifier(current.player, current.ai, card, zone);
     const incomingModifier = incomingAttackEquipmentModifier(current.ai);
-    const comboModifier = comboAttackModifier(current.player, card, zone);
     const armedEquipment = armedEquipmentAttackModifier(current.player, zone);
     const aiIncomingReaction = autoActivateAiIncomingEquipment(current.ai, zone);
     const rawArmorModifier = equipmentDefenseModifier(aiIncomingReaction.board, zone);
     const persistentSuppression = equipmentSuppressionForZone(current.player, aiIncomingReaction.board, zone);
     const armorPenalty = current.player.nextAttackArmorPenalty ?? 0;
     const penalizedArmorModifier = applyNextAttackArmorPenalty(rawArmorModifier, armorPenalty + persistentSuppression);
-    const piercingModifier = attackPiercingModifier(current.player, aiIncomingReaction.board, card, zone, comboModifier.piercing + armedEquipment.piercing);
+    const piercingModifier = attackPiercingModifier(current.player, aiIncomingReaction.board, card, zone, preparedComboAttack.attackFacts.piercing + armedEquipment.piercing);
     const armorModifier = piercedArmorModifier(penalizedArmorModifier, piercingModifier.value);
-    const hasFlow = attackHasFlow(current.player, card, comboModifier, zone);
+    const hasFlow = attackHasFlow(current.player, card, zone);
     const stage3cAttackBonus = stage3cAttackPowerBonus(current.player, card, zone);
-    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
+    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
     const playerAirHorn = firstEventReactionCard(current.player.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
     const expectedIncomingDamage = Math.max(0, baseAttackPower - fighterStat(aiIncomingReaction.board, "DEF"));
     const aiConsumableCandidate = current.airHornAiConsumableSpentThisStrike
@@ -2283,18 +2280,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(aiDefenseReaction.board, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
     const defensePower = Math.max(0, fighterStat(aiDefenseReaction.board, "DEF") + armorModifier.value + stage3cIncomingAttackDefenseBonus(aiDefenseReaction.board) + (defenseCard ? cardPower(defenseCard) + (aiDefenseReaction.board.nextDefenseCardBonus ?? 0) + stage3cNextDefenseGuardBonus(aiDefenseReaction.board) + aiDefenseReaction.guard : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
-    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
+    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage) : 0;
     const reduced = reduceDamageForFighter(aiDefenseReaction.board, rawDamage);
     const optionalReduced = applyOptionalCombatDamageReductionAi(reduced.board, reduced.damage);
     const damage = optionalReduced.damage;
-    const attackState = { ...stage3cConsumeAttackStatuses(current.player, card, zone), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage, lastAttackHit: hit, currentAttackIsReversal: false, attackLockedThisTurn: current.player.attackLockedThisTurn || finalAttackOnlyAttackLock(card, current.player.attacksThisTurn === 0) };
+    const attackState = { ...stage3cConsumeAttackStatuses(current.player, card, zone), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, hitThisTurn: current.player.hitThisTurn || hit, attackedThisRound: true, cardsThisTurn: [...current.player.cardsThisTurn, card.id], zonesPlayed: [...current.player.zonesPlayed, zone], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, equipmentAttackPlan: null, tempo: tempoBonus ? false : current.player.tempo, wasHitSinceLastTurn: current.player.attacksThisTurn === 0 ? false : current.player.wasHitSinceLastTurn, triggeredCombos: current.player.triggeredCombos, comboTriggered: current.player.comboTriggered, damageDealt: current.player.damageDealt + damage, lastAttackHit: hit, currentAttackIsReversal: false, attackLockedThisTurn: current.player.attackLockedThisTurn || finalAttackOnlyAttackLock(card, current.player.attacksThisTurn === 0) };
     const completesActiveBeltExam = !beltTaskMet(current.player) && beltTaskMet(attackState);
     let nextPlayer = applyCardEffects({ ...attackState, completesActiveBeltExamThisAttack: completesActiveBeltExam }, card, "player");
     const flowDraw = hasFlow && !current.player.flowUsedThisTurn;
     if (flowDraw) nextPlayer = drawCards({ ...nextPlayer, flowUsedThisTurn: true }, 1);
     if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
-    if (hit && comboModifier.focusOnHit) nextPlayer = gainFocus(nextPlayer, comboModifier.focusOnHit);
-    if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
     if (!hit && armedEquipment.blockedFocus) nextPlayer = gainFocus(nextPlayer, armedEquipment.blockedFocus);
     let nextAi: Board = { ...optionalReduced.board, hp: Math.max(0, optionalReduced.board.hp - damage), attacksReceivedThisRound: (optionalReduced.board.attacksReceivedThisRound ?? 0) + 1, combatDamageEventsThisRound: (optionalReduced.board.combatDamageEventsThisRound ?? 0) + (reduced.damage > 0 ? 1 : 0), wasHitSinceLastTurn: optionalReduced.board.wasHitSinceLastTurn || hit, damageTaken: optionalReduced.board.damageTaken + damage };
     nextAi = stage3cConsumeIncomingAttackStatuses(nextAi);
@@ -2365,7 +2360,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       ? { kind: "ready-equipment", sourceCardId: card.id, optional: true }
       : cycleDiscardCount ? { kind: "discard-hand", sourceCardId: card.id, remaining: cycleDiscardCount, sourceFollowup: false }
       : optionalCycle && nextPlayer.hand.length ? { kind: "discard-draw", sourceCardId: card.id, remaining: optionalCycle.discard, draw: optionalCycle.draw } : null;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : [])];
+    let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
+    if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "onHit", quickDuelHostOperations, { currentAttackHit: true }).match;
+    hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
+    nextPlayer = hostedComboMatch.player;
+    nextAi = hostedComboMatch.ai;
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
     return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, airHornPassedReactionIds: [], airHornAiConsumableSpentThisStrike: false, airHornAiDefenseSpentThisStrike: false, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
   };
@@ -2419,15 +2419,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       airHornAiConsumableSpentThisStrike = true;
     } else {
       if (ai.hand.includes(reaction.id)) {
-        ai = stage3cConsumeDefenseStatuses(markCompletedTask({
+        ai = {
           ...ai,
           hand: removeOne(ai.hand, reaction.id),
           discard: [...ai.discard, reaction.id],
-          xp: ai.xp + 1,
-          defendedThisRound: true,
-          playedDefenseSinceLastTurn: true,
-          nextDefenseCardBonus: 0,
-        }));
+        };
       }
       airHornAiDefenseSpentThisStrike = true;
     }
@@ -2928,15 +2924,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (defenseCard) {
       const aiAirHorn = firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
       if (aiAirHorn) {
-        const cancelledPlayer = stage3cConsumeDefenseStatuses(markCompletedTask({
+        const cancelledPlayer: Board = {
           ...current.player,
           hand: removeOne(current.player.hand, defenseCard.id),
           discard: [...current.player.discard, defenseCard.id],
-          xp: current.player.xp + 1,
-          defendedThisRound: true,
-          playedDefenseSinceLastTurn: true,
-          nextDefenseCardBonus: 0,
-        }));
+        };
         let reactingAi: Board = {
           ...current.ai,
           hand: removeOne(current.ai.hand, aiAirHorn.id),
@@ -3045,6 +3037,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve", familyDefenseContext);
       nextAi = applyStage3CTiming(nextAi, defenseCard, "afterResolve", "ai", familyDefenseContext, "opponent");
     }
+    let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
+    if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "onHit", quickDuelHostOperations, { currentAttackHit: true }).match;
+    hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
+    nextPlayer = hostedComboMatch.player;
+    nextAi = hostedComboMatch.ai;
     const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...locationModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...aiConsumableAttackFollowup.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "ai", aiCard.id),
@@ -3127,6 +3124,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
     if (hasUntargetableStatus(current.ai.stage3cStatuses)) return write(current, `${cardFor(current.ai.fighterId)?.name ?? "The opponent"} cannot be targeted through Smoke Bomb. Choose a different action.`, { selectedAttackId: null });
     const zone = attackHasFlexibleZone(current.player, card) ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
+    const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "player", card, zone, cardFor, quickDuelHostOperations, { isReversal: true });
+    current = preparedComboAttack.match;
     const previousCard = current.player.cardsThisTurn.length ? cardFor(current.player.cardsThisTurn[current.player.cardsThisTurn.length - 1]) : null;
     const previousCardIsItem = Boolean(previousCard && previousCard.cardType === "Item");
     const location = cardFor(current.locationId);
@@ -3134,12 +3133,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const fighterModifier = fighterAttackModifier(current.player, current.ai, card);
     const printedModifier = printedAttackRuleModifier(current.player, current.ai, card, zone, true);
     const incomingModifier = incomingAttackEquipmentModifier(current.ai);
-    const comboModifier = comboAttackModifier(current.player, card, zone, true);
     const rawArmorModifier = equipmentDefenseModifier(current.ai, zone);
-    const piercingModifier = attackPiercingModifier(current.player, current.ai, card, zone, comboModifier.piercing);
+    const piercingModifier = attackPiercingModifier(current.player, current.ai, card, zone, preparedComboAttack.attackFacts.piercing);
     const armorModifier = piercedArmorModifier(rawArmorModifier, piercingModifier.value);
     const stage3cReversalBonus = stage3cAttackPowerBonus(current.player, card, zone, true);
-    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cReversalBonus + (current.player.reversalAttackBonus ?? 0) + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power);
+    const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cReversalBonus + (current.player.reversalAttackBonus ?? 0) + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power);
     const defenseScenarioPower = afterDefenseAttackPowerBonus(card, true);
     const defenseId = bestDefense(current.ai, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
@@ -3149,14 +3147,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(current.ai, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
     const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + stage3cIncomingAttackDefenseBonus(current.ai) + (defenseCard ? cardPower(defenseCard) + (current.ai.nextDefenseCardBonus ?? 0) + stage3cNextDefenseGuardBonus(current.ai) : 0) + defenseCardModifier.value + defenseModifier.value);
     const hit = attackPower > defensePower;
-    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage + comboModifier.damage) : 0;
+    const rawDamage = hit ? Math.max(0, attackPower - defensePower + locationModifier.damage + fighterModifier.damage) : 0;
     const reduced = reduceDamageForFighter(current.ai, rawDamage);
     const optionalReduced = applyOptionalCombatDamageReductionAi(reduced.board, reduced.damage);
     const damage = optionalReduced.damage;
-    let nextPlayer = applyCardEffects({ ...stage3cConsumeAttackStatuses(current.player, card, zone, true), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], nextAttackAnyZone: false, reversalUsedRound: true, reversalAttackBonus: 0, triggeredCombos: [...current.player.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.player.comboTriggered || comboModifier.triggeredIds.length > 0, damageDealt: current.player.damageDealt + damage }, card, "player");
+    let nextPlayer = applyCardEffects({ ...stage3cConsumeAttackStatuses(current.player, card, zone, true), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], nextAttackAnyZone: false, reversalUsedRound: true, reversalAttackBonus: 0, triggeredCombos: current.player.triggeredCombos, comboTriggered: current.player.comboTriggered, damageDealt: current.player.damageDealt + damage }, card, "player");
     nextPlayer.focus = Math.max(0, nextPlayer.focus - cardFocus(card));
-    if (hit && comboModifier.focusOnHit) nextPlayer = gainFocus(nextPlayer, comboModifier.focusOnHit);
-    if (comboModifier.speedOnTrigger) nextPlayer.tempSpeed += comboModifier.speedOnTrigger;
     let nextAi: Board = { ...optionalReduced.board, hp: Math.max(0, optionalReduced.board.hp - damage), attacksReceivedThisRound: (optionalReduced.board.attacksReceivedThisRound ?? 0) + 1, combatDamageEventsThisRound: (optionalReduced.board.combatDamageEventsThisRound ?? 0) + (reduced.damage > 0 ? 1 : 0), damageTaken: optionalReduced.board.damageTaken + damage, wasHitSinceLastTurn: optionalReduced.board.wasHitSinceLastTurn || hit };
     nextAi = stage3cConsumeIncomingAttackStatuses(nextAi);
     const targetDebuff = hit ? applyTargetHitDebuffs(nextAi, card, { previousCardIsItem }) : { board: nextAi, notes: [] as string[] };
@@ -3176,8 +3172,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
+    let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
+    if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "onHit", quickDuelHostOperations, { isReversal: true, currentAttackHit: true }).match;
+    hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { isReversal: true, currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
+    nextPlayer = hostedComboMatch.player;
+    nextAi = hostedComboMatch.ai;
     nextPlayer = markCompletedTask(nextPlayer);
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "player", card.id),
       actor: "player",
@@ -3418,7 +3419,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card); const badHabit = card.catalogId === gameDefinition.economy.badHabitFocus.catalogId;
           const choosingDiscard = Boolean(match.pendingDiscard);
           const choosingEffect = Boolean(match.pendingChoice);
-          const canInitiate = match.phase === "player-initiate" && permanent && !(playerFighter.name === "Knuckleton the Brawler" && isWeapon(card));
+          const canInitiate = match.phase === "player-initiate" && permanent && characterCanEquip(player, card);
           const attackAllowed = !stage3cRestrictionBlocks(player.stage3cRestrictions, "attack");
           const consumableAllowed = !isCoreConsumableCard(card) || (!stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(player)));
           const canUse = match.phase === "player-yell" && (attack ? attackAllowed : (defense ? !player.defensePracticeUsed : !permanent && consumableAllowed));
@@ -3429,7 +3430,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         })}</div>
         {match.phase === "player-initiate" && playerFighter.name === "Sensei Ducktape" && !player.abilityUsedRound && player.discard.some((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }) && <div className="ducktape-tray"><span>Sensei Ducktape · emergency repair</span>{player.discard.filter((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }).slice(0, 3).map((id) => <button onClick={() => borrowEquipment(id)} key={id}>Jury-rig {cardFor(id)?.name}</button>)}</div>}
         {match.phase === "reversal-window" && pendingAttack?.zone?.includes("Any") && <div className="hand-context-strip"><span>Choose reversal zone</span><fieldset className="zone-picker"><legend className="sr-only">Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
-        {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && (pendingAttack.zone?.includes("Any") || (playerFighter.name === "Whirlwind Wynn" && player.attacksThisTurn === 0 && hasTag(pendingAttack, "Spin"))) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
+        {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && attackHasFlexibleZone(player, pendingAttack) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
       </section>
     </section>
     <footer className="playtest-utility-dock" aria-label="Quick Duel utilities">
@@ -3549,6 +3550,8 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   const fighter = cardFor(current.ai.fighterId);
   const anyZone = attackHasFlexibleZone(current.ai, card);
   const zone = anyZone ? ["High", "Mid", "Low"][Math.floor(Math.random() * 3)] : card.zone?.split(",")[0] ?? "High";
+  const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "ai", card, zone, cardFor, quickDuelHostOperations);
+  current = preparedComboAttack.match;
   const previousCard = current.ai.cardsThisTurn.length ? cardFor(current.ai.cardsThisTurn[current.ai.cardsThisTurn.length - 1]) : null;
   const previousCardWasItem = Boolean(previousCard && previousCard.cardType === "Item");
   const conditionalCycle = structuredAttackCyclePlan(current.ai, card, zone);
@@ -3558,19 +3561,18 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   const fighterModifier = fighterAttackModifier(current.ai, current.player, card);
   const printedModifier = printedAttackRuleModifier(current.ai, current.player, card, zone);
   const incomingModifier = incomingAttackEquipmentModifier(current.player);
-  const comboModifier = comboAttackModifier(current.ai, card, zone);
   const activeEquipment = autoActivateAiAttackEquipment(current.ai, zone);
-  const piercingModifier = attackPiercingModifier(activeEquipment.board, current.player, card, zone, comboModifier.piercing + activeEquipment.piercing);
-  const hasFlow = attackHasFlow(activeEquipment.board, card, comboModifier, zone);
+  const piercingModifier = attackPiercingModifier(activeEquipment.board, current.player, card, zone, preparedComboAttack.attackFacts.piercing + activeEquipment.piercing);
+  const hasFlow = attackHasFlow(activeEquipment.board, card, zone);
   const stage3cAttackBonus = stage3cAttackPowerBonus(activeEquipment.board, card, zone);
-  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + comboModifier.power + activeEquipment.power);
+  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + activeEquipment.power);
   const consumedAttackBoard = stage3cConsumeAttackStatuses(activeEquipment.board, card, zone);
-  let nextAi = applyCardEffects({ ...consumedAttackBoard, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: [...current.ai.triggeredCombos, ...comboModifier.triggeredIds], comboTriggered: current.ai.comboTriggered || comboModifier.triggeredIds.length > 0 }, card, "ai");
+  let nextAi = applyCardEffects({ ...consumedAttackBoard, hand: removeOne(current.ai.hand, card.id), playArea: [...current.ai.playArea, card.id], xp: current.ai.xp + 1, attacksThisTurn: current.ai.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.ai.zonesPlayed, zone], cardsThisTurn: [...current.ai.cardsThisTurn, card.id], nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false, nextAttackArmorPenalty: 0, tempo: tempoBonus ? false : current.ai.tempo, wasHitSinceLastTurn: current.ai.attacksThisTurn === 0 ? false : current.ai.wasHitSinceLastTurn, triggeredCombos: current.ai.triggeredCombos, comboTriggered: current.ai.comboTriggered }, card, "ai");
   const flowDraw = hasFlow && !current.ai.flowUsedThisTurn;
   if (flowDraw) nextAi = drawCards({ ...nextAi, flowUsedThisTurn: true }, 1);
   if (current.ai.flowAfterFirstAttack && current.ai.attacksThisTurn === 0) nextAi = { ...nextAi, flowAfterFirstAttack: false, nextAttackHasFlow: true };
-  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...comboModifier.notes, ...activeEquipment.notes, ...piercingModifier.notes];
-  return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage + comboModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, armorPenalty, conditionalCycle: conditionalCycle.draw || conditionalCycle.discard ? { draw: conditionalCycle.draw, discard: conditionalCycle.discard } : undefined, previousCardWasItem, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
+  const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...activeEquipment.notes, ...piercingModifier.notes];
+  return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1 }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, armorPenalty, conditionalCycle: conditionalCycle.draw || conditionalCycle.discard ? { draw: conditionalCycle.draw, discard: conditionalCycle.discard } : undefined, previousCardWasItem, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
 }
 
 function finishAiTurn(current: Match, line: string, sceneChanges: boolean, houseRuleIds: readonly string[]) {
@@ -3600,9 +3602,10 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean, house
   const finished = { ...current, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };
   if (!nextAi.hp) return finished;
   if (current.turnIndex === 0) {
-    const player = applyInitiateCarryover(finished.player);
+    const hostedFinished = publishQuickDuelPlaytestLifecycleEvent(finished, "player", "onInitiate", quickDuelHostOperations).match;
+    const player = applyInitiateCarryover(hostedFinished.player);
     const carryover = player.focus - finished.player.focus;
-    return { ...finished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...finished.log].slice(0, 32) };
+    return { ...hostedFinished, player, phase: "player-initiate" as const, turnIndex: 1 as const, log: [`You are second in this round's initiative order. Initiate begins now.${carryover ? ` Delayed effects generate ${carryover} Focus.` : ""}`, ...hostedFinished.log].slice(0, 32) };
   }
   return advanceRound(finished, sceneChanges, "Both fighters have completed the round.", houseRuleIds);
 }
@@ -3619,11 +3622,14 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string, house
     ? refreshMarketRow(current.market, current.marketDeck, current.marketDiscard)
     : { market: current.market, marketDeck: current.marketDeck, marketDiscard: current.marketDiscard };
   const playerFirst = fighterStat(player, "Speed") >= fighterStat(ai, "Speed");
-  const initiatedPlayer = playerFirst ? applyInitiateCarryover(player) : player;
+  const stagedForInitiate: Match = { ...current, player, ai };
+  const hostedInitiate = playerFirst ? publishQuickDuelPlaytestLifecycleEvent(stagedForInitiate, "player", "onInitiate", quickDuelHostOperations).match : stagedForInitiate;
+  const initiatedPlayer = playerFirst ? applyInitiateCarryover(hostedInitiate.player) : player;
+  const initiatedAi = hostedInitiate.ai;
   const turnOrder: Match["turnOrder"] = playerFirst ? ["player", "ai"] : ["ai", "player"];
   const marketRefreshLabel = marketScramble ? "Market Scramble" : "Market Mercy";
   const marketNote = marketScramble ? "Market Scramble refreshes all seven slots." : current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
-  const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
+  const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai: initiatedAi, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
   const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033"));
   if (sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
   if (marketRefreshes && lucky) {
@@ -3635,6 +3641,7 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string, house
 }
 
 function prepareAiTurn(current: Match) {
+  current = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", quickDuelHostOperations).match;
   const fighter = cardFor(current.ai.fighterId);
   const initiatedAi = applyInitiateCarryover({ ...current.ai, usedEffectIdsThisTurn: [] });
   const turnEquipment = autoActivateAiTurnEquipment(initiatedAi);
@@ -3663,7 +3670,7 @@ function prepareAiTurn(current: Match) {
   }
   const supportIds = nextAi.hand.filter((id) => {
     const card = cardFor(id);
-    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || (fighter?.name === "Knuckleton the Brawler" && isWeapon(card))) return false;
+    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || !characterCanEquip(nextAi, card)) return false;
     if (isCoreConsumableCard(card)) return canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(nextAi));
     return true;
   });
