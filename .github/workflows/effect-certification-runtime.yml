@@ -1,0 +1,51 @@
+name: Effect Runtime Certification
+
+on:
+  push:
+    branches:
+      - effect-certification-runtime
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: effect-certification-runtime
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate canonical runtime data
+        run: npm run game:generate
+
+      - name: Build certification ledger
+        run: node scripts/certify-runtime-effects.mjs
+
+      - name: Run full repository certification
+        run: npm test
+
+      - name: Commit certification reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- reports/runtime-effect-certification.json reports/runtime-effect-certification.md; then
+            echo "Certification report unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/runtime-effect-certification.json reports/runtime-effect-certification.md
+          git commit -m "Update runtime effect certification report"
+          git push
