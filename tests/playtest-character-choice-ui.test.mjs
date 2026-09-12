@@ -19,3 +19,5 @@ test("player Character choices block Initiate progression and use the shared pen
   assert.match(source, /effectChoiceTitle = match\.pendingChoice\?\.kind === "character-runtime"/);
   assert.match(source, /effectChoicePrompt = match\.pendingChoice\?\.kind === "character-runtime" \? match\.pendingChoice\.choice\.prompt/);
 });
+
+// This source-level wiring check complements the deterministic player/AI Character host tests.
