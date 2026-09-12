@@ -6,6 +6,7 @@ const main = await readFile(new URL("../src/main.tsx", import.meta.url), "utf8")
 const lifecycle = await readFile(new URL("../app/card-viewer-lifecycle.tsx", import.meta.url), "utf8");
 const companion = await readFile(new URL("../app/companion-app.tsx", import.meta.url), "utf8");
 const playtest = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+const inspector = await readFile(new URL("../app/card-inspector.tsx", import.meta.url), "utf8");
 
 test("experimental global Dojo Dossier lifecycle stays isolated from the application root", () => {
   assert.doesNotMatch(main, /import CardViewerLifecycle from "\.\.\/app\/card-viewer-lifecycle";/);
@@ -16,6 +17,21 @@ test("experimental global Dojo Dossier lifecycle stays isolated from the applica
 test("shared CardInspector is eager in the application graph so inspect cannot depend on a late chunk", () => {
   assert.match(main, /import \{ CardInspector \} from "\.\.\/app\/card-inspector";/);
   assert.match(main, /rootElement\.dataset\.cardInspectorModule = CardInspector\.name \|\| "ready";/);
+});
+
+test("Dojo Dossier contains card render failures instead of unmounting the Playtest", () => {
+  assert.match(inspector, /class CardInspectorErrorBoundary extends Component/);
+  assert.match(inspector, /static getDerivedStateFromError/);
+  assert.match(inspector, /Dojo Dossier failed to render/);
+  assert.match(inspector, /The filing cabinet jammed\./);
+  assert.match(inspector, /<CardInspectorErrorBoundary onClose=\{props\.onClose\}>/);
+});
+
+test("Dojo Dossier tolerates missing taxonomy arrays from runtime card data", () => {
+  assert.match(inspector, /const tags = Array\.isArray\(card\.tags\) \? card\.tags : \[\];/);
+  assert.match(inspector, /const buildPaths = Array\.isArray\(card\.buildPaths\) \? card\.buildPaths : \[\];/);
+  assert.doesNotMatch(inspector, /card\.tags\.length/);
+  assert.doesNotMatch(inspector, /card\.buildPaths\.length/);
 });
 
 test("Card Library still mounts exactly one shared CardInspector surface", () => {
