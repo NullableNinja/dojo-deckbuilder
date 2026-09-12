@@ -14,9 +14,9 @@ test("card inspector host recovery loads after the base inspector cascade", () =
   assert.ok(hostFixImport > inspectorImport, "host recovery must load after Card Inspector styles");
 });
 
-test("production entry exposes the eager CardInspector required by Quick Duel's lazy resolver", () => {
-  assert.match(main, /import \{ CardInspector \} from "\.\.\/app\/card-inspector";/);
-  assert.match(main, /export \{ CardInspector \};/);
+test("CardInspector stays out of the entry chunk and Quick Duel resolves its dedicated lazy module", () => {
+  assert.doesNotMatch(main, /import \{ CardInspector \} from "\.\.\/app\/card-inspector";/);
+  assert.doesNotMatch(main, /export \{ CardInspector \};/);
   assert.match(playtest, /lazy\(\(\) => import\("\.\/card-inspector"\)\.then\(\(module\) => \(\{ default: module\.CardInspector \}\)\)\)/);
 });
 
