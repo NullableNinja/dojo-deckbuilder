@@ -16,13 +16,39 @@ const textExtensions = new Set([
 ]);
 const retiredCheckedInReports = new Set([
   "reports/FINAL-REPORT.md",
-  "reports/card-effect-audit.json",
   "reports/card-effect-audit.md",
   "reports/simulation-v2.3-1000.json",
   "reports/simulation-v2.3-1000.md",
   "reports/simulation-v2.3.json",
   "reports/simulation-v2.3.md",
 ]);
+
+function isProductionAsset(file) {
+  return productionAssetRoots.some((root) => file.startsWith(root));
+}
+
+function hasValidImageSignature(file) {
+  const extension = path.extname(file).toLowerCase();
+  const bytes = readFileSync(file);
+
+  switch (extension) {
+    case ".png":
+      return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    case ".jpg":
+    case ".jpeg":
+      return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    case ".gif":
+      return bytes.length >= 6 && ["GIF87a", "GIF89a"].includes(bytes.subarray(0, 6).toString("ascii"));
+    case ".webp":
+      return bytes.length >= 12
+        && bytes.subarray(0, 4).toString("ascii") === "RIFF"
+        && bytes.subarray(8, 12).toString("ascii") === "WEBP";
+    case ".svg":
+      return bytes.toString("utf8").includes("<svg");
+    default:
+      return true;
+  }
+}
 
 test("tracked files do not include common temporary or conflict-recovery suffixes", () => {
   const debris = trackedFiles.filter((file) => {
@@ -36,11 +62,19 @@ test("tracked files do not include common temporary or conflict-recovery suffixe
 });
 
 test("tracked production assets are not zero-byte placeholders", () => {
-  const emptyAssets = trackedFiles.filter((file) =>
-    productionAssetRoots.some((root) => file.startsWith(root)) && statSync(file).size === 0,
+  const emptyAssets = trackedFiles.filter((file) => isProductionAsset(file) && statSync(file).size === 0);
+  assert.deepEqual(emptyAssets, []);
+});
+
+test("tracked production images have a recognizable file signature", () => {
+  const imageExtensions = new Set([".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"]);
+  const invalidImages = trackedFiles.filter((file) =>
+    isProductionAsset(file)
+    && imageExtensions.has(path.extname(file).toLowerCase())
+    && !hasValidImageSignature(file),
   );
 
-  assert.deepEqual(emptyAssets, []);
+  assert.deepEqual(invalidImages, []);
 });
 
 test("tracked text files do not contain unresolved merge-conflict markers", () => {
