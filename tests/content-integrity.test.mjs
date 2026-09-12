@@ -228,7 +228,7 @@ test("field test three adds real digital-game decisions without replacing the Co
   ]);
   for (const feature of [
     "curateOpeningMarket",
-    "comboAttackModifier",
+    "evaluateCombo",
     "reversal-window",
     "resolveReversal",
     "Combo Docket",
