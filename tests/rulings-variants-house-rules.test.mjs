@@ -14,6 +14,7 @@ test("Rulings & Variants keeps official and optional guidance on one route", asy
   assert.doesNotMatch(source, /import \{ ReferenceDesk \}/);
   assert.doesNotMatch(source, /view === "reference"/);
   assert.doesNotMatch(source, /view === "house-rules"/);
+  assert.doesNotMatch(source, /playtest-house-rules/);
 });
 
 test("canonical rules own Quick Duel house-rule support metadata", async () => {
@@ -38,7 +39,7 @@ test("Quick Duel exposes only canonically certified house-rule toggles", async (
   ]);
   assert.match(source, /QUICK_DUEL_HOUSE_RULES/);
   assert.match(source, /houseRuleIds: string\[\]/);
-  assert.match(source, /Optional house rules/);
+  assert.match(source, /Quick Duel variants/);
   assert.match(source, /effectiveBeltThresholds/);
   assert.match(source, /shouldRefreshMarketAtRoundEnd/);
   assert.match(registry, /canonicalHouseRules/);
