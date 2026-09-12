@@ -1,5 +1,6 @@
 "use client";
 
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import cardEffectsJson from "./data/card-effects.json";
 
@@ -234,7 +235,49 @@ function DesignNotes({ card, entry }: { card: CardEntry; entry?: CardEffectEntry
   </details>;
 }
 
-export function CardInspector({
+type CardInspectorBoundaryProps = {
+  children: ReactNode;
+  onClose: () => void;
+};
+
+type CardInspectorBoundaryState = {
+  failed: boolean;
+};
+
+class CardInspectorErrorBoundary extends Component<CardInspectorBoundaryProps, CardInspectorBoundaryState> {
+  state: CardInspectorBoundaryState = { failed: false };
+
+  static getDerivedStateFromError(): CardInspectorBoundaryState {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Dojo Dossier failed to render", error, info);
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return createPortal(
+      <div className="universal-card-inspector-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && this.props.onClose()}>
+        <article className="universal-card-inspector" role="alertdialog" aria-modal="true" aria-labelledby="universal-card-inspector-error-title">
+          <button className="card-inspector-close" type="button" onClick={this.props.onClose} aria-label="Close card inspector">×</button>
+          <section className="card-inspector-details">
+            <header className="card-inspector-title-block">
+              <span className="eyebrow">Dojo Dossier recovery</span>
+              <h2 id="universal-card-inspector-error-title">The filing cabinet jammed.</h2>
+              <p className="card-inspector-flavor">This card could not be rendered, but the rest of the dojo is still standing.</p>
+            </header>
+            <aside className="card-inspector-rules"><span>Recovery</span><p>Close this Dossier and try the card again. The failure has been contained so it cannot blank the entire Playtest.</p></aside>
+            <button type="button" className="button primary" onClick={this.props.onClose}>Return to the dojo</button>
+          </section>
+        </article>
+      </div>,
+      document.body,
+    );
+  }
+}
+
+function CardInspectorContent({
   card,
   imageUrl,
   effectEntry,
@@ -253,6 +296,8 @@ export function CardInspector({
   const resolvedEffectEntry = effectEntry ?? effectRegistry.cards?.[card.catalogId];
   const resolvedEffectRevision = effectRevision ?? effectRegistry.rulesRevision ?? effectRegistry.rulesVersion;
   const statPairs = Object.entries(card.stats ?? {});
+  const tags = Array.isArray(card.tags) ? card.tags : [];
+  const buildPaths = Array.isArray(card.buildPaths) ? card.buildPaths : [];
   const primaryFacts = [
     card.fpCost !== null && card.fpCost !== undefined ? ["Focus Cost", valueLabel(card.fpCost)] : null,
     card.focusValue !== null && card.focusValue !== undefined ? ["Focus", valueLabel(card.focusValue)] : null,
@@ -296,9 +341,9 @@ export function CardInspector({
           {card.rulesText && <aside className="card-inspector-rules"><span>Printed rules text</span><p>{card.rulesText}</p></aside>}
           <StructuredEffectBreakdown entry={resolvedEffectEntry} revision={resolvedEffectRevision} />
 
-          {(card.tags.length > 0 || card.buildPaths.length > 0) && <section className="card-inspector-taxonomy">
-            {card.tags.length > 0 && <div><span>Tags</span><p>{card.tags.map((tag) => <b key={tag}>{tag}</b>)}</p></div>}
-            {card.buildPaths.length > 0 && <div><span>Build paths</span><p>{card.buildPaths.map((path) => <b key={path}>{path}</b>)}</p></div>}
+          {(tags.length > 0 || buildPaths.length > 0) && <section className="card-inspector-taxonomy">
+            {tags.length > 0 && <div><span>Tags</span><p>{tags.map((tag) => <b key={tag}>{tag}</b>)}</p></div>}
+            {buildPaths.length > 0 && <div><span>Build paths</span><p>{buildPaths.map((path) => <b key={path}>{path}</b>)}</p></div>}
           </section>}
 
           <DesignNotes card={card} entry={resolvedEffectEntry} />
@@ -306,6 +351,10 @@ export function CardInspector({
       </div>
     </article>
   </div>, document.body);
+}
+
+export function CardInspector(props: CardInspectorProps) {
+  return <CardInspectorErrorBoundary onClose={props.onClose}><CardInspectorContent {...props} /></CardInspectorErrorBoundary>;
 }
 
 /**
