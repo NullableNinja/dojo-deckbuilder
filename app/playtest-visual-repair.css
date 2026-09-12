@@ -225,6 +225,27 @@
     padding-inline: 10px;
     font-size: 9px;
   }
+
+  /* Acquisition is a single horizontal Market lane, not a full-height screen.
+     Shrink the dialog around its real content and let the body scroll only when
+     a shorter viewport genuinely requires it. */
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-market) {
+    height: auto;
+    min-height: 0;
+    max-height: calc(100dvh - 40px);
+    grid-template-rows: 82px 54px auto 62px;
+    align-self: center;
+  }
+
+  .playtest-shell--live .ascend-desk-backdrop > .ascend-desk.ascend-desk--functional:has(.ascend-market) > .ascend-desk-body {
+    max-height: calc(100dvh - 238px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .playtest-shell--live .ascend-desk--functional:has(.ascend-market) .ascend-market {
+    min-height: 0;
+  }
 }
 
 @media (min-width: 761px) and (max-width: 1199px) {
