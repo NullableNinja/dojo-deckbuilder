@@ -1,0 +1,836 @@
+/* Quick Duel live presentation ---------------------------------------------
+   PRESENTATION ONLY.
+   playtest-layout.css remains the outer geometry authority. This companion
+   layer restores the intentional live HUD / fighter / hand / Ascend styling
+   that was lost when the historical patch stack was consolidated.
+*/
+
+/* -------------------------------------------------------------------------
+   TOP FIGHT HUD
+   ---------------------------------------------------------------------- */
+.playtest-shell.playtest-shell--live > .playtest-topbar.battle-versus-hud {
+  min-height: 72px;
+  grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  overflow: visible;
+  border: 1px solid rgba(246, 225, 171, .25);
+  border-radius: 13px 5px 15px 7px;
+  padding: 7px 10px;
+  background: rgba(26, 38, 31, .965);
+  box-shadow: 0 5px 0 rgba(83, 56, 28, .42), 0 12px 30px rgba(18, 12, 7, .22);
+  backdrop-filter: blur(10px);
+}
+
+.playtest-shell--live .battle-versus-hud::before,
+.playtest-shell--live .battle-versus-hud::after {
+  content: none;
+  display: none;
+}
+
+/* The fighter-card HP tracks are local dossier remnants. The real battle HUD
+   already renders its own dynamic HP bars, so never paint both systems. */
+.playtest-shell--live .fighter-column--player .fighter-hp-track,
+.playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+  display: none;
+}
+
+.playtest-shell--live .battle-hud-fighter {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(10px, 1fr);
+  align-items: center;
+  gap: 2px;
+  box-sizing: border-box;
+  border: 2px solid rgba(255, 243, 207, .82);
+  border-radius: 8px 15px 6px 12px;
+  padding: 5px 10px 6px;
+  color: #fff8df;
+  background: linear-gradient(180deg, #294639, #13271f);
+  box-shadow: inset 0 0 0 2px rgba(9, 20, 15, .35);
+}
+
+.playtest-shell--live .battle-hud-fighter--ai { text-align: right; }
+
+.playtest-shell--live .battle-hud-fighter > span {
+  grid-row: 1;
+  overflow: hidden;
+  color: #e3c55d;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.playtest-shell--live .battle-hud-fighter > b {
+  grid-row: 2;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--display);
+  font-size: clamp(15px, 1.45vw, 21px);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playtest-shell--live .battle-hud-fighter > div {
+  grid-row: 3;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.playtest-shell--live .battle-hud-fighter--ai > div {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.playtest-shell--live .battle-hud-fighter--ai > div > strong { grid-column: 2; }
+.playtest-shell--live .battle-hud-fighter--ai > div > i { grid-column: 1; grid-row: 1; }
+
+.playtest-shell--live .battle-hud-fighter strong {
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.playtest-shell--live .battle-hud-fighter strong small {
+  color: #c7d3ca;
+  font-size: 7px;
+  white-space: nowrap;
+}
+
+.playtest-shell--live .battle-hud-fighter i {
+  width: 100%;
+  min-width: 0;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(10, 20, 15, .9);
+  border-radius: 999px;
+  background: #6c2b27;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .56), 0 1px 0 rgba(255, 243, 207, .12);
+}
+
+.playtest-shell--live .battle-hud-fighter i em {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #64cb7c, #b4df79);
+}
+
+.playtest-shell--live .battle-hud-fighter--ai i em {
+  margin-left: auto;
+  background: linear-gradient(270deg, #64cb7c, #b4df79);
+}
+
+.playtest-shell--live .versus-center {
+  width: 68px;
+  height: 60px;
+  align-self: center;
+  justify-self: center;
+}
+
+.playtest-shell--live .versus-center > span {
+  top: 3px;
+  font-size: 9px;
+  letter-spacing: .12em;
+}
+
+.playtest-shell--live .versus-center > b {
+  width: 56px;
+  height: 56px;
+  font-size: 30px;
+}
+
+/* Location owns scene information, not a second Round readout. */
+.playtest-shell--live .combat-stage-heading > div { display: none; }
+
+/* -------------------------------------------------------------------------
+   FIGHTER DOSSIERS
+   ---------------------------------------------------------------------- */
+.playtest-shell--live .fighter-panel.living-fighter-card,
+.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card {
+  grid-template-areas:
+    "heading"
+    "art"
+    "stats"
+    "xp"
+    "status"
+    "ability"
+    "tools";
+  grid-template-rows: 50px minmax(170px, 1fr) 46px 42px 28px minmax(68px, 86px) 40px;
+  gap: 5px;
+}
+
+/* Precise HP remains in the top battle HUD; do not duplicate it inside the card. */
+.playtest-shell--live .fighter-vitality,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality { display: none; }
+
+.playtest-shell--live .fighter-card-heading {
+  min-height: 50px;
+  height: 50px;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 2px;
+}
+
+/* Literal belt-color tags. Player side never changes belt color. */
+.playtest-shell--live .fighter-belt-badge,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-belt-badge {
+  min-width: 58px;
+  max-width: 68px;
+  margin-inline: 2px;
+  overflow: hidden;
+  border: 2px solid var(--belt-edge, #b8ad92);
+  border-radius: 6px 2px 7px 3px;
+  padding: 5px 7px;
+  color: var(--belt-fg, #17211d);
+  background: var(--belt-bg, #f5f0df);
+  box-shadow: 2px 3px 0 rgba(15, 15, 11, .28);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: none;
+}
+
+.playtest-shell--live .fighter-belt-badge small,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-belt-badge small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--belt-sub, currentColor);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playtest-shell--live .fighter-belt-badge[data-belt="white"] { --belt-bg:#f5f0df; --belt-fg:#17211d; --belt-sub:#5e5c52; --belt-edge:#c9c1aa; }
+.playtest-shell--live .fighter-belt-badge[data-belt="gold"] { --belt-bg:#e0b42b; --belt-fg:#211b0c; --belt-sub:#4e3b08; --belt-edge:#f4d763; }
+.playtest-shell--live .fighter-belt-badge[data-belt="orange"] { --belt-bg:#e88939; --belt-fg:#24170c; --belt-sub:#5b2f0d; --belt-edge:#f4ae69; }
+.playtest-shell--live .fighter-belt-badge[data-belt="green"] { --belt-bg:#58a86a; --belt-fg:#102417; --belt-sub:#173c23; --belt-edge:#85c692; }
+.playtest-shell--live .fighter-belt-badge[data-belt="purple"] { --belt-bg:#8055a2; --belt-fg:#fff8e7; --belt-sub:#ead9f6; --belt-edge:#ad87ca; }
+.playtest-shell--live .fighter-belt-badge[data-belt="blue"] { --belt-bg:#4f83bf; --belt-fg:#fffaf0; --belt-sub:#dbeaff; --belt-edge:#80a9d8; }
+.playtest-shell--live .fighter-belt-badge[data-belt="red"] { --belt-bg:#c94a3d; --belt-fg:#fff7e8; --belt-sub:#ffd9d3; --belt-edge:#e67a6e; }
+.playtest-shell--live .fighter-belt-badge[data-belt="brown"] { --belt-bg:#7f5233; --belt-fg:#fff7e8; --belt-sub:#ead5c4; --belt-edge:#aa7957; }
+.playtest-shell--live .fighter-belt-badge[data-belt="black"] { --belt-bg:#171b18; --belt-fg:#fff8e7; --belt-sub:#d7ddd9; --belt-edge:#626a64; }
+
+/* Focus is the fourth combat-stat tile, not a mismatched oval seal. */
+.playtest-shell--live .fighter-focus-seal,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-focus-seal {
+  width: calc(25% - 3.75px);
+  min-width: calc(25% - 3.75px);
+  max-width: calc(25% - 3.75px);
+  height: 46px;
+  min-height: 46px;
+  grid-template-columns: 23px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 5px;
+  align-items: center;
+  justify-self: end;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid #b7a783;
+  border-radius: 6px 2px 7px 3px;
+  padding: 5px;
+  box-sizing: border-box;
+  color: #30473b;
+  background: rgba(255, 250, 236, .68);
+  box-shadow: none;
+  transform: none;
+}
+
+.playtest-shell--live .fighter-focus-seal svg {
+  grid-row: 1 / 3;
+  width: 21px;
+  height: 21px;
+  stroke: var(--mat-green);
+}
+
+.playtest-shell--live .fighter-focus-seal > span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 17px;
+  line-height: .9;
+}
+
+.playtest-shell--live .fighter-focus-seal small {
+  min-width: 0;
+  overflow: hidden;
+  color: #787265;
+  font-size: 6px;
+  letter-spacing: .1em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tempo/Flow/etc. live in their own compact row. */
+.playtest-shell--live .fighter-status-tray,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-status-tray {
+  position: static;
+  grid-area: status;
+  width: 100%;
+  max-width: 100%;
+  height: 28px;
+  min-height: 28px;
+  align-self: stretch;
+  justify-self: stretch;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.playtest-shell--live .fighter-status-tray span {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  font-size: 7px;
+  line-height: 1;
+}
+
+/* Loadout is a bottom dossier tool row, never a floating portrait badge. */
+.playtest-shell--live .fighter-equipment-tabs,
+.playtest-shell--live .fighter-equipment-tabs.is-enemy {
+  position: relative;
+  z-index: var(--layer-card);
+  inset: auto;
+  grid-area: tools;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  align-self: end;
+  justify-self: stretch;
+  overflow: hidden;
+  margin: 0;
+  pointer-events: auto;
+}
+
+.playtest-shell--live .fighter-equipment-tabs > div,
+.playtest-shell--live .fighter-equipment-tabs:hover > div,
+.playtest-shell--live .fighter-equipment-tabs:focus-within > div { display: none; }
+
+.playtest-shell--live .fighter-loadout-launch,
+.playtest-shell--live .fighter-equipment-tabs.is-enemy .fighter-loadout-launch {
+  width: 100%;
+  max-width: 100%;
+  height: 40px;
+  min-height: 40px;
+  box-sizing: border-box;
+  border: 1px solid #877858;
+  border-radius: 6px 2px 7px 3px;
+  padding: 4px 7px;
+  box-shadow: none;
+}
+
+/* Fighter/card Inspect affordances use a small Paper-Fu tab, not black pills. */
+.playtest-shell--live .fighter-card-illustration > span:last-child,
+.playtest-shell--live .play-card-inspect {
+  border: 1px solid #8e7b57;
+  border-radius: 5px 2px 6px 3px;
+  padding: 4px 7px;
+  color: #26352d;
+  background: #f2dfb8;
+  box-shadow: 2px 2px 0 rgba(71, 50, 25, .24);
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.playtest-shell--live .fighter-card-illustration > span:last-child { right: 7px; bottom: 7px; }
+.playtest-shell--live .play-card-inspect { top: 7px; right: 7px; }
+
+/* -------------------------------------------------------------------------
+   HAND
+   ---------------------------------------------------------------------- */
+.playtest-shell--live .hand-panel > header {
+  min-height: 64px;
+  grid-template-columns: minmax(220px, 1fr) minmax(320px, .9fr);
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.playtest-shell--live .hand-panel > header > .playtest-action-dock {
+  grid-column: 2;
+  position: relative;
+  inset: auto;
+  width: min(560px, 100%);
+  min-width: 0;
+  max-width: 560px;
+  min-height: 50px;
+  height: auto;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px 10px;
+  overflow: visible;
+  margin: 0;
+  border: 1px solid rgba(239, 220, 166, .34);
+  border-left: 6px solid #dba92e;
+  border-radius: 11px 4px 12px 5px;
+  padding: 5px 7px 5px 10px;
+  color: #f6f3e6;
+  background: #102f25;
+  box-shadow: 3px 4px 0 rgba(214, 165, 40, .48);
+  transform: none;
+}
+
+.playtest-shell--live .hand-panel > header > .playtest-action-dock > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.playtest-shell--live .hand-panel > header > .playtest-action-dock > div:first-child > span {
+  display: block;
+  color: #e5bc4c;
+  font-size: 7px;
+  letter-spacing: .12em;
+}
+
+.playtest-shell--live .hand-panel > header > .playtest-action-dock > div:first-child > b {
+  display: block;
+  overflow: hidden;
+  color: #fff8e2;
+  font-size: clamp(12px, 1vw, 15px);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playtest-shell--live .hand-panel > header > .playtest-action-dock button,
+.playtest-shell--live .hand-panel > header > .playtest-action-dock .dock-action-group > button {
+  min-height: 38px;
+  padding: 6px 10px;
+  white-space: normal;
+}
+
+.playtest-shell--live .play-card-row {
+  justify-content: center;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 5px 5px 12px;
+}
+
+.playtest-shell--live .play-card-row .play-card { scroll-snap-align: center; }
+
+/* -------------------------------------------------------------------------
+   ASCEND WORKSPACE
+   The runtime renders four structural children: header, guide, body, footer.
+   ---------------------------------------------------------------------- */
+.playtest-shell--live .ascend-desk-backdrop {
+  background: rgba(5, 13, 9, .76);
+  backdrop-filter: blur(12px);
+}
+
+.playtest-shell--live .ascend-desk {
+  width: min(1760px, calc(100vw - 44px));
+  max-width: calc(100vw - 44px);
+  height: min(920px, calc(100dvh - 90px));
+  min-height: min(600px, calc(100dvh - 40px));
+  max-height: calc(100dvh - 40px);
+  display: grid;
+  grid-template-rows: 82px 50px minmax(0, 1fr) 62px;
+  overflow: hidden;
+  border: 1px solid rgba(237, 215, 160, .32);
+  border-top: 7px solid var(--mat-gold);
+  border-radius: 15px 5px 17px 7px;
+  padding: 0;
+  color: #edf4ef;
+  background: linear-gradient(160deg, #173d30, #102b22 58%, #0d241c);
+  box-shadow: 0 34px 90px rgba(0,0,0,.58), 8px 10px 0 rgba(198,69,48,.28);
+}
+
+.playtest-shell--live .ascend-desk-header {
+  min-width: 0;
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px 42px;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  padding: 12px 16px 10px 20px;
+  border-bottom: 1px dashed rgba(230,212,164,.28);
+  background: rgba(23,55,43,.94);
+}
+
+.playtest-shell--live .ascend-desk-header .eyebrow {
+  margin-bottom: 3px;
+  color: #f2c65d;
+  font-size: 10px;
+}
+
+.playtest-shell--live .ascend-desk-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.playtest-shell--live .ascend-desk-header p {
+  max-width: 900px;
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #c5d5ca;
+  font-size: 11px;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playtest-shell--live .ascend-desk-balance {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 10px;
+  border: 1px solid rgba(230,196,97,.42);
+  border-radius: 9px 3px 10px 4px;
+  padding: 8px 10px;
+  background: rgba(69,58,31,.48);
+}
+
+.playtest-shell--live .ascend-desk-balance span { font-size: 9px; }
+.playtest-shell--live .ascend-desk-balance b {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  color: #7ed29b;
+  font-size: 30px;
+}
+.playtest-shell--live .ascend-desk-balance small { color: #dfd4ae; font-size: 8px; }
+
+.playtest-shell--live .ascend-desk .modal-close {
+  width: 38px;
+  height: 38px;
+  color: #fff;
+  border-color: rgba(255,255,255,.26);
+  background: rgba(9,27,20,.82);
+}
+
+.playtest-shell--live .ascend-guide {
+  min-width: 0;
+  min-height: 50px;
+  display: block;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 5px 12px;
+  background: rgba(11,35,26,.92);
+}
+
+.playtest-shell--live .ascend-guide-kicker { display: none; }
+.playtest-shell--live .ascend-guide ol {
+  height: 40px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.playtest-shell--live .ascend-guide li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px 3px 9px 4px;
+  padding: 4px 8px;
+  color: #9fb6a7;
+  background: rgba(31,66,51,.44);
+}
+
+.playtest-shell--live .ascend-guide li.is-current {
+  color: #fff;
+  border-color: #e0b43c;
+  background: rgba(85,66,25,.56);
+  box-shadow: inset 0 -3px 0 #e0b43c;
+}
+
+.playtest-shell--live .ascend-guide li.is-complete {
+  color: #b8d7c1;
+  border-color: rgba(101,182,130,.44);
+}
+
+.playtest-shell--live .ascend-guide li > b {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 11px;
+}
+
+.playtest-shell--live .ascend-guide li span { font-size: 10px; }
+.playtest-shell--live .ascend-guide li small { font-size: 8px; }
+
+.playtest-shell--live .ascend-desk-body {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px 18px;
+  scrollbar-width: thin;
+  background:
+    linear-gradient(rgba(255,255,255,.018), rgba(255,255,255,.018)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 6px);
+}
+
+.playtest-shell--live .ascend-step-coach { display: none; }
+
+.playtest-shell--live .ascend-market,
+.playtest-shell--live .ascend-combo,
+.playtest-shell--live .ascend-belt {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+}
+
+/* The JSX renders FeaturedComboPanel directly inside .ascend-market. Apply the
+   integrated layout to the class that actually exists, rather than waiting on a
+   nonexistent .ascend-desk--integrated-acquisition marker. */
+@media (min-width: 1200px) {
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+    grid-template-areas:
+      "heading combo"
+      "market combo";
+    gap: 12px 16px;
+    align-items: start;
+  }
+
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) > header { grid-area: heading; }
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) > .ascend-market-grid { grid-area: market; }
+  .playtest-shell--live .ascend-desk--functional .ascend-market:has(.ascend-featured-combo) > .ascend-featured-combo {
+    grid-area: combo;
+    position: sticky;
+    top: 0;
+    min-width: 0;
+    align-self: start;
+  }
+}
+
+.playtest-shell--live .ascend-market > header,
+.playtest-shell--live .ascend-combo > header {
+  min-width: 0;
+  min-height: 54px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 10px;
+}
+
+.playtest-shell--live .ascend-market > header > * { min-width: 0; }
+
+.playtest-shell--live .ascend-market > header h3,
+.playtest-shell--live .ascend-combo > header h3,
+.playtest-shell--live .ascend-belt > h3 {
+  margin: 2px 0 0;
+  color: #fff;
+  font-size: 24px;
+}
+
+.playtest-shell--live .ascend-market > header p,
+.playtest-shell--live .combo-digital-note,
+.playtest-shell--live .ascend-belt > p {
+  color: #c8d7cc;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.playtest-shell--live .ascend-market-grid {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 195px;
+  grid-template-columns: repeat(7, 195px);
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  padding: 4px 3px 14px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.playtest-shell--live .ascend-market-grid .play-card {
+  width: 195px;
+  min-width: 195px;
+  max-width: 195px;
+  height: 350px;
+  min-height: 350px;
+  flex: 0 0 195px;
+  scroll-snap-align: start;
+}
+
+.playtest-shell--live .ascend-market-grid .play-card-main {
+  height: 350px;
+  min-height: 350px;
+  grid-template-rows: 158px 22px minmax(112px, 1fr) 50px;
+}
+
+.playtest-shell--live .ascend-market-grid .play-card-fallback b { font-size: 15px; }
+.playtest-shell--live .ascend-market-grid .play-card-fallback small {
+  font-size: 11px;
+  line-height: 1.3;
+  -webkit-line-clamp: 5;
+}
+.playtest-shell--live .ascend-market-grid .play-card-meta b,
+.playtest-shell--live .ascend-market-grid .play-card-meta strong { font-size: 12px; }
+
+.playtest-shell--live .ascend-combo .combo-digital-note {
+  margin: 0 0 10px;
+  border-left: 5px solid #8055a2;
+  padding: 9px 11px;
+  background: rgba(93,62,109,.23);
+}
+
+.playtest-shell--live .ascend-combo .combo-offer {
+  min-height: 360px;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.playtest-shell--live .ascend-combo .combo-offer > div h3 { font-size: 27px; }
+.playtest-shell--live .ascend-combo .combo-offer > div p {
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-line-clamp: 8;
+}
+.playtest-shell--live .ascend-combo .combo-actions { margin-top: 12px; gap: 10px; }
+.playtest-shell--live .ascend-combo .learned-combos {
+  margin-top: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.playtest-shell--live .ascend-belt .belt-track { margin: 14px 0; }
+.playtest-shell--live .ascend-belt .belt-track span {
+  width: 30px;
+  height: 30px;
+  font-size: 10px;
+}
+
+.playtest-shell--live .ascend-belt .belt-ledger-list {
+  max-height: 360px;
+  overflow: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding-right: 5px;
+}
+
+.playtest-shell--live .ascend-belt .belt-ledger-list article {
+  min-height: 62px;
+  padding: 9px 10px;
+}
+.playtest-shell--live .ascend-belt .belt-ledger-list b { font-size: 12px; }
+.playtest-shell--live .ascend-belt .belt-ledger-list small { font-size: 9px; line-height: 1.25; }
+
+.playtest-shell--live .ascend-desk-footer {
+  min-width: 0;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  overflow: hidden;
+  border-top: 1px dashed rgba(230,212,164,.28);
+  padding: 8px 14px;
+  background: rgba(11,35,26,.96);
+}
+
+.playtest-shell--live .ascend-desk-footer > details { display: none; }
+.playtest-shell--live .ascend-guide-actions {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.playtest-shell--live .ascend-guide-actions > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.playtest-shell--live .ascend-guide-actions small { color: #b7c8bc; font-size: 9px; }
+.playtest-shell--live .ascend-desk-footer .button {
+  min-height: 42px;
+  padding-inline: 14px;
+  font-size: 10.5px;
+}
+
+/* -------------------------------------------------------------------------
+   THEME / NARROW SAFE DEGRADATION
+   ---------------------------------------------------------------------- */
+:root[data-theme="dark"] .playtest-shell--live .fighter-focus-seal {
+  border-color: #607568;
+  color: #eef5ef;
+  background: rgba(41, 65, 54, .96);
+}
+:root[data-theme="dark"] .playtest-shell--live .fighter-focus-seal small { color: #c9d4ce; }
+
+@media (min-width: 761px) and (max-width: 1199px) {
+  .playtest-shell--live .hand-panel > header {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .playtest-shell--live .hand-panel > header > .playtest-action-dock {
+    grid-column: 1;
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+  }
+
+  .playtest-shell--live .ascend-desk {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  .playtest-shell--live .ascend-market-grid {
+    grid-template-columns: repeat(7, 180px);
+    grid-auto-columns: 180px;
+  }
+  .playtest-shell--live .ascend-market-grid .play-card {
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+    flex-basis: 180px;
+  }
+}
+
+@media (max-width: 760px) {
+  .playtest-shell--live .ascend-desk {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+    min-height: 0;
+    max-height: calc(100dvh - 16px);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+  .playtest-shell--live .ascend-desk-header {
+    grid-template-columns: minmax(0, 1fr) 40px;
+  }
+  .playtest-shell--live .ascend-desk-balance { display: none; }
+  .playtest-shell--live .ascend-guide ol { grid-template-columns: 1fr; height: auto; }
+  .playtest-shell--live .ascend-guide li:not(.is-current) { display: none; }
+  .playtest-shell--live .ascend-combo .combo-offer { grid-template-columns: 1fr; }
+  .playtest-shell--live .ascend-belt .belt-ledger-list { grid-template-columns: 1fr; }
+}
