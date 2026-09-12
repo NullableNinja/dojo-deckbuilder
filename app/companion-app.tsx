@@ -33,8 +33,8 @@ import missDirectionUrl from "./assets/characters/core-roster/miss-direction.web
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
-import rulesJson from "./data/rules.json";
 import gameDefinitionJson from "./data/game-definition.json";
+import { CANONICAL_RULES, GAME_MODES as CANONICAL_GAME_MODES, HAND_SIZE, PHASES as CANONICAL_PHASES, PHASE_DETAILS as CANONICAL_PHASE_DETAILS, SETUP_STEPS, STARTER_CARDS as CANONICAL_STARTER_CARDS, STARTER_EXAMPLES } from "./canonical-presentation";
 import PlaytestView from "./playtest";
 
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
@@ -163,7 +163,7 @@ type RuleVisual = { label: string; quip: string; art: string; alt: string };
 type GlobalResult = { type: "Card" | "Glossary" | "Rule" | "Ruling" | "House Rule"; title: string; detail: string; view: ViewId; card?: CardEntry | null; query?: string; chapterId?: string; sectionId?: string; rulingsTab?: RulingsTab };
 
 const cardData = cardsJson as unknown as { version: string; cards: CardEntry[]; counts: Record<string, number>; decks: string[]; total: number };
-const rulesData = rulesJson as { version: string; chapters: RuleChapter[]; officialRulings: OfficialRuling[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
+const rulesData = CANONICAL_RULES as unknown as { version: string; chapters: RuleChapter[]; officialRulings: OfficialRuling[]; glossary: { term: string; meaning: string }[]; houseRules: HouseRule[] };
 const gameDefinition = gameDefinitionJson as { rulesVersion: string; rulesRevision: string };
 const CURRENT_RULES_REVISION = gameDefinition.rulesRevision;
 const BINDER_STORAGE_KEY = "dojo-binder-v1";
@@ -278,26 +278,6 @@ const CARD_IMAGE_URLS: Record<string, string> = {
   ...STARTER_CARD_URLS,
   ...LOCATION_CARD_URLS,
 };
-const PHASES = [
-  { letter: "H", name: "Honor", text: "Scene Change, survival XP, refresh Tempo, set initiative." },
-  { letter: "I", name: "Initiate", text: "Ready cards, optionally tag, then equip permanent gear." },
-  { letter: "Y", name: "Yell", text: "Play cards, Practice one Defense, attack, and trigger Combos." },
-  { letter: "A", name: "Ascend", text: "Spend Focus, buy cards, refill the row, and promote." },
-  { letter: "H", name: "Hide", text: "Resolve end effects, clean up, draw, lose unspent Focus." },
-];
-const PHASE_DETAILS = [
-  { name: "Honor", when: "Once at the beginning of the round", who: "Everyone together", steps: ["Scene Change and resolve the new Location.", "Every surviving player gains 1 XP.", "Refresh each player's Tempo.", "Lock initiative from highest current Speed to lowest."], quip: "One Honor. One Location. Several people insisting they were faster." },
-  { name: "Initiate", when: "At the beginning of each player's turn", who: "The active player", steps: ["Ready exhausted cards and resolve start-of-turn effects.", "Tag once if the mode allows it.", "Equip permanent Equipment from your hand.", "Generate printed Focus from each card legally Equipped from hand."], quip: "Stretch, breathe, attach the suspicious helmet." },
-  { name: "Yell", when: "The active player's main phase", who: "The active player, with Reactions from others", steps: ["Play cards one at a time; there is no general play cost.", "Once, Practice one Defense from hand for its printed Focus only.", "Play any number of legal Attacks from your hand, resolving each separately.", "After your first Flow Attack each turn resolves, draw one card."], quip: "Practice the block. Spend the block. Try not to need the block." },
-  { name: "Ascend", when: "After the active player finishes acting", who: "The active player", steps: ["Spend Focus on face-up Market cards.", "After each purchase, reveal the top Market card to refill its slot.", "Attempt to learn at most one Combo from the separate deck.", "Promote at most one Belt if its XP and task are complete."], quip: "Turn questionable decisions into a slightly better deck." },
-  { name: "Hide", when: "At the end of each player's turn", who: "The active player", steps: ["Resolve end-of-turn effects.", "Discard played cards and the remaining hand.", "Draw the next hand.", "Lose unspent Focus."], quip: "Clean the paper cuts off the mat and pretend it was tactical." },
-];
-const STARTER_CARDS = [
-  { group: "Attacks", count: 4, icon: "A", purpose: "Deal damage and declare a combat zone.", cards: ["Basic Jab", "Basic Body Kick", "Basic Shin Kick", "Wild Swing"] },
-  { group: "Defenses", count: 4, icon: "D", purpose: "Answer an Attack matching its zone.", cards: ["High Guard", "Center Guard", "Low Guard", "Cover Up"] },
-  { group: "Katas", count: 2, icon: "K", purpose: "Set up your next move or alter your Speed.", cards: ["Breathing Drill", "Footwork Drill"] },
-  { group: "Junk", count: 5, icon: "!", purpose: "Clog the opening deck and generate no Focus.", cards: ["Bad Habit ×5"] },
-];
 const GOLDEN_RULE = ruleChapters.flatMap((chapter) => [...chapter.intro, ...chapter.sections.flatMap((section) => section.content)])
   .flatMap((block) => block.kind === "table" ? block.rows.flat() : [])
   .map(String)
@@ -330,12 +310,6 @@ const initialTheme = (): Theme => {
   if (saved === "light" || saved === "dark") return saved;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
-const GAME_MODES = [
-  { id: "tag-team", label: "Recommended", title: "Tag Team: Swap-Fu", players: "2–6 players", fighters: "3 Characters each", win: "Black Belt Victory or Last Fighter Standing", detail: "The recommended Core Format, especially for two players. Each player owns a three-fighter roster but controls only one active fighter at a time. Tag during Initiate, protect injured teammates on the bench, and keep fighting after a single KO.", notes: ["Use the complete Tag Team rules in Section 13.", "Equipment stays with the fighter who equipped it.", "Learned Combos belong to the player and may be triggered by any active fighter."] },
-  { id: "standard-clash", label: "Classic", title: "Standard Clash", players: "2–6 players", fighters: "1 Character each", win: "Black Belt Victory or Last Fighter Standing", detail: "Every player controls one Character and one Starter Deck. Players may attack any opposing active fighter unless a card says otherwise. This is the cleanest free-for-all format and supports both normal victory paths.", notes: ["Start at 25 HP, White Belt, 0 XP, 0 Focus, and unused Tempo.", "There is no bench and no tagging.", "Resolve simultaneous victory using the tiebreakers in Section 16."] },
-  { id: "quick-duel", label: "Fast", title: "Quick Duel: Face-Punch Finals", players: "Exactly 2 players", fighters: "1 Character each", win: "Last Fighter Standing only", detail: "A fast 1v1 combat-testing format. Belt progression and every printed Belt reward remain active, including Max HP increases and promotion healing. Reaching Black Belt does not end the game.", notes: ["Both fighters start at 25 HP and gain the full vitality reward from promotion.", "Black Belt Victory is disabled unless a scenario restores it.", "Use normal initiative, Tempo, combat, Defense Practice, persistent Market, and Market Mercy rules."] },
-  { id: "boss-blitz", label: "Solo / Co-op", title: "Dojo Drama: Boss Blitz", players: "Solo or 2-player co-op", fighters: "3 Characters each", win: "Defeat the Final Boss", detail: "A three-stage Boss Rush against a Rival, Mini-Boss, and Final Boss. Players use Tag Team rules while each Boss combines an unused Character card with a Boss Stage overlay and automated Boss Techniques.", notes: ["Use the Boss setup and turn rules in Section 14.", "A player wins Speed ties against a Boss.", "After a stage victory, each player heals their active fighter 8 HP."] },
-];
 const OFFICIAL_RULINGS = rulesData.officialRulings;
 
 const valueLabel = (value: string | number | null | undefined) => value === null || value === undefined || value === "" ? "—" : String(value);
@@ -398,12 +372,14 @@ function StarterExampleCard({ kind, name, zone, timing, power, focus, art, catal
 
 function StarterDeckLesson({ jabArt, guardArt }: { jabArt?: string; guardArt?: string }) {
   const [selectedGroup, setSelectedGroup] = useState(0);
-  const selected = STARTER_CARDS[selectedGroup];
+  const selected = CANONICAL_STARTER_CARDS[selectedGroup];
+  const jab = STARTER_EXAMPLES.basicJab;
+  const guard = STARTER_EXAMPLES.highGuard;
   return <section className="starter-lesson" aria-labelledby="starter-deck-title">
-    <div className="starter-lesson-heading"><div><span className="eyebrow">Your opening toolkit</span><h3 id="starter-deck-title">Build this exact 15-card deck.</h3><p>Every player begins with the same cards. Shuffle all fifteen together, then draw five.</p></div><strong><b>15</b> cards<br />per player</strong></div>
-    <div className="starter-tabs" role="tablist" aria-label="Starter Deck card groups">{STARTER_CARDS.map((entry, index) => <button type="button" role="tab" aria-selected={selectedGroup === index} className={selectedGroup === index ? "active" : ""} onClick={() => setSelectedGroup(index)} onMouseEnter={() => setSelectedGroup(index)} onFocus={() => setSelectedGroup(index)} key={entry.group}><span aria-hidden="true">{entry.icon}</span><div><small>{entry.count} cards</small><b>{entry.group}</b></div></button>)}</div>
+    <div className="starter-lesson-heading"><div><span className="eyebrow">Your opening toolkit</span><h3 id="starter-deck-title">Build this exact 15-card deck.</h3><p>Every player begins with the same cards. Shuffle all fifteen together, then draw {HAND_SIZE}.</p></div><strong><b>15</b> cards<br />per player</strong></div>
+    <div className="starter-tabs" role="tablist" aria-label="Starter Deck card groups">{CANONICAL_STARTER_CARDS.map((entry, index) => <button type="button" role="tab" aria-selected={selectedGroup === index} className={selectedGroup === index ? "active" : ""} onClick={() => setSelectedGroup(index)} onMouseEnter={() => setSelectedGroup(index)} onFocus={() => setSelectedGroup(index)} key={entry.group}><span aria-hidden="true">{entry.icon}</span><div><small>{entry.count} cards</small><b>{entry.group}</b></div></button>)}</div>
     <div className="starter-group-detail" role="tabpanel"><div><span className="eyebrow">{selected.count} of 15 · {selected.group}</span><h4>{selected.purpose}</h4></div><ul>{selected.cards.map((card) => <li key={card}>{card}</li>)}</ul></div>
-    <div className="starter-example-section"><div className="starter-example-copy"><span className="eyebrow">What a starter card looks like</span><h3>Read the big numbers first.</h3><p>The colored header tells you the card’s job. Attack Power or Guard drives combat, and the zone tells you where it applies. Printed Focus is generated when the card is legally played on your turn—or when one Defense is used for Defense Practice.</p><ol><li><b>1.</b> Identify Attack or Defense.</li><li><b>2.</b> Match High, Mid, or Low.</li><li><b>3.</b> Add Attack Power or Guard to the fighter’s stat.</li></ol></div><div className="starter-card-pair"><StarterExampleCard kind="Attack" name="Basic Jab" zone="High" timing="Turn" power={2} focus={1} art={jabArt} catalogId="DDB-COR-STR-003" /><StarterExampleCard kind="Defense" name="High Guard" zone="High" timing="Reaction" power={2} focus={1} art={guardArt} catalogId="DDB-COR-STR-009" /></div></div>
+    <div className="starter-example-section"><div className="starter-example-copy"><span className="eyebrow">What a starter card looks like</span><h3>Read the big numbers first.</h3><p>The colored header tells you the card’s job. Attack Power or Guard drives combat, and the zone tells you where it applies. Printed Focus is generated when the card is legally played on your turn—or when one Defense is used for Defense Practice.</p><ol><li><b>1.</b> Identify Attack or Defense.</li><li><b>2.</b> Match High, Mid, or Low.</li><li><b>3.</b> Add Attack Power or Guard to the fighter’s stat.</li></ol></div><div className="starter-card-pair"><StarterExampleCard kind="Attack" name={jab.name} zone={jab.zone} timing={jab.timing} power={jab.power} focus={jab.focus} art={jabArt} catalogId={jab.catalogId} /><StarterExampleCard kind="Defense" name={guard.name} zone={guard.zone} timing={guard.timing} power={guard.power} focus={guard.focus} art={guardArt} catalogId={guard.catalogId} /></div></div>
   </section>;
 }
 
@@ -485,7 +461,7 @@ function HomeView({ goTo }: { goTo: (view: ViewId) => void }) {
         ["cards", "05", "Card Library", `Search and filter all ${cardData.total} numbered card entries.`],
       ].map(([view, number, title, text]) => <button className={`route-card paper-stack interactive-paper ${view === "playtest" ? "route-playtest" : ""}`} key={view} onClick={() => goTo(view as ViewId)}><span>{number}</span><h3>{title}</h3><p>{text}</p><b>Open section →</b></button>)}</div>
     </section>
-    <section className="phase-section"><div className="shell"><div className="section-title-row inverse"><div><span className="eyebrow">One round. Five beats.</span><h2>Remember H.I.Y.A.H.</h2></div><button className="text-link light" onClick={() => goTo("quickstart")}>See the complete turn →</button></div><div className="phase-track">{PHASES.map((phase, index) => <article key={`${phase.name}-${index}`}><span className="phase-letter">{phase.letter}</span><div><b>0{index + 1}</b><h3>{phase.name}</h3><p>{phase.text}</p></div></article>)}</div></div></section>
+    <section className="phase-section"><div className="shell"><div className="section-title-row inverse"><div><span className="eyebrow">One round. Five beats.</span><h2>Remember H.I.Y.A.H.</h2></div><button className="text-link light" onClick={() => goTo("quickstart")}>See the complete turn →</button></div><div className="phase-track">{CANONICAL_PHASES.map((phase, index) => <article key={`${phase.name}-${index}`}><span className="phase-letter">{phase.letter}</span><div><b>0{index + 1}</b><h3>{phase.name}</h3><p>{phase.text}</p></div></article>)}</div></div></section>
     <section className="shell roster-section"><div className="section-title-row"><div><span className="eyebrow">Meet the dojo</span><h2>Original fighters. Questionable judgment.</h2></div><button className="text-link" onClick={() => goTo("cards")}>Browse Characters →</button></div><div className="roster-grid">{HERO_FIGHTERS.map((fighter) => <article className="paper-stack" key={fighter.name}><div className="roster-image"><img src={fighter.image} alt={fighter.name} loading="lazy" decoding="async" /></div><span>{fighter.type}</span><h3>{fighter.name}</h3></article>)}</div></section>
   </>;
 }
@@ -506,27 +482,18 @@ function StoryView({ goTo }: { goTo: (view: ViewId) => void }) {
 }
 
 function QuickStartView({ goTo }: { goTo: (view: ViewId) => void }) {
-  const [selectedMode, setSelectedMode] = useState<(typeof GAME_MODES)[number] | null>(null);
+  const [selectedMode, setSelectedMode] = useState<(typeof CANONICAL_GAME_MODES)[number] | null>(null);
   const [selectedPhase, setSelectedPhase] = useState(0);
-  const setup = [
-    "Choose a mode. Tag Team is the recommended core format.",
-    "Choose fighters: three each for Tag Team or Boss Blitz; one each for Clash or Quick Duel.",
-    "Set every fighter to 25 HP. Begin at White Belt, 0 XP, 0 Focus, and unused Tempo.",
-    "Take the fixed 15-card Starter Deck shown below, shuffle, and draw five.",
-    "If that hand has no Attack and no Kata, reveal it, reshuffle, and draw five once more. Keep the second hand.",
-    "Shuffle Techniques, Katas, and Items into one Market Deck; reveal seven random cards. Keep Combos separate and face-down.",
-    "Shuffle Locations. Reveal the first Location during the first Honor Phase.",
-    "Randomly choose the opening referee marker for first-round Speed ties.",
-  ];
+  const setup = SETUP_STEPS;
   return <main className="page-shell shell">
     <SectionHeader eyebrow="Quick Start" title="From box to battle in 10 minutes" intro="The teach-at-the-table version: enough to play correctly, with every game mode one click away." art={headerQuickstartUrl} />
-        <section className="quick-mode-grid">{GAME_MODES.map((mode) => <button className={`mode-card paper-stack interactive-paper ${mode.id === "tag-team" ? "recommended" : ""}`} onClick={() => setSelectedMode(mode)} key={mode.id}><span>{mode.label}</span><h2>{mode.title}</h2><p>{mode.players} · {mode.fighters}</p><b>{mode.win}</b><small>Open full mode →</small></button>)}</section>
+        <section className="quick-mode-grid">{CANONICAL_GAME_MODES.map((mode) => <button className={`mode-card paper-stack interactive-paper ${mode.id === "tag-team" ? "recommended" : ""}`} onClick={() => setSelectedMode(mode)} key={mode.id}><span>{mode.label}</span><h2>{mode.title}</h2><p>{mode.players} · {mode.fighters}</p><b>{mode.win}</b><small>Open full mode →</small></button>)}</section>
     <section className="golden-rule-card quick-golden paper-stack"><div><span className="eyebrow">Before anybody argues</span><h2>The Golden Rule</h2></div><p>{GOLDEN_RULE}</p><span className="golden-stamp" aria-hidden="true">!</span></section>
-    <section className="paper-panel setup-panel paper-stack"><div className="panel-heading"><span className="step-stamp">01</span><div><span className="eyebrow">Set the table</span><h2>Eight things before the first HIYAH</h2></div></div><ol className="setup-list">{setup.map((item, index) => <li className={index === 3 ? "starter-step" : undefined} key={index}><span>{index + 1}</span><p>{item}</p></li>)}</ol><StarterDeckLesson jabArt={starterJabArtUrl} guardArt={highGuardArtUrl} /></section>
-    <section className="quick-section interactive-round"><div className="panel-heading"><span className="step-stamp">02</span><div><span className="eyebrow">Play the round</span><h2>Honor once. Then each player completes I.Y.A.H.</h2><p className="round-clarifier">Resolve the global Honor Phase once, lock Speed order, then let each player finish their entire turn before moving to the next fighter.</p></div></div><div className="quick-phases">{PHASES.map((phase, index) => <button className={selectedPhase === index ? "active" : ""} onClick={() => setSelectedPhase(index)} key={phase.name}><span>{phase.letter}</span><div><small>{index === 0 ? "Once per round" : "Each player"}</small><h3>{phase.name}</h3><p>{phase.text}</p></div></button>)}</div><article className="phase-explainer paper-stack"><div><span className="phase-explainer-letter">{PHASES[selectedPhase].letter}</span><div><span className="eyebrow">{PHASE_DETAILS[selectedPhase].when}</span><h3>{PHASE_DETAILS[selectedPhase].name}</h3><p>{PHASE_DETAILS[selectedPhase].who}</p></div></div><ol>{PHASE_DETAILS[selectedPhase].steps.map((step) => <li key={step}>{step}</li>)}</ol><blockquote>{PHASE_DETAILS[selectedPhase].quip}</blockquote></article></section>
+    <section className="paper-panel setup-panel paper-stack"><div className="panel-heading"><span className="step-stamp">01</span><div><span className="eyebrow">Set the table</span><h2>{setup.length} things before the first HIYAH</h2></div></div><ol className="setup-list">{setup.map((item, index) => <li className={index === 3 ? "starter-step" : undefined} key={index}><span>{index + 1}</span><p>{item}</p></li>)}</ol><StarterDeckLesson jabArt={starterJabArtUrl} guardArt={highGuardArtUrl} /></section>
+    <section className="quick-section interactive-round"><div className="panel-heading"><span className="step-stamp">02</span><div><span className="eyebrow">Play the round</span><h2>Honor once. Then each player completes I.Y.A.H.</h2><p className="round-clarifier">Resolve the global Honor Phase once, lock Speed order, then let each player finish their entire turn before moving to the next fighter.</p></div></div><div className="quick-phases">{CANONICAL_PHASES.map((phase, index) => <button className={selectedPhase === index ? "active" : ""} onClick={() => setSelectedPhase(index)} key={phase.name}><span>{phase.letter}</span><div><small>{index === 0 ? "Once per round" : "Each player"}</small><h3>{phase.name}</h3><p>{phase.text}</p></div></button>)}</div><article className="phase-explainer paper-stack"><div><span className="phase-explainer-letter">{CANONICAL_PHASES[selectedPhase].letter}</span><div><span className="eyebrow">{CANONICAL_PHASE_DETAILS[selectedPhase].when}</span><h3>{CANONICAL_PHASE_DETAILS[selectedPhase].name}</h3><p>{CANONICAL_PHASE_DETAILS[selectedPhase].who}</p></div></div><ol>{CANONICAL_PHASE_DETAILS[selectedPhase].steps.map((step) => <li key={step}>{step}</li>)}</ol><blockquote>{CANONICAL_PHASE_DETAILS[selectedPhase].quip}</blockquote></article></section>
     <section className="combat-primer paper-stack"><div className="combat-copy"><span className="eyebrow">03 · Resolve combat</span><h2>Attack a zone. Let everybody interfere.</h2><ol><li>Declare the target and High, Mid, or Low zone.</li><li>Identify printed Attack Power, ATK, Weapons, DEF, Armor, and modifiers.</li><li>Open the Reaction Window and resolve the Dojo Stack.</li><li>Calculate both final totals, then deal the difference as damage.</li><li>Hit at 1+ damage; Block at 0. Award normal Attack/Defense XP.</li></ol></div><div className="formula-card"><span>Final combat formula</span><p><b>Attack Power</b> = printed Attack Power + Character ATK + Weapons + modifiers</p><p><b>Defense</b> = Character DEF + matching Armor + one Defense card's Guard + modifiers</p><strong>Damage = max(0, Attack Power − Defense)</strong></div><CombatExample /></section>
     <section className="quick-footer-card paper-stack"><div><span className="eyebrow">The whole game</span><h2>Fight → generate Focus → buy stronger cards → complete Belt tasks → win.</h2></div><button className="button primary" onClick={() => goTo("rules")}>Open the full rules →</button></section>
-    {selectedMode && <DetailModal eyebrow={`${selectedMode.players} · ${selectedMode.fighters}`} title={selectedMode.title} onClose={() => setSelectedMode(null)} accent={selectedMode.id === "tag-team" ? "green" : "red"}><p className="modal-lede">{selectedMode.detail}</p><div className="modal-win"><span>How to win</span><strong>{selectedMode.win}</strong></div><ul className="modal-list">{selectedMode.notes.map((note) => <li key={note}>{note}</li>)}</ul></DetailModal>}
+    {selectedMode && <DetailModal eyebrow={`${selectedMode.players} · ${selectedMode.fighters}`} title={selectedMode.title} onClose={() => setSelectedMode(null)} accent={selectedMode.id === "tag-team" ? "green" : "red"}><p className="modal-lede">{selectedMode.detail}</p><div className="modal-win"><span>How to win</span><strong>{selectedMode.win}</strong></div>{selectedMode.notes.length > 0 && <ul className="modal-list">{selectedMode.notes.map((note) => <li key={note}>{note}</li>)}</ul>}</DetailModal>}
   </main>;
 }
 
