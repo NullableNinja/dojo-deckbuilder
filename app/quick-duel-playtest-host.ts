@@ -5,6 +5,10 @@ import type {
   CharacterRuntimeChoice,
   CharacterRuntimeEvent,
 } from "./character-runtime.ts";
+import {
+  quickDuelCharacterLifecycleEvent,
+  type QuickDuelCharacterLifecycleFacts,
+} from "./quick-duel-character-event-context.ts";
 import type { RuntimeCommand, RuntimeTrigger } from "./family-effect-runtime.ts";
 import {
   applyQuickDuelStructuredTransition,
@@ -46,6 +50,15 @@ export type QuickDuelPlaytestCharacterEventResult<Match> = {
   notes: string[];
 };
 
+export type QuickDuelPlaytestLifecycleEventResult<Match> = QuickDuelPlaytestEventResult<Match> & {
+  characterEvent: CharacterRuntimeEvent | null;
+  characterChoices: CharacterRuntimeChoice[];
+  characterNotes: string[];
+  characterPublished: boolean;
+  characterConflict: boolean;
+  characterReason: string;
+};
+
 function opposingActor(actor: QuickDuelPlaytestActor): QuickDuelPlaytestActor {
   return actor === "player" ? "ai" : "player";
 }
@@ -85,11 +98,15 @@ export function applyQuickDuelPlaytestTransition<
 }
 
 /**
- * Publishes a lifecycle event such as Initiate without fabricating a current
- * card. This advances canonical deferred statuses and active Combo sessions.
+ * Publishes a lifecycle event such as Initiate through both the generic
+ * structured-status/Combo host and the canonical Character event runtime.
+ *
+ * This is deliberately identity-free: Character facts are derived from board
+ * state and resolver capabilities. The result preserves any player choice so
+ * the UI can pause/resume instead of silently dropping a canonical core.choice.
  */
 export function publishQuickDuelPlaytestLifecycleEvent<
-  Board extends QuickDuelComboMatchBoard,
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
 >(
   match: Match,
@@ -97,7 +114,8 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   trigger: RuntimeTrigger,
   operations: QuickDuelRuntimeCommandOperations<Board>,
   statusEvent: QuickDuelRuntimeStatusEventFacts = {},
-): QuickDuelPlaytestEventResult<Match> {
+  characterFacts: QuickDuelCharacterLifecycleFacts = {},
+): QuickDuelPlaytestLifecycleEventResult<Match> {
   const published = publishQuickDuelComboEvent<Board>(
     boardsForActor<Board, Match>(match, actor),
     trigger,
@@ -105,10 +123,37 @@ export function publishQuickDuelPlaytestLifecycleEvent<
     operations,
     statusEvent,
   );
+  const structuredMatch = withActorBoards(match, actor, published.boards);
+  const characterType = trigger === "onInitiate" ? "initiate" : trigger === "onHide" ? "hide" : null;
+
+  if (!characterType) {
+    return {
+      match: structuredMatch,
+      commands: published.commands,
+      activatedComboIds: [],
+      characterEvent: null,
+      characterChoices: [],
+      characterNotes: [],
+      characterPublished: false,
+      characterConflict: false,
+      characterReason: "No Character lifecycle route for this trigger.",
+    };
+  }
+
+  const actingBoard = actor === "player" ? structuredMatch.player : structuredMatch.ai;
+  const characterEvent = quickDuelCharacterLifecycleEvent(actingBoard, characterType, characterFacts);
+  const character = publishQuickDuelPlaytestCharacterEvent(structuredMatch, actor, characterEvent);
+
   return {
-    match: withActorBoards(match, actor, published.boards),
+    match: character.match,
     commands: published.commands,
     activatedComboIds: [],
+    characterEvent: character.event,
+    characterChoices: character.choices,
+    characterNotes: character.notes,
+    characterPublished: character.published,
+    characterConflict: character.conflict,
+    characterReason: character.reason,
   };
 }
 
