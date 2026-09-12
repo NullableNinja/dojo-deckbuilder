@@ -208,6 +208,7 @@ export const COMBAT_FORMULA_TEXT = allTableCells(section(8, "final-combat-formul
   ?.replace("FINAL COMBAT FORMULA\n", "") ?? "";
 export const DEFENSE_WITHOUT_CARD_RULE = bullets(section(8, "defense-limits")?.content)
   .find((text) => text.includes("Static Character DEF") && text.includes("no Defense card")) ?? "";
+export const COMBAT_XP_RULE = COMBAT_SEQUENCE.at(-1) ?? "";
 
 const priorityCallout = allTableCells(section(15, "repeating-loops")?.content)
   .find((text) => text.startsWith("RULE PRIORITY\n")) ?? "";
