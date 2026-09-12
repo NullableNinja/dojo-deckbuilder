@@ -86,11 +86,16 @@ const section = (chapterNumber: number, id: string) => chapter(chapterNumber)?.s
 const paragraphs = (blocks: RuleBlock[] | undefined) => (blocks ?? []).filter((block): block is Extract<RuleBlock, { kind: "paragraph" }> => block.kind === "paragraph").map((block) => block.text);
 const bullets = (blocks: RuleBlock[] | undefined) => (blocks ?? []).filter((block): block is Extract<RuleBlock, { kind: "bullet" }> => block.kind === "bullet").map((block) => block.text);
 const tableRows = (blocks: RuleBlock[] | undefined) => (blocks ?? []).find((block): block is Extract<RuleBlock, { kind: "table" }> => block.kind === "table")?.rows ?? [];
+const allTableCells = (blocks: RuleBlock[] | undefined) => (blocks ?? []).flatMap((block) => block.kind === "table" ? block.rows.flat().map(String) : []);
 const stripStepNumber = (text: string) => text.replace(/^\s*\d+\.\s*/, "").trim();
 const numeric = (value: string | number | null | undefined) => {
   if (typeof value === "number") return value;
   const match = String(value ?? "").match(/-?\d+/);
   return match ? Number(match[0]) : 0;
+};
+const numberedCallout = (text: string) => {
+  const body = text.replace(/^[^\n]+\n/, "");
+  return [...body.matchAll(/(?:^|\s)(\d+)\.\s*(.*?)(?=(?:\s\d+\.\s)|$)/g)].map((match) => match[2].trim());
 };
 
 export const SETUP_STEPS = paragraphs(section(4, "setup-steps")?.content).map(stripStepNumber);
@@ -159,6 +164,8 @@ export const PHASE_DETAILS = PHASES.map((phase) => {
   };
 });
 
+export const ROUND_STRUCTURE_SUMMARY = paragraphs(phaseChapter?.intro)[1] ?? "";
+
 const modeChapter = chapter(3);
 const modeTable = tableRows(modeChapter?.intro);
 const MODE_IDS: Record<string, string> = {
@@ -194,3 +201,24 @@ export const GAME_MODES = modeTable.slice(1).map((row) => {
 
 export const QUICKSTART_CANONICAL_SUMMARY = paragraphs(section(4, "quickstart")?.content);
 export const VICTORY_CONDITIONS = bullets(section(3, "victory-conditions")?.content);
+
+export const COMBAT_SEQUENCE = paragraphs(section(8, "attack-sequence")?.content).map(stripStepNumber);
+export const COMBAT_FORMULA_TEXT = allTableCells(section(8, "final-combat-formula")?.content)
+  .find((text) => text.startsWith("FINAL COMBAT FORMULA\n"))
+  ?.replace("FINAL COMBAT FORMULA\n", "") ?? "";
+export const DEFENSE_WITHOUT_CARD_RULE = bullets(section(8, "defense-limits")?.content)
+  .find((text) => text.includes("Static Character DEF") && text.includes("no Defense card")) ?? "";
+
+const priorityCallout = allTableCells(section(15, "repeating-loops")?.content)
+  .find((text) => text.startsWith("RULE PRIORITY\n")) ?? "";
+export const RULE_PRIORITY = numberedCallout(priorityCallout);
+export const TABLE_JUDGE_PROCEDURE = allTableCells(section(15, "negotiation-assistance-and-betrayal")?.content)
+  .find((text) => text.startsWith("TABLE JUDGE PROCEDURE\n"))
+  ?.replace("TABLE JUDGE PROCEDURE\n", "") ?? "";
+
+const multipleAttackRule = bullets(section(8, "multiple-attacks")?.content)[0] ?? "";
+const defensePracticeBlocks = section(7, "defense-practice")?.content;
+const defensePracticeSummary = [paragraphs(defensePracticeBlocks)[0], ...bullets(defensePracticeBlocks).slice(0, 2)].filter(Boolean).join(" ");
+const marketRefillRule = bullets(section(10, "the-shared-market")?.content).find((text) => text.startsWith("After each purchase")) ?? "";
+const quickDuelRule = paragraphs(section(3, "quick-duel")?.content)[0] ?? "";
+export const CURRENT_RULE_HIGHLIGHTS = [multipleAttackRule, defensePracticeSummary, marketRefillRule, quickDuelRule].filter(Boolean);
