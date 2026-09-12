@@ -215,10 +215,11 @@ export const RULE_PRIORITY = numberedCallout(priorityCallout);
 export const TABLE_JUDGE_PROCEDURE = allTableCells(section(15, "negotiation-assistance-and-betrayal")?.content)
   .find((text) => text.startsWith("TABLE JUDGE PROCEDURE\n"))
   ?.replace("TABLE JUDGE PROCEDURE\n", "") ?? "";
+export const TABLE_JUDGE_STEPS = TABLE_JUDGE_PROCEDURE.split(/(?<=[.!?])\s+/).filter(Boolean);
 
-const multipleAttackRule = bullets(section(8, "multiple-attacks")?.content)[0] ?? "";
 const defensePracticeBlocks = section(7, "defense-practice")?.content;
-const defensePracticeSummary = [paragraphs(defensePracticeBlocks)[0], ...bullets(defensePracticeBlocks).slice(0, 2)].filter(Boolean).join(" ");
+export const DEFENSE_PRACTICE_SUMMARY = [paragraphs(defensePracticeBlocks)[0], ...bullets(defensePracticeBlocks).slice(0, 2)].filter(Boolean).join(" ");
+const multipleAttackRule = bullets(section(8, "multiple-attacks")?.content)[0] ?? "";
 const marketRefillRule = bullets(section(10, "the-shared-market")?.content).find((text) => text.startsWith("After each purchase")) ?? "";
 const quickDuelRule = paragraphs(section(3, "quick-duel")?.content)[0] ?? "";
-export const CURRENT_RULE_HIGHLIGHTS = [multipleAttackRule, defensePracticeSummary, marketRefillRule, quickDuelRule].filter(Boolean);
+export const CURRENT_RULE_HIGHLIGHTS = [multipleAttackRule, DEFENSE_PRACTICE_SUMMARY, marketRefillRule, quickDuelRule].filter(Boolean);
