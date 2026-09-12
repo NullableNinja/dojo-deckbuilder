@@ -6,6 +6,7 @@ on:
       - stage3-rebuild-current-main
     paths:
       - .github/workflows/stage3-rebuild-attack-replay.yml
+      - scripts/reconcile-stage3-transition-host.mjs
 
 permissions:
   contents: write
@@ -31,26 +32,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fetch historical Stage 3 integration commits
+      - name: Install current-main transition host seam
+        run: node scripts/reconcile-stage3-transition-host.mjs
+
+      - name: Fetch remaining historical Stage 3 integration commits
         run: |
           git fetch origin \
-            ad8fd73a25b2aaf6f500b98661d2151927bbace8 \
             b0557f1a2b8e77af65c063afe75196e73d03c593 \
             4a3bafb5e2754fab1efa607c90e319cd4e0c36fa \
             5c78b98b8e12abf7a20036f43572e949f2c0713f \
             58ae0f5da2f63aa645745b3e74c65a7475bc6a0e
 
-      - name: Replay transition lifecycle and Attack-host deltas
+      - name: Replay lifecycle and Attack-host deltas
         shell: bash
         run: |
           set -euo pipefail
           for commit in \
-            ad8fd73a25b2aaf6f500b98661d2151927bbace8 \
             b0557f1a2b8e77af65c063afe75196e73d03c593 \
             4a3bafb5e2754fab1efa607c90e319cd4e0c36fa \
             5c78b98b8e12abf7a20036f43572e949f2c0713f \
             58ae0f5da2f63aa645745b3e74c65a7475bc6a0e
           do
+            echo "Replaying $commit"
             git show --format= --binary "$commit" -- app/playtest.tsx | git apply --3way
           done
 
@@ -66,14 +69,14 @@ jobs:
             tests/quick-duel-character-migration.test.mjs \
             tests/quick-duel-deferred-status-window.test.mjs
 
-      - name: Remove one-time replay workflow
-        run: rm .github/workflows/stage3-rebuild-attack-replay.yml
+      - name: Remove one-time replay machinery
+        run: rm scripts/reconcile-stage3-transition-host.mjs .github/workflows/stage3-rebuild-attack-replay.yml
 
       - name: Commit reconstructed Attack host integration
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/playtest.tsx .github/workflows/stage3-rebuild-attack-replay.yml
+          git add app/playtest.tsx scripts/reconcile-stage3-transition-host.mjs .github/workflows/stage3-rebuild-attack-replay.yml
           git commit -m "replay Stage 3 Attack host integration on current Playtest"
           git push origin HEAD:stage3-rebuild-current-main
