@@ -5,6 +5,7 @@ on:
     branches:
       - stage3-main-integration-authoring
     paths:
+      - scripts/reconcile-stage3-player-attack-host.mjs
       - .github/workflows/stage3-main-integration-authoring.yml
 
 permissions:
@@ -36,10 +37,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Replay player Attack host
+      - name: Reconcile player Attack host
         run: |
-          git fetch origin 4a3bafb5e2754fab1efa607c90e319cd4e0c36fa
-          git show 4a3bafb5e2754fab1efa607c90e319cd4e0c36fa -- app/playtest.tsx | git apply --3way
+          node scripts/reconcile-stage3-player-attack-host.mjs
           git add app/playtest.tsx
           git commit -m "candidate: route player Attack through unified Combo host"
 
