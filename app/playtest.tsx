@@ -1979,6 +1979,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
   const setMatch = (update: SetStateAction<Match | null>) => setRawMatch((previous) => {
     const next = typeof update === "function" ? update(previous) : update;
+    if (!previous && next?.phase === "player-initiate") {
+      const initiated = withPlayerCharacterChoice(publishQuickDuelPlaytestLifecycleEvent(next, "player", "onInitiate", quickDuelHostOperations, cardFor));
+      return { ...initiated, player: applyInitiateCarryover(initiated.player) };
+    }
     return previous && next ? applyQuickDuelPlaytestTransition(previous, next, cardFor) : next;
   });
   const [inspectedId, setInspectedId] = useState<string | null>(null);
