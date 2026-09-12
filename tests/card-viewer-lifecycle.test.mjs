@@ -8,10 +8,27 @@ const companion = await readFile(new URL("../app/companion-app.tsx", import.meta
 const playtest = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
 const inspector = await readFile(new URL("../app/card-inspector.tsx", import.meta.url), "utf8");
 
-test("experimental global Dojo Dossier lifecycle stays isolated from the application root", () => {
-  assert.doesNotMatch(main, /import CardViewerLifecycle from "\.\.\/app\/card-viewer-lifecycle";/);
-  assert.doesNotMatch(main, /<CardViewerLifecycle \/>/);
+test("global Dojo Dossier lifecycle is mounted without eagerly importing CardInspector", () => {
+  assert.match(main, /import CardViewerLifecycle, \{ prepareCardRouteAlias \} from "\.\.\/app\/card-viewer-lifecycle";/);
+  assert.match(main, /prepareCardRouteAlias\(\);/);
+  assert.match(main, /<CardViewerLifecycle \/>/);
   assert.match(lifecycle, /export default function CardViewerLifecycle\(\)/);
+  assert.doesNotMatch(lifecycle, /import \{ CardInspector \}/);
+});
+
+test("Dojo Dossier uses singular canonical #card routes and preserves direct deep links", () => {
+  assert.match(lifecycle, /const CANONICAL_CARD_PREFIX = "#card\/";/);
+  assert.match(lifecycle, /const canonicalCardHash = \(catalogId: string\) => `\$\{CANONICAL_CARD_PREFIX\}\$\{encodeURIComponent\(catalogId\)\}`;/);
+  assert.match(lifecycle, /window\.location\.hash\.match\(\/\^#card\\\/\(\[\^\/\]\+\)\$\/i\)/);
+  assert.match(lifecycle, /window\.history\.replaceState\(window\.history\.state, "", libraryCardHash\(match\[1\]\)\);/);
+});
+
+test("Quick Duel gives the Dossier a card history entry and closing restores #playtest", () => {
+  assert.match(lifecycle, /origin = document\.querySelector\("\.playtest-shell"\) \? "playtest" : "cards";/);
+  assert.match(lifecycle, /origin === "playtest" && firstOpen && window\.location\.hash === "#playtest"/);
+  assert.match(lifecycle, /window\.history\.pushState\(null, "", shareHash\);/);
+  assert.match(lifecycle, /const originHash = \(origin: ViewerOrigin\) => origin === "playtest" \? "#playtest" : "#cards";/);
+  assert.match(lifecycle, /window\.addEventListener\("popstate", handlePopState\);/);
 });
 
 test("shared CardInspector stays out of the application entry and is loaded through its dedicated lazy module", () => {
@@ -41,9 +58,10 @@ test("Card Library still mounts exactly one shared CardInspector surface", () =>
   assert.doesNotMatch(companion, /<CardModal\b/);
 });
 
-test("Quick Duel still mounts the shared CardInspector without a global DOM observer", () => {
+test("Quick Duel still mounts the shared CardInspector and routing stays outside the game engine", () => {
   assert.match(playtest, /\{inspected && !inspectedBoard && <Suspense fallback=\{null\}><CardInspector/);
-  assert.doesNotMatch(main, /MutationObserver/);
+  assert.doesNotMatch(playtest, /MutationObserver/);
+  assert.match(lifecycle, /new MutationObserver\(syncRouteFromViewer\)/);
 });
 
 test("obsolete CardModal is definition-only and no longer mounted by the Card Library", () => {
