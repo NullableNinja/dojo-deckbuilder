@@ -53,3 +53,5 @@ jobs:
           git add -A
           git commit -m "Reconcile canonical Black Belt and HP rules"
           git push origin HEAD:fix/canonical-rules-source-reconcile
+
+# retrigger after matcher repair
