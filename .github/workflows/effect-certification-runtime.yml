@@ -33,19 +33,19 @@ jobs:
       - name: Build certification ledger
         run: node scripts/certify-runtime-effects.mjs
 
-      - name: Run full repository certification
-        run: npm test
-
       - name: Commit certification reports
         shell: bash
         run: |
           set -euo pipefail
           if git diff --quiet -- reports/runtime-effect-certification.json reports/runtime-effect-certification.md; then
             echo "Certification report unchanged."
-            exit 0
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add reports/runtime-effect-certification.json reports/runtime-effect-certification.md
+            git commit -m "Update runtime effect certification report"
+            git push
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/runtime-effect-certification.json reports/runtime-effect-certification.md
-          git commit -m "Update runtime effect certification report"
-          git push
+
+      - name: Run full repository certification
+        run: npm test
