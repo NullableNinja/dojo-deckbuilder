@@ -4,6 +4,7 @@ import test from "node:test";
 
 const cssUrl = new URL("../app/globals.css", import.meta.url);
 const appUrl = new URL("../app/companion-app.tsx", import.meta.url);
+const navigationUrl = new URL("../app/site-navigation.ts", import.meta.url);
 
 test("ships the phone and small-tablet responsive contract", async () => {
   const css = await readFile(cssUrl, "utf8");
@@ -21,16 +22,26 @@ test("ships the phone and small-tablet responsive contract", async () => {
   ]) assert.ok(css.includes(expected), `Missing responsive contract: ${expected}`);
 });
 
-test("mobile navigation reaches every section without crowding the bottom bar", async () => {
-  const app = await readFile(appUrl, "utf8");
+test("mobile navigation reaches every intended section without crowding the bottom bar", async () => {
+  const [app, navigation] = await Promise.all([
+    readFile(appUrl, "utf8"),
+    readFile(navigationUrl, "utf8"),
+  ]);
+
   assert.match(app, /aria-label="Mobile navigation"/);
-  for (const label of [">Home<", ">Start<", ">Rules<", ">Cards<", ">Menu<"]) {
-    assert.ok(app.includes(label), `Missing mobile destination: ${label}`);
-  }
+  assert.match(app, /MOBILE_MENU_NAVIGATION\.map/);
+  assert.match(app, /MOBILE_BOTTOM_NAVIGATION\.map/);
+  assert.match(app, /navigationItemIsActive\(item, route\)/);
   assert.match(app, /id="mobile-menu"/);
   assert.match(app, /aria-controls="mobile-menu"/);
-  assert.match(app, /rawView === "house-rules"/);
-  assert.match(app, /id: "rulings", label: "Rulings & Variants"/);
+  assert.match(app, /navigate\(topLevelRoute\(next\)\)/);
+
+  for (const page of ["home", "quickstart", "story", "rules", "cards", "rulings", "glossary"]) {
+    assert.match(navigation, new RegExp(`page: "${page}"`), `Missing shared mobile destination metadata: ${page}`);
+  }
+  assert.match(navigation, /page: "playtest"[\s\S]*?mobileMenu: false,[\s\S]*?mobileBottom: false/);
+  assert.match(navigation, /page: "rulings"[\s\S]*?label: "Rulings & Variants"/);
+  assert.doesNotMatch(app, /rawView === "house-rules"/);
   assert.doesNotMatch(app, /view === "house-rules"/);
 });
 
@@ -85,17 +96,21 @@ test("the paper interface makes scrolling and progress visible", async () => {
   assert.match(css, /env\(safe-area-inset-bottom\)/);
 });
 
-
-test("public companion keeps downloads out of the visitor experience and renumbers mobile routes", async () => {
-  const [app, css] = await Promise.all([
+test("public companion keeps downloads out of the visitor experience and shared metadata owns mobile labels", async () => {
+  const [app, css, navigation] = await Promise.all([
     readFile(appUrl, "utf8"),
     readFile(cssUrl, "utf8"),
+    readFile(navigationUrl, "utf8"),
   ]);
   assert.doesNotMatch(app, /className="download-row"/);
   assert.doesNotMatch(app, />Download (?:Quick Start|Full Rules|Card Catalog|Glossary)/);
   assert.doesNotMatch(app, />Defense Equipment sources \(\.ora\.zip\)/);
   assert.doesNotMatch(app, />Consumable sources \(\.ora\.zip\)/);
-  assert.match(app, /detail: "Return to the Dojo Desk\."/);
+  assert.match(navigation, /description: "Return to the Dojo Desk\."/);
+  assert.match(navigation, /shortLabel: "Home"/);
+  assert.match(navigation, /shortLabel: "Start"/);
+  assert.match(navigation, /shortLabel: "Rules"/);
+  assert.match(navigation, /shortLabel: "Cards"/);
   assert.match(css, /counter-reset: mobile-route/);
   assert.match(css, /counter-increment: mobile-route/);
 });
