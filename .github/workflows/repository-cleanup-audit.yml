@@ -42,17 +42,17 @@ jobs:
       - name: Runtime effect certification
         run: node scripts/certify-runtime-effects.mjs
 
-      - name: Repository inventory
+      - name: Repository inventory and reachability candidates
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p cleanup-audit
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, subprocess
-          root = pathlib.Path('.')
-          tracked = subprocess.check_output(['git','ls-files','-z']).split(b'\0')
-          tracked = [pathlib.Path(p.decode()) for p in tracked if p]
-          rows=[]
+          import hashlib, json, pathlib, re, subprocess
+
+          tracked_raw = subprocess.check_output(['git','ls-files','-z']).split(b'\0')
+          tracked = [pathlib.Path(p.decode()) for p in tracked_raw if p]
+          files = [p for p in tracked if p.is_file()]
           hashes={}
           ext={}
           dirs={}
@@ -60,12 +60,11 @@ jobs:
           zero=[]
           temp=[]
           suffixes=('.tmp','.bak','.orig','.rej','.old','.save','.swp','.swo')
-          for p in tracked:
-            if not p.is_file():
-              continue
+          text_cache={}
+
+          for p in files:
             size=p.stat().st_size
             total += size
-            rows.append({'path':str(p),'size':size})
             ext[p.suffix.lower() or '<none>']=ext.get(p.suffix.lower() or '<none>',0)+1
             top=p.parts[0] if p.parts else '<root>'
             dirs[top]=dirs.get(top,0)+1
@@ -75,15 +74,46 @@ jobs:
               temp.append(str(p))
             h=hashlib.sha256(p.read_bytes()).hexdigest()
             hashes.setdefault(h,[]).append(str(p))
+            if size <= 5_000_000:
+              try: text_cache[str(p)] = p.read_text('utf-8')
+              except Exception: pass
+
           dups=[{'sha256':h,'paths':ps,'bytes_each':pathlib.Path(ps[0]).stat().st_size} for h,ps in hashes.items() if len(ps)>1]
+
+          left='<' * 7
+          middle='=' * 7
+          right='>' * 7
           conflict=[]
-          for p in tracked:
-            if not p.is_file() or p.stat().st_size > 5_000_000:
+          for path,text in text_cache.items():
+            if path == '.github/workflows/repository-cleanup-audit.yml':
               continue
-            try: text=p.read_text('utf-8')
-            except Exception: continue
-            if any(marker in text for marker in ('<<<<<<< ','=======\n','>>>>>>> ')):
-              conflict.append(str(p))
+            if left in text or right in text or re.search(rf'(?m)^\\s*{middle}\\s*$', text):
+              conflict.append(path)
+
+          all_text='\n'.join(text_cache.values())
+          source_ext={'.ts','.tsx','.js','.mjs','.css','.py'}
+          code_candidates=[]
+          protected_prefixes=('content/','tests/')
+          explicit_entries={
+            'src/main.tsx','src/playtest-vfx-runtime.ts','vite.config.ts',
+            'scripts/generate-game-data.mjs','scripts/check-generated-game-data.mjs',
+            'scripts/certify-runtime-effects.mjs','scripts/verify-card-inspector-bundle.mjs',
+          }
+          for p in files:
+            sp=str(p)
+            if p.suffix.lower() not in source_ext or sp in explicit_entries or sp.startswith(protected_prefixes):
+              continue
+            if sp.startswith('.github/'):
+              continue
+            stem_path=sp.rsplit('.',1)[0]
+            name_no_ext=p.name.rsplit('.',1)[0]
+            own=text_cache.get(sp,'')
+            haystack=all_text.replace(own,'',1) if own else all_text
+            probes=(sp, stem_path, './'+p.name, '../'+p.name, name_no_ext)
+            hits=[probe for probe in probes if probe and probe in haystack]
+            if not hits:
+              code_candidates.append({'path':sp,'size':p.stat().st_size,'reason':'no path/stem/basename reference found in tracked UTF-8 text'})
+
           dist=[p for p in pathlib.Path('dist').rglob('*') if p.is_file()] if pathlib.Path('dist').exists() else []
           bundle={
             'dist_files':len(dist),
@@ -93,7 +123,13 @@ jobs:
             'image_files':sum(1 for p in dist if p.suffix.lower() in {'.png','.webp','.jpg','.jpeg','.gif','.svg'}),
             'image_bytes':sum(p.stat().st_size for p in dist if p.suffix.lower() in {'.png','.webp','.jpg','.jpeg','.gif','.svg'}),
           }
-          out={'tracked_files':len(rows),'tracked_bytes':total,'by_extension':dict(sorted(ext.items())),'by_top_directory':dict(sorted(dirs.items())),'zero_byte_files':zero,'temporary_files':temp,'duplicate_groups':dups,'conflict_marker_files':conflict,'bundle':bundle}
+          out={
+            'tracked_files':len(files),'tracked_bytes':total,
+            'by_extension':dict(sorted(ext.items())),'by_top_directory':dict(sorted(dirs.items())),
+            'zero_byte_files':zero,'temporary_files':temp,'duplicate_groups':dups,
+            'conflict_marker_files':conflict,'static_unreferenced_code_candidates':code_candidates,
+            'bundle':bundle,
+          }
           pathlib.Path('cleanup-audit/inventory.json').write_text(json.dumps(out,indent=2)+'\n')
           print(json.dumps(out,indent=2))
           PY
