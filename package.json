@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/verify-card-inspector-bundle.mjs",
     "preview": "vite preview",
     "game:generate": "node scripts/generate-game-data.mjs",
     "game:check": "node scripts/check-generated-game-data.mjs",
