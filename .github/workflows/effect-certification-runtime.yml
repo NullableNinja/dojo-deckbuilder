@@ -41,7 +41,7 @@ jobs:
           if-no-files-found: error
 
       - name: Run Quick Duel host certification
-        run: node --test tests/quick-duel-playtest-host.test.mjs
+        run: node --experimental-strip-types --test tests/quick-duel-playtest-host.test.mjs
 
       - name: Run full repository certification
         run: npm test
