@@ -18,7 +18,8 @@ import { firstEventReactionCard, hasUntargetableStatus } from "./stage3c-consuma
 import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, spendableFocusForPurchase, spendFocusForPurchase } from "./stage3c-consumable-surface.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
-import type { RuntimeChoice, RuntimeCommand, RuntimeStatus, RuntimeTrigger } from "./family-effect-runtime";
+import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
+import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction } from "./character-runtime";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -120,6 +121,10 @@ type Board = {
   wasHitSinceLastTurn: boolean;
   borrowedEquipmentId: string | null;
   abilityUsedRound: boolean;
+  usedCharacterEffectIdsThisTurn?: string[];
+  usedCharacterEffectIdsThisRound?: string[];
+  usedCharacterEffectIdsThisGame?: string[];
+  characterMarks?: Record<string, unknown>;
   reversalUsedRound: boolean;
   learnedCombos: string[];
   triggeredCombos: string[];
@@ -927,8 +932,8 @@ function attackAllowedZones(board: Board, card: CardEntry) {
   if (board.nextAttackAnyZone || card.zone?.includes("Any")) return ["High", "Mid", "Low"];
   const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
   if (attackCanChooseAnyZone(card, board.attacksThisTurn === 0, equipped)) return ["High", "Mid", "Low"];
-  if (cardFor(board.fighterId)?.name === "Whirlwind Wynn" && board.attacksThisTurn === 0 && hasTag(card, "Spin")) return ["High", "Mid", "Low"];
-  return [card.zone?.split(",")[0] ?? "High"];
+  const printedZones = [card.zone?.split(",")[0] ?? "High"];
+  return characterAllowedAttackZones(board, card, printedZones);
 }
 function attackHasFlexibleZone(board: Board, card: CardEntry) {
   return attackAllowedZones(board, card).length > 1;
@@ -945,27 +950,36 @@ function fighterAttackModifier(attacker: Board, defender: Board, card: CardEntry
   const fighter = cardFor(attacker.fighterId);
   if (!fighter) return { power: 0, damage: 0, notes: [] };
   const firstAttack = attacker.attacksThisTurn === 0;
-  if (fighter.name === "El Pollo Rojo" && firstAttack && defender.xp > attacker.xp) return { power: 0, damage: 1, notes: ["El Pollo Rojo refuses to trail +1 damage"] };
-  if (fighter.name === "Knuckleton the Brawler" && firstAttack && !attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; })) return { power: 0, damage: 1, notes: ["Knuckleton's first unarmed strike +1 damage"] };
-  if (fighter.name === "Wavey Davey" && firstAttack && attacker.wasHitSinceLastTurn) return { power: 0, damage: 1, notes: ["Wavey Davey found the opening +1 damage"] };
-  if (fighter.name === "Whirlwind Wynn" && firstAttack && hasTag(card, "Spin")) return { power: 0, damage: 0, notes: ["Whirlwind Wynn opens the Spin zone"] };
-  return { power: 0, damage: 0, notes: [] };
+  const hasWeaponEquipped = attacker.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
+  const printedZone = card.zone?.split(",")[0] ?? null;
+  const previousZone = attacker.zonesPlayed.at(-1) ?? null;
+  const structured = characterAttackModifier(attacker, defender, card, {
+    firstAttackThisTurn: firstAttack,
+    usedConsumableThisTurn: attacker.usedConsumableThisRound,
+    hasWeaponEquipped,
+    playedKataEarlierThisTurn: attacker.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; }),
+    zone: printedZone ?? undefined,
+    previousAttackZone: previousZone,
+    differentZoneFromPreviousAttack: Boolean(previousZone && printedZone && previousZone !== printedZone),
+  });
+  const catchupEffect = structuredRuntimeResolvers(fighter, "character.xpTrailFirstHit")[0];
+  const catchupDamage = firstAttack && defender.xp > attacker.xp ? Number(catchupEffect?.amount ?? 0) : 0;
+  const notes = [...structured.notes];
+  if (catchupDamage) notes.push(`Character: XP-trail first Hit +${catchupDamage} damage`);
+  return { power: structured.power, damage: structured.damage + catchupDamage, notes };
 }
-
 function reduceDamageForFighter(board: Board, damage: number): { board: Board; damage: number; note: string | null } {
   const structuredReduction = stage3cTakeDamagePrevention(board, damage);
   const equipmentReduction = applyMandatoryEquipmentDamageReduction(structuredReduction.board, structuredReduction.damage);
   let next = equipmentReduction.board;
   let remaining = equipmentReduction.damage;
   const notes = [...structuredReduction.notes, ...equipmentReduction.notes];
-  const fighter = cardFor(next.fighterId);
-  if (fighter && !next.damageReductionUsed && remaining > 0) {
-    const protects = fighter.name === "Sentry Bobby" || (fighter.name === "Crash Test Dummy" && remaining >= 4);
-    if (protects) {
-      next = { ...next, damageReductionUsed: true };
-      remaining = Math.max(0, remaining - 1);
-      notes.push(`${fighter.name} reduces the Hit by 1`);
-    }
+  if (remaining > 0) {
+    const before = remaining;
+    const characterReduction = characterDamageReduction(next, remaining);
+    next = { ...next, ...characterReduction.board, damageReductionUsed: next.damageReductionUsed || characterReduction.damage < before };
+    remaining = characterReduction.damage;
+    notes.push(...characterReduction.notes);
   }
   return { board: next, damage: remaining, note: notes.length ? notes.join("; ") : null };
 }
@@ -2068,7 +2082,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-initiate" || current.winner) return current;
     const card = cardFor(id);
     if (!card || !isPermanent(card)) return current;
-    if (cardFor(current.player.fighterId)?.name === "Knuckleton the Brawler" && isWeapon(card)) return write(current, "Knuckleton refuses the Weapon. The waiver cites 'personal reasons.'");
+    if (!characterCanEquip(current.player, card)) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);
     let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id] }, card, "player");
     let pendingChoice: PendingChoice | null = null;
     const beltName = belts[nextPlayer.belt]?.name ?? "White";
@@ -3418,7 +3432,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card); const badHabit = card.catalogId === gameDefinition.economy.badHabitFocus.catalogId;
           const choosingDiscard = Boolean(match.pendingDiscard);
           const choosingEffect = Boolean(match.pendingChoice);
-          const canInitiate = match.phase === "player-initiate" && permanent && !(playerFighter.name === "Knuckleton the Brawler" && isWeapon(card));
+          const canInitiate = match.phase === "player-initiate" && permanent && characterCanEquip(player, card);
           const attackAllowed = !stage3cRestrictionBlocks(player.stage3cRestrictions, "attack");
           const consumableAllowed = !isCoreConsumableCard(card) || (!stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(player)));
           const canUse = match.phase === "player-yell" && (attack ? attackAllowed : (defense ? !player.defensePracticeUsed : !permanent && consumableAllowed));
@@ -3429,7 +3443,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         })}</div>
         {match.phase === "player-initiate" && playerFighter.name === "Sensei Ducktape" && !player.abilityUsedRound && player.discard.some((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }) && <div className="ducktape-tray"><span>Sensei Ducktape · emergency repair</span>{player.discard.filter((id) => { const card = cardFor(id); return card ? isPermanent(card) : false; }).slice(0, 3).map((id) => <button onClick={() => borrowEquipment(id)} key={id}>Jury-rig {cardFor(id)?.name}</button>)}</div>}
         {match.phase === "reversal-window" && pendingAttack?.zone?.includes("Any") && <div className="hand-context-strip"><span>Choose reversal zone</span><fieldset className="zone-picker"><legend className="sr-only">Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
-        {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && (pendingAttack.zone?.includes("Any") || (playerFighter.name === "Whirlwind Wynn" && player.attacksThisTurn === 0 && hasTag(pendingAttack, "Spin"))) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
+        {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && attackHasFlexibleZone(player, pendingAttack) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
       </section>
     </section>
     <footer className="playtest-utility-dock" aria-label="Quick Duel utilities">
@@ -3663,7 +3677,7 @@ function prepareAiTurn(current: Match) {
   }
   const supportIds = nextAi.hand.filter((id) => {
     const card = cardFor(id);
-    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || (fighter?.name === "Knuckleton the Brawler" && isWeapon(card))) return false;
+    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || !characterCanEquip(nextAi, card)) return false;
     if (isCoreConsumableCard(card)) return canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(nextAi));
     return true;
   });
