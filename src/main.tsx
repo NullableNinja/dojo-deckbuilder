@@ -16,6 +16,7 @@ import "../app/playtest-layout.css";
 import "../app/playtest-live-skin.css";
 import "../app/playtest-visual-repair.css";
 import "../app/ascend-combo-button.css";
+import "../app/playtest-finishing-pass.css";
 import "../app/ascend-combo-popout";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
