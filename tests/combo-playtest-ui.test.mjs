@@ -7,6 +7,6 @@ test("Quick Duel keeps learned Combos visible and evaluates the dedicated requir
   assert.match(source, /active-combo-rack/);
   assert.match(source, /comboRequirementText/);
   assert.match(source, /evaluateCombo/);
-  assert.match(source, /COMBO —/);
+  assert.match(source, /∞ Learned Combos/);
   assert.match(source, /Manual resolver/);
 });
