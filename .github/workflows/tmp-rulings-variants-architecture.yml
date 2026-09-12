@@ -31,6 +31,16 @@ jobs:
           sed -i 's/expected at least 8 settings.locations call endings/expected 7 settings.locations call endings/' scripts/tmp-rulings-variants-patch.py
           sed -i 's#rules_path = "app/data/rules.json"#rules_path = "content/rules.json"#' scripts/tmp-rulings-variants-patch.py
           python scripts/tmp-rulings-variants-patch.py
+          python <<'PY'
+          from pathlib import Path
+          path = Path("app/playtest.tsx")
+          text = path.read_text()
+          old = 'return advanceRound(hidden, settings.locations, "Both fighters have completed the round.");'
+          new = 'return advanceRound(hidden, settings.locations, "Both fighters have completed the round.", settings.houseRuleIds);'
+          if text.count(old) != 1:
+              raise SystemExit(f"expected exactly one direct player round-advance call, found {text.count(old)}")
+          path.write_text(text.replace(old, new))
+          PY
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
