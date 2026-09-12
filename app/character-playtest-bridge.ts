@@ -38,9 +38,19 @@ export function applyCharacterEventForHost<
   const result = applyCharacterRuntimeEvent(self, opponent, event, actor);
   return {
     ...result,
-    self: result.self as SelfBoard,
-    opponent: result.opponent as OpponentBoard,
+    self: { ...self, ...result.self },
+    opponent: { ...opponent, ...result.opponent },
   };
+}
+
+/** Turn-boundary cleanup that preserves unrelated host state. */
+export function resetCharacterHostTurn<Board extends CharacterHostBoard>(board: Board): Board {
+  return { ...board, ...resetCharacterTurn(board) };
+}
+
+/** Round-boundary cleanup that preserves unrelated host state. */
+export function resetCharacterHostRound<Board extends CharacterHostBoard>(board: Board): Board {
+  return { ...board, ...resetCharacterRound(board) };
 }
 
 /** Turn-boundary reset plus event publication, preserving unrelated host state. */
@@ -48,7 +58,7 @@ export function beginCharacterHostTurn<
   SelfBoard extends CharacterHostBoard,
   OpponentBoard extends CharacterHostBoard,
 >(self: SelfBoard, opponent: OpponentBoard, actor: CharacterRuntimeActor = "player") {
-  return applyCharacterEventForHost(resetCharacterTurn(self) as SelfBoard, opponent, { type: "turnStart" }, actor);
+  return applyCharacterEventForHost(resetCharacterHostTurn(self), opponent, { type: "turnStart" }, actor);
 }
 
 /** Round-boundary reset plus event publication, preserving unrelated host state. */
@@ -56,17 +66,7 @@ export function beginCharacterHostRound<
   SelfBoard extends CharacterHostBoard,
   OpponentBoard extends CharacterHostBoard,
 >(self: SelfBoard, opponent: OpponentBoard, actor: CharacterRuntimeActor = "player") {
-  return applyCharacterEventForHost(resetCharacterRound(self) as SelfBoard, opponent, { type: "roundStart" }, actor);
-}
-
-/** Turn-boundary cleanup remains available when the host resets before pairing boards. */
-export function resetCharacterHostTurn<Board extends CharacterHostBoard>(board: Board): Board {
-  return resetCharacterTurn(board) as Board;
-}
-
-/** Round-boundary cleanup remains available when the host resets before pairing boards. */
-export function resetCharacterHostRound<Board extends CharacterHostBoard>(board: Board): Board {
-  return resetCharacterRound(board) as Board;
+  return applyCharacterEventForHost(resetCharacterHostRound(self), opponent, { type: "roundStart" }, actor);
 }
 
 /**
