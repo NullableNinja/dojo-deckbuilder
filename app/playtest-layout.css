@@ -1,0 +1,869 @@
+/* Quick Duel consolidated layout ---------------------------------------------
+   PRESENTATION ONLY.
+
+   This is the single final geometry authority for the live Quick Duel surface.
+   Paper-Fu component styling remains in playtest-production-mat.css and the
+   card-specific surface sheets. Game state, rules, card effects, and canonical
+   values remain owned by the JSON/runtime pipeline.
+
+   Ownership:
+   - shell / combat status / arena / hand / utility chrome: this file
+   - fighter + combat component skin: playtest-production-mat.css
+   - hand card face: playtest-card-surface.css
+   - Market card face: playtest-market-card-polish.css
+   - dialogs / inspectors: component CSS, positioned here
+
+   Layer scale:
+   board < cards < sticky chrome < floating board utilities < backdrops <
+   dialogs < nested/critical dialogs. No arbitrary z-index escalation.
+*/
+
+.playtest-shell.playtest-shell--live {
+  --playtest-frame-max: 1580px;
+  --playtest-shell-width: min(var(--playtest-frame-max), calc(100vw - 24px));
+  --playtest-shell-edge: max(12px, calc((100vw - var(--playtest-shell-width)) / 2));
+  --playtest-gap: clamp(8px, .75vw, 12px);
+  --playtest-arena-height: clamp(500px, 58dvh, 640px);
+  --playtest-side-min: 228px;
+  --playtest-center-min: 430px;
+  --playtest-hud-center: 88px;
+
+  --layer-board: 0;
+  --layer-card: 10;
+  --layer-chrome: 20;
+  --layer-floating: 30;
+  --layer-drawer: 40;
+  --layer-popover: 50;
+  --layer-backdrop: 70;
+  --layer-dialog: 80;
+  --layer-nested-dialog: 90;
+  --layer-critical: 100;
+
+  position: relative;
+  isolation: isolate;
+  width: var(--playtest-shell-width);
+  min-width: 0;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-areas:
+    "status"
+    "arena"
+    "hand"
+    "utility";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto var(--playtest-arena-height) auto auto;
+  gap: var(--playtest-gap);
+  overflow: visible;
+  margin-inline: auto;
+  padding: 8px 0 18px;
+}
+
+.site-frame:has(.playtest-shell--live) {
+  min-height: 100dvh;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+/* Combat status ------------------------------------------------------------- */
+
+.playtest-shell--live > .playtest-topbar {
+  grid-area: status;
+  position: sticky;
+  z-index: var(--layer-chrome);
+  top: 0;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.playtest-shell--live .battle-versus-hud {
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--playtest-hud-center) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding-inline: 10px;
+}
+
+.playtest-shell--live .versus-center {
+  position: relative;
+  z-index: 1;
+}
+
+/* The live HP elements are authored inside fighter cards, but visually belong
+   to the status HUD. Fixed positioning is intentional here: HP stays aligned
+   with the viewport HUD while the board/hand can scroll. */
+@media (min-width: 1024px) {
+  .playtest-shell--live .fighter-column,
+  .playtest-shell--live .living-fighter-card {
+    transform: none;
+    contain: none;
+  }
+
+  .playtest-shell--live .fighter-column--player .fighter-hp-track,
+  .playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    position: fixed;
+    z-index: var(--layer-chrome);
+    top: 36px;
+    width: calc((var(--playtest-shell-width) - var(--playtest-hud-center) - 52px) / 2);
+    height: 9px;
+    min-height: 9px;
+    display: block;
+    overflow: hidden;
+    margin: 0;
+    border-radius: 999px;
+    pointer-events: none;
+  }
+
+  .playtest-shell--live .fighter-column--player .fighter-hp-track {
+    left: calc(var(--playtest-shell-edge) + 14px);
+  }
+
+  .playtest-shell--live .fighter-column--enemy .fighter-hp-track {
+    right: calc(var(--playtest-shell-edge) + 14px);
+    left: auto;
+  }
+}
+
+/* Arena --------------------------------------------------------------------- */
+
+.playtest-shell--live > .playtest-arena {
+  grid-area: arena;
+  position: relative;
+  z-index: var(--layer-board);
+  min-width: 0;
+  min-height: 0;
+  height: var(--playtest-arena-height);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+}
+
+.playtest-shell--live .playtest-table {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(var(--playtest-side-min), .76fr)
+    minmax(var(--playtest-center-min), 1.62fr)
+    minmax(var(--playtest-side-min), .76fr);
+  gap: var(--playtest-gap);
+  align-items: stretch;
+  overflow: visible;
+  margin: 0;
+}
+
+.playtest-shell--live .fighter-column,
+.playtest-shell--live .combat-stage-column {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* House Rule state is a HUD badge, never a grid participant. This is the
+   structural guard against the regression where enabling a rule displaced the
+   center board. */
+.playtest-shell--live .playtest-active-variants {
+  position: absolute;
+  z-index: var(--layer-floating);
+  top: 8px;
+  left: 50%;
+  width: max-content;
+  max-width: min(560px, 72%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.playtest-shell--live .playtest-active-variants > * {
+  max-width: 100%;
+}
+
+/* Fighter dossiers ---------------------------------------------------------- */
+
+.playtest-shell--live .fighter-combo-rack {
+  display: none;
+}
+
+.playtest-shell--live .fighter-panel.living-fighter-card,
+.playtest-shell--live .fighter-panel.living-fighter-card.is-enemy,
+.playtest-shell--live .fighter-column:has(.fighter-combo-rack) .fighter-panel.living-fighter-card {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  display: grid;
+  grid-template-areas:
+    "heading"
+    "vitality"
+    "art"
+    "stats"
+    "xp"
+    "ability";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 42px minmax(140px, 1fr) 46px 42px minmax(74px, auto);
+  gap: 5px;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 9px;
+}
+
+.playtest-shell--live .fighter-card-heading {
+  grid-area: heading;
+  min-width: 0;
+  min-height: 0;
+  align-items: flex-start;
+}
+
+.playtest-shell--live .fighter-dossier-name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.playtest-shell--live .fighter-vitality {
+  grid-area: vitality;
+  width: 48%;
+  height: 42px;
+  min-height: 42px;
+  align-self: center;
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.playtest-shell--live .fighter-status-tray {
+  grid-area: vitality;
+  width: 50%;
+  max-width: 50%;
+  height: 42px;
+  min-height: 42px;
+  align-self: center;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  align-content: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality {
+  justify-self: end;
+}
+
+.playtest-shell--live .fighter-panel.is-enemy .fighter-vitality > div {
+  flex-direction: row-reverse;
+}
+
+.playtest-shell--live .fighter-panel.is-enemy .fighter-status-tray {
+  justify-self: start;
+  justify-content: flex-start;
+}
+
+.playtest-shell--live .fighter-panel-art.fighter-card-illustration,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration {
+  grid-area: art;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  padding: 2px 6px 0;
+}
+
+.playtest-shell--live .fighter-panel-art.fighter-card-illustration img,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration img,
+.playtest-shell--live .fighter-panel-art.fighter-card-illustration:hover img {
+  position: static;
+  width: auto;
+  height: 100%;
+  max-width: 96%;
+  max-height: 100%;
+  margin: 0 auto;
+  object-fit: contain;
+  object-position: center bottom;
+  translate: none;
+  scale: none;
+}
+
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration img,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-panel-art.fighter-card-illustration:hover img {
+  transform: scaleX(-1);
+}
+
+.playtest-shell--live .fighter-resource-strip {
+  display: contents;
+}
+
+.playtest-shell--live .fighter-stats.fighter-stats--combat,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-stats.fighter-stats--combat {
+  grid-area: stats;
+  width: calc(75% - 2px);
+  min-width: 0;
+  max-width: calc(75% - 2px);
+  height: 46px;
+  min-height: 46px;
+  justify-self: start;
+  align-self: center;
+}
+
+.playtest-shell--live .fighter-stats--combat > b {
+  min-width: 0;
+  height: 46px;
+  min-height: 46px;
+  box-sizing: border-box;
+}
+
+.playtest-shell--live .fighter-focus-seal,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-focus-seal {
+  grid-area: stats;
+  width: calc(25% - 3px);
+  min-width: 0;
+  max-width: calc(25% - 3px);
+  height: 46px;
+  min-height: 46px;
+  align-self: center;
+  justify-self: end;
+  margin: 0;
+  box-sizing: border-box;
+  transform: none;
+}
+
+.playtest-shell--live .fighter-xp-meter,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-xp-meter {
+  grid-area: xp;
+  height: 42px;
+  min-height: 42px;
+  align-self: stretch;
+}
+
+.playtest-shell--live .fighter-xp-meter {
+  width: 62%;
+  justify-self: start;
+}
+
+.playtest-shell--live .fighter-panel.is-enemy .fighter-xp-meter {
+  width: 100%;
+  justify-self: stretch;
+}
+
+.playtest-shell--live .fighter-combo-launch {
+  grid-area: xp;
+  z-index: var(--layer-card);
+  width: 35%;
+  min-width: 0;
+  height: 42px;
+  min-height: 42px;
+  align-self: stretch;
+  justify-self: end;
+  overflow: hidden;
+}
+
+.playtest-shell--live .fighter-ability,
+.playtest-shell--live .fighter-panel.is-enemy .fighter-ability {
+  grid-area: ability;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.playtest-shell--live .fighter-equipment-tabs,
+.playtest-shell--live .fighter-equipment-tabs.is-enemy {
+  top: clamp(94px, 17%, 132px);
+}
+
+/* Center combat mat --------------------------------------------------------- */
+
+.playtest-shell--live .playtest-combat-desk.combat-stage {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows:
+    auto
+    minmax(138px, 1fr)
+    34px
+    76px
+    minmax(68px, auto)
+    auto;
+  row-gap: 7px;
+  overflow: hidden;
+}
+
+.playtest-shell--live .combat-stage-heading {
+  min-width: 0;
+}
+
+.playtest-shell--live .clash-field {
+  min-width: 0;
+  min-height: 138px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
+  gap: 9px;
+  align-items: stretch;
+  overflow: hidden;
+  padding: 8px 9px;
+}
+
+.playtest-shell--live .clash-field:has(.clash-card-slot--player.is-occupied):has(.clash-card-slot--ai:not(.is-occupied)) {
+  grid-template-columns: minmax(0, 1fr) 58px;
+}
+
+.playtest-shell--live .clash-field:has(.clash-card-slot--player.is-occupied):has(.clash-card-slot--ai:not(.is-occupied)) .clash-card-slot--ai {
+  display: none;
+}
+
+.playtest-shell--live .clash-field:has(.clash-card-slot--ai.is-occupied):has(.clash-card-slot--player:not(.is-occupied)) {
+  grid-template-columns: 58px minmax(0, 1fr);
+}
+
+.playtest-shell--live .clash-field:has(.clash-card-slot--ai.is-occupied):has(.clash-card-slot--player:not(.is-occupied)) .clash-card-slot--player {
+  display: none;
+}
+
+.playtest-shell--live .clash-card-slot {
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  display: grid;
+  grid-template-rows: 16px minmax(0, 1fr);
+  gap: 5px;
+  overflow: hidden;
+}
+
+.playtest-shell--live .clash-card-slot > button {
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  max-height: 100%;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  overflow: hidden;
+  padding: 6px 8px;
+}
+
+.playtest-shell--live .clash-card-slot--ai > button {
+  grid-template-columns: minmax(0, 1fr) 68px;
+}
+
+.playtest-shell--live .clash-card-art {
+  width: 68px;
+  min-width: 68px;
+  max-width: 68px;
+  height: 94px;
+  min-height: 94px;
+  max-height: 94px;
+  align-self: center;
+  overflow: hidden;
+}
+
+.playtest-shell--live .clash-card-art > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.playtest-shell--live .clash-card-copy {
+  min-width: 0;
+  align-content: center;
+}
+
+.playtest-shell--live .clash-seal {
+  width: 52px;
+  height: 52px;
+  align-self: center;
+  justify-self: center;
+}
+
+.playtest-shell--live .combat-zone-board {
+  height: 34px;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  overflow: hidden;
+}
+
+.playtest-shell--live .combat-zone-board span,
+.playtest-shell--live .combat-zone-board span.is-hot {
+  min-width: 0;
+  height: 34px;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 5px;
+  align-items: center;
+  transform: none;
+}
+
+.playtest-shell--live .live-mat-play--stage {
+  min-width: 0;
+  min-height: 0;
+  height: 76px;
+  max-height: 76px;
+  overflow: hidden;
+}
+
+.playtest-shell--live .live-mat-play--stage .mat-lane-cards {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+}
+
+.playtest-shell--live .impact-readout {
+  min-width: 0;
+  min-height: 68px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* Contextual coach information is available from the persistent Coach control.
+   The old in-mat duplicate is intentionally removed from the primary board. */
+.playtest-shell--live .contextual-coach-slip {
+  display: none;
+}
+
+/* Hand ---------------------------------------------------------------------- */
+
+.playtest-shell--live > .playtest-workspace--hand {
+  grid-area: hand;
+  position: relative;
+  z-index: var(--layer-card);
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+}
+
+.playtest-shell--live .hand-panel {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, auto) auto;
+  gap: 7px;
+  overflow: visible;
+}
+
+.playtest-shell--live .hand-panel > header {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+/* These are runtime diagnostics, not player filters or actions. */
+.playtest-shell--live .hand-counters {
+  display: none;
+}
+
+/* The action cluster is authored inside the hand header and remains there.
+   It is never fixed over the cards and therefore cannot obscure the hand. */
+.playtest-shell--live .hand-panel > header > .playtest-action-dock {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  grid-column: 2;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+  justify-self: stretch;
+  margin: 0;
+  transform: none;
+}
+
+.playtest-shell--live .play-card-row {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 9px;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  padding: 7px 5px 12px;
+}
+
+.playtest-shell--live .play-card-row .play-card {
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+  scroll-snap-align: center;
+}
+
+.playtest-shell--live .play-card-row .play-card-main {
+  transform-origin: center bottom;
+  transition: transform 130ms ease, filter 130ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .playtest-shell--live .play-card-row .play-card:hover .play-card-main,
+  .playtest-shell--live .play-card-row .play-card:focus-within .play-card-main {
+    position: relative;
+    z-index: var(--layer-floating);
+    transform: translateY(-4px) scale(1.015);
+  }
+}
+
+/* Utility chrome ------------------------------------------------------------ */
+
+.playtest-shell--live > .playtest-utility-dock {
+  grid-area: utility;
+  position: sticky;
+  z-index: var(--layer-chrome);
+  bottom: 0;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  margin: 0;
+  overflow: visible;
+  backdrop-filter: blur(10px);
+}
+
+/* Dialogs / drawers / popovers --------------------------------------------- */
+
+body:has(.playtest-shell--live .ascend-desk-backdrop),
+body:has(.playtest-shell--live .playtest-inspector-backdrop),
+body:has(.playtest-shell--live .match-result) {
+  overflow: hidden;
+}
+
+.playtest-shell--live > .ascend-desk-backdrop,
+.playtest-shell--live .ascend-desk-backdrop,
+.playtest-shell--live > .playtest-inspector-backdrop,
+.playtest-shell--live .playtest-inspector-backdrop,
+.playtest-shell--live > .match-result,
+.playtest-shell--live .match-result {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  margin: 0;
+}
+
+.playtest-shell--live > .ascend-desk-backdrop,
+.playtest-shell--live .ascend-desk-backdrop {
+  z-index: var(--layer-backdrop);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: clamp(12px, 2vw, 28px);
+}
+
+.playtest-shell--live .ascend-desk-backdrop > .ascend-desk {
+  position: relative;
+  z-index: var(--layer-dialog);
+  width: min(1500px, 96vw);
+  max-width: 96vw;
+  max-height: 92dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.playtest-shell--live .ascend-desk-body {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.playtest-shell--live .ascend-market-grid {
+  min-width: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 1fr);
+  grid-template-columns: repeat(7, minmax(180px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  padding-bottom: 6px;
+}
+
+.playtest-shell--live > .playtest-inspector-backdrop,
+.playtest-shell--live .playtest-inspector-backdrop {
+  z-index: var(--layer-nested-dialog);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(10px, 2vw, 24px);
+}
+
+.playtest-shell--live .playtest-inspector-backdrop > * {
+  position: relative;
+  z-index: var(--layer-nested-dialog);
+  max-height: calc(100dvh - 32px);
+}
+
+.playtest-shell--live > .match-result,
+.playtest-shell--live .match-result {
+  z-index: var(--layer-critical);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* The integrated Combo summary belongs to the acquisition dialog, not to board
+   geometry. Keep it beside the Market only when the viewport has room. */
+@media (min-width: 1200px) {
+  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 350px);
+    grid-template-areas:
+      "heading combo"
+      "market combo";
+    gap: 12px 16px;
+    align-items: start;
+  }
+
+  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market > header {
+    grid-area: heading;
+  }
+
+  .playtest-shell--live .ascend-desk--integrated-acquisition .ascend-market-grid {
+    grid-area: market;
+  }
+
+  .playtest-shell--live .ascend-featured-combo {
+    grid-area: combo;
+    position: sticky;
+    top: 0;
+    min-width: 0;
+    align-self: start;
+  }
+}
+
+/* Responsive desktop tiers -------------------------------------------------- */
+
+@media (min-width: 1440px) {
+  .playtest-shell.playtest-shell--live {
+    --playtest-side-min: 260px;
+    --playtest-center-min: 520px;
+    --playtest-arena-height: clamp(540px, 60dvh, 660px);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .playtest-shell.playtest-shell--live {
+    --playtest-side-min: 220px;
+    --playtest-center-min: 420px;
+    --playtest-arena-height: clamp(500px, 57dvh, 600px);
+  }
+}
+
+/* Narrow desktop/tablet is a safe degradation, not a separate game client.
+   The complete board remains reachable horizontally instead of collapsing
+   controls or forcing overlapping columns. */
+@media (min-width: 761px) and (max-width: 1023px) {
+  .playtest-shell.playtest-shell--live {
+    --playtest-arena-height: 540px;
+    width: calc(100vw - 16px);
+    padding-inline: 0;
+  }
+
+  .playtest-shell--live > .playtest-arena {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+  }
+
+  .playtest-shell--live .playtest-table {
+    min-width: 960px;
+    grid-template-columns: minmax(220px, .72fr) minmax(480px, 1.5fr) minmax(220px, .72fr);
+  }
+
+  .playtest-shell--live .playtest-active-variants {
+    width: min(520px, calc(100vw - 48px));
+  }
+
+  .playtest-shell--live .hand-panel > header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .playtest-shell--live .hand-panel > header > .playtest-action-dock {
+    grid-column: 1;
+  }
+}
+
+/* Mobile remains intentionally governed by the existing mobile Playtest policy
+   and component styles; this task does not create a new mobile game client. */
+@media (max-width: 760px) {
+  .playtest-shell.playtest-shell--live {
+    display: block;
+    width: calc(100% - 16px);
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .playtest-shell--live .playtest-active-variants {
+    top: 6px;
+    left: 50%;
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+  }
+
+  .playtest-shell--live > .playtest-utility-dock {
+    position: relative;
+    bottom: auto;
+  }
+}
+
+/* Theme + accessibility ----------------------------------------------------- */
+
+:root[data-theme="dark"] .playtest-shell--live > .playtest-utility-dock {
+  background: rgba(17, 42, 32, .96);
+}
+
+:root[data-theme="light"] .playtest-shell--live > .playtest-utility-dock {
+  background: rgba(247, 237, 211, .96);
+}
+
+.playtest-shell--live :where(button, [role="button"], a):focus-visible {
+  outline: 3px solid var(--mat-gold, #d6a528);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playtest-shell--live .play-card-row .play-card-main {
+    transition: none;
+  }
+
+  .playtest-shell--live .play-card-row .play-card:hover .play-card-main,
+  .playtest-shell--live .play-card-row .play-card:focus-within .play-card-main {
+    transform: none;
+  }
+}

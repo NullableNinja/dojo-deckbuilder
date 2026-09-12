@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [source, styles, recovery, runtime, events] = await Promise.all([
+const [source, styles, layout, runtime, events] = await Promise.all([
   readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8"),
   readFile(new URL("../app/playtest-production-mat.css", import.meta.url), "utf8"),
-  readFile(new URL("../app/playtest-functional-recovery.css", import.meta.url), "utf8"),
+  readFile(new URL("../app/playtest-layout.css", import.meta.url), "utf8"),
   readFile(new URL("../src/playtest-vfx-runtime.ts", import.meta.url), "utf8"),
   readFile(new URL("../src/playtest-events.ts", import.meta.url), "utf8"),
 ]);
@@ -19,9 +19,8 @@ test("production mat implements the approved tabletop, fighter, and combat-stage
   assert.match(source, /fighter-equipment-tabs/);
   assert.match(source, /function CombatStage/);
   assert.match(source, /className="clash-field"/);
-  assert.match(styles, /\.playtest-shell--live \.playtest-table \{[^}]*height: 560px/);
-  assert.match(styles, /\.fighter-column \{[^}]*overflow-y: auto/);
-  assert.match(styles, /\.playtest-shell--live \.combat-stage \{[^}]*overflow: hidden/);
+  assert.match(layout, /\.playtest-shell--live \.playtest-table\s*\{[^}]*height:\s*100%/s);
+  assert.match(layout, /\.playtest-shell--live \.playtest-combat-desk\.combat-stage\s*\{[^}]*overflow:\s*hidden/s);
   assert.match(styles, /\.living-fighter-card\.is-enemy/);
 });
 
@@ -39,7 +38,7 @@ test("Ascend Market, Location, receipts, grouped logs, coaching, and motion rema
   assert.doesNotMatch(source, /function AcquisitionRail|className="market-rail-cards"/);
   assert.match(source, /className="ascend-market-grid"/);
   assert.match(source, /match\.market\.map\(\(id\)/);
-  assert.match(recovery, /\.ascend-market-grid \{[\s\S]*?repeat\(7/);
+  assert.match(layout, /\.ascend-market-grid\s*\{[\s\S]*?repeat\(7/);
   assert.match(source, /location-\$\{locationTheme\(currentLocation\)\}/);
   assert.match(source, /function ImpactReadout/);
   assert.match(source, /match\.lastExchange/);
