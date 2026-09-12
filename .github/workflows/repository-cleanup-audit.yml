@@ -42,6 +42,14 @@ jobs:
       - name: Runtime effect certification
         run: node scripts/certify-runtime-effects.mjs
 
+      - name: TypeScript unused-symbol diagnostic
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p cleanup-audit
+          set -o pipefail
+          npx tsc --noEmit --noUnusedLocals --noUnusedParameters 2>&1 | tee cleanup-audit/tsc-unused.txt
+
       - name: Repository inventory and reachability candidates
         shell: bash
         run: |
@@ -141,5 +149,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: repository-cleanup-audit
-          path: cleanup-audit/inventory.json
+          path: |
+            cleanup-audit/inventory.json
+            cleanup-audit/tsc-unused.txt
           if-no-files-found: error
