@@ -41,14 +41,15 @@ jobs:
               raise SystemExit(f"expected exactly one direct player round-advance call, found {text.count(old)}")
           path.write_text(text.replace(old, new))
           PY
-          echo '--- all patched pickQuickAction references ---'
-          grep -n -C 8 'pickQuickAction' app/playtest.tsx
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
       - name: Regenerate canonical derivatives
-        run: npm run game:generate
+        run: |
+          npm run game:generate
+          echo '--- all generated pickQuickAction references ---'
+          grep -n -C 10 'pickQuickAction' app/playtest.tsx || true
 
       - name: Remove temporary patch machinery
         run: rm .github/workflows/tmp-rulings-variants-architecture.yml scripts/tmp-rulings-variants-patch.py
