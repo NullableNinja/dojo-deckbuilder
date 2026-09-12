@@ -1,0 +1,51 @@
+name: Effect Runtime Certification
+
+on:
+  push:
+    branches:
+      - main
+      - 'effect-certification-*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate canonical runtime data
+        run: npm run game:generate
+
+      - name: Build certification ledger
+        run: node scripts/certify-runtime-effects.mjs
+
+      - name: Upload certification ledger
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-effect-certification
+          path: |
+            reports/runtime-effect-certification.json
+            reports/runtime-effect-certification.md
+          if-no-files-found: error
+
+      - name: Run Quick Duel host certification
+        run: node --experimental-strip-types --test tests/quick-duel-playtest-host.test.mjs
+
+      - name: Run full repository certification
+        run: npm test
