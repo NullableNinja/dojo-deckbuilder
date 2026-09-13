@@ -11,12 +11,13 @@ import {
 
 const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
-const [characterRuntime, migration, playtest, quickDuelHost, quickDuelTransition] = await Promise.all([
+const [characterRuntime, migration, playtest, quickDuelHost, quickDuelTransition, quickDuelStructuredHost] = await Promise.all([
   read("app/character-runtime.ts"),
   read("app/quick-duel-character-migration.ts"),
   read("app/playtest.tsx"),
   read("app/quick-duel-playtest-host.ts"),
   read("app/quick-duel-transition-host.ts"),
+  read("app/quick-duel-structured-host.ts"),
 ]);
 
 const evidence = (resolver) => characterResolverHostEvidence({
@@ -26,6 +27,7 @@ const evidence = (resolver) => characterResolverHostEvidence({
   playtestSource: playtest,
   quickDuelHostSource: quickDuelHost,
   quickDuelTransitionSource: quickDuelTransition,
+  quickDuelStructuredHostSource: quickDuelStructuredHost,
 });
 
 test("Character certification derives events from resolverEvents instead of canonical trigger prose", () => {
@@ -86,4 +88,10 @@ test("live Character host evidence distinguishes compatibility helpers from shar
   assert.deepEqual(discardedRuntime.events, ["discarded"]);
   assert.deepEqual(discardedRuntime.liveEvents, ["discarded"]);
   assert.equal(discardedRuntime.hostLive, true);
+
+  const kataRuntime = evidence("character.firstKataDefenseZone");
+  assert.equal(kataRuntime.owner, "event-runtime");
+  assert.deepEqual(kataRuntime.events, ["kataPlayed"]);
+  assert.deepEqual(kataRuntime.liveEvents, ["kataPlayed"]);
+  assert.equal(kataRuntime.hostLive, true);
 });
