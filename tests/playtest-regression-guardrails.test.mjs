@@ -3,12 +3,19 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const playtest = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+const characterPurchaseHost = await readFile(new URL("../app/quick-duel-character-purchase-host.ts", import.meta.url), "utf8");
 
-test("market purchases spend only the selected card cost and preserve remaining Focus", () => {
+test("market purchases route effective Character pricing through the purchase host and preserve remaining Focus", () => {
   assert.match(playtest, /const focusBefore = current\.player\.focus;/);
-  assert.match(playtest, /const price = marketPriceFor\(current\.player, card\)/);
-  assert.match(playtest, /spendMarketFocus\(current\.player, card, price\)/);
-  assert.match(playtest, /Bought \$\{card\.name\} for \$\{price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);
+  assert.match(playtest, /const basePrice = marketBasePriceFor\(current\.player, card\);/);
+  assert.match(playtest, /const price = previewQuickDuelCharacterPurchasePrice\(current\.player, basePrice\);/);
+  assert.match(playtest, /const characterPurchase = commitQuickDuelCharacterPurchase\(current\.player, current\.ai, card, basePrice, "player"\);/);
+  assert.match(playtest, /spendMarketFocus\(characterPurchase\.self, card, characterPurchase\.price\)/);
+  assert.match(playtest, /Bought \$\{card\.name\} for \$\{characterPurchase\.price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);
+  assert.match(characterPurchaseHost, /characterPurchasePrice\(board, composedPrice\)/);
+  assert.match(characterPurchaseHost, /publishQuickDuelCharacterEvent\(/);
+  assert.match(characterPurchaseHost, /type: "purchaseAttempt"/);
+  assert.doesNotMatch(playtest, /characterPurchasePrice\(/, "playtest.tsx must delegate Character pricing to the dedicated purchase host");
 });
 
 test("a played Defense card is consumed by the strike it resolves", () => {
