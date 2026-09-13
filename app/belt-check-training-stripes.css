@@ -75,7 +75,7 @@
   grid-area: belt-stripes;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(160px, .55fr) minmax(230px, 1fr);
+  grid-template-columns: minmax(190px, .66fr) minmax(230px, 1fr);
   align-items: center;
   gap: 14px;
   margin: 2px 0 5px;
@@ -93,9 +93,12 @@
   min-width: 0;
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-areas: "label count" "status status";
+  grid-template-areas:
+    "label count"
+    "status status"
+    "heal heal";
   align-items: end;
-  gap: 2px 9px;
+  gap: 3px 9px;
 }
 
 .playtest-shell--live .training-stripe-copy > span {
@@ -127,6 +130,55 @@
   font-weight: 750;
   line-height: 1.3;
 }
+
+.playtest-shell--live .training-stripe-heal {
+  grid-area: heal;
+  min-width: 0;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  margin-top: 5px;
+  border: 1px solid rgba(62, 77, 65, .34);
+  border-radius: 6px 2px 7px 3px;
+  padding: 6px 9px;
+  color: #68736c;
+  background: rgba(255,255,255,.32);
+  text-align: left;
+  cursor: not-allowed;
+}
+
+.playtest-shell--live .training-stripe-heal > span {
+  min-width: 0;
+  color: inherit;
+  font-size: 9px;
+  font-weight: 1000;
+  line-height: 1.18;
+  letter-spacing: .025em;
+  text-transform: none;
+}
+
+.playtest-shell--live .training-stripe-heal > small {
+  min-width: 0;
+  color: #758078;
+  font-size: 7.5px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.playtest-shell--live .training-stripe-heal.is-ready {
+  border-color: #b33f2f;
+  color: #fff9e8;
+  background: linear-gradient(135deg, #c84a34, #a93429);
+  box-shadow: 2px 3px 0 rgba(92, 50, 30, .2);
+  cursor: pointer;
+}
+
+.playtest-shell--live .training-stripe-heal.is-ready > small { color: #ffe1a8; }
+.playtest-shell--live .training-stripe-heal.is-ready:hover { transform: translateY(-1px); box-shadow: 2px 5px 0 rgba(92, 50, 30, .19); }
+.playtest-shell--live .training-stripe-heal:disabled { opacity: .72; }
 
 .playtest-shell--live .training-belt-strip {
   position: relative;
@@ -225,6 +277,12 @@
 
 :root[data-theme="dark"] .playtest-shell--live .training-stripe-copy > b { color: #f2e4bd; }
 :root[data-theme="dark"] .playtest-shell--live .training-stripe-copy > small { color: #c6d7ca; }
+:root[data-theme="dark"] .playtest-shell--live .training-stripe-heal:not(.is-ready) {
+  border-color: rgba(230,212,164,.18);
+  color: #c8d2cb;
+  background: rgba(255,255,255,.05);
+}
+:root[data-theme="dark"] .playtest-shell--live .training-stripe-heal:not(.is-ready) > small { color: #99aaa0; }
 
 @media (max-width: 979px) {
   .playtest-shell--live .training-stripe-rack {
@@ -233,5 +291,7 @@
     margin-top: 7px;
   }
 
+  .playtest-shell--live .training-stripe-heal { grid-template-columns: 1fr; }
+  .playtest-shell--live .training-stripe-heal > small { text-align: left; }
   .playtest-shell--live .training-belt-strip { min-height: 34px; }
 }
