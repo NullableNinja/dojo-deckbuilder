@@ -1,0 +1,88 @@
+name: PR77 Character Choice Narrowing Repair
+
+on:
+  push:
+    branches:
+      - pr72-micro-recovery-clean
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pr72-micro-recovery-clean
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply typed Character pending-choice normalization
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("app/playtest.tsx")
+          source = path.read_text()
+
+          replacements = [
+              (
+                  '  | { kind: "character-runtime"; event: CharacterRuntimeEvent; choice: CharacterRuntimeChoice };\n\ntype Match = {',
+                  '  | { kind: "character-runtime"; event: CharacterRuntimeEvent; choice: CharacterRuntimeChoice };\n\ntype CharacterRuntimePendingChoice = Extract<PendingChoice, { kind: "character-runtime" }>;\n\nfunction characterRuntimePendingChoice(\n  pendingChoice: PendingChoice | null | undefined\n): CharacterRuntimePendingChoice | null {\n  return pendingChoice?.kind === "character-runtime" ? pendingChoice : null;\n}\n\ntype Match = {'
+              ),
+              (
+                  '  const effectChoiceTitle = match.pendingChoice?.kind === "character-runtime" ? "Character ability"',
+                  '  const characterRuntimePending = characterRuntimePendingChoice(match.pendingChoice);\n  const effectChoiceTitle = characterRuntimePending ? "Character ability"'
+              ),
+              (
+                  '  const effectChoicePrompt = match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice.prompt',
+                  '  const effectChoicePrompt = characterRuntimePending ? characterRuntimePending.choice.prompt'
+              ),
+              (
+                  '  const effectChoiceCanSkip = (match.pendingChoice?.kind === "character-runtime" && match.pendingChoice.choice.optional) ||',
+                  '  const effectChoiceCanSkip = Boolean(characterRuntimePending?.choice.optional) ||'
+              ),
+              (
+                  '<div className="effect-choice-options">{match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice.options.filter(',
+                  '<div className="effect-choice-options">{characterRuntimePending ? characterRuntimePending.choice.options.filter('
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in source:
+                  raise SystemExit(f"Expected source fragment missing: {old[:120]}")
+              source = source.replace(old, new, 1)
+
+          path.write_text(source)
+
+          test_path = Path("tests/playtest-character-choice-ui.test.mjs")
+          test_path.write_text('''import assert from "node:assert/strict";\nimport { readFile } from "node:fs/promises";\nimport test from "node:test";\n\nconst source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");\n\ntest("Quick Duel exposes generic Character runtime choices instead of a Ducktape-specific UI", () => {\n  assert.match(source, /resolveQuickDuelPlaytestCharacterChoice/);\n  assert.match(source, /kind: "character-runtime"/);\n  assert.match(source, /withPlayerCharacterChoice/);\n  assert.ok(\n    (source.match(/"onHide"/g) ?? []).length >= 2,\n    "player and AI Hide must publish through the Character runtime"\n  );\n  assert.doesNotMatch(source, /const borrowEquipment\\s*=/);\n  assert.doesNotMatch(source, /playerFighter\\.name === "Sensei Ducktape"/);\n  assert.doesNotMatch(source, /ducktape-tray/);\n});\n\ntest("player Character choices block Initiate progression and use a safely narrowed shared pending-choice modal", () => {\n  assert.match(source, /current\\?\\.phase === "player-initiate" && !current\\.pendingChoice/);\n  assert.match(source, /type CharacterRuntimePendingChoice = Extract<PendingChoice, \\{ kind: "character-runtime" \\}>/);\n  assert.match(source, /characterRuntimePendingChoice\\(match\\.pendingChoice\\)/);\n  assert.match(source, /effectChoiceTitle = characterRuntimePending \\?/);\n  assert.match(source, /effectChoicePrompt = characterRuntimePending \\? characterRuntimePending\\.choice\\.prompt/);\n  assert.match(source, /effect-choice-options">\\{characterRuntimePending \\? characterRuntimePending\\.choice\\.options/);\n  assert.match(source, /Boolean\\(characterRuntimePending\\?\\.choice\\.optional\\)/);\n});\n\n// Source wiring + deterministic host scenarios together certify the current Character choice seam.\n''')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Certify canonical data
+        run: npm run game:check
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run full test suite
+        run: npm test
+
+      - name: Commit repaired micro and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pr77-character-choice-narrowing-repair.yml
+          git add app/playtest.tsx tests/playtest-character-choice-ui.test.mjs
+          git commit -m "Fix Character choice modal narrowing"
+          git push origin HEAD:pr72-micro-recovery-clean
