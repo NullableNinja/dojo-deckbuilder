@@ -50,11 +50,15 @@ new_resolver = '''  const applyCharacterRuntimeChoice = (current: Match, selecti
 replace_once(old_resolver, new_resolver, "shared Character choice resolver")
 
 replace_once(
-    '''  const skipPendingChoice = () => setMatch((current) => {
-    if (!current?.pendingChoice) return current;
-    if (current.pendingChoice.kind === "prevent-combat-damage") {''',
-    '''  const skipPendingChoice = () => setMatch((current) => {
-    if (!current?.pendingChoice) return current;
+    '''    if (current.pendingChoice.kind === "prevent-combat-damage") {
+      const choice = current.pendingChoice;
+      return resolveDefenseState(current, choice.defenseId, null, true);
+    }
+    if (current.pendingChoice.kind === "post-block-cycle")''',
+    '''    if (current.pendingChoice.kind === "prevent-combat-damage") {
+      const choice = current.pendingChoice;
+      return resolveDefenseState(current, choice.defenseId, null, true);
+    }
     if (current.pendingChoice.kind === "character-runtime") {
       if (!current.pendingChoice.choice.optional) return current;
       const selection = current.pendingChoice.choice.options.find((option) =>
@@ -62,8 +66,8 @@ replace_once(
       ) ?? "decline";
       return applyCharacterRuntimeChoice(current, selection);
     }
-    if (current.pendingChoice.kind === "prevent-combat-damage") {''',
-    "Character skip routing",
+    if (current.pendingChoice.kind === "post-block-cycle")''',
+    "Character skip routing after damage resume",
 )
 
 replace_once(
@@ -99,7 +103,7 @@ replace_once(
     '''  const hostedHide = publishQuickDuelPlaytestLifecycleEvent({ ...current, ai: aiAfterPurchase }, "ai", "onHide", quickDuelHostOperations, cardFor).match;
   const nextAi = playAreaCleanup(hostedHide.ai);
   const purchaseLog = purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing.";
-  const finished = { ...hostedHide, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...current.log].slice(0, 32) };''',
+  const finished = { ...hostedHide, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...hostedHide.log].slice(0, 32) };''',
     "AI Hide publication",
 )
 replace_once(
