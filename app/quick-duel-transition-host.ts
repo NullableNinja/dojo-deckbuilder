@@ -364,6 +364,21 @@ function publishDiscardedCharacterTransitions<Board extends QuickDuelTransitionB
   return next;
 }
 
+function publishSpeedChangedCharacterTransitions<Board extends QuickDuelTransitionBoard>(
+  previous: QuickDuelTransitionMatch<Board>,
+  nextInput: QuickDuelTransitionMatch<Board>,
+): QuickDuelTransitionMatch<Board> {
+  let next = nextInput;
+  for (const actor of ["player", "ai"] as const) {
+    const previousSpeed = actorBoard(previous, actor).tempSpeed;
+    const currentSpeed = actorBoard(next, actor).tempSpeed;
+    if (currentSpeed === previousSpeed) continue;
+    const published = publishCharacterTransitionEvent(next, actor, { type: "speedChanged" });
+    next = published.match;
+  }
+  return next;
+}
+
 function detectPurchasedCard(
   previousMatch: QuickDuelTransitionMatch,
   nextMatch: QuickDuelTransitionMatch,
@@ -386,11 +401,11 @@ function initializeActiveTurn<Board extends QuickDuelTransitionBoard>(match: Qui
 }
 
 /**
- * Derives canonical Combo host history, Character card-play/discard events, and
- * progression bookkeeping from state transitions Quick Duel already records.
- * This function is card-identity agnostic and never reads printed requirement
- * or Character rules text. It is intentionally pure so Playtest can call it
- * once at its state-write boundary.
+ * Derives canonical Combo host history, Character card-play/discard/Speed-change
+ * events, and progression bookkeeping from state transitions Quick Duel already
+ * records. This function is card-identity agnostic and never reads printed
+ * requirement or Character rules text. It is intentionally pure so Playtest can
+ * call it once at its state-write boundary.
  */
 export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransitionBoard>(
   previousInput: QuickDuelTransitionMatch<Board>,
@@ -440,6 +455,7 @@ export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransi
 
   next = publishCardPlayedCharacterTransitions(previous, next, lookup);
   next = publishDiscardedCharacterTransitions(previous, next, lookup, turnAdvanced);
+  next = publishSpeedChangedCharacterTransitions(previous, next);
 
   const exchange = next.lastExchange;
   if (exchange && exchange.id !== previous.lastExchange?.id) {

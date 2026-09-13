@@ -94,4 +94,10 @@ test("live Character host evidence distinguishes compatibility helpers from shar
   assert.deepEqual(kataRuntime.events, ["kataPlayed"]);
   assert.deepEqual(kataRuntime.liveEvents, ["kataPlayed"]);
   assert.equal(kataRuntime.hostLive, true);
+
+  const speedRuntime = evidence("character.speedChangeNextAttackZone");
+  assert.equal(speedRuntime.owner, "event-runtime");
+  assert.deepEqual(speedRuntime.events, ["speedChanged"]);
+  assert.deepEqual(speedRuntime.liveEvents, ["speedChanged"]);
+  assert.equal(speedRuntime.hostLive, true);
 });
