@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "canonicalSource": "content/cards.json",
+  "updated": "2026-09-13",
+  "families": {
+    "reactionItems": {
+      "expected": 12,
+      "claimedElsewhere": {
+        "pullRequest": 76,
+        "branch": "complete-reaction-weapons-card-art",
+        "cardIds": ["DDB-RIT-CORE-001", "DDB-RIT-CORE-002", "DDB-RIT-CORE-003", "DDB-RIT-CORE-004", "DDB-RIT-CORE-005", "DDB-RIT-CORE-006", "DDB-RIT-CORE-007", "DDB-RIT-CORE-008", "DDB-RIT-CORE-009", "DDB-RIT-CORE-010", "DDB-RIT-CORE-011", "DDB-RIT-CORE-012"]
+      }
+    },
+    "weapons": {
+      "expected": 65,
+      "template": "app/assets/templates/05_Item_Equipable.ora",
+      "completedBatches": [
+        {
+          "batch": "weapons-001",
+          "status": "complete",
+          "cardIds": ["DDB-WPN-CORE-001", "DDB-WPN-CORE-002", "DDB-WPN-CORE-003", "DDB-WPN-CORE-004", "DDB-WPN-CORE-005"],
+          "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_001_Editable_ORA.zip",
+          "records": [
+            {"cardId":"DDB-WPN-CORE-001","name":"Baseball Bat","artwork":"app/assets/art/weapons/source/ddb-wpn-core-001_baseball-bat.png","card":"app/assets/cards/weapons/ddb-wpn-core-001_baseball-bat.webp"},
+            {"cardId":"DDB-WPN-CORE-002","name":"Bo Staff (Long Staff)","artwork":"app/assets/art/weapons/source/ddb-wpn-core-002_bo-staff-long-staff.png","card":"app/assets/cards/weapons/ddb-wpn-core-002_bo-staff-long-staff.webp"},
+            {"cardId":"DDB-WPN-CORE-003","name":"Bo-Shuriken (Throwing Spikes)","artwork":"app/assets/art/weapons/source/ddb-wpn-core-003_bo-shuriken-throwing-spikes.png","card":"app/assets/cards/weapons/ddb-wpn-core-003_bo-shuriken-throwing-spikes.webp"},
+            {"cardId":"DDB-WPN-CORE-004","name":"Bokken (Wooden Sword)","artwork":"app/assets/art/weapons/source/ddb-wpn-core-004_bokken-wooden-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-004_bokken-wooden-sword.webp"},
+            {"cardId":"DDB-WPN-CORE-005","name":"Brass Knuckles","artwork":"app/assets/art/weapons/source/ddb-wpn-core-005_brass-knuckles.png","card":"app/assets/cards/weapons/ddb-wpn-core-005_brass-knuckles.webp"}
+          ]
+        }
+      ]
+    }
+  }
+}
