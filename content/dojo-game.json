@@ -161,7 +161,16 @@
           "requiresNextBeltXp": true,
           "requiresIncompleteNextBeltExam": true
         },
-        "summary": "At Belt Check, if you have enough XP for the next Belt but its Exam is still incomplete, gain one Training Stripe on your current Belt. A Belt may award at most three Training Stripes. Unspent Training Stripes clear when you promote."
+        "spend": {
+          "enabled": true,
+          "spendAt": "belt-check",
+          "stripeCost": 1,
+          "healHp": 2,
+          "usesPerTurn": 1,
+          "cannotExceedMaxHp": true,
+          "requiresFinalizedStripe": true
+        },
+        "summary": "At Belt Check, if you have enough XP for the next Belt but its Exam is still incomplete, gain one Training Stripe on your current Belt. A Belt may award at most three Training Stripes. Once per turn during Belt Check, you may spend one previously earned Training Stripe to recover 2 HP, up to your Max HP. A Stripe earned during the current Belt Check becomes spendable on a later turn. Unspent Training Stripes clear when you promote."
       },
       "belts": [
         {
@@ -219,23 +228,28 @@
           "color": "#c94a3d",
           "xp": 22,
           "exam": { "kind": "combo", "title": "Public Demonstration", "summary": "Trigger one learned Combo." },
-          "reward": { "id": "impact-focus", "amount": 1, "summary": "First 3+ damage Hit each turn gains 1 Focus." }
+          "reward": { "id": "impact-focus", "amount": 1, "summary": "First 3+ damage Hit each turn gains 1 Focus."
+          }
         },
         {
           "id": "brown",
           "name": "Brown",
           "color": "#7f5233",
           "xp": 28,
-          "exam": { "kind": "mixed-turn", "title": "Full Curriculum", "summary": "Play four cards in one Yell including an Attack, Kata, and Equipment or Consumable." },
-          "reward": { "id": "defense-bonus", "stat": "DEF", "amount": 1, "summary": "+1 DEF permanently." }
+          "exam": { "kind": "mixed-turn", "title": "Full Curriculum", "summary": "Play four cards in one Yell including an Attack, Kata, and Equipment or Consumable."
+          },
+          "reward": { "id": "defense-bonus", "stat": "DEF", "amount": 1, "summary": "+1 DEF permanently."
+          }
         },
         {
           "id": "black",
           "name": "Black",
           "color": "#171b18",
           "xp": 35,
-          "exam": { "kind": "ko", "title": "Licensing Final", "summary": "While Brown Belt, KO an opposing fighter." },
-          "reward": { "id": "licensed-win", "summary": "Win the duel and receive the very serious certificate." }
+          "exam": { "kind": "ko", "title": "Licensing Final", "summary": "While Brown Belt, KO an opposing fighter."
+          },
+          "reward": { "id": "licensed-win", "summary": "Win the duel and receive the very serious certificate."
+          }
         }
       ]
     }
