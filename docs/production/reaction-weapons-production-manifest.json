@@ -26,13 +26,27 @@
             {"cardId":"DDB-RIT-CORE-005","name":"Instant Noodle Smokescreen","artwork":"app/assets/art/reactions/source/ddb-rit-core-005_instant-noodle-smokescreen.png","card":"app/assets/cards/reactions/ddb-rit-core-005_instant-noodle-smokescreen.webp"}
           ]
         }
-      ],
-      "activeBatch": {
-        "batch": "reactions-002",
-        "worker": "codex",
-        "status": "claimed",
-        "cardIds": ["DDB-RIT-CORE-006", "DDB-RIT-CORE-007", "DDB-RIT-CORE-008", "DDB-RIT-CORE-009", "DDB-RIT-CORE-010"]
-      }
+      ,
+        {
+          "batch": "reactions-002",
+          "status": "complete",
+          "cardIds": ["DDB-RIT-CORE-006", "DDB-RIT-CORE-007", "DDB-RIT-CORE-008", "DDB-RIT-CORE-009", "DDB-RIT-CORE-010"],
+          "layeredSourceArchives": [
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_002_ddb-rit-core-006_official-time-out-card_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_002_ddb-rit-core-007_parking-validation-stub_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_002_ddb-rit-core-008_pocket-sand-receipt_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_002_ddb-rit-core-009_pop-up-safety-seminar_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_002_ddb-rit-core-010_temporary-tattoo-pass_Editable_ORA.zip"
+          ],
+          "records": [
+            {"cardId":"DDB-RIT-CORE-006","name":"Official Time-Out Card","artwork":"app/assets/art/reactions/source/ddb-rit-core-006_official-time-out-card.png","card":"app/assets/cards/reactions/ddb-rit-core-006_official-time-out-card.webp"},
+            {"cardId":"DDB-RIT-CORE-007","name":"Parking Validation Stub","artwork":"app/assets/art/reactions/source/ddb-rit-core-007_parking-validation-stub.png","card":"app/assets/cards/reactions/ddb-rit-core-007_parking-validation-stub.webp"},
+            {"cardId":"DDB-RIT-CORE-008","name":"Pocket-Sand Receipt","artwork":"app/assets/art/reactions/source/ddb-rit-core-008_pocket-sand-receipt.png","card":"app/assets/cards/reactions/ddb-rit-core-008_pocket-sand-receipt.webp"},
+            {"cardId":"DDB-RIT-CORE-009","name":"Pop-Up Safety Seminar","artwork":"app/assets/art/reactions/source/ddb-rit-core-009_pop-up-safety-seminar.png","card":"app/assets/cards/reactions/ddb-rit-core-009_pop-up-safety-seminar.webp"},
+            {"cardId":"DDB-RIT-CORE-010","name":"Temporary Tattoo Pass","artwork":"app/assets/art/reactions/source/ddb-rit-core-010_temporary-tattoo-pass.png","card":"app/assets/cards/reactions/ddb-rit-core-010_temporary-tattoo-pass.webp"}
+          ]
+        }
+      ]
     },
     "weapons": {
       "expected": 65,

@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "app/assets/templates/07_Item_Reaction.ora"
 CATALOG = json.loads((ROOT / "content/cards.json").read_text(encoding="utf-8"))["cards"]
 SIZE = (825, 1125)
+BATCH_NUMBER = os.environ.get("DDB_BATCH_NUMBER", "001")
 FONT_DIR = Path("/usr/share/fonts/truetype/dejavu")
 BOLD = FONT_DIR / "DejaVuSans-Bold.ttf"
 SERIF = FONT_DIR / "DejaVuSerif.ttf"
@@ -125,10 +126,10 @@ def main():
         merged.convert("RGB").save(temporary, "WEBP", quality=95, method=6); os.replace(temporary, final_path); built.append(stem)
     download_dir = ROOT / "public/downloads"; download_dir.mkdir(parents=True, exist_ok=True)
     for stem in built:
-        archive = download_dir / f"Dojo_Deckbuilder_Reactions_Batch_001_{stem}_Editable_ORA.zip"
+        archive = download_dir / f"Dojo_Deckbuilder_Reactions_Batch_{BATCH_NUMBER}_{stem}_Editable_ORA.zip"
         temporary = archive.with_suffix(archive.suffix + ".tmp")
         with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as output:
-            output.writestr("README.txt", "Reaction Item Batch 001. This editable ORA was built directly from the official 07_Item_Reaction.ora template, retained at app/assets/templates/07_Item_Reaction.ora. Open the ORA in GIMP for the original layer groups and editable artwork/text layers.\n")
+            output.writestr("README.txt", f"Reaction Item Batch {BATCH_NUMBER}. This editable ORA was built directly from the official 07_Item_Reaction.ora template, retained at app/assets/templates/07_Item_Reaction.ora. Open the ORA in GIMP for the original layer groups and editable artwork/text layers.\n")
             output.write(source_dir / f"{stem}.ora", f"Layered Sources/Reactions/{stem}.ora")
         os.replace(temporary, archive)
     print(f"Built {len(built)} Reaction Item cards directly from the official Item Reaction template.")
