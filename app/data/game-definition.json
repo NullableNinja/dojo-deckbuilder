@@ -121,6 +121,18 @@
     "attackXpOnHit": 1,
     "defenseXpOnBlock": 1,
     "quickDuelUsesFullBeltRewards": false,
+    "trainingStripes": {
+      "enabled": true,
+      "awardAt": "belt-check",
+      "maxHeld": 3,
+      "maxAwardsPerBelt": 3,
+      "clearOnPromotion": true,
+      "eligibility": {
+        "requiresNextBeltXp": true,
+        "requiresIncompleteNextBeltExam": true
+      },
+      "summary": "At Belt Check, if you have enough XP for the next Belt but its Exam is still incomplete, gain one Training Stripe on your current Belt. A Belt may award at most three Training Stripes. Unspent Training Stripes clear when you promote."
+    },
     "belts": [
       {
         "id": "white",
