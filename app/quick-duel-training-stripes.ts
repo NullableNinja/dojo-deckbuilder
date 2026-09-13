@@ -1,6 +1,8 @@
 import { canonicalTrainingStripeConfig } from "./training-stripes-config.ts";
 import { spendTrainingStripeForHealing, trainingStripeHealingAvailability, type TrainingStripeBoard } from "./training-stripes.ts";
 
+export const QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT = "ddb:training-stripe-heal";
+
 export type QuickDuelTrainingStripeActor = "player" | "ai";
 export type QuickDuelTrainingStripeWindow = "belt-check";
 
