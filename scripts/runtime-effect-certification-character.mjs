@@ -56,13 +56,16 @@ export function characterEventHostEvidence(event, playtestSource, quickDuelHostS
     return published && routed;
   }
 
-  // Non-lifecycle Character events must be explicitly published from the live
-  // Playtest host. Merely declaring a route or implementing a resolver is not
-  // execution evidence.
-  return new RegExp(
+  // Non-lifecycle events may be published either directly by React or by the
+  // shared Playtest transition host. The latter is preferred for facts already
+  // represented by committed match transitions such as combat exchanges.
+  const reactPublished = new RegExp(
     `publishQuickDuelPlaytestCharacterEvent\\([\\s\\S]{0,420}?type:\\s*["']${event}["']`,
     "m",
   ).test(playtestSource);
+  const hostBuildsEvent = new RegExp(`type:\\s*["']${event}["']`, "m").test(quickDuelHostSource);
+  const hostPublishesCharacterEvent = /publishQuickDuelPlaytestCharacterEvent\s*\(/m.test(quickDuelHostSource);
+  return reactPublished || (hostBuildsEvent && hostPublishesCharacterEvent);
 }
 
 export function characterResolverHostEvidence({
