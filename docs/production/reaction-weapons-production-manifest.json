@@ -46,7 +46,13 @@
             {"cardId":"DDB-RIT-CORE-010","name":"Temporary Tattoo Pass","artwork":"app/assets/art/reactions/source/ddb-rit-core-010_temporary-tattoo-pass.png","card":"app/assets/cards/reactions/ddb-rit-core-010_temporary-tattoo-pass.webp"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {
+        "batch": "reactions-003",
+        "worker": "codex",
+        "status": "claimed",
+        "cardIds": ["DDB-RIT-CORE-011", "DDB-RIT-CORE-012"]
+      }
     },
     "weapons": {
       "expected": 65,
