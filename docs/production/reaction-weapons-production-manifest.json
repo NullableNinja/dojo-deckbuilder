@@ -79,7 +79,13 @@
             {"cardId":"DDB-WPN-CORE-005","name":"Brass Knuckles","artwork":"app/assets/art/weapons/source/ddb-wpn-core-005_brass-knuckles.png","card":"app/assets/cards/weapons/ddb-wpn-core-005_brass-knuckles.webp"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {
+        "batch": "weapons-002",
+        "worker": "codex",
+        "status": "claimed",
+        "cardIds": ["DDB-WPN-CORE-006", "DDB-WPN-CORE-007", "DDB-WPN-CORE-008", "DDB-WPN-CORE-009", "DDB-WPN-CORE-010"]
+      }
     }
   }
 }
