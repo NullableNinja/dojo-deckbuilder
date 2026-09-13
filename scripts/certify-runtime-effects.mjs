@@ -1,5 +1,6 @@
 import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
 import { extname } from "node:path";
+import { characterResolverHostEvidence } from "./runtime-effect-certification-character.mjs";
 
 const root = new URL("../", import.meta.url);
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"));
@@ -27,6 +28,8 @@ const testFiles = await walk("tests");
 const appSources = new Map(await Promise.all(appFiles.map(async (path) => [path, await readText(path)])));
 const testSources = new Map(await Promise.all(testFiles.map(async (path) => [path, await readText(path)])));
 const quickDuelHost = appSources.get("app/quick-duel-playtest-host.ts") ?? "";
+const characterRuntimeSource = appSources.get("app/character-runtime.ts") ?? "";
+const characterMigrationSource = appSources.get("app/quick-duel-character-migration.ts") ?? "";
 
 const catalogCards = cardsCatalog.cards ?? [];
 const cardByCatalogId = new Map(catalogCards.map((card) => [card.catalogId, card]));
@@ -54,8 +57,6 @@ const familyFromId = (id) => {
 
 const countOccurrences = (source, token) => token ? source.split(token).length - 1 : 0;
 const callCount = (token) => countOccurrences(playtest, `${token}(`);
-const playtestPublishesLifecycleTrigger = (trigger) => new RegExp(`publishQuickDuelPlaytestLifecycleEvent\\([\\s\\S]{0,260}?["']${trigger}["']`, "m").test(playtest);
-const hostRoutesCharacterLifecycle = (trigger, eventName) => quickDuelHost.includes(`trigger === "${trigger}"`) && quickDuelHost.includes(`? "${eventName}"`);
 const playerCharacterChoiceUiLive = playtest.includes("resolveQuickDuelPlaytestCharacterChoice") && playtest.includes('kind: "character-runtime"');
 
 const familyHostEvidence = {
@@ -69,14 +70,7 @@ const familyHostEvidence = {
   Location: () => /resolveLocationEffects\(|structuredLocation|locationRuntimeDelta\(/.test(playtest),
 };
 
-function characterHostEvidence(trigger) {
-  if (trigger === "onInitiate") return playtestPublishesLifecycleTrigger("onInitiate") && hostRoutesCharacterLifecycle("onInitiate", "initiate");
-  if (trigger === "onHide") return playtestPublishesLifecycleTrigger("onHide") && hostRoutesCharacterLifecycle("onHide", "hide");
-  return false;
-}
-
-function effectHostEvidence(family, trigger) {
-  if (family === "Character") return characterHostEvidence(trigger);
+function effectHostEvidence(family) {
   return Boolean(familyHostEvidence[family]?.());
 }
 
@@ -122,7 +116,16 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
       ...sourceFilesContaining(effectId, testSources),
       ...sourceFilesContaining(resolver, testSources),
     ])];
-    const familyHost = effectHostEvidence(family, trigger);
+    const characterHost = family === "Character"
+      ? characterResolverHostEvidence({
+          resolver,
+          characterRuntimeSource,
+          migrationSource: characterMigrationSource,
+          playtestSource: playtest,
+          quickDuelHostSource: quickDuelHost,
+        })
+      : null;
+    const familyHost = characterHost ? characterHost.hostLive : effectHostEvidence(family);
     const resolverEvidence = !resolver || resolverFiles.length > 0;
     const testEvidence = testFilesForEffect.length > 0;
     const requiresPlayerChoiceUi = family === "Character" && mechanicalEffect === "core.choice";
@@ -135,9 +138,7 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
       rootCause = reachability.reason;
     } else if (!familyHost) {
       certification = "FAIL_HOST";
-      rootCause = family === "Character"
-        ? `Character trigger ${trigger || "(missing)"} is not demonstrably published by the live Quick Duel host.`
-        : `${family} structured runtime is not demonstrably published by app/playtest.tsx.`;
+      rootCause = characterHost?.reason ?? `${family} structured runtime is not demonstrably published by app/playtest.tsx.`;
     } else if (!playerChoiceUiEvidence) {
       certification = "FAIL_CHOICE_UI";
       rootCause = "The Character event reaches the structured host, but app/playtest.tsx does not yet surface and resume CharacterRuntimeChoice for the player.";
@@ -149,7 +150,7 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
       rootCause = "Host path exists, but no regression test mentions this effect ID or resolver.";
     } else {
       certification = "STATIC_PASS";
-      rootCause = "Pool, host, resolver, and regression-test evidence exist; dynamic gameplay certification still required.";
+      rootCause = characterHost?.reason ?? "Pool, host, resolver, and regression-test evidence exist; dynamic gameplay certification still required.";
     }
 
     rows.push({
@@ -160,6 +161,10 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
       effect: mechanicalEffect,
       trigger,
       resolver,
+      characterEvents: characterHost?.events ?? [],
+      characterLiveEvents: characterHost?.liveEvents ?? [],
+      characterOwner: characterHost?.owner ?? null,
+      characterCompatibilityHelper: characterHost?.helper ?? null,
       cardReachable: reachability.reachable,
       reachabilityReason: reachability.reason,
       familyHostEvidence: familyHost,
@@ -232,6 +237,8 @@ const markdown = [
   "| Family | Card | Effect | Trigger | Resolver | Status | Root cause |",
   "|---|---|---|---|---|---|---|",
   ...rows.filter((row) => row.certification !== "STATIC_PASS").map((row) => `| ${row.family} | ${row.cardId} ${row.cardName.replaceAll("|", "\\|")} | ${row.effectId} | ${row.trigger} | ${row.resolver || "—"} | ${row.certification} | ${row.rootCause.replaceAll("|", "\\|")} |`),
+  "",
+  "> Character host certification follows resolver → runtime-event → migration ownership. Raw canonical trigger text is reported for reference but is not treated as execution evidence.",
   "",
   "> `STATIC_PASS` is deliberately not called certified. Final certification requires a deterministic gameplay scenario proving the effect mutates live Quick Duel state correctly for human and AI paths where applicable.",
   "",
