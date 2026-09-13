@@ -23,7 +23,7 @@ jobs:
           cache: npm
 
       - name: Remove one-shot certification workflow from candidate tree
-        run: rm .github/workflows/pr77-current-main-cert.yml
+        run: git rm .github/workflows/pr77-current-main-cert.yml
 
       - name: Install dependencies
         run: npm ci
