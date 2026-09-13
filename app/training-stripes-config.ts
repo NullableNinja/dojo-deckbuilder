@@ -1,4 +1,4 @@
-import gameDefinitionJson from "./data/game-definition.json";
+import gameDefinitionJson from "./data/game-definition.json" with { type: "json" };
 import type { TrainingStripeConfig, TrainingStripeRule } from "./training-stripes.ts";
 
 type BeltDefinition = {
