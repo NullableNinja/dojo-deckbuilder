@@ -3301,7 +3301,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                   : match.pendingChoice?.kind === "stage3c-sparring-junk"
                     ? match.pendingChoice.junkIds.map((id, index) => ({ id, source: "discard" as const, index }))
                     : [];
-  const effectChoiceTitle = match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"
+  const effectChoiceTitle = match.pendingChoice?.kind === "character-runtime" ? "Character ability"
+    : match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"
     : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? "Use Lucky Dumpling?"
     : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Call a protected zone"
     : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Remove a temporary penalty"
