@@ -17,19 +17,18 @@ test("Quick Duel exposes generic Character runtime choices instead of a Ducktape
   assert.doesNotMatch(source, /ducktape-tray/);
 });
 
-test("player Character choices block Initiate progression and use the shared pending-choice modal", () => {
-  assert.match(
-    source,
-    /current\?\.phase === "player-initiate" && !current\.pendingChoice/
-  );
-  assert.match(
-    source,
-    /effectChoiceTitle = match\.pendingChoice\?\.kind === "character-runtime"/
-  );
-  assert.match(
-    source,
-    /effectChoicePrompt = match\.pendingChoice\?\.kind === "character-runtime" \? match\.pendingChoice\.choice\.prompt/
-  );
+test("player Character choices block Initiate progression and use the shared pending-choice interaction layer", () => {
+  assert.match(source, /current\?\.phase === "player-initiate" && !current\.pendingChoice/);
+  assert.match(source, /type CharacterRuntimePendingChoice = Extract<PendingChoice, \{ kind: "character-runtime" \}>/);
+  assert.match(source, /characterRuntimePendingChoice\(match\.pendingChoice\)/);
+  assert.match(source, /const applyCharacterRuntimeChoice =/);
+  assert.match(source, /current\.pendingChoice\.kind === "character-runtime"/);
+  assert.match(source, /return applyCharacterRuntimeChoice\(current, selection\)/);
+  assert.match(source, /onClick=\{skipPendingChoice\}>Skip this optional effect/);
 });
 
-// Source wiring + deterministic host scenarios together certify the current Character choice seam.
+test("Character choices survive round transitions and take precedence over reveal reactions", () => {
+  assert.match(source, /pendingChoice: hostedInitiate\.pendingChoice \?\? null/);
+  assert.match(source, /!advanced\.pendingChoice && sceneChanges && lucky/);
+  assert.match(source, /!advanced\.pendingChoice && marketRefreshes && lucky/);
+});
