@@ -18,15 +18,9 @@ jobs:
         with:
           ref: feature/training-stripe-healing-current-main
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Regenerate canonical runtime data
-        run: npm run game:generate
-      - name: Apply narrow Playtest host wiring
+      - name: Regenerate data and apply narrow Playtest host wiring
         run: |
+          node scripts/generate-game-data.mjs
           python - <<'PY'
           from pathlib import Path
 
@@ -70,15 +64,15 @@ jobs:
 
           path.write_text(source)
           PY
-      - name: Verify generated data and patch
+      - name: Verify narrow changes
         run: |
-          npm run game:check
+          node scripts/check-generated-game-data.mjs
           git diff --check
-          git diff -- app/playtest.tsx app/data/game-definition.json
-      - name: Commit generated mirror and host wiring
+          git diff -- app/data/game-definition.json app/playtest.tsx
+      - name: Commit generated mirror and Playtest wiring
         run: |
-          if git diff --quiet; then
-            echo "No generated or host changes."
+          if git diff --quiet -- app/data/game-definition.json app/playtest.tsx; then
+            echo "Generated mirror and Playtest host already current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
