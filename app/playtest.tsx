@@ -2909,8 +2909,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     setDeskView(null);
     setMatch((current) => {
       if (!current || current.phase !== "player-ascend") return current;
-      const nextPlayer = playAreaCleanup(current.player);
-      const hidden = write(current, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? current.winner : "ai" });
+      const hostedHide = publishQuickDuelPlaytestLifecycleEvent(current, "player", "onHide", quickDuelHostOperations, cardFor).match;
+      const nextPlayer = playAreaCleanup(hostedHide.player);
+      const hidden = write(hostedHide, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? hostedHide.winner : "ai" });
       if (!nextPlayer.hp) return hidden;
       if (current.turnIndex === 0) return write(hidden, "The computer is second in this round's initiative order.", { phase: "ai-ready", turnIndex: 1 });
       return advanceRound(hidden, settings.locations, "Both fighters have completed the round.", settings.houseRuleIds);
