@@ -81,13 +81,23 @@ function healingCopy(match: SavedStripeMatch) {
 
   if (!spend?.enabled) return { availability, label, note: "Stripe recovery is disabled for this format." };
   if (!availability.timingAllowed) return { availability, label, note: "Recovery opens during your Belt Check." };
+  if (!availability.beltCheckAction.canUse) {
+    const used = availability.beltCheckAction.state.action;
+    return {
+      availability,
+      label,
+      note: used === "promote"
+        ? "You promoted this turn. Stripe recovery becomes available at your next Belt Check."
+        : "Your Belt Check action has already been used this turn.",
+    };
+  }
   if (availability.atFullHp) return { availability, label, note: "Already at Max HP." };
   if (availability.spendsThisTurn >= availability.usesPerTurn) return { availability, label, note: "Stripe recovery already used this turn." };
   if (availability.spendableHeld < availability.stripeCost && availability.provisionalReserved > 0) {
     return { availability, label, note: "Your newly earned Stripe becomes spendable on a later turn." };
   }
   if (availability.spendableHeld < availability.stripeCost) return { availability, label, note: "No previously earned Stripe is available to spend." };
-  return { availability, label, note: `Recover up to ${availability.healHp} HP without exceeding ${availability.maxHp} Max HP.` };
+  return { availability, label, note: `Choose recovery instead of promotion this turn. Recover up to ${availability.healHp} HP without exceeding ${availability.maxHp} Max HP.` };
 }
 
 function decorateBeltPanel(panel: HTMLElement, match: SavedStripeMatch) {
@@ -112,8 +122,10 @@ function decorateBeltPanel(panel: HTMLElement, match: SavedStripeMatch) {
   const rack = ensureStripeRack(panel);
   const state = trainingStripeState(board);
   const currentBelt = canonicalTrainingStripeBelts[beltIndex];
+  const blackBelt = canonicalTrainingStripeBelts.find((belt) => belt.id === "black");
   const maxHeld = Math.max(0, Math.trunc(Number(canonicalTrainingStripeConfig.rule.maxHeld) || 0));
   rack.style.setProperty("--current-belt", currentBelt?.color ?? "#f5f0df");
+  rack.style.setProperty("--training-stripe-color", blackBelt?.color ?? "#171b18");
   rack.dataset.beltId = currentBelt?.id ?? "white";
   rack.hidden = !canonicalTrainingStripeConfig.rule.enabled || !canonicalTrainingStripeBelts[beltIndex + 1];
   rack.setAttribute("aria-label", `${state.held} of ${maxHeld} Training Stripes on ${currentBelt?.name ?? "current"} Belt`);

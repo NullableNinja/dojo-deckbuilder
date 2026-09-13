@@ -151,6 +151,14 @@
       "attackXpOnHit": 1,
       "defenseXpOnBlock": 1,
       "quickDuelUsesFullBeltRewards": false,
+      "beltCheckAction": {
+        "usesPerTurn": 1,
+        "choices": [
+          "promote",
+          "training-stripe-recovery"
+        ],
+        "summary": "During Belt Check, choose at most one certification action per turn: promote if eligible, or spend a previously earned Training Stripe to recover HP. Choosing either uses your Belt Check action for that turn."
+      },
       "trainingStripes": {
         "enabled": true,
         "awardAt": "belt-check",
@@ -170,7 +178,7 @@
           "cannotExceedMaxHp": true,
           "requiresFinalizedStripe": true
         },
-        "summary": "At Belt Check, if you have enough XP for the next Belt but its Exam is still incomplete, gain one Training Stripe on your current Belt. A Belt may award at most three Training Stripes. Once per turn during Belt Check, you may spend one previously earned Training Stripe to recover 2 HP, up to your Max HP. A Stripe earned during the current Belt Check becomes spendable on a later turn. Unspent Training Stripes clear when you promote."
+        "summary": "At Belt Check, if you have enough XP for the next Belt but its Exam is still incomplete, gain one Training Stripe on your current Belt. A Belt may award at most three Training Stripes. During Belt Check, you may use your one certification action for the turn to spend one previously earned Training Stripe and recover 2 HP, up to your Max HP, instead of promoting. A Stripe earned during the current Belt Check becomes spendable on a later turn. Unspent Training Stripes clear when you promote."
       },
       "belts": [
         {
