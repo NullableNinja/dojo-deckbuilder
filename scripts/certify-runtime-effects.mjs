@@ -28,6 +28,7 @@ const testFiles = await walk("tests");
 const appSources = new Map(await Promise.all(appFiles.map(async (path) => [path, await readText(path)])));
 const testSources = new Map(await Promise.all(testFiles.map(async (path) => [path, await readText(path)])));
 const quickDuelHost = appSources.get("app/quick-duel-playtest-host.ts") ?? "";
+const quickDuelTransitionHost = appSources.get("app/quick-duel-transition-host.ts") ?? "";
 const characterRuntimeSource = appSources.get("app/character-runtime.ts") ?? "";
 const characterMigrationSource = appSources.get("app/quick-duel-character-migration.ts") ?? "";
 
@@ -123,6 +124,7 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
           migrationSource: characterMigrationSource,
           playtestSource: playtest,
           quickDuelHostSource: quickDuelHost,
+          quickDuelTransitionSource: quickDuelTransitionHost,
         })
       : null;
     const familyHost = characterHost ? characterHost.hostLive : effectHostEvidence(family);
