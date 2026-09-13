@@ -100,4 +100,10 @@ test("live Character host evidence distinguishes compatibility helpers from shar
   assert.deepEqual(speedRuntime.events, ["speedChanged"]);
   assert.deepEqual(speedRuntime.liveEvents, ["speedChanged"]);
   assert.equal(speedRuntime.hostLive, true);
+
+  const promotionRuntime = evidence("character.green.promotionCycle");
+  assert.equal(promotionRuntime.owner, "event-runtime");
+  assert.deepEqual(promotionRuntime.events, ["promotion"]);
+  assert.deepEqual(promotionRuntime.liveEvents, ["promotion"]);
+  assert.equal(promotionRuntime.hostLive, true);
 });
