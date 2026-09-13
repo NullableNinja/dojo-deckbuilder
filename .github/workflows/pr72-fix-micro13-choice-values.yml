@@ -1,0 +1,73 @@
+name: PR72 Fix Character Choice Values
+
+on:
+  push:
+    branches:
+      - pr72-micro-recovery-clean
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pr72-micro-recovery-clean
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12'
+          cache: npm
+      - run: npm ci
+      - name: Remove one-shot harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pr72-fix-micro13-choice-values.yml
+          git commit -m "Remove one-shot Character choice normalization harness"
+          git push origin HEAD:pr72-micro-recovery-clean
+      - name: Normalize Character choice values before JSX
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('app/playtest.tsx')
+          s = p.read_text()
+
+          old_title = '  const effectChoiceTitle = match.pendingChoice?.kind === "character-runtime" ? "Character ability"\n'
+          new_title = '''  const characterRuntimeChoice = match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice : null;\n  const characterRuntimeOptions = characterRuntimeChoice ? characterRuntimeChoice.options.filter((option) => !["skip", "decline", "cancel"].includes(option)) : [];\n  const effectChoiceTitle = characterRuntimeChoice ? "Character ability"\n'''
+          if old_title not in s:
+              raise SystemExit('Character title marker not found')
+          s = s.replace(old_title, new_title, 1)
+
+          old_prompt = '  const effectChoicePrompt = match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice.prompt\n'
+          new_prompt = '  const effectChoicePrompt = characterRuntimeChoice ? characterRuntimeChoice.prompt\n'
+          if old_prompt not in s:
+              raise SystemExit('Character prompt marker not found')
+          s = s.replace(old_prompt, new_prompt, 1)
+
+          old_skip = '  const effectChoiceCanSkip = (match.pendingChoice?.kind === "character-runtime" && match.pendingChoice.choice.optional) ||'
+          new_skip = '  const effectChoiceCanSkip = Boolean(characterRuntimeChoice?.optional) ||'
+          if old_skip not in s:
+              raise SystemExit('Character optional marker not found')
+          s = s.replace(old_skip, new_skip, 1)
+
+          old_modal = '{match.pendingChoice?.kind === "character-runtime" ? match.pendingChoice.choice.options.filter((option) => !["skip", "decline", "cancel"].includes(option)).map((option) => {'
+          new_modal = '{characterRuntimeChoice ? characterRuntimeOptions.map((option) => {'
+          if old_modal not in s:
+              raise SystemExit('Character modal marker not found')
+          s = s.replace(old_modal, new_modal, 1)
+
+          p.write_text(s)
+          PY
+          npm test
+          git add app/playtest.tsx
+          git commit -m "Normalize Character choice modal values"
+          git push origin HEAD:pr72-micro-recovery-clean
