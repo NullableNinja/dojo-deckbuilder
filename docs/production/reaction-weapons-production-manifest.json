@@ -46,13 +46,21 @@
             {"cardId":"DDB-RIT-CORE-010","name":"Temporary Tattoo Pass","artwork":"app/assets/art/reactions/source/ddb-rit-core-010_temporary-tattoo-pass.png","card":"app/assets/cards/reactions/ddb-rit-core-010_temporary-tattoo-pass.webp"}
           ]
         }
-      ],
-      "activeBatch": {
-        "batch": "reactions-003",
-        "worker": "codex",
-        "status": "claimed",
-        "cardIds": ["DDB-RIT-CORE-011", "DDB-RIT-CORE-012"]
-      }
+      ,
+        {
+          "batch": "reactions-003",
+          "status": "complete",
+          "cardIds": ["DDB-RIT-CORE-011", "DDB-RIT-CORE-012"],
+          "layeredSourceArchives": [
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_003_ddb-rit-core-011_witness-statement-in-crayon_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_003_ddb-rit-core-012_x-ray-paper_Editable_ORA.zip"
+          ],
+          "records": [
+            {"cardId":"DDB-RIT-CORE-011","name":"Witness Statement in Crayon","artwork":"app/assets/art/reactions/source/ddb-rit-core-011_witness-statement-in-crayon.png","card":"app/assets/cards/reactions/ddb-rit-core-011_witness-statement-in-crayon.webp"},
+            {"cardId":"DDB-RIT-CORE-012","name":"X-Ray Paper","artwork":"app/assets/art/reactions/source/ddb-rit-core-012_x-ray-paper.png","card":"app/assets/cards/reactions/ddb-rit-core-012_x-ray-paper.webp"}
+          ]
+        }
+      ]
     },
     "weapons": {
       "expected": 65,
