@@ -2098,6 +2098,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   });
 
 
+  const borrowEquipment = (id: string) => setMatch((current) => {
+    if (!current || current.phase !== "player-initiate" || current.player.abilityUsedRound || cardFor(current.player.fighterId)?.name !== "Sensei Ducktape") return current;
+    const card = cardFor(id);
+    if (!card || !isPermanent(card) || !current.player.discard.includes(id)) return current;
+    const nextPlayer = applyCardEffects({ ...current.player, discard: removeOne(current.player.discard, id), borrowedEquipmentId: id, abilityUsedRound: true }, card, "player");
+    return write(current, `Sensei Ducktape jury-rigs ${card.name} from the discard pile until Hide.`, { player: nextPlayer });
+  });
+
   const beginYell = () => setMatch((current) => current?.phase === "player-initiate" && !current.pendingChoice ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: { ...current.player, usedEffectIdsThisTurn: [] } }) : current);
 
 
