@@ -12,6 +12,13 @@ import {
   type ComboHostCardLookup,
   type ComboHostFacts,
 } from "./combo-host-facts.ts";
+import { canonicalTrainingStripeConfig } from "./training-stripes-config.ts";
+import {
+  awardProvisionalTrainingStripe,
+  finalizeTrainingStripe,
+  reconcileProvisionalTrainingStripe,
+  synchronizeTrainingStripeBelt,
+} from "./training-stripes.ts";
 
 const COMBO_FACTS_KEY = "structuredHost.comboFacts";
 
@@ -23,6 +30,9 @@ export type QuickDuelTransitionBoard = {
   equipment: string[];
   tempSpeed: number;
   cardsBought: number;
+  xp?: number;
+  belt?: number;
+  completedTasks?: number[];
   currentAttackIsReversal?: boolean;
   characterMarks?: Record<string, unknown>;
 };
@@ -154,10 +164,10 @@ function initializeActiveTurn<Board extends QuickDuelTransitionBoard>(match: Qui
 }
 
 /**
- * Derives canonical Combo host history from state transitions Quick Duel already
- * records. This function is card-identity agnostic and never reads printed
- * requirement text. It is intentionally pure so Playtest can call it once at
- * its state-write boundary.
+ * Derives canonical Combo host history and progression bookkeeping from state
+ * transitions Quick Duel already records. This function is card-identity
+ * agnostic and never reads printed requirement text. It is intentionally pure
+ * so Playtest can call it once at its state-write boundary.
  */
 export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransitionBoard>(
   previousInput: QuickDuelTransitionMatch<Board>,
@@ -172,14 +182,28 @@ export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransi
 
   for (const actor of ["player", "ai"] as const) {
     const previousBoard = actorBoard(previous, actor);
-    const nextBoard = actorBoard(next, actor);
+    let nextBoard = actorBoard(next, actor);
     let facts = comboHostFactsFromBoard(previousBoard);
+
+    nextBoard = synchronizeTrainingStripeBelt(nextBoard, canonicalTrainingStripeConfig.rule);
 
     if (actor === "player" && previous.phase !== "player-ascend" && next.phase === "player-ascend") {
       facts = beginComboHostAscend(facts);
+      nextBoard = awardProvisionalTrainingStripe(nextBoard, canonicalTrainingStripeConfig);
+    }
+    if (actor === "player" && previous.phase === "player-ascend" && next.phase === "player-ascend") {
+      nextBoard = reconcileProvisionalTrainingStripe(nextBoard, canonicalTrainingStripeConfig);
+    }
+    if (actor === "player" && previous.phase === "player-ascend" && next.phase !== "player-ascend") {
+      nextBoard = reconcileProvisionalTrainingStripe(nextBoard, canonicalTrainingStripeConfig);
+      nextBoard = finalizeTrainingStripe(nextBoard);
     }
     if (actor === "ai" && turnAdvanced && priorActor === "ai") {
       facts = beginComboHostAscend(facts);
+      const promotedInThisTransition = Number(previousBoard.belt ?? 0) !== Number(nextBoard.belt ?? 0);
+      if (!promotedInThisTransition) {
+        nextBoard = finalizeTrainingStripe(awardProvisionalTrainingStripe(nextBoard, canonicalTrainingStripeConfig));
+      }
     }
 
     facts = recordPlayedCardDiff(facts, previousBoard, nextBoard, lookup);
