@@ -1,0 +1,83 @@
+name: One-off Training Stripe Playtest Wiring
+
+on:
+  push:
+    branches:
+      - feature/training-stripe-healing
+    paths:
+      - .github/workflows/stripe-healing-playtest-wire.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/training-stripe-healing
+          fetch-depth: 0
+      - name: Apply narrow Playtest host wiring
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('app/playtest.tsx')
+          source = path.read_text()
+
+          import_anchor = 'import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";\n'
+          import_line = 'import { QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, spendQuickDuelTrainingStripeForHealing } from "./quick-duel-training-stripes.ts";\n'
+          if import_line not in source:
+              if import_anchor not in source:
+                  raise SystemExit('Playtest import anchor not found')
+              source = source.replace(import_anchor, import_anchor + import_line, 1)
+
+          state_anchor = '''  const [deskView, setDeskView] = useState<DeskView | null>(() => {
+            try {
+              const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
+              return saved?.phase === "player-ascend" ? "market" : null;
+            } catch { return null; }
+          });
+          '''
+          effect_block = '''  useEffect(() => {
+            const handleTrainingStripeHeal = () => {
+              if (deskView !== "belt") return;
+              setMatch((current) => {
+                if (!current || current.phase !== "player-ascend") return current;
+                const next = spendQuickDuelTrainingStripeForHealing(current, "player", "belt-check");
+                if (next === current) return current;
+                const recovered = next.player.hp - current.player.hp;
+                if (recovered <= 0) return current;
+                return {
+                  ...next,
+                  log: [`Training Stripe redeemed: recover ${recovered} HP (${current.player.hp} → ${next.player.hp}).`, ...next.log].slice(0, 32),
+                };
+              });
+            };
+            window.addEventListener(QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, handleTrainingStripeHeal);
+            return () => window.removeEventListener(QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, handleTrainingStripeHeal);
+          }, [deskView]);
+          '''
+          if effect_block not in source:
+              if state_anchor not in source:
+                  raise SystemExit('Playtest deskView anchor not found')
+              source = source.replace(state_anchor, state_anchor + effect_block, 1)
+
+          path.write_text(source)
+          PY
+      - name: Verify only intended host file changed
+        run: |
+          git diff --check
+          git diff -- app/playtest.tsx
+      - name: Commit Playtest wiring
+        run: |
+          if git diff --quiet -- app/playtest.tsx; then
+            echo "Playtest host already wired."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/playtest.tsx
+          git commit -m "feat(stripes): connect healing action to Quick Duel state"
+          git push origin HEAD:feature/training-stripe-healing
