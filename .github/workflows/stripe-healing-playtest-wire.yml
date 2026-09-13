@@ -26,20 +26,15 @@ jobs:
           path = Path('app/playtest.tsx')
           source = path.read_text()
 
-          import_anchor = 'import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";\n'
           import_line = 'import { QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, spendQuickDuelTrainingStripeForHealing } from "./quick-duel-training-stripes.ts";\n'
           if import_line not in source:
-              if import_anchor not in source:
-                  raise SystemExit('Playtest import anchor not found')
-              source = source.replace(import_anchor, import_anchor + import_line, 1)
+              marker = 'import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";\n'
+              index = source.find(marker)
+              if index < 0:
+                  raise SystemExit('Playtest house-rule import marker not found')
+              end = index + len(marker)
+              source = source[:end] + import_line + source[end:]
 
-          state_anchor = '''  const [deskView, setDeskView] = useState<DeskView | null>(() => {
-            try {
-              const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
-              return saved?.phase === "player-ascend" ? "market" : null;
-            } catch { return null; }
-          });
-          '''
           effect_block = '''  useEffect(() => {
             const handleTrainingStripeHeal = () => {
               if (deskView !== "belt") return;
@@ -60,9 +55,11 @@ jobs:
           }, [deskView]);
           '''
           if effect_block not in source:
-              if state_anchor not in source:
-                  raise SystemExit('Playtest deskView anchor not found')
-              source = source.replace(state_anchor, state_anchor + effect_block, 1)
+              marker = '  const [rulesSync, setRulesSync] = useState<RulesSyncState>('
+              index = source.find(marker)
+              if index < 0:
+                  raise SystemExit('Playtest rulesSync marker not found')
+              source = source[:index] + effect_block + source[index:]
 
           path.write_text(source)
           PY
