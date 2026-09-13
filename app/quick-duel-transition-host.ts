@@ -216,9 +216,12 @@ function chooseAiCharacterOption(choice: CharacterRuntimeChoice) {
     ?? null;
 }
 
-function resumeCharacterChoice(
-  self: QuickDuelTransitionBoard & CharacterRuntimeBoard,
-  opponent: QuickDuelTransitionBoard & CharacterRuntimeBoard,
+function resumeCharacterChoice<
+  SelfBoard extends QuickDuelTransitionBoard & CharacterRuntimeBoard,
+  OpponentBoard extends QuickDuelTransitionBoard & CharacterRuntimeBoard,
+>(
+  self: SelfBoard,
+  opponent: OpponentBoard,
   event: CharacterRuntimeEvent,
   choice: CharacterRuntimeChoice,
   selection: string,
