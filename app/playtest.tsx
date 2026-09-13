@@ -28,6 +28,7 @@ import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules
 import { normalizePendingDamageChoice } from "./playtest-state-recovery";
 import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";
 import { QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, spendQuickDuelTrainingStripeForHealing } from "./quick-duel-training-stripes.ts";
+import { markQuickDuelBeltCheckAction, quickDuelBeltCheckActionAvailability } from "./quick-duel-belt-check-actions.ts";
 
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
 
@@ -2930,9 +2931,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-ascend" || current.player.belt >= belts.length - 1) return current;
     const next = belts[current.player.belt + 1];
     if (current.player.xp < beltThresholds[current.player.belt + 1] || !current.player.completedTasks.includes(current.player.belt + 1)) return current;
+    if (!quickDuelBeltCheckActionAvailability(current, "player", "promote").canUse) return current;
     const nextPlayer = applyBeltPromotion(current.player, current.player.belt + 1);
     const vitality = nextPlayer.maxHp > current.player.maxHp ? ` Max HP ${current.player.maxHp} → ${nextPlayer.maxHp}; current HP ${current.player.hp} → ${nextPlayer.hp}.` : "";
-    return write(current, `Certification approved: ${next.name} Belt. ${next.reward.summary}${next.reward.onPromotionFocus ? ` +${next.reward.onPromotionFocus} Focus.` : ""}${vitality}`, { player: nextPlayer });
+    const promoted = markQuickDuelBeltCheckAction({ ...current, player: nextPlayer }, "player", "promote");
+    return write(promoted, `Certification approved: ${next.name} Belt. ${next.reward.summary}${next.reward.onPromotionFocus ? ` +${next.reward.onPromotionFocus} Focus.` : ""}${vitality}`);
   });
 
   const completeTurn = () => {
@@ -3297,7 +3300,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const comboOffer = match.comboOfferId ? cardFor(match.comboOfferId) : null;
   const nextBelt = belts[player.belt + 1];
   const nextBeltXp = nextBelt ? beltThresholds[player.belt + 1] : 0;
-  const canPromote = Boolean(nextBelt && player.xp >= nextBeltXp && playerTask);
+  const promotionAction = quickDuelBeltCheckActionAvailability(match, "player", "promote");
+  const canPromote = Boolean(nextBelt && player.xp >= nextBeltXp && playerTask && promotionAction.canUse);
   const defenseOptions = match.pendingStrike ? legalDefenseIds(player, match.pendingStrike.zone) : [];
   const equipmentReactions = match.phase === "defense-window"
     ? player.equipment.map(cardFor).filter((card): card is CardEntry => {
@@ -3404,7 +3408,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const ascendStepHelp = deskView === "combo"
     ? "Review the face-up Combo. Learn it if you can and want it, or pass it to the bottom of the docket. Then check your Belt."
     : deskView === "belt"
-      ? "Check your XP and Belt Exam requirement. Promote if you qualify. This is the final review before Hide clears unspent Focus."
+      ? "Check your XP and Belt Exam requirement. If eligible, choose either promotion or Training Stripe recovery; taking either uses this turn's Belt Check action."
       : "Spend Focus on Market cards and decide the face-up Combo from the same desk. Then continue to your Belt Check.";
   const ascendNextLabel = deskView === "belt" ? "Finish Ascend → Hide" : "Continue to Belt Check →";
   const turnCoach = match.winner
@@ -3535,7 +3539,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
             <p>{nextBelt ? <><b>Next: {nextBelt.name} · {nextBeltXp} XP.</b> {nextBelt.exam.summary} <em>{nextBelt.reward.summary}</em></> : "Every available Belt has been certified."}</p>
             <div className="belt-track">{belts.map((belt, index) => <span className={index <= player.belt ? "earned" : ""} key={belt.name} style={{ "--belt-rank": belt.color } as CSSProperties} title={`${belt.name} Belt · ${beltThresholds[index]} XP · ${belt.exam.title}`}>{belt.name.slice(0, 1)}</span>)}</div>
             <div className="belt-ledger-list">{belts.map((belt, index) => <article className={index === player.belt ? "is-current" : index < player.belt ? "is-earned" : ""} key={belt.name} style={{ "--belt-rank": belt.color } as CSSProperties}><span>{index < player.belt ? "✓" : index === player.belt ? "●" : index + 1}</span><div><b>{belt.name} Belt · {belt.exam.title}</b><small>{beltThresholds[index]} XP · {belt.exam.summary}</small><small>{belt.reward.summary}</small></div></article>)}</div>
-            {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : `${nextBelt.name}: ${nextBeltXp} XP + completed task`}</button>}
+            {nextBelt && <button className="button primary" disabled={match.phase !== "player-ascend" || !canPromote} onClick={promote}>{canPromote && match.phase === "player-ascend" ? `Promote to ${nextBelt.name} →` : match.phase !== "player-ascend" ? "Promotion opens during Ascend" : !promotionAction.canUse ? "Belt Check action used · promotion next turn" : `${nextBelt.name}: ${nextBeltXp} XP + completed task`}</button>}
           </section>}
         </div>
         <footer className="ascend-desk-footer"><details><summary>Recent fight filings</summary><ol>{match.log.slice(0, 6).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ol></details>{match.phase === "player-ascend" && <div className="ascend-guide-actions">{deskView === "belt" && <button className="button ghost" onClick={() => setDeskView("market")}>← Previous review</button>}<div><small>{deskView === "belt" ? "Last stop. Hide clears any unspent Focus." : "Next: check Belt progress."}</small><button className="button primary ascend-next" onClick={advanceAscendReview}>{ascendNextLabel}</button></div></div>}</footer>
