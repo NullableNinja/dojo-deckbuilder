@@ -1,4 +1,5 @@
 import gameDefinitionJson from "./data/game-definition.json" with { type: "json" };
+import type { BeltCheckActionRule } from "./belt-check-actions.ts";
 import type { TrainingStripeConfig, TrainingStripeRule } from "./training-stripes.ts";
 
 type BeltDefinition = {
@@ -10,11 +11,13 @@ type BeltDefinition = {
 
 type ProgressionDefinition = {
   belts: BeltDefinition[];
+  beltCheckAction: BeltCheckActionRule;
   trainingStripes: TrainingStripeRule;
 };
 
 const progression = (gameDefinitionJson as unknown as { progression: ProgressionDefinition }).progression;
 
+export const canonicalBeltCheckActionRule = progression.beltCheckAction;
 export const canonicalTrainingStripeRule = progression.trainingStripes;
 export const canonicalTrainingStripeConfig: TrainingStripeConfig = {
   rule: canonicalTrainingStripeRule,
