@@ -16,7 +16,7 @@ const stripeState = {
   spendsThisTurn: 0,
 };
 
-function board(overrides = {}) {
+function board(overrides = {}, state = stripeState) {
   return withTrainingStripeState({
     belt: 1,
     xp: 8,
@@ -25,7 +25,7 @@ function board(overrides = {}) {
     completedTasks: [],
     characterMarks: {},
     ...overrides,
-  }, stripeState);
+  }, state);
 }
 
 function match(overrides = {}) {
@@ -39,7 +39,7 @@ function match(overrides = {}) {
   };
 }
 
-test("canonical stripe spend rule is 1 stripe for 2 HP, once per turn", () => {
+test("canonical stripe spend rule is 1 finalized stripe for 2 HP, once per turn", () => {
   assert.deepEqual(canonicalTrainingStripeConfig.rule.spend, {
     enabled: true,
     spendAt: "belt-check",
@@ -47,6 +47,7 @@ test("canonical stripe spend rule is 1 stripe for 2 HP, once per turn", () => {
     healHp: 2,
     usesPerTurn: 1,
     cannotExceedMaxHp: true,
+    requiresFinalizedStripe: true,
   });
 });
 
@@ -69,4 +70,30 @@ test("inactive fighter cannot spend a stripe during the active player's Belt Che
   const current = match();
   assert.equal(quickDuelTrainingStripeHealingAvailability(current, "ai", "belt-check").canSpend, false);
   assert.equal(spendQuickDuelTrainingStripeForHealing(current, "ai", "belt-check"), current);
+});
+
+test("a newly staged stripe is visible but not spendable until a later turn", () => {
+  const provisionalState = { ...stripeState, held: 1, awarded: 1, provisional: true };
+  const current = match({ player: board({}, provisionalState) });
+  const availability = quickDuelTrainingStripeHealingAvailability(current, "player", "belt-check");
+  assert.equal(availability.state.held, 1);
+  assert.equal(availability.spendableHeld, 0);
+  assert.equal(availability.canSpend, false);
+  assert.equal(spendQuickDuelTrainingStripeForHealing(current, "player", "belt-check"), current);
+});
+
+test("a prior stripe can be spent while this turn's staged stripe remains reserved", () => {
+  const mixedState = { ...stripeState, held: 2, awarded: 2, provisional: true };
+  const current = match({ player: board({}, mixedState) });
+  const availability = quickDuelTrainingStripeHealingAvailability(current, "player", "belt-check");
+  assert.equal(availability.spendableHeld, 1);
+  assert.equal(availability.canSpend, true);
+  const next = spendQuickDuelTrainingStripeForHealing(current, "player", "belt-check");
+  assert.equal(next.player.hp, 19);
+  assert.deepEqual(trainingStripeState(next.player), {
+    ...mixedState,
+    held: 1,
+    spentTurnKey: "5:player",
+    spendsThisTurn: 1,
+  });
 });
