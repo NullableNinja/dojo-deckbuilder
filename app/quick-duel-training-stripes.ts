@@ -1,3 +1,8 @@
+import {
+  markQuickDuelBeltCheckAction,
+  quickDuelBeltCheckActionAvailability,
+  quickDuelBeltCheckTurnKey,
+} from "./quick-duel-belt-check-actions.ts";
 import { canonicalTrainingStripeConfig } from "./training-stripes-config.ts";
 import { spendTrainingStripeForHealing, trainingStripeHealingAvailability, type TrainingStripeBoard } from "./training-stripes.ts";
 
@@ -15,7 +20,7 @@ export type QuickDuelTrainingStripeMatch<Board extends TrainingStripeBoard = Tra
 };
 
 export function quickDuelTrainingStripeTurnKey(match: QuickDuelTrainingStripeMatch, actor: QuickDuelTrainingStripeActor) {
-  return `${match.round}:${actor}`;
+  return quickDuelBeltCheckTurnKey(match, actor);
 }
 
 export function quickDuelTrainingStripeHealingAvailability<Board extends TrainingStripeBoard>(
@@ -32,13 +37,19 @@ export function quickDuelTrainingStripeHealingAvailability<Board extends Trainin
     canonicalTrainingStripeConfig,
     quickDuelTrainingStripeTurnKey(match, actor),
   );
-  return { ...availability, timingAllowed, canSpend: timingAllowed && availability.canSpend };
+  const beltCheckAction = quickDuelBeltCheckActionAvailability(match, actor, "training-stripe-recovery");
+  return {
+    ...availability,
+    timingAllowed,
+    beltCheckAction,
+    canSpend: timingAllowed && beltCheckAction.canUse && availability.canSpend,
+  };
 }
 
 /**
  * Quick Duel adapter for the Training Stripe spend action. The HP amount,
- * stripe cost, timing window, Max-HP cap, and per-turn usage limit all come
- * from generated canonical game data. This adapter supplies only match facts.
+ * stripe cost, timing window, Max-HP cap, per-turn usage limit, and exclusive
+ * Belt Check action budget all come from generated canonical game data.
  */
 export function spendQuickDuelTrainingStripeForHealing<Board extends TrainingStripeBoard, Match extends QuickDuelTrainingStripeMatch<Board>>(
   match: Match,
@@ -53,5 +64,6 @@ export function spendQuickDuelTrainingStripeForHealing<Board extends TrainingStr
     canonicalTrainingStripeConfig,
     quickDuelTrainingStripeTurnKey(match, actor),
   );
-  return { ...match, [actor]: nextBoard } as Match;
+  const spent = { ...match, [actor]: nextBoard } as Match;
+  return markQuickDuelBeltCheckAction(spent, actor, "training-stripe-recovery");
 }
