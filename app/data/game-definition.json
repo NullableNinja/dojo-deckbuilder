@@ -131,7 +131,16 @@
         "requiresNextBeltXp": true,
         "requiresIncompleteNextBeltExam": true
       },
-      "summary": "At Belt Check, if you have enough XP for the next Belt but its Exam is still incomplete, gain one Training Stripe on your current Belt. A Belt may award at most three Training Stripes. Unspent Training Stripes clear when you promote."
+      "spend": {
+        "enabled": true,
+        "spendAt": "belt-check",
+        "stripeCost": 1,
+        "healHp": 2,
+        "usesPerTurn": 1,
+        "cannotExceedMaxHp": true,
+        "requiresFinalizedStripe": true
+      },
+      "summary": "At Belt Check, if you have enough XP for the next Belt but its Exam is still incomplete, gain one Training Stripe on your current Belt. A Belt may award at most three Training Stripes. Once per turn during Belt Check, you may spend one previously earned Training Stripe to recover 2 HP, up to your Max HP. A Stripe earned during the current Belt Check becomes spendable on a later turn. Unspent Training Stripes clear when you promote."
     },
     "belts": [
       {
