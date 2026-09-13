@@ -5,6 +5,7 @@ import test from "node:test";
 const playtest = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
 const characterPurchaseHost = await readFile(new URL("../app/quick-duel-character-purchase-host.ts", import.meta.url), "utf8");
 
+// Guard the reconciled ownership boundary: playtest delegates Character purchase mechanics to the dedicated host.
 test("market purchases route effective Character pricing through the purchase host and preserve remaining Focus", () => {
   assert.match(playtest, /const focusBefore = current\.player\.focus;/);
   assert.match(playtest, /const basePrice = marketBasePriceFor\(current\.player, card\);/);
