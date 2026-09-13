@@ -32,3 +32,5 @@ test("Character choices survive round transitions and take precedence over revea
   assert.match(source, /!advanced\.pendingChoice && sceneChanges && lucky/);
   assert.match(source, /!advanced\.pendingChoice && marketRefreshes && lucky/);
 });
+
+// This seam is intentionally source-checked after reconciling the recovery branch with current main.
