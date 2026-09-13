@@ -65,6 +65,18 @@ test("live Character host evidence distinguishes compatibility helpers from even
   assert.deepEqual(ducktape.liveEvents, ["initiate"]);
   assert.equal(ducktape.hostLive, true);
 
+  const hitRuntime = characterResolverHostEvidence({
+    resolver: "character.xpTrailFirstHit",
+    characterRuntimeSource: characterRuntime,
+    migrationSource: migration,
+    playtestSource: playtest,
+    quickDuelHostSource: quickDuelHost,
+  });
+  assert.equal(hitRuntime.owner, "event-runtime");
+  assert.deepEqual(hitRuntime.events, ["hit"]);
+  assert.deepEqual(hitRuntime.liveEvents, ["hit"]);
+  assert.equal(hitRuntime.hostLive, true);
+
   const blockRuntime = characterResolverHostEvidence({
     resolver: "character.reversalAfterBlock",
     characterRuntimeSource: characterRuntime,
