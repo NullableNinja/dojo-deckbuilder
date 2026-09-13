@@ -1,0 +1,118 @@
+name: PR72 Continue Micro Replay
+
+on:
+  push:
+    branches:
+      - pr72-micro-recovery-clean
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pr72-micro-recovery-clean
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12'
+          cache: npm
+      - run: npm ci
+      - name: Remove harness before certification
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pr72-continue-micro-replay.yml
+          git commit -m "Remove temporary PR72 continuation harness"
+          git push origin HEAD:pr72-micro-recovery-clean
+      - name: Build exact PR72 hunk set
+        shell: bash
+        run: |
+          git fetch origin 77904cfdb2d13a4fdce794d6abf5a1f27442009f 457b0ced60c5f69b874019827dfc886b292fced0
+          git diff --no-color --unified=3 77904cfdb2d13a4fdce794d6abf5a1f27442009f 457b0ced60c5f69b874019827dfc886b292fced0 -- app/playtest.tsx > /tmp/pr72-app.patch
+          python - <<'PY'
+          from pathlib import Path
+          src = Path('/tmp/pr72-app.patch').read_text()
+          marker = '@@ '
+          first = src.find(marker)
+          if first < 0:
+              raise SystemExit('No PR72 app hunks found')
+          header = src[:first]
+          body = src[first:]
+          starts = []
+          pos = 0
+          while True:
+              idx = body.find(marker, pos)
+              if idx < 0: break
+              starts.append(idx)
+              pos = idx + 3
+          for i, start in enumerate(starts, 1):
+              end = starts[i] if i < len(starts) else len(body)
+              Path(f'/tmp/pr72-hunk-{i:02d}.patch').write_text(header + body[start:end])
+          print(f'Split {len(starts)} app hunks')
+          PY
+      - name: Replay remaining app hunks with full certification
+        shell: bash
+        run: |
+          set -euo pipefail
+          for patch in /tmp/pr72-hunk-*.patch; do
+            num="$(basename "$patch" | sed -E 's/.*-([0-9]+)\.patch/\1/')"
+            if grep -q 'const borrowEquipment' "$patch"; then
+              echo "Skipping partially-applied helper hunk $num; beginYell gating is already live and helper deletion is deferred to tray removal."
+              continue
+            fi
+            if git apply --reverse --check "$patch" >/dev/null 2>&1; then
+              echo "Hunk $num already applied; skipping."
+              continue
+            fi
+            git apply --check "$patch"
+            git apply "$patch"
+            if grep -q 'ducktape-tray' "$patch"; then
+              python - <<'PY'
+          from pathlib import Path
+          path = Path('app/playtest.tsx')
+          text = path.read_text()
+          start = text.find('  const borrowEquipment = ')
+          end = text.find('  const beginYell = ', start)
+          if start >= 0:
+              if end < 0:
+                  raise SystemExit('borrowEquipment found without beginYell boundary')
+              text = text[:start] + text[end:]
+              path.write_text(text)
+          PY
+            fi
+            git add app/playtest.tsx
+            git commit -m "PR72 recovery micro ${num}: replay app hunk"
+            git push origin HEAD:pr72-micro-recovery-clean
+            npm test
+          done
+      - name: Replay targeted regression test and certify
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --no-color --unified=3 77904cfdb2d13a4fdce794d6abf5a1f27442009f 457b0ced60c5f69b874019827dfc886b292fced0 -- tests/playtest-character-choice-ui.test.mjs > /tmp/pr72-test.patch
+          if [ -s /tmp/pr72-test.patch ]; then
+            if git apply --reverse --check /tmp/pr72-test.patch >/dev/null 2>&1; then
+              echo "Targeted regression test already applied."
+            else
+              git apply --check /tmp/pr72-test.patch
+              git apply /tmp/pr72-test.patch
+              git add tests/playtest-character-choice-ui.test.mjs
+              git commit -m "PR72 recovery: add Character choice UI regression test"
+              git push origin HEAD:pr72-micro-recovery-clean
+              npm test
+            fi
+          fi
+      - name: Verify recovered files match PR72 intent
+        shell: bash
+        run: |
+          grep -q 'kind: "character-runtime"' app/playtest.tsx
+          grep -q 'resolveQuickDuelPlaytestCharacterChoice' app/playtest.tsx
+          ! grep -q 'const borrowEquipment' app/playtest.tsx
+          ! grep -q 'ducktape-tray' app/playtest.tsx
+          npm test
