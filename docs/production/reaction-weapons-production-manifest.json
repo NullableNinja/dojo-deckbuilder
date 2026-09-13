@@ -26,7 +26,13 @@
             {"cardId":"DDB-RIT-CORE-005","name":"Instant Noodle Smokescreen","artwork":"app/assets/art/reactions/source/ddb-rit-core-005_instant-noodle-smokescreen.png","card":"app/assets/cards/reactions/ddb-rit-core-005_instant-noodle-smokescreen.webp"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {
+        "batch": "reactions-002",
+        "worker": "codex",
+        "status": "claimed",
+        "cardIds": ["DDB-RIT-CORE-006", "DDB-RIT-CORE-007", "DDB-RIT-CORE-008", "DDB-RIT-CORE-009", "DDB-RIT-CORE-010"]
+      }
     },
     "weapons": {
       "expected": 65,
