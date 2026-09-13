@@ -6,12 +6,27 @@
     "reactionItems": {
       "expected": 12,
       "template": "app/assets/templates/07_Item_Reaction.ora",
-      "activeBatch": {
-        "batch": "reactions-001",
-        "worker": "codex",
-        "status": "claimed",
-        "cardIds": ["DDB-RIT-CORE-001", "DDB-RIT-CORE-002", "DDB-RIT-CORE-003", "DDB-RIT-CORE-004", "DDB-RIT-CORE-005"]
-      }
+      "completedBatches": [
+        {
+          "batch": "reactions-001",
+          "status": "complete",
+          "cardIds": ["DDB-RIT-CORE-001", "DDB-RIT-CORE-002", "DDB-RIT-CORE-003", "DDB-RIT-CORE-004", "DDB-RIT-CORE-005"],
+          "layeredSourceArchives": [
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_001_ddb-rit-core-001_caution-wet-floor_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_001_ddb-rit-core-002_disposable-elbow-pad_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_001_ddb-rit-core-003_dojo-folding-mat_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_001_ddb-rit-core-004_emergency-coupon-override_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Reactions_Batch_001_ddb-rit-core-005_instant-noodle-smokescreen_Editable_ORA.zip"
+          ],
+          "records": [
+            {"cardId":"DDB-RIT-CORE-001","name":"Caution: Wet Floor","artwork":"app/assets/art/reactions/source/ddb-rit-core-001_caution-wet-floor.png","card":"app/assets/cards/reactions/ddb-rit-core-001_caution-wet-floor.webp"},
+            {"cardId":"DDB-RIT-CORE-002","name":"Disposable Elbow Pad","artwork":"app/assets/art/reactions/source/ddb-rit-core-002_disposable-elbow-pad.png","card":"app/assets/cards/reactions/ddb-rit-core-002_disposable-elbow-pad.webp"},
+            {"cardId":"DDB-RIT-CORE-003","name":"Dojo Folding Mat","artwork":"app/assets/art/reactions/source/ddb-rit-core-003_dojo-folding-mat.png","card":"app/assets/cards/reactions/ddb-rit-core-003_dojo-folding-mat.webp"},
+            {"cardId":"DDB-RIT-CORE-004","name":"Emergency Coupon Override","artwork":"app/assets/art/reactions/source/ddb-rit-core-004_emergency-coupon-override.png","card":"app/assets/cards/reactions/ddb-rit-core-004_emergency-coupon-override.webp"},
+            {"cardId":"DDB-RIT-CORE-005","name":"Instant Noodle Smokescreen","artwork":"app/assets/art/reactions/source/ddb-rit-core-005_instant-noodle-smokescreen.png","card":"app/assets/cards/reactions/ddb-rit-core-005_instant-noodle-smokescreen.webp"}
+          ]
+        }
+      ]
     },
     "weapons": {
       "expected": 65,
