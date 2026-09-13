@@ -12,6 +12,12 @@ import {
   type ComboHostCardLookup,
   type ComboHostFacts,
 } from "./combo-host-facts.ts";
+import type {
+  CharacterRuntimeBoard,
+  CharacterRuntimeChoice,
+  CharacterRuntimeEvent,
+} from "./character-runtime.ts";
+import { publishQuickDuelCharacterEvent } from "./quick-duel-structured-host.ts";
 import { canonicalTrainingStripeConfig } from "./training-stripes-config.ts";
 import {
   awardProvisionalTrainingStripe,
@@ -21,6 +27,13 @@ import {
 } from "./training-stripes.ts";
 
 const COMBO_FACTS_KEY = "structuredHost.comboFacts";
+const DEFERRED_CHARACTER_CHOICE_MARK = "structuredHost.deferredCharacterChoice";
+
+type CharacterDeferredChoice = {
+  kind: "character-runtime";
+  event: CharacterRuntimeEvent;
+  choice: CharacterRuntimeChoice;
+};
 
 export type QuickDuelTransitionBoard = {
   hand: string[];
@@ -33,6 +46,7 @@ export type QuickDuelTransitionBoard = {
   xp?: number;
   belt?: number;
   completedTasks?: number[];
+  completedBeltExamThisRound?: boolean;
   currentAttackIsReversal?: boolean;
   characterMarks?: Record<string, unknown>;
 };
@@ -57,6 +71,14 @@ export type QuickDuelTransitionMatch<Board extends QuickDuelTransitionBoard = Qu
   turnIndex: 0 | 1;
   lastExchange?: QuickDuelTransitionExchange | null;
   locationId?: string;
+};
+
+type PlayedCardTransition = {
+  id: string;
+  card: NonNullable<ReturnType<ComboHostCardLookup>>;
+  zone?: string;
+  thirdDifferentCardTypeThisTurn: boolean;
+  completedBeltExam: boolean;
 };
 
 function looksLikeFacts(value: unknown): value is ComboHostFacts {
@@ -109,6 +131,11 @@ function isAttackCard(lookup: ComboHostCardLookup, id: string) {
   return type === "attack" || subtype === "attack" || tags.includes("attack");
 }
 
+function cardKind(lookup: ComboHostCardLookup, id: string) {
+  const card = lookup(id);
+  return String(card?.subtype ?? card?.cardType ?? "unknown").trim().toLocaleLowerCase();
+}
+
 function appendedIds(previous: readonly string[], next: readonly string[]) {
   let prefix = 0;
   while (prefix < previous.length && prefix < next.length && previous[prefix] === next[prefix]) prefix += 1;
@@ -124,22 +151,146 @@ function appendedIds(previous: readonly string[], next: readonly string[]) {
   return added;
 }
 
+function playedCardTransitions(
+  previous: QuickDuelTransitionBoard,
+  next: QuickDuelTransitionBoard,
+  lookup: ComboHostCardLookup,
+): PlayedCardTransition[] {
+  const added = appendedIds(previous.cardsThisTurn, next.cardsThisTurn);
+  if (!added.length) return [];
+  let attackIndex = previous.cardsThisTurn.filter((id) => isAttackCard(lookup, id)).length;
+  const kinds = new Set(previous.cardsThisTurn.map((id) => cardKind(lookup, id)));
+  const completedExamNow = !previous.completedBeltExamThisRound && Boolean(next.completedBeltExamThisRound);
+
+  return added.flatMap((id, index) => {
+    const card = lookup(id);
+    if (!card) return [];
+    const attack = isAttackCard(lookup, id);
+    const zone = attack ? next.zonesPlayed[attackIndex++] : undefined;
+    const beforeKinds = kinds.size;
+    kinds.add(cardKind(lookup, id));
+    return [{
+      id,
+      card,
+      zone,
+      thirdDifferentCardTypeThisTurn: beforeKinds < 3 && kinds.size >= 3,
+      completedBeltExam: completedExamNow && index === added.length - 1,
+    }];
+  });
+}
+
 function recordPlayedCardDiff(
   facts: ComboHostFacts,
   previous: QuickDuelTransitionBoard,
   next: QuickDuelTransitionBoard,
   lookup: ComboHostCardLookup,
 ) {
-  const added = appendedIds(previous.cardsThisTurn, next.cardsThisTurn);
+  const added = playedCardTransitions(previous, next, lookup);
   if (!added.length) return facts;
-  let attackIndex = previous.cardsThisTurn.filter((id) => isAttackCard(lookup, id)).length;
   let result = facts;
-  for (const id of added) {
-    const attack = isAttackCard(lookup, id);
-    const zone = attack ? next.zonesPlayed[attackIndex++] : undefined;
-    result = recordComboHostCardPlayed(result, id, zone);
-  }
+  for (const played of added) result = recordComboHostCardPlayed(result, played.id, played.zone);
   return result;
+}
+
+function looksLikeCharacterRuntimeBoard(board: QuickDuelTransitionBoard): board is QuickDuelTransitionBoard & CharacterRuntimeBoard {
+  const candidate = board as Partial<CharacterRuntimeBoard>;
+  return typeof candidate.fighterId === "string"
+    && typeof candidate.hp === "number"
+    && typeof candidate.maxHp === "number"
+    && typeof candidate.focus === "number"
+    && typeof candidate.nextAttackBonus === "number"
+    && typeof candidate.nextAttackAnyZone === "boolean"
+    && typeof candidate.nextAttackHasFlow === "boolean"
+    && typeof candidate.attacksThisTurn === "number"
+    && Array.isArray(candidate.deck)
+    && Array.isArray(candidate.hand)
+    && Array.isArray(candidate.discard)
+    && Array.isArray(candidate.equipment)
+    && Array.isArray(candidate.cardsThisTurn)
+    && Array.isArray(candidate.zonesPlayed);
+}
+
+function chooseAiCharacterOption(choice: CharacterRuntimeChoice) {
+  return choice.options.find((option) => !["skip", "decline", "cancel"].includes(option))
+    ?? choice.options[0]
+    ?? null;
+}
+
+function resumeCharacterChoice(
+  self: QuickDuelTransitionBoard & CharacterRuntimeBoard,
+  opponent: QuickDuelTransitionBoard & CharacterRuntimeBoard,
+  event: CharacterRuntimeEvent,
+  choice: CharacterRuntimeChoice,
+  selection: string,
+  actor: "player" | "ai",
+) {
+  const value = choice.selectionField === "optionalAccepted" ? selection === "accept" : selection;
+  return publishQuickDuelCharacterEvent(self, opponent, { ...event, [choice.selectionField]: value }, actor);
+}
+
+function publishCardPlayedCharacterTransitions<Board extends QuickDuelTransitionBoard>(
+  previous: QuickDuelTransitionMatch<Board>,
+  nextInput: QuickDuelTransitionMatch<Board>,
+  lookup: ComboHostCardLookup,
+): QuickDuelTransitionMatch<Board> {
+  let next = nextInput;
+  for (const actor of ["player", "ai"] as const) {
+    const previousBoard = actorBoard(previous, actor);
+    const plays = playedCardTransitions(previousBoard, actorBoard(next, actor), lookup);
+    if (!plays.length) continue;
+
+    for (const played of plays) {
+      let self = actorBoard(next, actor);
+      let opponent = actorBoard(next, actor === "player" ? "ai" : "player");
+      if (!looksLikeCharacterRuntimeBoard(self) || !looksLikeCharacterRuntimeBoard(opponent)) break;
+
+      const event: CharacterRuntimeEvent = {
+        type: "cardPlayed",
+        card: played.card,
+        zone: played.zone,
+        thirdDifferentCardTypeThisTurn: played.thirdDifferentCardTypeThisTurn,
+        completedBeltExam: played.completedBeltExam,
+      };
+      let result = publishQuickDuelCharacterEvent(self, opponent, event, actor);
+
+      if (actor === "ai") {
+        for (let guard = 0; guard < 8 && result.choices.length > 0; guard += 1) {
+          const choice = result.choices[0];
+          const selection = chooseAiCharacterOption(choice);
+          if (selection === null) break;
+          result = resumeCharacterChoice(result.self, result.opponent, result.event, choice, selection, actor);
+        }
+      }
+
+      self = { ...self, ...result.self } as Board & CharacterRuntimeBoard;
+      opponent = { ...opponent, ...result.opponent } as Board & CharacterRuntimeBoard;
+
+      if (actor === "player" && result.choices.length > 0) {
+        const existing = self.characterMarks?.[DEFERRED_CHARACTER_CHOICE_MARK];
+        if (!existing) {
+          const pending: CharacterDeferredChoice = {
+            kind: "character-runtime",
+            event: result.event,
+            choice: result.choices[0],
+          };
+          self = {
+            ...self,
+            characterMarks: {
+              ...(self.characterMarks ?? {}),
+              [DEFERRED_CHARACTER_CHOICE_MARK]: pending,
+            },
+          };
+        }
+      }
+
+      next = actor === "player"
+        ? ({ ...next, player: self, ai: opponent } as QuickDuelTransitionMatch<Board>)
+        : ({ ...next, player: opponent, ai: self } as QuickDuelTransitionMatch<Board>);
+
+      if (actor === "player" && result.choices.length > 0) break;
+    }
+  }
+  return next;
 }
 
 function detectPurchasedCard(
@@ -164,10 +315,11 @@ function initializeActiveTurn<Board extends QuickDuelTransitionBoard>(match: Qui
 }
 
 /**
- * Derives canonical Combo host history and progression bookkeeping from state
- * transitions Quick Duel already records. This function is card-identity
- * agnostic and never reads printed requirement text. It is intentionally pure
- * so Playtest can call it once at its state-write boundary.
+ * Derives canonical Combo host history, Character card-play events, and
+ * progression bookkeeping from state transitions Quick Duel already records.
+ * This function is card-identity agnostic and never reads printed requirement
+ * or Character rules text. It is intentionally pure so Playtest can call it
+ * once at its state-write boundary.
  */
 export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransitionBoard>(
   previousInput: QuickDuelTransitionMatch<Board>,
@@ -214,6 +366,8 @@ export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransi
 
     next = setActorBoard(next, actor, withComboHostFacts(nextBoard, facts));
   }
+
+  next = publishCardPlayedCharacterTransitions(previous, next, lookup);
 
   const exchange = next.lastExchange;
   if (exchange && exchange.id !== previous.lastExchange?.id) {
