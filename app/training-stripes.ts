@@ -10,6 +10,15 @@ export type TrainingStripeRule = {
     requiresNextBeltXp: boolean;
     requiresIncompleteNextBeltExam: boolean;
   };
+  spend?: {
+    enabled: boolean;
+    spendAt: "belt-check";
+    stripeCost: number;
+    healHp: number;
+    usesPerTurn: number;
+    cannotExceedMaxHp: boolean;
+    requiresFinalizedStripe?: boolean;
+  };
   summary?: string;
 };
 
@@ -18,11 +27,15 @@ export type TrainingStripeState = {
   held: number;
   awarded: number;
   provisional: boolean;
+  spentTurnKey: string | null;
+  spendsThisTurn: number;
 };
 
 export type TrainingStripeBoard = {
   xp?: number;
   belt?: number;
+  hp?: number;
+  maxHp?: number;
   completedTasks?: number[];
   characterMarks?: Record<string, unknown>;
 };
@@ -42,7 +55,7 @@ function beltIndexFor(board: TrainingStripeBoard) {
 }
 
 function emptyState(beltIndex: number): TrainingStripeState {
-  return { beltIndex, held: 0, awarded: 0, provisional: false };
+  return { beltIndex, held: 0, awarded: 0, provisional: false, spentTurnKey: null, spendsThisTurn: 0 };
 }
 
 function looksLikeTrainingStripeState(value: unknown): value is Partial<TrainingStripeState> {
@@ -58,6 +71,8 @@ export function trainingStripeState(board: TrainingStripeBoard): TrainingStripeS
     held: integer(stored.held),
     awarded: integer(stored.awarded),
     provisional: stored.provisional === true,
+    spentTurnKey: typeof stored.spentTurnKey === "string" ? stored.spentTurnKey : null,
+    spendsThisTurn: integer(stored.spendsThisTurn),
   };
 }
 
@@ -134,4 +149,60 @@ export function finalizeTrainingStripe<Board extends TrainingStripeBoard>(board:
   const state = trainingStripeState(board);
   if (!state.provisional) return board;
   return withTrainingStripeState(board, { ...state, provisional: false });
+}
+
+export function trainingStripeHealingAvailability(board: TrainingStripeBoard, config: TrainingStripeConfig, turnKey: string) {
+  const spend = config.rule.spend;
+  const state = trainingStripeState(board);
+  const stripeCost = Math.max(1, integer(spend?.stripeCost, 1));
+  const healHp = Math.max(0, integer(spend?.healHp));
+  const usesPerTurn = Math.max(0, integer(spend?.usesPerTurn));
+  const currentHp = integer(board.hp);
+  const maxHp = Math.max(currentHp, integer(board.maxHp, currentHp));
+  const sameTurn = state.spentTurnKey === turnKey;
+  const spendsThisTurn = sameTurn ? state.spendsThisTurn : 0;
+  const atFullHp = currentHp >= maxHp;
+  const enabled = Boolean(config.rule.enabled && spend?.enabled);
+  const provisionalReserved = spend?.requiresFinalizedStripe && state.provisional ? 1 : 0;
+  const spendableHeld = Math.max(0, state.held - provisionalReserved);
+  const canSpend = enabled
+    && Boolean(turnKey)
+    && spendableHeld >= stripeCost
+    && healHp > 0
+    && usesPerTurn > spendsThisTurn
+    && !atFullHp;
+  return {
+    canSpend,
+    state,
+    stripeCost,
+    healHp,
+    usesPerTurn,
+    spendsThisTurn,
+    currentHp,
+    maxHp,
+    atFullHp,
+    spendableHeld,
+    provisionalReserved,
+  };
+}
+
+/**
+ * Spend behavior is intentionally data-driven. The caller supplies an opaque
+ * turn key (for Quick Duel, round + active actor is sufficient) so the runtime
+ * can enforce the canonical uses-per-turn limit without hard-coding timing
+ * values into the Playtest engine.
+ */
+export function spendTrainingStripeForHealing<Board extends TrainingStripeBoard>(board: Board, config: TrainingStripeConfig, turnKey: string): Board {
+  const availability = trainingStripeHealingAvailability(board, config, turnKey);
+  if (!availability.canSpend) return board;
+  const spend = config.rule.spend!;
+  const nextHp = spend.cannotExceedMaxHp
+    ? Math.min(availability.maxHp, availability.currentHp + availability.healHp)
+    : availability.currentHp + availability.healHp;
+  return withTrainingStripeState({ ...board, hp: nextHp }, {
+    ...availability.state,
+    held: Math.max(0, availability.state.held - availability.stripeCost),
+    spentTurnKey: turnKey,
+    spendsThisTurn: availability.spendsThisTurn + 1,
+  });
 }
