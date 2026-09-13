@@ -80,4 +80,10 @@ test("live Character host evidence distinguishes compatibility helpers from shar
   assert.deepEqual(cardPlayedRuntime.events, ["cardPlayed"]);
   assert.deepEqual(cardPlayedRuntime.liveEvents, ["cardPlayed"]);
   assert.equal(cardPlayedRuntime.hostLive, true);
+
+  const discardedRuntime = evidence("character.discardOutsideHideNextAttack");
+  assert.equal(discardedRuntime.owner, "event-runtime");
+  assert.deepEqual(discardedRuntime.events, ["discarded"]);
+  assert.deepEqual(discardedRuntime.liveEvents, ["discarded"]);
+  assert.equal(discardedRuntime.hostLive, true);
 });

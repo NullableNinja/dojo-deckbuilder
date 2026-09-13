@@ -81,6 +81,12 @@ type PlayedCardTransition = {
   completedBeltExam: boolean;
 };
 
+type DiscardedCardTransition = {
+  id: string;
+  card: ReturnType<ComboHostCardLookup>;
+  junk: boolean;
+};
+
 function looksLikeFacts(value: unknown): value is ComboHostFacts {
   if (!value || typeof value !== "object") return false;
   const facts = value as Partial<ComboHostFacts>;
@@ -131,6 +137,14 @@ function isAttackCard(lookup: ComboHostCardLookup, id: string) {
   return type === "attack" || subtype === "attack" || tags.includes("attack");
 }
 
+function isJunkCard(lookup: ComboHostCardLookup, id: string) {
+  const card = lookup(id);
+  const type = String(card?.cardType ?? "").toLocaleLowerCase();
+  const subtype = String(card?.subtype ?? "").toLocaleLowerCase();
+  const tags = (card?.tags ?? []).map((tag) => String(tag).toLocaleLowerCase());
+  return type === "junk" || subtype === "junk" || tags.includes("junk");
+}
+
 function cardKind(lookup: ComboHostCardLookup, id: string) {
   const card = lookup(id);
   return String(card?.subtype ?? card?.cardType ?? "unknown").trim().toLocaleLowerCase();
@@ -176,6 +190,26 @@ function playedCardTransitions(
       thirdDifferentCardTypeThisTurn: beforeKinds < 3 && kinds.size >= 3,
       completedBeltExam: completedExamNow && index === added.length - 1,
     }];
+  });
+}
+
+function discardedCardTransitions(
+  previousMatch: QuickDuelTransitionMatch,
+  nextMatch: QuickDuelTransitionMatch,
+  previous: QuickDuelTransitionBoard,
+  next: QuickDuelTransitionBoard,
+  lookup: ComboHostCardLookup,
+  turnAdvanced: boolean,
+): DiscardedCardTransition[] {
+  if (turnAdvanced) return [];
+  const purchasedId = detectPurchasedCard(previousMatch, nextMatch, previous, next);
+  let purchaseExcluded = false;
+  return appendedIds(previous.discard, next.discard).flatMap((id) => {
+    if (!purchaseExcluded && purchasedId === id) {
+      purchaseExcluded = true;
+      return [];
+    }
+    return [{ id, card: lookup(id), junk: isJunkCard(lookup, id) }];
   });
 }
 
@@ -231,6 +265,54 @@ function resumeCharacterChoice<
   return publishQuickDuelCharacterEvent(self, opponent, { ...event, [choice.selectionField]: value }, actor);
 }
 
+function publishCharacterTransitionEvent<Board extends QuickDuelTransitionBoard>(
+  nextInput: QuickDuelTransitionMatch<Board>,
+  actor: "player" | "ai",
+  event: CharacterRuntimeEvent,
+) {
+  let self = actorBoard(nextInput, actor);
+  let opponent = actorBoard(nextInput, actor === "player" ? "ai" : "player");
+  if (!looksLikeCharacterRuntimeBoard(self) || !looksLikeCharacterRuntimeBoard(opponent)) {
+    return { match: nextInput, unresolvedPlayerChoice: false };
+  }
+
+  let result = publishQuickDuelCharacterEvent(self, opponent, event, actor);
+  if (actor === "ai") {
+    for (let guard = 0; guard < 8 && result.choices.length > 0; guard += 1) {
+      const choice = result.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      result = resumeCharacterChoice(result.self, result.opponent, result.event, choice, selection, actor);
+    }
+  }
+
+  self = { ...self, ...result.self } as Board & CharacterRuntimeBoard;
+  opponent = { ...opponent, ...result.opponent } as Board & CharacterRuntimeBoard;
+
+  if (actor === "player" && result.choices.length > 0) {
+    const existing = self.characterMarks?.[DEFERRED_CHARACTER_CHOICE_MARK];
+    if (!existing) {
+      const pending: CharacterDeferredChoice = {
+        kind: "character-runtime",
+        event: result.event,
+        choice: result.choices[0],
+      };
+      self = {
+        ...self,
+        characterMarks: {
+          ...(self.characterMarks ?? {}),
+          [DEFERRED_CHARACTER_CHOICE_MARK]: pending,
+        },
+      };
+    }
+  }
+
+  const match = actor === "player"
+    ? ({ ...nextInput, player: self, ai: opponent } as QuickDuelTransitionMatch<Board>)
+    : ({ ...nextInput, player: opponent, ai: self } as QuickDuelTransitionMatch<Board>);
+  return { match, unresolvedPlayerChoice: actor === "player" && result.choices.length > 0 };
+}
+
 function publishCardPlayedCharacterTransitions<Board extends QuickDuelTransitionBoard>(
   previous: QuickDuelTransitionMatch<Board>,
   nextInput: QuickDuelTransitionMatch<Board>,
@@ -243,54 +325,40 @@ function publishCardPlayedCharacterTransitions<Board extends QuickDuelTransition
     if (!plays.length) continue;
 
     for (const played of plays) {
-      let self = actorBoard(next, actor);
-      let opponent = actorBoard(next, actor === "player" ? "ai" : "player");
-      if (!looksLikeCharacterRuntimeBoard(self) || !looksLikeCharacterRuntimeBoard(opponent)) break;
-
-      const event: CharacterRuntimeEvent = {
+      const published = publishCharacterTransitionEvent(next, actor, {
         type: "cardPlayed",
         card: played.card,
         zone: played.zone,
         thirdDifferentCardTypeThisTurn: played.thirdDifferentCardTypeThisTurn,
         completedBeltExam: played.completedBeltExam,
-      };
-      let result = publishQuickDuelCharacterEvent(self, opponent, event, actor);
+      });
+      next = published.match;
+      if (published.unresolvedPlayerChoice) break;
+    }
+  }
+  return next;
+}
 
-      if (actor === "ai") {
-        for (let guard = 0; guard < 8 && result.choices.length > 0; guard += 1) {
-          const choice = result.choices[0];
-          const selection = chooseAiCharacterOption(choice);
-          if (selection === null) break;
-          result = resumeCharacterChoice(result.self, result.opponent, result.event, choice, selection, actor);
-        }
-      }
-
-      self = { ...self, ...result.self } as Board & CharacterRuntimeBoard;
-      opponent = { ...opponent, ...result.opponent } as Board & CharacterRuntimeBoard;
-
-      if (actor === "player" && result.choices.length > 0) {
-        const existing = self.characterMarks?.[DEFERRED_CHARACTER_CHOICE_MARK];
-        if (!existing) {
-          const pending: CharacterDeferredChoice = {
-            kind: "character-runtime",
-            event: result.event,
-            choice: result.choices[0],
-          };
-          self = {
-            ...self,
-            characterMarks: {
-              ...(self.characterMarks ?? {}),
-              [DEFERRED_CHARACTER_CHOICE_MARK]: pending,
-            },
-          };
-        }
-      }
-
-      next = actor === "player"
-        ? ({ ...next, player: self, ai: opponent } as QuickDuelTransitionMatch<Board>)
-        : ({ ...next, player: opponent, ai: self } as QuickDuelTransitionMatch<Board>);
-
-      if (actor === "player" && result.choices.length > 0) break;
+function publishDiscardedCharacterTransitions<Board extends QuickDuelTransitionBoard>(
+  previous: QuickDuelTransitionMatch<Board>,
+  nextInput: QuickDuelTransitionMatch<Board>,
+  lookup: ComboHostCardLookup,
+  turnAdvanced: boolean,
+): QuickDuelTransitionMatch<Board> {
+  let next = nextInput;
+  for (const actor of ["player", "ai"] as const) {
+    const previousBoard = actorBoard(previous, actor);
+    const discards = discardedCardTransitions(previous, next, previousBoard, actorBoard(next, actor), lookup, turnAdvanced);
+    for (const discarded of discards) {
+      const published = publishCharacterTransitionEvent(next, actor, {
+        type: "discarded",
+        card: discarded.card,
+        selectedId: discarded.id,
+        discardedOutsideHide: true,
+        discardedJunk: discarded.junk,
+      });
+      next = published.match;
+      if (published.unresolvedPlayerChoice) break;
     }
   }
   return next;
@@ -318,7 +386,7 @@ function initializeActiveTurn<Board extends QuickDuelTransitionBoard>(match: Qui
 }
 
 /**
- * Derives canonical Combo host history, Character card-play events, and
+ * Derives canonical Combo host history, Character card-play/discard events, and
  * progression bookkeeping from state transitions Quick Duel already records.
  * This function is card-identity agnostic and never reads printed requirement
  * or Character rules text. It is intentionally pure so Playtest can call it
@@ -371,6 +439,7 @@ export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransi
   }
 
   next = publishCardPlayedCharacterTransitions(previous, next, lookup);
+  next = publishDiscardedCharacterTransitions(previous, next, lookup, turnAdvanced);
 
   const exchange = next.lastExchange;
   if (exchange && exchange.id !== previous.lastExchange?.id) {
