@@ -189,6 +189,20 @@ function quickDuelCharacterHitEvent<Board extends QuickDuelCharacterCombatBoard>
   };
 }
 
+function quickDuelCharacterBlockEvent(
+  exchange: QuickDuelExchangeFacts,
+  lookup: ComboHostCardLookup,
+): CharacterRuntimeEvent {
+  return {
+    type: "block",
+    card: exchange.defenseCardId ? lookup(exchange.defenseCardId) ?? null : null,
+    zone: exchange.zone,
+    attackPower: exchange.attackPower,
+    damage: exchange.damage,
+    blocked: true,
+  };
+}
+
 function projectCharacterHitDamage<
   Board extends QuickDuelComboMatchBoard & QuickDuelCharacterCombatBoard,
   Match extends QuickDuelPlaytestStateMatch<Board>,
@@ -225,7 +239,7 @@ function projectCharacterHitDamage<
   } as Match;
 }
 
-function publishCharacterHitTransition<
+function publishCharacterCombatTransition<
   Board extends QuickDuelComboMatchBoard & QuickDuelCharacterCombatBoard,
   Match extends QuickDuelPlaytestStateMatch<Board>,
 >(
@@ -234,21 +248,24 @@ function publishCharacterHitTransition<
   lookup: ComboHostCardLookup,
 ): Match {
   const exchange = next.lastExchange as QuickDuelExchangeFacts | null | undefined;
-  if (!exchange || exchange.id === previous.lastExchange?.id || exchange.outcome !== "hit") {
+  if (!exchange || exchange.id === previous.lastExchange?.id) {
     return surfaceDeferredCharacterChoice(next);
   }
 
-  const event = quickDuelCharacterHitEvent(previous, exchange, lookup);
-  let character = publishQuickDuelPlaytestCharacterEvent(next, exchange.actor, event);
+  const characterActor = exchange.outcome === "hit" ? exchange.actor : exchange.target;
+  const event = exchange.outcome === "hit"
+    ? quickDuelCharacterHitEvent(previous, exchange, lookup)
+    : quickDuelCharacterBlockEvent(exchange, lookup);
+  let character = publishQuickDuelPlaytestCharacterEvent(next, characterActor, event);
 
-  if (exchange.actor === "ai") {
+  if (characterActor === "ai") {
     for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
       const choice = character.choices[0];
       const selection = chooseAiCharacterOption(choice);
       if (selection === null) break;
       character = resolveQuickDuelPlaytestCharacterChoice(
         character.match,
-        exchange.actor,
+        characterActor,
         character.event,
         choice,
         selection,
@@ -256,14 +273,17 @@ function publishCharacterHitTransition<
     }
   }
 
-  let result = projectCharacterHitDamage(
-    character.match as Match,
-    exchange.actor,
-    event.damage,
-    character.event?.damage,
-  );
+  let result = character.match as Match;
+  if (exchange.outcome === "hit") {
+    result = projectCharacterHitDamage(
+      result,
+      exchange.actor,
+      event.damage,
+      character.event?.damage,
+    );
+  }
 
-  if (exchange.actor === "player" && character.event && character.choices.length > 0) {
+  if (characterActor === "player" && character.event && character.choices.length > 0) {
     const pending: QuickDuelCharacterChoiceState = {
       kind: "character-runtime",
       event: character.event,
@@ -286,7 +306,7 @@ export function applyQuickDuelPlaytestTransition<
   lookup: ComboHostCardLookup,
 ): Match {
   const structured = { ...next, ...applyQuickDuelStructuredTransition(previous, next, lookup) } as Match;
-  return publishCharacterHitTransition(previous, structured, lookup);
+  return publishCharacterCombatTransition(previous, structured, lookup);
 }
 
 /**
