@@ -17,6 +17,7 @@ export type TrainingStripeRule = {
     healHp: number;
     usesPerTurn: number;
     cannotExceedMaxHp: boolean;
+    requiresFinalizedStripe?: boolean;
   };
   summary?: string;
 };
@@ -162,13 +163,27 @@ export function trainingStripeHealingAvailability(board: TrainingStripeBoard, co
   const spendsThisTurn = sameTurn ? state.spendsThisTurn : 0;
   const atFullHp = currentHp >= maxHp;
   const enabled = Boolean(config.rule.enabled && spend?.enabled);
+  const provisionalReserved = spend?.requiresFinalizedStripe && state.provisional ? 1 : 0;
+  const spendableHeld = Math.max(0, state.held - provisionalReserved);
   const canSpend = enabled
     && Boolean(turnKey)
-    && state.held >= stripeCost
+    && spendableHeld >= stripeCost
     && healHp > 0
     && usesPerTurn > spendsThisTurn
     && !atFullHp;
-  return { canSpend, state, stripeCost, healHp, usesPerTurn, spendsThisTurn, currentHp, maxHp, atFullHp };
+  return {
+    canSpend,
+    state,
+    stripeCost,
+    healHp,
+    usesPerTurn,
+    spendsThisTurn,
+    currentHp,
+    maxHp,
+    atFullHp,
+    spendableHeld,
+    provisionalReserved,
+  };
 }
 
 /**
