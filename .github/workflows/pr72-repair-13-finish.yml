@@ -1,0 +1,122 @@
+name: PR72 Repair Micro 13 and Finish
+
+on:
+  push:
+    branches:
+      - pr72-micro-recovery-clean
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: pr72-micro-recovery-clean
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12'
+          cache: npm
+      - run: npm ci
+      - name: Repair Micro 13 callback narrowing and remove harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/playtest.tsx')
+          text = path.read_text()
+          old = 'onClick={() => match.pendingChoice.kind === "character-runtime" ? resolveCharacterRuntimeChoice(null) : skipPendingChoice()}'
+          new = 'onClick={() => match.pendingChoice?.kind === "character-runtime" ? resolveCharacterRuntimeChoice(null) : skipPendingChoice()}'
+          if old not in text:
+              if new not in text:
+                  raise SystemExit('Micro 13 skip callback marker not found; refusing unsafe edit')
+          else:
+              text = text.replace(old, new, 1)
+              path.write_text(text)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pr72-repair-13-finish.yml
+          git add app/playtest.tsx
+          git commit -m "PR72 micro 13 repair: preserve pending-choice narrowing in callback"
+          git push origin HEAD:pr72-micro-recovery-clean
+      - name: Certify repaired Micro 13
+        run: npm test
+      - name: Build original PR72 app hunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin 77904cfdb2d13a4fdce794d6abf5a1f27442009f 457b0ced60c5f69b874019827dfc886b292fced0
+          git diff --no-color --unified=3 77904cfdb2d13a4fdce794d6abf5a1f27442009f 457b0ced60c5f69b874019827dfc886b292fced0 -- app/playtest.tsx > /tmp/pr72-app.patch
+          python - <<'PY'
+          from pathlib import Path
+          lines = Path('/tmp/pr72-app.patch').read_text().splitlines(keepends=True)
+          starts = [i for i, line in enumerate(lines) if line.startswith('@@ ')]
+          if len(starts) != 15:
+              raise SystemExit(f'Expected 15 PR72 app hunks, found {len(starts)}')
+          header = ''.join(lines[:starts[0]])
+          for n, start in enumerate(starts, 1):
+              end = starts[n] if n < len(starts) else len(lines)
+              Path(f'/tmp/pr72-hunk-{n:02d}.patch').write_text(header + ''.join(lines[start:end]))
+          PY
+      - name: Apply and certify Micro 14
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch=/tmp/pr72-hunk-14.patch
+          if git apply --reverse --check "$patch" >/dev/null 2>&1; then
+            echo "Micro 14 already applied."
+          else
+            git apply --check "$patch"
+            git apply "$patch"
+            git add app/playtest.tsx
+            git commit -m "PR72 recovery micro 14: publish lifecycle choices through turn transition"
+            git push origin HEAD:pr72-micro-recovery-clean
+          fi
+          npm test
+      - name: Apply and certify Micro 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch=/tmp/pr72-hunk-15.patch
+          if git apply --reverse --check "$patch" >/dev/null 2>&1; then
+            echo "Micro 15 already applied."
+          else
+            git apply --check "$patch"
+            git apply "$patch"
+            git add app/playtest.tsx
+            git commit -m "PR72 recovery micro 15: preserve Character choices across round advance"
+            git push origin HEAD:pr72-micro-recovery-clean
+          fi
+          npm test
+      - name: Add semantic Character choice UI regression test
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f tests/playtest-character-choice-ui.test.mjs ]; then
+            python - <<'PY'
+          from pathlib import Path
+          Path('tests/playtest-character-choice-ui.test.mjs').write_text('''import assert from "node:assert/strict";\nimport { readFile } from "node:fs/promises";\nimport test from "node:test";\n\nconst source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");\n\ntest("Quick Duel exposes generic Character runtime choices instead of a Ducktape-specific UI", () => {\n  assert.match(source, /resolveQuickDuelPlaytestCharacterChoice/);\n  assert.match(source, /kind: "character-runtime"/);\n  assert.match(source, /withPlayerCharacterChoice/);\n  assert.ok((source.match(/"onHide"/g) ?? []).length >= 2, "player and AI Hide must publish through the Character runtime");\n  assert.doesNotMatch(source, /const borrowEquipment\\s*=/);\n  assert.doesNotMatch(source, /playerFighter\\.name === "Sensei Ducktape"/);\n  assert.doesNotMatch(source, /ducktape-tray/);\n});\n\ntest("player Character choices block Initiate progression and use the shared pending-choice modal", () => {\n  assert.match(source, /current\\?\\.phase === "player-initiate" && !current\\.pendingChoice/);\n  assert.match(source, /match\\.pendingChoice\\?\\.kind === "character-runtime"/);\n  assert.match(source, /resolveCharacterRuntimeChoice\\(option\\)/);\n  assert.match(source, /resolveCharacterRuntimeChoice\\(null\\)/);\n});\n''')
+          PY
+            git add tests/playtest-character-choice-ui.test.mjs
+            git commit -m "PR72 recovery: certify generic Character choice UI wiring"
+            git push origin HEAD:pr72-micro-recovery-clean
+          fi
+          npm test
+      - name: Final recovery assertions and certification
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'kind: "character-runtime"' app/playtest.tsx
+          grep -q 'resolveQuickDuelPlaytestCharacterChoice' app/playtest.tsx
+          grep -q 'withPlayerCharacterChoice' app/playtest.tsx
+          test "$(grep -o '"'"'"onHide"'"'"' app/playtest.tsx | wc -l)" -ge 2
+          ! grep -q 'const borrowEquipment' app/playtest.tsx
+          ! grep -q 'playerFighter.name === "Sensei Ducktape"' app/playtest.tsx
+          ! grep -q 'ducktape-tray' app/playtest.tsx
+          npm test
