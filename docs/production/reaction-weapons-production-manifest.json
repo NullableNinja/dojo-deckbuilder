@@ -5,10 +5,12 @@
   "families": {
     "reactionItems": {
       "expected": 12,
-      "claimedElsewhere": {
-        "pullRequest": 76,
-        "branch": "complete-reaction-weapons-card-art",
-        "cardIds": ["DDB-RIT-CORE-001", "DDB-RIT-CORE-002", "DDB-RIT-CORE-003", "DDB-RIT-CORE-004", "DDB-RIT-CORE-005", "DDB-RIT-CORE-006", "DDB-RIT-CORE-007", "DDB-RIT-CORE-008", "DDB-RIT-CORE-009", "DDB-RIT-CORE-010", "DDB-RIT-CORE-011", "DDB-RIT-CORE-012"]
+      "template": "app/assets/templates/07_Item_Reaction.ora",
+      "activeBatch": {
+        "batch": "reactions-001",
+        "worker": "codex",
+        "status": "claimed",
+        "cardIds": ["DDB-RIT-CORE-001", "DDB-RIT-CORE-002", "DDB-RIT-CORE-003", "DDB-RIT-CORE-004", "DDB-RIT-CORE-005"]
       }
     },
     "weapons": {
