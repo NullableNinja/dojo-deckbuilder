@@ -124,7 +124,7 @@ runtime_path = Path("app/character-runtime.ts")
 runtime = runtime_path.read_text()
 old = '''      case "character.revealReplacementOnceGame": {
         const accept = event.optionalAccepted ?? (actor === "ai" ? true : undefined);
-        if (accept === undefined) choices.push(makeChoice(effect, "Replace this reveal from the same deck?", ["accept", "skip"], true, "optionalAccepted"));
+        if (accept === undefined) choices.push(makeChoice(effect, "Discard this reveal and replace it from the same deck?", ["accept", "skip"], true, "optionalAccepted"));
         else if (accept && event.replacementId) { event.selectedId = event.replacementId; activated = true; }
         break;
       }
@@ -132,7 +132,7 @@ old = '''      case "character.revealReplacementOnceGame": {
 new = '''      case "character.revealReplacementOnceGame": {
         if (!event.replacementId) break;
         const accept = event.optionalAccepted ?? (actor === "ai" ? true : undefined);
-        if (accept === undefined) choices.push(makeChoice(effect, "Replace this reveal from the same deck?", ["accept", "skip"], true, "optionalAccepted"));
+        if (accept === undefined) choices.push(makeChoice(effect, "Discard this reveal and replace it from the same deck?", ["accept", "skip"], true, "optionalAccepted"));
         else if (accept) { event.selectedId = event.replacementId; activated = true; }
         break;
       }
