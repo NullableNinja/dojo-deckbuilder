@@ -112,6 +112,14 @@ const gearCardModules = import.meta.glob<string>("./assets/cards/gear/*.webp", {
 const GEAR_CARD_URLS = Object.fromEntries(
   Object.entries(gearCardModules).map(([path, url]) => [`/cards/gear/${path.split("/").at(-1)}`, url]),
 );
+const reactionCardModules = import.meta.glob<string>("./assets/cards/reactions/*.webp", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const REACTION_CARD_URLS = Object.fromEntries(
+  Object.entries(reactionCardModules).map(([path, url]) => [`/cards/reactions/${path.split("/").at(-1)}`, url]),
+);
 const comboCardModules = import.meta.glob<string>("./assets/cards/combos/*.webp", {
   eager: true,
   query: "?url",
@@ -137,7 +145,7 @@ const LOCATION_CARD_URLS = Object.fromEntries(
   Object.entries(locationCardModules).map(([path, url]) => [`/cards/locations/${path.split("/").at(-1)}`, url]),
 );
 const COMPLETE_CARD_URLS_BY_CATALOG_ID = Object.fromEntries(
-  Object.entries({ ...ATTACK_CARD_URLS, ...DEFENSE_CARD_URLS, ...KATA_CARD_URLS, ...CONSUMABLE_CARD_URLS, ...DEFENSE_EQUIPMENT_CARD_URLS, ...GEAR_CARD_URLS, ...COMBO_CARD_URLS, ...STARTER_CARD_URLS, ...LOCATION_CARD_URLS }).flatMap(([path, url]) => {
+  Object.entries({ ...ATTACK_CARD_URLS, ...DEFENSE_CARD_URLS, ...KATA_CARD_URLS, ...CONSUMABLE_CARD_URLS, ...DEFENSE_EQUIPMENT_CARD_URLS, ...GEAR_CARD_URLS, ...REACTION_CARD_URLS, ...COMBO_CARD_URLS, ...STARTER_CARD_URLS, ...LOCATION_CARD_URLS }).flatMap(([path, url]) => {
     const match = path.match(/\/(ddb-(?:atk|def|kat|con|deq|gea|cmb|sta|loc)-core-\d{3})_/i);
     return match ? [[match[1].toUpperCase(), url]] : [];
   }),
@@ -208,6 +216,7 @@ const CARD_IMAGE_URLS: Record<string, string> = {
   ...CONSUMABLE_CARD_URLS,
   ...DEFENSE_EQUIPMENT_CARD_URLS,
   ...GEAR_CARD_URLS,
+  ...REACTION_CARD_URLS,
   ...COMBO_CARD_URLS,
   ...STARTER_CARD_URLS,
   ...LOCATION_CARD_URLS,
