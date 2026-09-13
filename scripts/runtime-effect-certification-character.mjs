@@ -49,6 +49,7 @@ export function characterEventHostEvidence(
   playtestSource,
   quickDuelHostSource,
   quickDuelTransitionSource = "",
+  quickDuelStructuredHostSource = "",
 ) {
   const lifecycleTrigger = event === "initiate" ? "onInitiate" : event === "hide" ? "onHide" : null;
   if (lifecycleTrigger) {
@@ -62,9 +63,8 @@ export function characterEventHostEvidence(
   }
 
   // Non-lifecycle events may be published directly by React, by the Playtest
-  // host, or by the lower structured-transition boundary. The latter is the
-  // correct home for facts that are already represented as committed board
-  // transitions (cardPlayed, combat outcomes, purchases, etc.).
+  // host, by the lower structured-transition boundary, or by the semantic host
+  // that derives a more specific event from an already-published game fact.
   const reactPublished = new RegExp(
     `publishQuickDuelPlaytestCharacterEvent\\([\\s\\S]{0,420}?type:\\s*["']${event}["']`,
     "m",
@@ -73,9 +73,12 @@ export function characterEventHostEvidence(
   const playtestHostPublishes = /publishQuickDuelPlaytestCharacterEvent\s*\(/m.test(quickDuelHostSource);
   const transitionHostBuildsEvent = new RegExp(`type:\\s*["']${event}["']`, "m").test(quickDuelTransitionSource);
   const transitionHostPublishes = /publishQuickDuelCharacterEvent\s*\(/m.test(quickDuelTransitionSource);
+  const structuredHostBuildsEvent = new RegExp(`type:\\s*["']${event}["']`, "m").test(quickDuelStructuredHostSource);
+  const structuredHostPublishes = /applyCharacterEventForHost\s*\(/m.test(quickDuelStructuredHostSource);
   return reactPublished
     || (playtestHostBuildsEvent && playtestHostPublishes)
-    || (transitionHostBuildsEvent && transitionHostPublishes);
+    || (transitionHostBuildsEvent && transitionHostPublishes)
+    || (structuredHostBuildsEvent && structuredHostPublishes);
 }
 
 export function characterResolverHostEvidence({
@@ -85,6 +88,7 @@ export function characterResolverHostEvidence({
   playtestSource,
   quickDuelHostSource,
   quickDuelTransitionSource = "",
+  quickDuelStructuredHostSource = "",
 }) {
   const classification = classifyCharacterResolver(resolver, characterRuntimeSource, migrationSource);
   if (classification.events.length === 0) {
@@ -110,7 +114,13 @@ export function characterResolverHostEvidence({
   }
 
   const liveEvents = classification.events.filter((event) =>
-    characterEventHostEvidence(event, playtestSource, quickDuelHostSource, quickDuelTransitionSource),
+    characterEventHostEvidence(
+      event,
+      playtestSource,
+      quickDuelHostSource,
+      quickDuelTransitionSource,
+      quickDuelStructuredHostSource,
+    ),
   );
   const hostLive = liveEvents.length === classification.events.length;
   const missingEvents = classification.events.filter((event) => !liveEvents.includes(event));

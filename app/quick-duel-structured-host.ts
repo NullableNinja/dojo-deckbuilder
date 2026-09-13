@@ -15,6 +15,19 @@ import { comboPlanForHost, type ComboHostPlan } from "./combo-playtest-bridge.ts
 import type { ComboRuntimeCard } from "./combo-runtime.ts";
 import type { RuntimeTrigger } from "./family-effect-runtime.ts";
 
+const KATA_COUNT_MARK = "turn:structuredHost.kataCount";
+
+function isKataCard(event: CharacterRuntimeEvent) {
+  const card = event.card;
+  if (!card) return false;
+  return String(card.subtype ?? card.cardType ?? "").trim().toLocaleLowerCase() === "kata";
+}
+
+function kataCount(board: CharacterHostBoard) {
+  const value = Number(board.characterMarks?.[KATA_COUNT_MARK] ?? 0);
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+
 /**
  * Single semantic boundary between Quick Duel and the canonical structured
  * Character/Combo runtimes.
@@ -42,7 +55,23 @@ export function publishQuickDuelCharacterEvent<
   event: CharacterRuntimeEvent,
   actor: CharacterRuntimeActor,
 ) {
-  return applyCharacterEventForHost(self, opponent, event, actor);
+  const primary = applyCharacterEventForHost(self, opponent, event, actor);
+  if (event.type !== "cardPlayed" || !isKataCard(event) || primary.choices.length > 0) return primary;
+
+  const ordinal = kataCount(primary.self) + 1;
+  const countedSelf = {
+    ...primary.self,
+    characterMarks: {
+      ...(primary.self.characterMarks ?? {}),
+      [KATA_COUNT_MARK]: ordinal,
+    },
+  } as SelfBoard;
+  return applyCharacterEventForHost(countedSelf, primary.opponent, {
+    type: "kataPlayed",
+    card: event.card,
+    firstKataThisTurn: ordinal === 1,
+    secondKataThisTurn: ordinal === 2,
+  }, actor);
 }
 
 export function beginQuickDuelCharacterTurn<
