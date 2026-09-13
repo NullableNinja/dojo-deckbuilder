@@ -1,4 +1,4 @@
-name: One-off Training Stripe Current Main Wiring
+name: One-off Training Stripe Playtest Wiring
 
 on:
   push:
@@ -18,9 +18,8 @@ jobs:
         with:
           ref: feature/training-stripe-healing-current-main
           fetch-depth: 0
-      - name: Regenerate data and apply narrow Playtest host wiring
+      - name: Apply narrow Playtest host wiring
         run: |
-          node scripts/generate-game-data.mjs
           python - <<'PY'
           from pathlib import Path
 
@@ -37,24 +36,24 @@ jobs:
               source = source[:end] + import_line + source[end:]
 
           effect_block = '''  useEffect(() => {
-    const handleTrainingStripeHeal = () => {
-      if (deskView !== "belt") return;
-      setMatch((current) => {
-        if (!current || current.phase !== "player-ascend") return current;
-        const next = spendQuickDuelTrainingStripeForHealing(current, "player", "belt-check");
-        if (next === current) return current;
-        const recovered = next.player.hp - current.player.hp;
-        if (recovered <= 0) return current;
-        return {
-          ...next,
-          log: [`Training Stripe redeemed: recover ${recovered} HP (${current.player.hp} → ${next.player.hp}).`, ...next.log].slice(0, 32),
-        };
-      });
-    };
-    window.addEventListener(QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, handleTrainingStripeHeal);
-    return () => window.removeEventListener(QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, handleTrainingStripeHeal);
-  }, [deskView]);
-'''
+            const handleTrainingStripeHeal = () => {
+              if (deskView !== "belt") return;
+              setMatch((current) => {
+                if (!current || current.phase !== "player-ascend") return current;
+                const next = spendQuickDuelTrainingStripeForHealing(current, "player", "belt-check");
+                if (next === current) return current;
+                const recovered = next.player.hp - current.player.hp;
+                if (recovered <= 0) return current;
+                return {
+                  ...next,
+                  log: [`Training Stripe redeemed: recover ${recovered} HP (${current.player.hp} → ${next.player.hp}).`, ...next.log].slice(0, 32),
+                };
+              });
+            };
+            window.addEventListener(QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, handleTrainingStripeHeal);
+            return () => window.removeEventListener(QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, handleTrainingStripeHeal);
+          }, [deskView]);
+          '''
           if effect_block not in source:
               marker = '  const [rulesSync, setRulesSync] = useState<RulesSyncState>('
               index = source.find(marker)
@@ -64,19 +63,18 @@ jobs:
 
           path.write_text(source)
           PY
-      - name: Verify narrow changes
+      - name: Verify only intended host file changed
         run: |
-          node scripts/check-generated-game-data.mjs
           git diff --check
-          git diff -- app/data/game-definition.json app/playtest.tsx
-      - name: Commit generated mirror and Playtest wiring
+          git diff -- app/playtest.tsx
+      - name: Commit Playtest wiring
         run: |
-          if git diff --quiet -- app/data/game-definition.json app/playtest.tsx; then
-            echo "Generated mirror and Playtest host already current."
+          if git diff --quiet -- app/playtest.tsx; then
+            echo "Playtest host already wired."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/data/game-definition.json app/playtest.tsx
-          git commit -m "feat(stripes): wire healing into current Quick Duel host"
+          git add app/playtest.tsx
+          git commit -m "feat(stripes): connect healing action to current Quick Duel state"
           git push origin HEAD:feature/training-stripe-healing-current-main
