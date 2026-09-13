@@ -30,6 +30,7 @@ const config = {
       healHp: 2,
       usesPerTurn: 1,
       cannotExceedMaxHp: true,
+      requiresFinalizedStripe: true,
     },
   },
   beltThresholds: [0, 3, 6, 9],
@@ -125,6 +126,48 @@ test("a stripe cannot be spent at full HP", () => {
   const spent = spendTrainingStripeForHealing(striped, config, "round-2:player");
   assert.equal(spent, striped);
   assert.equal(trainingStripeHealingAvailability(striped, config, "round-2:player").atFullHp, true);
+});
+
+test("a stripe awarded during the current Belt Check cannot immediately fund healing", () => {
+  const provisional = awardProvisionalTrainingStripe(stripeBoard({ hp: 18 }), config);
+  const availability = trainingStripeHealingAvailability(provisional, config, "round-2:player");
+  assert.equal(availability.state.provisional, true);
+  assert.equal(availability.spendableHeld, 0);
+  assert.equal(availability.provisionalReserved, 1);
+  assert.equal(availability.canSpend, false);
+  assert.equal(spendTrainingStripeForHealing(provisional, config, "round-2:player"), provisional);
+});
+
+test("an older finalized stripe may be spent while the newly staged stripe remains protected", () => {
+  const prior = withTrainingStripeState(stripeBoard({ hp: 18 }), expectedState({ held: 1, awarded: 1 }));
+  const staged = awardProvisionalTrainingStripe(prior, config);
+  const availability = trainingStripeHealingAvailability(staged, config, "round-4:player");
+  assert.equal(availability.spendableHeld, 1);
+  assert.equal(availability.canSpend, true);
+
+  const spent = spendTrainingStripeForHealing(staged, config, "round-4:player");
+  assert.equal(spent.hp, 20);
+  assert.deepEqual(trainingStripeState(spent), expectedState({
+    held: 1,
+    awarded: 2,
+    provisional: true,
+    spentTurnKey: "round-4:player",
+    spendsThisTurn: 1,
+  }));
+});
+
+test("if Acquisition later completes the exam, only the protected provisional stripe is revoked", () => {
+  const prior = withTrainingStripeState(stripeBoard({ hp: 18 }), expectedState({ held: 1, awarded: 1 }));
+  const staged = awardProvisionalTrainingStripe(prior, config);
+  const spent = spendTrainingStripeForHealing(staged, config, "round-4:player");
+  const completed = { ...spent, completedTasks: [1] };
+  const reconciled = reconcileProvisionalTrainingStripe(completed, config);
+  assert.equal(reconciled.hp, 20);
+  assert.deepEqual(trainingStripeState(reconciled), expectedState({
+    awarded: 1,
+    spentTurnKey: "round-4:player",
+    spendsThisTurn: 1,
+  }));
 });
 
 function transitionBoard(overrides = {}) {
