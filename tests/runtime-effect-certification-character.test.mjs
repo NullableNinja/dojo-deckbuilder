@@ -86,6 +86,6 @@ test("live Character host evidence distinguishes compatibility helpers from even
   });
   assert.equal(blockRuntime.owner, "event-runtime");
   assert.deepEqual(blockRuntime.events, ["block"]);
-  assert.equal(blockRuntime.hostLive, false);
-  assert.match(blockRuntime.reason, /does not yet publish block/);
+  assert.deepEqual(blockRuntime.liveEvents, ["block"]);
+  assert.equal(blockRuntime.hostLive, true);
 });
