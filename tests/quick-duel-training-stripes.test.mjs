@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canonicalTrainingStripeConfig } from "../app/training-stripes-config.ts";
+import { quickDuelBeltCheckActionAvailability } from "../app/quick-duel-belt-check-actions.ts";
+import { canonicalBeltCheckActionRule, canonicalTrainingStripeConfig } from "../app/training-stripes-config.ts";
 import {
   quickDuelTrainingStripeHealingAvailability,
   spendQuickDuelTrainingStripeForHealing,
@@ -39,6 +40,14 @@ function match(overrides = {}) {
   };
 }
 
+test("canonical Belt Check grants exactly one action between promotion and recovery", () => {
+  assert.deepEqual(canonicalBeltCheckActionRule, {
+    usesPerTurn: 1,
+    choices: ["promote", "training-stripe-recovery"],
+    summary: "During Belt Check, choose at most one certification action per turn: promote if eligible, or spend a previously earned Training Stripe to recover HP. Choosing either uses your Belt Check action for that turn.",
+  });
+});
+
 test("canonical stripe spend rule is 1 finalized stripe for 2 HP, once per turn", () => {
   assert.deepEqual(canonicalTrainingStripeConfig.rule.spend, {
     enabled: true,
@@ -57,6 +66,12 @@ test("active player can spend at Belt Check and receives canonical healing", () 
   const next = spendQuickDuelTrainingStripeForHealing(current, "player", "belt-check");
   assert.equal(next.player.hp, 19);
   assert.equal(trainingStripeState(next.player).held, 1);
+});
+
+test("stripe recovery consumes the Belt Check action and blocks promotion that turn", () => {
+  const next = spendQuickDuelTrainingStripeForHealing(match(), "player", "belt-check");
+  assert.equal(quickDuelBeltCheckActionAvailability(next, "player", "promote").canUse, false);
+  assert.equal(quickDuelBeltCheckActionAvailability(next, "player", "promote").state.action, "training-stripe-recovery");
 });
 
 test("same player cannot spend a second stripe during the same turn", () => {
