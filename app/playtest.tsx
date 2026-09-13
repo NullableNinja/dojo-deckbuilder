@@ -2747,6 +2747,21 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     return current;
   });
 
+
+  const resolveCharacterRuntimeChoice = (selection: string) => setMatch((current) => {
+    const pending = current?.pendingChoice;
+    if (!current || !pending || pending.kind !== "character-runtime") return current;
+    const base = { ...current, pendingChoice: null };
+    const resolved = resolveQuickDuelPlaytestCharacterChoice(base, "player", pending.event, pending.choice, selection);
+    const nextChoice = resolved.choices[0];
+    const pendingChoice: PendingChoice | null = resolved.event && nextChoice
+      ? { kind: "character-runtime", event: resolved.event, choice: nextChoice }
+      : null;
+    const selectedCard = cardFor(selection);
+    const label = selectedCard?.name ?? (["skip", "decline", "cancel"].includes(selection) ? "declined" : selection);
+    return write(resolved.match, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} resolves ${pending.choice.prompt}: ${label}.`, { pendingChoice });
+  });
+
   const resolveStage3CZoneWard = (zone: string) => setMatch((current) => {
     const choice = current?.pendingChoice;
     if (!current || !choice || choice.kind !== "stage3c-zone-ward") return current;
