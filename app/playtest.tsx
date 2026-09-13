@@ -27,6 +27,7 @@ import "./playtest-production-mat.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 import { normalizePendingDamageChoice } from "./playtest-state-recovery";
 import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";
+import { QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, spendQuickDuelTrainingStripeForHealing } from "./quick-duel-training-stripes.ts";
 
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
 
@@ -1983,6 +1984,24 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return saved?.phase === "player-ascend" ? "market" : null;
     } catch { return null; }
   });
+  useEffect(() => {
+  const handleTrainingStripeHeal = () => {
+    if (deskView !== "belt") return;
+    setMatch((current) => {
+      if (!current || current.phase !== "player-ascend") return current;
+      const next = spendQuickDuelTrainingStripeForHealing(current, "player", "belt-check");
+      if (next === current) return current;
+      const recovered = next.player.hp - current.player.hp;
+      if (recovered <= 0) return current;
+      return {
+        ...next,
+        log: [`Training Stripe redeemed: recover ${recovered} HP (${current.player.hp} → ${next.player.hp}).`, ...next.log].slice(0, 32),
+      };
+    });
+  };
+  window.addEventListener(QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, handleTrainingStripeHeal);
+  return () => window.removeEventListener(QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, handleTrainingStripeHeal);
+}, [deskView]);
   const [rulesSync, setRulesSync] = useState<RulesSyncState>({ status: "checking", currentVersion: activeRulesRevision, latestVersion: activeRulesRevision, checkedAt: 0 });
   const inspected = inspectedId ? cardFor(inspectedId) : null;
 
