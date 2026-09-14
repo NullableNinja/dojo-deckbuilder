@@ -1,18 +1,36 @@
-# trigger
-name: Temporary Stage 3E lifecycle diagnostic
+name: Temporary Stage 3E lifecycle certification
 
 on:
   push:
     branches:
       - stage3e-character-lifecycle-boundaries
 
+permissions:
+  contents: write
+
 jobs:
   diagnostic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: stage3e-character-lifecycle-boundaries
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
       - run: npm ci
-      - run: node --experimental-strip-types --test tests/quick-duel-character-lifecycle-host.test.mjs
+      - run: python .github/temp-patch-lifecycle.py
+      - name: Targeted lifecycle canary
+        run: node --experimental-strip-types --test tests/quick-duel-character-lifecycle-host.test.mjs
+      - name: Full repository test suite
+        run: npm test
+      - name: Commit certified lifecycle correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/temp-patch-lifecycle.py
+          git rm .github/workflows/temp-stage3e-lifecycle-diagnostic.yml
+          git add app/quick-duel-transition-host.ts
+          git commit -m "fix(stage3e): order Character lifecycle resets before events"
+          git push origin HEAD:stage3e-character-lifecycle-boundaries
