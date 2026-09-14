@@ -1,0 +1,42 @@
+name: Temporary Delayed Market Refill Patch
+
+on:
+  push:
+    branches:
+      - feature/delayed-market-refill
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-certify:
+    if: ${{ !contains(github.event.head_commit.message, '[market-patch-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/delayed-market-refill
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - run: npm ci
+      - name: Apply canonical and runtime patch
+        run: node .tmp/delayed-market-refill-patch.mjs
+      - name: Regenerate canonical mirrors
+        run: npm run game:generate
+      - name: Generated-data certification
+        run: npm run game:check
+      - name: Full test certification
+        run: npm test
+      - name: Production build certification
+        run: npm run build
+      - name: Commit product changes
+        run: |
+          git config user.name "dojo-deckbuilder-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content app engine tests
+          git diff --cached --check
+          git commit -m "feat: delay Market refill until Ascend ends [market-patch-applied]"
+          git push origin HEAD:feature/delayed-market-refill
