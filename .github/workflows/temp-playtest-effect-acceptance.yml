@@ -22,6 +22,6 @@ jobs:
       - name: Canonical generated-data drift
         run: npm run game:check
       - name: Character live-runtime acceptance
-        run: node --experimental-strip-types --test tests/playtest-effect-acceptance-character.test.mjs
+        run: node --experimental-strip-types --test tests/playtest-effect-acceptance-character.test.mjs tests/playtest-effect-acceptance-character-choices.test.mjs
       - name: Production build
         run: npm run build

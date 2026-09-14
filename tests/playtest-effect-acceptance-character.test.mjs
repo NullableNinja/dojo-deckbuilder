@@ -157,6 +157,13 @@ test("Character acceptance matrix inventories every canonical Core Character and
   assert.equal(pollo.stateMutationVerified, true);
   assert.equal(pollo.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
 
+  const mimen = matrix.rows.find((row) => row.catalogId === "DDB-CHR-CORE-024");
+  assert.equal(mimen.executionStatus, "PASS_EXECUTES");
+  assert.equal(mimen.playerExecutionVerified, true);
+  assert.equal(mimen.aiExecutionVerified, true);
+  assert.equal(mimen.stateMutationVerified, true);
+  assert.equal(mimen.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
+
   const ronin = matrix.rows.find((row) => row.catalogId === "DDB-CHR-CORE-029");
   assert.equal(ronin.executionStatus, "FAIL_RESOLVER_NOT_REACHED");
   assert.equal(ronin.liveHostConnected, true);
@@ -171,9 +178,16 @@ test("Character acceptance matrix inventories every canonical Core Character and
   assert.ok(ducktape.failureCategories.includes("FAIL_EFFECT_INVISIBLE"));
   assert.equal(ducktape.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
 
-  assert.equal(matrix.statusCounts.BLOCKED_ACTIVE_STAGE3E, 3);
-  assert.equal(matrix.statusCounts.PENDING_EXECUTION, 38);
-  assert.equal(matrix.executionCounts.PASS_EXECUTES, 2);
+  const venue = matrix.rows.find((row) => row.catalogId === "DDB-CHR-CORE-039");
+  assert.equal(venue.executionStatus, "PASS_EXECUTES");
+  assert.equal(venue.playerExecutionVerified, true);
+  assert.equal(venue.aiExecutionVerified, true);
+  assert.equal(venue.stateMutationVerified, true);
+  assert.equal(venue.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
+
+  assert.equal(matrix.statusCounts.BLOCKED_ACTIVE_STAGE3E, 5);
+  assert.equal(matrix.statusCounts.PENDING_EXECUTION, 36);
+  assert.equal(matrix.executionCounts.PASS_EXECUTES, 4);
   assert.equal(matrix.executionCounts.FAIL_RESOLVER_NOT_REACHED, 1);
   assert.equal(matrix.failureCounts.FAIL_DURATION, 1);
   assert.equal(matrix.failureCounts.FAIL_RESOLVER_NOT_REACHED, 1);

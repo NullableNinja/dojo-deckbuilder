@@ -14,6 +14,21 @@
     "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
     "rootCause": "Live Hit execution, state projection, Player/AI parity, and same-turn first-Hit usage are verified. Turn-scope reset across the real turn boundary is owned by active Stage 3E PR #93 and is not yet independently certified here."
   },
+  "DDB-CHR-CORE-024": {
+    "reachableInQuickDuel": true,
+    "liveHostConnected": true,
+    "playerExecutionVerified": true,
+    "aiExecutionVerified": true,
+    "choiceUiVerified": false,
+    "stateMutationVerified": true,
+    "durationResetVerified": false,
+    "effectVisibleUnderstandable": null,
+    "regressionTestPresent": true,
+    "executionStatus": "PASS_EXECUTES",
+    "failureCategories": [],
+    "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
+    "rootCause": "Initiate publication, player choice/resume, AI deterministic resolution, resulting attack bonus, and same-round usage suppression are verified through the Quick Duel playtest lifecycle host. Full round-boundary reset remains owned by active Stage 3E PR #93; visual rendering of the choice itself has not been black-box verified."
+  },
   "DDB-CHR-CORE-029": {
     "reachableInQuickDuel": true,
     "liveHostConnected": true,
@@ -48,5 +63,20 @@
     ],
     "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
     "rootCause": "Canonical Sensei Ducktape says the borrowed permanent is discarded at end of turn, but the structured/runtime path is named character.equipDiscardPermanentUntilHide, the player prompt says until Hide, and current host tests return it on Hide. Correct end-of-turn cleanup requires the transition boundary currently owned by Stage 3E PR #93."
+  },
+  "DDB-CHR-CORE-039": {
+    "reachableInQuickDuel": true,
+    "liveHostConnected": true,
+    "playerExecutionVerified": true,
+    "aiExecutionVerified": true,
+    "choiceUiVerified": false,
+    "stateMutationVerified": true,
+    "durationResetVerified": false,
+    "effectVisibleUnderstandable": null,
+    "regressionTestPresent": true,
+    "executionStatus": "PASS_EXECUTES",
+    "failureCategories": [],
+    "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
+    "rootCause": "A real Location transition reaches the Character runtime, the player receives and resumes the discard decision after drawing, AI resolves the same cycle automatically, and a second Scene Change in the same round is suppressed. Full round-boundary reset remains owned by active Stage 3E PR #93; visual rendering of the player choice has not been black-box verified."
   }
 }
