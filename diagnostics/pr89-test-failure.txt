@@ -1,0 +1,242 @@
+exit_status=1
+--- LAST 240 LINES ---
+  duration_ms: 0.925301
+  ...
+# Subtest: player Air Horn can cancel the AI's one Defense without allowing a replacement Defense
+ok 530 - player Air Horn can cancel the AI's one Defense without allowing a replacement Defense
+  ---
+  duration_ms: 0.261659
+  ...
+# Subtest: canceled AI Defense is spent but does not resolve Defense or Block lifecycle
+ok 531 - canceled AI Defense is spent but does not resolve Defense or Block lifecycle
+  ---
+  duration_ms: 0.357548
+  ...
+# Subtest: Air Horn player choice preserves Consumable lifecycle destinations
+ok 532 - Air Horn player choice preserves Consumable lifecycle destinations
+  ---
+  duration_ms: 0.187781
+  ...
+# Subtest: Air Horn choice is an explicit two-button Dojo Stack decision
+ok 533 - Air Horn choice is an explicit two-button Dojo Stack decision
+  ---
+  duration_ms: 0.577981
+  ...
+# (node:3562) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Pocket Sand auto-targets the only duel opponent but preserves multiplayer choice
+ok 534 - Pocket Sand auto-targets the only duel opponent but preserves multiplayer choice
+  ---
+  duration_ms: 2.521155
+  ...
+# (node:3568) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Coupon Carl composes after the active Location purchase modifier, preserving both canonical floors
+ok 535 - Coupon Carl composes after the active Location purchase modifier, preserving both canonical floors
+  ---
+  duration_ms: 2.049663
+  ...
+# Subtest: Character and Location Attack modifiers both contribute without replacing each other
+ok 536 - Character and Location Attack modifiers both contribute without replacing each other
+  ---
+  duration_ms: 1.586537
+  ...
+# Subtest: Character prevention and Location healing remain separate, composable real state transitions
+ok 537 - Character prevention and Location healing remain separate, composable real state transitions
+  ---
+  duration_ms: 0.690981
+  ...
+# Subtest: incoming Character decisions pause the strike while Location combat modifiers stay available
+ok 538 - incoming Character decisions pause the strike while Location combat modifiers stay available
+  ---
+  duration_ms: 0.421408
+  ...
+# Subtest: Character and Location lifecycle resets preserve each other's delayed state until their own expiry
+ok 539 - Character and Location lifecycle resets preserve each other's delayed state until their own expiry
+  ---
+  duration_ms: 1.224429
+  ...
+# Subtest: Location state is marked through its structured command without consuming Character usage state
+ok 540 - Location state is marked through its structured command without consuming Character usage state
+  ---
+  duration_ms: 0.843067
+  ...
+# Subtest: Playtest host remains free of direct Character and Location card-ID special cases
+ok 541 - Playtest host remains free of direct Character and Location card-ID special cases
+  ---
+  duration_ms: 0.868474
+  ...
+# (node:3575) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Stage 3D canonical roster is exactly 53 Core Locations / 99 structured effects
+ok 542 - Stage 3D canonical roster is exactly 53 Core Locations / 99 structured effects
+  ---
+  duration_ms: 1.325358
+  ...
+# Subtest: all 99 Location effects select from structured context without prose interpretation
+ok 543 - all 99 Location effects select from structured context without prose interpretation
+  ---
+  duration_ms: 2.777934
+  ...
+# Subtest: every Core Location effect produces executable runtime state/delta or an explicit choice
+ok 544 - every Core Location effect produces executable runtime state/delta or an explicit choice
+  ---
+  duration_ms: 3.000441
+  ...
+# Subtest: usage scopes enforce first/once semantics including across-player round scope
+ok 545 - usage scopes enforce first/once semantics including across-player round scope
+  ---
+  duration_ms: 1.451595
+  ...
+# Subtest: Location lifecycle expires turn/round/scene state at the correct boundary
+ok 546 - Location lifecycle expires turn/round/scene state at the correct boundary
+  ---
+  duration_ms: 0.484747
+  ...
+# Subtest: representative structured Location effects mutate numeric gameplay state as printed
+ok 547 - representative structured Location effects mutate numeric gameplay state as printed
+  ---
+  duration_ms: 0.556751
+  ...
+# Subtest: thin Location host bridge resolves canonical commands and tracks usage without card-specific logic
+ok 548 - thin Location host bridge resolves canonical commands and tracks usage without card-specific logic
+  ---
+  duration_ms: 0.533267
+  ...
+# Subtest: existing Quick Duel attack host transparently routes Core Locations through the structured bridge
+ok 549 - existing Quick Duel attack host transparently routes Core Locations through the structured bridge
+  ---
+  duration_ms: 0.457174
+  ...
+# Subtest: Location resolver and host bridge contain no printed-prose or card-ID special cases
+ok 550 - Location resolver and host bridge contain no printed-prose or card-ID special cases
+  ---
+  duration_ms: 0.741076
+  ...
+# (node:3595) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Starter cards publish complete production artwork
+ok 551 - Starter cards publish complete production artwork
+  ---
+  duration_ms: 13.208248
+  ...
+# Subtest: Location cards publish complete production artwork
+ok 552 - Location cards publish complete production artwork
+  ---
+  duration_ms: 21.948763
+  ...
+# (node:3606) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Wild Swing zone choice resolves from structured data before prose
+ok 553 - Wild Swing zone choice resolves from structured data before prose
+  ---
+  duration_ms: 1.254105
+  ...
+# Subtest: Footwork Drill fastest Focus resolves from structured data
+ok 554 - Footwork Drill fastest Focus resolves from structured data
+  ---
+  duration_ms: 1.96821
+  ...
+# Subtest: unmigrated cards do not accidentally inherit Starter resolvers
+ok 555 - unmigrated cards do not accidentally inherit Starter resolvers
+  ---
+  duration_ms: 0.32595
+  ...
+# Subtest: Quick Duel invokes the Starter dedicated resolvers for both player and AI
+ok 556 - Quick Duel invokes the Starter dedicated resolvers for both player and AI
+  ---
+  duration_ms: 9.531689
+  ...
+# (node:3617) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: builds a GitHub Pages index with repository-relative assets
+ok 557 - builds a GitHub Pages index with repository-relative assets
+  ---
+  duration_ms: 4.861081
+  ...
+# Subtest: bundles the complete interactive companion
+ok 558 - bundles the complete interactive companion
+  ---
+  duration_ms: 17.513807
+  ...
+# (node:3628) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: an XP-qualified fighter gains one provisional stripe while the next exam is incomplete
+ok 559 - an XP-qualified fighter gains one provisional stripe while the next exam is incomplete
+  ---
+  duration_ms: 2.518259
+  ...
+# Subtest: a provisional stripe is revoked if the exam completes before Belt Check
+ok 560 - a provisional stripe is revoked if the exam completes before Belt Check
+  ---
+  duration_ms: 0.305963
+  ...
+# Subtest: training stripes accumulate across Belt Checks but never exceed three awards per Belt
+ok 561 - training stripes accumulate across Belt Checks but never exceed three awards per Belt
+  ---
+  duration_ms: 0.421138
+  ...
+# Subtest: promotion clears stripes for the newly earned Belt
+ok 562 - promotion clears stripes for the newly earned Belt
+  ---
+  duration_ms: 0.326501
+  ...
+# Subtest: spending one stripe heals exactly 2 HP and consumes one stripe
+ok 563 - spending one stripe heals exactly 2 HP and consumes one stripe
+  ---
+  duration_ms: 0.919129
+  ...
+# Subtest: stripe healing can only be used once in the same turn
+ok 564 - stripe healing can only be used once in the same turn
+  ---
+  duration_ms: 0.253323
+  ...
+# Subtest: a new turn key allows another stripe heal
+ok 565 - a new turn key allows another stripe heal
+  ---
+  duration_ms: 0.378498
+  ...
+# Subtest: stripe healing never exceeds Max HP
+ok 566 - stripe healing never exceeds Max HP
+  ---
+  duration_ms: 0.225231
+  ...
+# Subtest: a stripe cannot be spent at full HP
+ok 567 - a stripe cannot be spent at full HP
+  ---
+  duration_ms: 0.569414
+  ...
+# Subtest: a stripe awarded during the current Belt Check cannot immediately fund healing
+ok 568 - a stripe awarded during the current Belt Check cannot immediately fund healing
+  ---
+  duration_ms: 0.762826
+  ...
+# Subtest: an older finalized stripe may be spent while the newly staged stripe remains protected
+ok 569 - an older finalized stripe may be spent while the newly staged stripe remains protected
+  ---
+  duration_ms: 0.418763
+  ...
+# Subtest: if Acquisition later completes the exam, only the protected provisional stripe is revoked
+ok 570 - if Acquisition later completes the exam, only the protected provisional stripe is revoked
+  ---
+  duration_ms: 0.254005
+  ...
+# Subtest: Quick Duel stages the stripe when Ascend begins so it is visible during Belt Check
+ok 571 - Quick Duel stages the stripe when Ascend begins so it is visible during Belt Check
+  ---
+  duration_ms: 1.327493
+  ...
+# Subtest: Quick Duel removes the staged stripe when an Ascend action completes the exam
+ok 572 - Quick Duel removes the staged stripe when an Ascend action completes the exam
+  ---
+  duration_ms: 0.273762
+  ...
+1..572
+# tests 572
+# suites 0
+# pass 570
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7070.380631
