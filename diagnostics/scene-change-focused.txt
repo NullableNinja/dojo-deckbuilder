@@ -1,0 +1,47 @@
+TAP version 13
+# node:internal/modules/esm/get_format:218
+#   throw new ERR_UNKNOWN_FILE_EXTENSION(ext, filepath);
+#         ^
+# TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".ts" for /home/runner/work/dojo-deckbuilder/dojo-deckbuilder/app/quick-duel-playtest-host.ts
+#     at Object.getFileProtocolModuleFormat [as file:] (node:internal/modules/esm/get_format:218:9)
+#     at defaultGetFormat (node:internal/modules/esm/get_format:244:36)
+#     at defaultLoad (node:internal/modules/esm/load:122:22)
+#     at async ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:483:32) {
+#   code: 'ERR_UNKNOWN_FILE_EXTENSION'
+# }
+# Node.js v22.12.0
+# Subtest: tests/quick-duel-character-scene-change-host.test.mjs
+not ok 1 - tests/quick-duel-character-scene-change-host.test.mjs
+  ---
+  duration_ms: 47.776055
+  location: '/home/runner/work/dojo-deckbuilder/dojo-deckbuilder/tests/quick-duel-character-scene-change-host.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: Character certification derives events from resolverEvents instead of canonical trigger prose
+ok 2 - Character certification derives events from resolverEvents instead of canonical trigger prose
+  ---
+  duration_ms: 1.697623
+  ...
+# Subtest: Character certification respects explicit compatibility-helper ownership
+ok 3 - Character certification respects explicit compatibility-helper ownership
+  ---
+  duration_ms: 0.727631
+  ...
+# Subtest: live Character host evidence distinguishes compatibility helpers from shared event-runtime publication
+ok 4 - live Character host evidence distinguishes compatibility helpers from shared event-runtime publication
+  ---
+  duration_ms: 5.03857
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 3
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 76.641376
