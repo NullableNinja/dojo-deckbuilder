@@ -72,4 +72,21 @@ new = '''function publishCharacterLifecycleTransitions<Board extends QuickDuelTr
 '''
 if old not in source:
     raise SystemExit("lifecycle function anchor not found")
-path.write_text(source.replace(old, new, 1))
+source = source.replace(old, new, 1)
+old_order = '''  next = publishCardPlayedCharacterTransitions(previous, next, lookup);
+  next = publishDiscardedCharacterTransitions(previous, next, lookup, turnAdvanced);
+  next = publishSpeedChangedCharacterTransitions(previous, next);
+  next = publishPromotionCharacterTransitions(previous, next);
+  next = publishCharacterLifecycleTransitions(previous, next, roundAdvanced, turnAdvanced);
+  next = publishSceneChangeCharacterTransitions(previous, next);
+'''
+new_order = '''  next = publishCharacterLifecycleTransitions(previous, next, roundAdvanced, turnAdvanced);
+  next = publishCardPlayedCharacterTransitions(previous, next, lookup);
+  next = publishDiscardedCharacterTransitions(previous, next, lookup, turnAdvanced);
+  next = publishSpeedChangedCharacterTransitions(previous, next);
+  next = publishPromotionCharacterTransitions(previous, next);
+  next = publishSceneChangeCharacterTransitions(previous, next);
+'''
+if old_order not in source:
+    raise SystemExit("lifecycle publication ordering anchor not found")
+path.write_text(source.replace(old_order, new_order, 1))
