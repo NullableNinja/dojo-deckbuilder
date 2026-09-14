@@ -144,7 +144,7 @@
         }
       ,
         {
-          "batch": "weapons-005", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora",
+          "batch": "weapons-005", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora", "publishingCommit": "1c1c6f83400562432d2721fcc1f252ca78c7df2d",
           "cardIds": ["DDB-WPN-CORE-021", "DDB-WPN-CORE-022", "DDB-WPN-CORE-023", "DDB-WPN-CORE-024", "DDB-WPN-CORE-025"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-021_extension-cord-nunchaku_Editable_ORA.zip",
@@ -154,11 +154,11 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-025_frozen-burrito_Editable_ORA.zip"
           ],
           "records": [
-            {"cardId":"DDB-WPN-CORE-021","name":"Extension-Cord Nunchaku","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-021_extension-cord-nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-021_extension-cord-nunchaku.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-021_extension-cord-nunchaku_Editable_ORA.zip"},
-            {"cardId":"DDB-WPN-CORE-022","name":"Fan (Tessen)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-022_fan-tessen.png","card":"app/assets/cards/weapons/ddb-wpn-core-022_fan-tessen.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-022_fan-tessen_Editable_ORA.zip"},
-            {"cardId":"DDB-WPN-CORE-023","name":"Folding Chair of Destiny","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-023_folding-chair-of-destiny.png","card":"app/assets/cards/weapons/ddb-wpn-core-023_folding-chair-of-destiny.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-023_folding-chair-of-destiny_Editable_ORA.zip"},
-            {"cardId":"DDB-WPN-CORE-024","name":"Folding-Sign Staff","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-024_folding-sign-staff.png","card":"app/assets/cards/weapons/ddb-wpn-core-024_folding-sign-staff.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-024_folding-sign-staff_Editable_ORA.zip"},
-            {"cardId":"DDB-WPN-CORE-025","name":"Frozen Burrito","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-025_frozen-burrito.png","card":"app/assets/cards/weapons/ddb-wpn-core-025_frozen-burrito.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-025_frozen-burrito_Editable_ORA.zip"}
+            {"cardId":"DDB-WPN-CORE-021","name":"Extension-Cord Nunchaku","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-021_extension-cord-nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-021_extension-cord-nunchaku.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-021_extension-cord-nunchaku_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"},
+            {"cardId":"DDB-WPN-CORE-022","name":"Fan (Tessen)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-022_fan-tessen.png","card":"app/assets/cards/weapons/ddb-wpn-core-022_fan-tessen.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-022_fan-tessen_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"},
+            {"cardId":"DDB-WPN-CORE-023","name":"Folding Chair of Destiny","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-023_folding-chair-of-destiny.png","card":"app/assets/cards/weapons/ddb-wpn-core-023_folding-chair-of-destiny.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-023_folding-chair-of-destiny_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"},
+            {"cardId":"DDB-WPN-CORE-024","name":"Folding-Sign Staff","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-024_folding-sign-staff.png","card":"app/assets/cards/weapons/ddb-wpn-core-024_folding-sign-staff.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-024_folding-sign-staff_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"},
+            {"cardId":"DDB-WPN-CORE-025","name":"Frozen Burrito","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-025_frozen-burrito.png","card":"app/assets/cards/weapons/ddb-wpn-core-025_frozen-burrito.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-025_frozen-burrito_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"}
           ]
         }
       ]
