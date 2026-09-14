@@ -142,7 +142,8 @@
             {"cardId":"DDB-WPN-CORE-020","name":"Executive Foam Sword","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-020_executive-foam-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-020_executive-foam-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-020_executive-foam-sword_Editable_ORA.zip"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {"batch":"weapons-005","worker":"codex","status":"claimed","cardIds":["DDB-WPN-CORE-021","DDB-WPN-CORE-022","DDB-WPN-CORE-023","DDB-WPN-CORE-024","DDB-WPN-CORE-025"]}
     }
   }
 }
