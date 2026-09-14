@@ -79,13 +79,14 @@ const expectedFamilyFiles = [
   "combos.json",
   "locations.json",
   "characters.json",
+  "reactions.json",
 ];
 const activeFamilyFiles = new Set((effectArchitecture?.families ?? []).map(({ file }) => file));
 for (const file of expectedFamilyFiles) {
-  if (!activeFamilyFiles.has(file)) fail(`Stage 3B family source content/card-effects/${file} is missing`);
+  if (!activeFamilyFiles.has(file)) fail(`Canonical card-effect family source content/card-effects/${file} is missing`);
 }
 if (activeFamilyFiles.size !== expectedFamilyFiles.length) {
-  fail(`Stage 3B should have exactly ${expectedFamilyFiles.length} active family sources; found ${activeFamilyFiles.size}`);
+  fail(`Canonical effect registry should have exactly ${expectedFamilyFiles.length} active family sources; found ${activeFamilyFiles.size}`);
 }
 
 const expectedGenerated = new Set([
