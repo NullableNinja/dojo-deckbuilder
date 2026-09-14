@@ -1,0 +1,27 @@
+name: Temporary Playtest Effect Acceptance
+
+on:
+  push:
+    branches:
+      - qa/playtest-effect-acceptance
+
+permissions:
+  contents: read
+
+jobs:
+  character-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - name: Canonical generated-data drift
+        run: npm run game:check
+      - name: Character live-runtime acceptance
+        run: node --experimental-strip-types --test tests/playtest-effect-acceptance-character.test.mjs
+      - name: Production build
+        run: npm run build
