@@ -125,7 +125,7 @@
           ]
         },
         {
-          "batch": "weapons-004", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora",
+          "batch": "weapons-004", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora", "publishingCommit": "7869f0973d6bbd909723fe8bebc6bba6f9c61aa9",
           "cardIds": ["DDB-WPN-CORE-016", "DDB-WPN-CORE-017", "DDB-WPN-CORE-018", "DDB-WPN-CORE-019", "DDB-WPN-CORE-020"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-016_eko-bo-short-staff_Editable_ORA.zip",
