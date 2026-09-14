@@ -145,7 +145,11 @@ test("Venue Val cycles through the real Scene Change transition for player and A
   );
   assert.deepEqual(playerResolved.match.player.hand, ["player-d2"]);
   assert.deepEqual(playerResolved.match.player.discard, ["player-h1"]);
-  assert.equal(playerResolved.match.player.usedCharacterEffectIdsThisRound.length, 1);
+  assert.deepEqual(
+    playerResolved.match.player.usedCharacterEffectIdsThisRound,
+    ["character-venue-draw", "character-venue-discard"],
+    "one logical Scene Change ability consumes both structured sibling IDs",
+  );
 
   const playerRepeat = applyQuickDuelPlaytestTransition(
     playerResolved.match,
@@ -170,7 +174,11 @@ test("Venue Val cycles through the real Scene Change transition for player and A
   assert.deepEqual(aiHosted.ai.hand, ["ai-d2"]);
   assert.deepEqual(aiHosted.ai.discard, ["ai-h1"]);
   assert.deepEqual(aiHosted.ai.deck, ["ai-d1"]);
-  assert.equal(aiHosted.ai.usedCharacterEffectIdsThisRound.length, 1);
+  assert.deepEqual(
+    aiHosted.ai.usedCharacterEffectIdsThisRound,
+    ["character-venue-draw", "character-venue-discard"],
+    "AI consumes the same logical ability siblings as the player",
+  );
 
   const aiRepeat = applyQuickDuelPlaytestTransition(
     aiHosted,
@@ -179,5 +187,8 @@ test("Venue Val cycles through the real Scene Change transition for player and A
   );
   assert.deepEqual(aiRepeat.ai.hand, ["ai-d2"]);
   assert.deepEqual(aiRepeat.ai.discard, ["ai-h1"]);
-  assert.equal(aiRepeat.ai.usedCharacterEffectIdsThisRound.length, 1);
+  assert.deepEqual(
+    aiRepeat.ai.usedCharacterEffectIdsThisRound,
+    ["character-venue-draw", "character-venue-discard"],
+  );
 });
