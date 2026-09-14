@@ -20,6 +20,7 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import re
 
           path = Path("app/quick-duel-transition-host.ts")
           source = path.read_text()
@@ -71,18 +72,17 @@ jobs:
               raise SystemExit("card-play transition anchor not found")
           source = source.replace(function_anchor, lifecycle_helper + function_anchor, 1)
 
-          order_anchor = '''  next = publishSpeedChangedCharacterTransitions(previous, next);
-          next = publishPromotionCharacterTransitions(previous, next);
-          next = publishSceneChangeCharacterTransitions(previous, next);
-          '''
-          order_replacement = '''  next = publishSpeedChangedCharacterTransitions(previous, next);
-          next = publishPromotionCharacterTransitions(previous, next);
-          next = publishCharacterLifecycleTransitions(previous, next, roundAdvanced, turnAdvanced);
-          next = publishSceneChangeCharacterTransitions(previous, next);
-          '''
-          if order_anchor not in source:
+          order_pattern = re.compile(
+              r'(\n\s*next = publishPromotionCharacterTransitions\(previous, next\);\n)'
+              r'(\s*next = publishSceneChangeCharacterTransitions\(previous, next\);)'
+          )
+          source, count = order_pattern.subn(
+              r'\1  next = publishCharacterLifecycleTransitions(previous, next, roundAdvanced, turnAdvanced);\n\2',
+              source,
+              count=1,
+          )
+          if count != 1:
               raise SystemExit("transition ordering anchor not found")
-          source = source.replace(order_anchor, order_replacement, 1)
           path.write_text(source)
       - name: Remove temporary workflow and commit patch
         shell: bash
