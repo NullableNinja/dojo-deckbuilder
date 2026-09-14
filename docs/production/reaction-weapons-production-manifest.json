@@ -124,7 +124,13 @@
             {"cardId":"DDB-WPN-CORE-015","name":"Dragon Sword","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-015_dragon-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-015_dragon-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-015_dragon-sword_Editable_ORA.zip","publishingCommit":"4138dfb068860d600cdab0e7d3626e357bcdddea"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {
+        "batch": "weapons-004",
+        "worker": "codex",
+        "status": "claimed",
+        "cardIds": ["DDB-WPN-CORE-016", "DDB-WPN-CORE-017", "DDB-WPN-CORE-018", "DDB-WPN-CORE-019", "DDB-WPN-CORE-020"]
+      }
     }
   }
 }
