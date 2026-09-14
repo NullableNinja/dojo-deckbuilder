@@ -1,0 +1,40 @@
+name: Temporary Stage 3E incoming attack certification
+
+on:
+  push:
+    branches:
+      - stage3e-character-incoming-attack-declared
+
+permissions:
+  contents: write
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage3e-character-incoming-attack-declared
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+      - run: npm ci
+      - name: Apply incoming attack seam
+        run: python .github/temp-patch-incoming-attack.py
+      - name: Canonical source drift
+        run: npm run game:check
+      - name: Production build
+        run: npm run build
+      - name: Character incoming attack certification
+        run: node --experimental-strip-types --test tests/quick-duel-character-incoming-attack-host.test.mjs tests/character-*.test.mjs tests/quick-duel-character-*.test.mjs
+      - name: Commit certified implementation and remove temporary machinery
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/temp-patch-incoming-attack.py
+          git rm .github/workflows/temp-stage3e-incoming-attack.yml
+          git add app/quick-duel-playtest-host.ts app/playtest.tsx tests/quick-duel-character-incoming-attack-host.test.mjs
+          git commit -m "feat(stage3e): publish Character incoming attacks"
+          git push origin HEAD:stage3e-character-incoming-attack-declared
