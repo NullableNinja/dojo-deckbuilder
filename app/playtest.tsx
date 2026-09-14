@@ -19,9 +19,9 @@ import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, sp
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
-import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
+import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterCanReadyEquipment, characterDamageReduction, characterRuntimeEventAvailable, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
-import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
+import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestCharacterAction, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -614,6 +614,7 @@ function exhaustEquipment(board: Board, id: string) {
 }
 
 function readyEquipment(board: Board, id: string) {
+  if (!characterCanReadyEquipment(board, id)) return board;
   return { ...board, exhaustedEquipment: (board.exhaustedEquipment ?? []).filter((candidate) => candidate !== id) };
 }
 
@@ -2133,6 +2134,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const beginYell = () => setMatch((current) => current?.phase === "player-initiate" && !current.pendingChoice ? write(current, "Initiate complete. Yell begins; subtlety has left the building.", { phase: "player-yell", player: { ...current.player, usedEffectIdsThisTurn: [] } }) : current);
 
+  const activateCharacterAbility = () => setMatch((current) => {
+    if (!current || current.winner || current.pendingChoice || !["player-initiate", "player-yell", "player-ascend"].includes(current.phase)) return current;
+    const candidateIds = current.player.equipment.filter((id) => !(current.player.exhaustedEquipment ?? []).includes(id));
+    if (!candidateIds.length || !characterRuntimeEventAvailable(current.player, "reboot")) return current;
+    const character = publishQuickDuelPlaytestCharacterAction(current, "player", { type: "reboot", candidateIds });
+    const choice = character.choices[0];
+    const pendingChoice: PendingChoice | null = character.event && choice
+      ? { kind: "character-runtime", event: character.event, choice }
+      : null;
+    return write(character.match, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} activates a Character ability.`, { pendingChoice });
+  });
+
 
   const activateEquipment = (id: string) => {
     setInspectedId(null);
@@ -3440,11 +3453,17 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const winnerFighter = match.winner === "ai" ? aiFighter : playerFighter;
   const winnerArt = artistUrl(winnerFighter);
+  const characterActionReadyEquipment = player.equipment.filter((id) => !(player.exhaustedEquipment ?? []).includes(id));
+  const canActivateCharacterAbility = !match.pendingChoice
+    && ["player-initiate", "player-yell", "player-ascend"].includes(match.phase)
+    && characterActionReadyEquipment.length > 0
+    && characterRuntimeEventAvailable(player, "reboot");
   const phaseActionDock = !match.winner && <nav className={`playtest-action-dock dock-${match.phase}`} aria-label="Next legal action">
     <div>
       <span>{match.pendingDiscard ? "DISCARD" : match.phase === "player-initiate" ? "INITIATE" : match.phase === "player-yell" ? "YELL" : match.phase === "player-ascend" ? "ASCEND" : match.phase === "defense-window" ? "REACTION" : match.phase === "reversal-window" ? "REVERSAL" : "OPPONENT"}</span>
       <b>{match.pendingDiscard ? "Choose a card from your hand" : match.phase === "player-initiate" ? "Equipment first" : match.phase === "player-yell" ? pendingAttack ? `${pendingAttack.name} selected` : `${player.attacksThisTurn} attack${player.attacksThisTurn === 1 ? "" : "s"} played · no cap` : match.phase === "player-ascend" ? `${player.focus} Focus · Market + Combo → Belt` : match.phase === "defense-window" ? `${match.pendingStrike?.zone} strike incoming` : match.phase === "reversal-window" ? pendingAttack ? `${pendingAttack.name} ready` : "Choose an Attack" : settings.autoAi ? "Clipboard thinking…" : "Computer is waiting"}</b>
     </div>
+    {canActivateCharacterAbility && <button className="dock-secondary" onClick={activateCharacterAbility}>Use Character Ability</button>}
     {match.phase === "player-initiate" && <button onClick={beginYell}>Proceed to Yell →</button>}
     {match.phase === "player-yell" && !match.pendingDiscard && <div className="dock-action-group">{pendingAttack && <button onClick={declareAttack}>Declare Attack →</button>}<button className={pendingAttack ? "dock-secondary" : ""} onClick={enterAscend}>{pendingAttack ? "Skip selected card · Ascend" : "Proceed to Ascend →"}</button></div>}
     {match.phase === "player-ascend" && <button onClick={() => setDeskView(deskView ?? "market")}>{deskView === "belt" ? "Resume Belt Check" : deskView === "combo" ? "Resume Combo Review" : "Resume Ascend Review"} →</button>}
@@ -3728,7 +3747,17 @@ function prepareAiTurn(current: Match) {
   const fighter = cardFor(current.ai.fighterId);
   const initiatedAi = applyInitiateCarryover({ ...current.ai, usedEffectIdsThisTurn: [] });
   const turnEquipment = autoActivateAiTurnEquipment(initiatedAi);
-  const aiStart = turnEquipment.board;
+  let aiStart = turnEquipment.board;
+  const rebootCandidates = aiStart.equipment.filter((id) => !(aiStart.exhaustedEquipment ?? []).includes(id));
+  if (rebootCandidates.length && characterRuntimeEventAvailable(aiStart, "reboot")) {
+    const rebooted = publishQuickDuelPlaytestCharacterAction(
+      { ...current, ai: aiStart },
+      "ai",
+      { type: "reboot", candidateIds: rebootCandidates },
+    );
+    current = rebooted.match;
+    aiStart = current.ai;
+  }
   const practiceId = aiStart.defensePracticeUsed ? undefined : aiStart.hand
     .filter((id) => { const card = cardFor(id); return Boolean(card && isDefense(card)); })
     .sort((left, right) => cardFocus(cardFor(right)) - cardFocus(cardFor(left)))[0];

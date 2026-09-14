@@ -318,6 +318,32 @@ export function applyQuickDuelPlaytestTransition<
  * are resumed through the exact same Character choice contract using a small,
  * identity-free policy so an AI fighter never stalls waiting for React input.
  */
+export function publishQuickDuelPlaytestCharacterAction<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  event: CharacterRuntimeEvent,
+): QuickDuelPlaytestCharacterEventResult<Match> {
+  let character = publishQuickDuelPlaytestCharacterEvent(match, actor, event);
+  if (actor === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(
+        character.match,
+        actor,
+        character.event,
+        choice,
+        selection,
+      );
+    }
+  }
+  return character;
+}
+
 export function publishQuickDuelPlaytestLifecycleEvent<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,

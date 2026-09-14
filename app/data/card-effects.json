@@ -2582,6 +2582,7 @@
           "effect": "core.choice",
           "trigger": "passive",
           "target": "chosen-equipment",
+          "amount": 2,
           "resolver": "character.exhaustReadyEquipmentLock",
           "action": "custom"
         },
