@@ -431,6 +431,38 @@ export function publishQuickDuelPlaytestCharacterEvent<
  * individual resolver names. The runtime declares which event field receives
  * the selected value.
  */
+export function publishQuickDuelPlaytestIncomingAttack<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  defender: QuickDuelPlaytestActor,
+  facts: { attackPower: number; modifierBonus?: number },
+): QuickDuelPlaytestCharacterEventResult<Match> {
+  let character = publishQuickDuelPlaytestCharacterEvent(match, defender, {
+    type: "incomingAttackDeclared",
+    attackPower: Math.max(0, Number(facts.attackPower)),
+    modifierBonus: Math.max(0, Number(facts.modifierBonus ?? 0)),
+  });
+
+  if (defender === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(
+        character.match,
+        defender,
+        character.event,
+        choice,
+        selection,
+      );
+    }
+  }
+
+  return character;
+}
+
 export function resolveQuickDuelPlaytestCharacterChoice<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,

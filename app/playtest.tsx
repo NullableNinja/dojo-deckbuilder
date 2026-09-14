@@ -21,7 +21,7 @@ import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefe
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
-import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
+import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestIncomingAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -2278,8 +2278,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const hasFlow = attackHasFlow(current.player, card, zone);
     const stage3cAttackBonus = stage3cAttackPowerBonus(current.player, card, zone);
     const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
+    const modifierBonus = Math.max(0, baseAttackPower - Math.max(0, cardPower(card) + fighterStat(current.player, "ATK")));
+    const incomingCharacter = publishQuickDuelPlaytestIncomingAttack(
+      { ...current, ai: aiIncomingReaction.board },
+      "ai",
+      { attackPower: baseAttackPower, modifierBonus },
+    );
+    current = incomingCharacter.match;
+    const characterAttackPower = Math.max(0, Number(incomingCharacter.event?.attackPower ?? baseAttackPower));
     const playerAirHorn = firstEventReactionCard(current.player.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
-    const expectedIncomingDamage = Math.max(0, baseAttackPower - fighterStat(aiIncomingReaction.board, "DEF"));
+    const expectedIncomingDamage = Math.max(0, characterAttackPower - fighterStat(current.ai, "DEF"));
     const aiConsumableCandidate = current.airHornAiConsumableSpentThisStrike
       ? null
       : chooseAiDefensiveConsumable(aiIncomingReaction.board.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), {
@@ -2295,8 +2303,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       });
     }
     const aiConsumableReaction = current.airHornAiConsumableSpentThisStrike
-      ? { board: aiIncomingReaction.board, card: null as CardEntry | null, notes: ["Air Horn canceled the computer's Consumable Reaction"] }
-      : autoPlayAiDefensiveConsumable(aiIncomingReaction.board, expectedIncomingDamage);
+      ? { board: current.ai, card: null as CardEntry | null, notes: ["Air Horn canceled the computer's Consumable Reaction"] }
+      : autoPlayAiDefensiveConsumable(current.ai, expectedIncomingDamage);
     if (hasUntargetableStatus(aiConsumableReaction.board.stage3cStatuses)) {
       let player = applyCardEffects({ ...stage3cConsumeAttackStatuses(current.player, card, zone), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id] }, card, "player");
       player = { ...player, nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false };
@@ -2305,7 +2313,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseScenarioPower = afterDefenseAttackPowerBonus(card, true);
     const defenseId = current.airHornAiDefenseSpentThisStrike
       ? null
-      : bestDefense(aiConsumableReaction.board, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value, armorPenalty);
+      : bestDefense(aiConsumableReaction.board, zone, Math.max(0, characterAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value, armorPenalty);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     if (defenseCard && playerAirHorn && !(current.airHornPassedReactionIds ?? []).includes(defenseCard.id)) {
       return write(current, `${defenseCard.name} is played as the computer's one Defense for this strike. Air Horn can cancel it before Guard or printed effects resolve.`, {
@@ -2313,7 +2321,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       });
     }
     const postDefensePower = afterDefenseAttackPowerBonus(card, Boolean(defenseCard));
-    const attackPower = Math.max(0, baseAttackPower + postDefensePower.amount);
+    const attackPower = Math.max(0, characterAttackPower + postDefensePower.amount);
     const aiDefenseReaction = defenseCard ? autoActivateAiDefenseGuardEquipment(aiConsumableReaction.board) : { board: aiConsumableReaction.board, guard: 0, notes: [] as string[] };
     const defenseModifier = locationDefenseModifier(location, defenseCard, aiDefenseReaction.board, zone);
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(aiDefenseReaction.board, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
@@ -3211,11 +3219,15 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const armorModifier = piercedArmorModifier(rawArmorModifier, piercingModifier.value);
     const stage3cReversalBonus = stage3cAttackPowerBonus(current.player, card, zone, true);
     const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cReversalBonus + (current.player.reversalAttackBonus ?? 0) + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power);
+    const modifierBonus = Math.max(0, baseAttackPower - Math.max(0, cardPower(card) + fighterStat(current.player, "ATK")));
+    const incomingCharacter = publishQuickDuelPlaytestIncomingAttack(current, "ai", { attackPower: baseAttackPower, modifierBonus });
+    current = incomingCharacter.match;
+    const characterAttackPower = Math.max(0, Number(incomingCharacter.event?.attackPower ?? baseAttackPower));
     const defenseScenarioPower = afterDefenseAttackPowerBonus(card, true);
-    const defenseId = bestDefense(current.ai, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value);
+    const defenseId = bestDefense(current.ai, zone, Math.max(0, characterAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     const postDefensePower = afterDefenseAttackPowerBonus(card, Boolean(defenseCard));
-    const attackPower = Math.max(0, baseAttackPower + postDefensePower.amount);
+    const attackPower = Math.max(0, characterAttackPower + postDefensePower.amount);
     const defenseModifier = locationDefenseModifier(location, defenseCard, current.ai, zone);
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(current.ai, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
     const defensePower = Math.max(0, fighterStat(current.ai, "DEF") + armorModifier.value + stage3cIncomingAttackDefenseBonus(current.ai) + (defenseCard ? cardPower(defenseCard) + (current.ai.nextDefenseCardBonus ?? 0) + stage3cNextDefenseGuardBonus(current.ai) : 0) + defenseCardModifier.value + defenseModifier.value);
