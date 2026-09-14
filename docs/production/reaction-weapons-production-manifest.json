@@ -101,14 +101,29 @@
             {"cardId":"DDB-WPN-CORE-009","name":"Chain Whip","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-009_chain-whip.png","card":"app/assets/cards/weapons/ddb-wpn-core-009_chain-whip.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-009_chain-whip_Editable_ORA.zip","publishingCommit":"d3134b9ef698f51babe129ed37d08a8d93965404"},
             {"cardId":"DDB-WPN-CORE-010","name":"Club","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-010_club.png","card":"app/assets/cards/weapons/ddb-wpn-core-010_club.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-010_club_Editable_ORA.zip","publishingCommit":"d3134b9ef698f51babe129ed37d08a8d93965404"}
           ]
+        },
+        {
+          "batch": "weapons-003",
+          "status": "complete",
+          "family": "weapons",
+          "template": "app/assets/templates/05_Item_Equipable.ora",
+          "cardIds": ["DDB-WPN-CORE-011", "DDB-WPN-CORE-012", "DDB-WPN-CORE-013", "DDB-WPN-CORE-014", "DDB-WPN-CORE-015"],
+          "layeredSourceArchives": [
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-011_collapsible-queue-pole_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-012_dao-chinese-saber_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-013_deer-horn-knives_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-014_dojo-mop_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-015_dragon-sword_Editable_ORA.zip"
+          ],
+          "records": [
+            {"cardId":"DDB-WPN-CORE-011","name":"Collapsible Queue Pole","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-011_collapsible-queue-pole.png","card":"app/assets/cards/weapons/ddb-wpn-core-011_collapsible-queue-pole.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-011_collapsible-queue-pole_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-012","name":"Dao (Chinese Saber)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-012_dao-chinese-saber.png","card":"app/assets/cards/weapons/ddb-wpn-core-012_dao-chinese-saber.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-012_dao-chinese-saber_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-013","name":"Deer Horn Knives","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-013_deer-horn-knives.png","card":"app/assets/cards/weapons/ddb-wpn-core-013_deer-horn-knives.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-013_deer-horn-knives_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-014","name":"Dojo Mop","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-014_dojo-mop.png","card":"app/assets/cards/weapons/ddb-wpn-core-014_dojo-mop.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-014_dojo-mop_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-015","name":"Dragon Sword","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-015_dragon-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-015_dragon-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-015_dragon-sword_Editable_ORA.zip"}
+          ]
         }
-      ],
-      "activeBatch": {
-        "batch": "weapons-003",
-        "worker": "codex",
-        "status": "claimed",
-        "cardIds": ["DDB-WPN-CORE-011", "DDB-WPN-CORE-012", "DDB-WPN-CORE-013", "DDB-WPN-CORE-014", "DDB-WPN-CORE-015"]
-      }
+      ]
     }
   }
 }
