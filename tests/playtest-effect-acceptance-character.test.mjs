@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { applyQuickDuelPlaytestTransition } from "../app/quick-duel-playtest-host.ts";
+import { buildCharacterAcceptanceMatrix } from "../scripts/playtest-effect-acceptance.mjs";
 
 const strike = {
   id: "acceptance-strike",
@@ -141,4 +142,29 @@ test("El Pollo Rojo AI uses the same live Hit transition and projects the same d
   assert.equal(hosted.ai.damageDealt, 3);
   assert.equal(hosted.ai.usedCharacterEffectIdsThisTurn.length, 1);
   assert.equal(hosted.pendingChoice, null, "AI parity must not leak a player decision");
+});
+
+test("Character acceptance matrix inventories every canonical Core Character and preserves explicit failure categories", () => {
+  const matrix = buildCharacterAcceptanceMatrix();
+  assert.equal(matrix.canonicalCoreCount, 41);
+  assert.equal(matrix.rows.length, 41);
+  assert.ok(matrix.rows.every((row) => row.structuredDefinitionPresent), "all canonical Core Characters must retain structured definitions");
+
+  const pollo = matrix.rows.find((row) => row.catalogId === "DDB-CHR-CORE-011");
+  assert.equal(pollo.executionStatus, "PASS_EXECUTES");
+  assert.equal(pollo.playerExecutionVerified, true);
+  assert.equal(pollo.aiExecutionVerified, true);
+  assert.equal(pollo.stateMutationVerified, true);
+  assert.equal(pollo.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
+
+  const ducktape = matrix.rows.find((row) => row.catalogId === "DDB-CHR-CORE-030");
+  assert.equal(ducktape.executionStatus, "PASS_EXECUTES");
+  assert.ok(ducktape.failureCategories.includes("FAIL_DURATION"));
+  assert.ok(ducktape.failureCategories.includes("FAIL_EFFECT_INVISIBLE"));
+  assert.equal(ducktape.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
+
+  assert.equal(matrix.statusCounts.BLOCKED_ACTIVE_STAGE3E, 2);
+  assert.equal(matrix.statusCounts.PENDING_EXECUTION, 39);
+  assert.equal(matrix.executionCounts.PASS_EXECUTES, 2);
+  assert.equal(matrix.failureCounts.FAIL_DURATION, 1);
 });
