@@ -394,6 +394,22 @@ function publishPromotionCharacterTransitions<Board extends QuickDuelTransitionB
   return next;
 }
 
+function publishSceneChangeCharacterTransitions<Board extends QuickDuelTransitionBoard>(
+  previous: QuickDuelTransitionMatch<Board>,
+  nextInput: QuickDuelTransitionMatch<Board>,
+): QuickDuelTransitionMatch<Board> {
+  if (!previous.locationId || !nextInput.locationId || previous.locationId === nextInput.locationId) return nextInput;
+  let next = nextInput;
+  for (const actor of ["player", "ai"] as const) {
+    const published = publishCharacterTransitionEvent(next, actor, {
+      type: "sceneChange",
+      sceneChanged: true,
+    });
+    next = published.match;
+  }
+  return next;
+}
+
 function detectPurchasedCard(
   previousMatch: QuickDuelTransitionMatch,
   nextMatch: QuickDuelTransitionMatch,
@@ -472,6 +488,7 @@ export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransi
   next = publishDiscardedCharacterTransitions(previous, next, lookup, turnAdvanced);
   next = publishSpeedChangedCharacterTransitions(previous, next);
   next = publishPromotionCharacterTransitions(previous, next);
+  next = publishSceneChangeCharacterTransitions(previous, next);
 
   const exchange = next.lastExchange;
   if (exchange && exchange.id !== previous.lastExchange?.id) {

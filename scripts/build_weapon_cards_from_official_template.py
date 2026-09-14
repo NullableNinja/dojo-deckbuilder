@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "app/assets/templates/05_Item_Equipable.ora"
 CATALOG = json.loads((ROOT / "content/cards.json").read_text(encoding="utf-8"))["cards"]
 SIZE = (825, 1125)
+BATCH_NUMBER = os.environ.get("DDB_BATCH_NUMBER", "001")
 FONT_DIR = Path("/usr/share/fonts/truetype/dejavu")
 BOLD = FONT_DIR / "DejaVuSans-Bold.ttf"
 SERIF = FONT_DIR / "DejaVuSerif.ttf"
@@ -118,10 +119,11 @@ def main():
     built = []
     for card in sorted(cards, key=lambda item: item["catalogId"]):
         stem = f"{card['catalogId'].lower()}_{slug(card['name'])}"; merged = write_ora(card, source_dir / f"{stem}.ora"); merged.convert("RGB").save(final_dir / f"{stem}.webp", "WEBP", quality=95, method=6); built.append(stem)
-    archive = ROOT / "public/downloads/Dojo_Deckbuilder_Weapons_Batch_001_Editable_ORA.zip"; archive.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as output:
-        output.write(TEMPLATE, "Templates/05_Item_Equipable.ora")
-        output.writestr("README.txt", "Weapon Batch 001. Every card was built directly from the official 05_Item_Equipable.ora template. Open the ORA files in GIMP for the retained groups and editable artwork/text layers.\n")
-        for stem in built: output.write(source_dir / f"{stem}.ora", f"Layered Sources/Weapons/{stem}.ora")
+    download_dir = ROOT / "public/downloads"; download_dir.mkdir(parents=True, exist_ok=True)
+    for stem in built:
+        archive = download_dir / f"Dojo_Deckbuilder_Weapons_Batch_{BATCH_NUMBER}_{stem}_Editable_ORA.zip"
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as output:
+            output.writestr("README.txt", f"Weapon Batch {BATCH_NUMBER}. This editable ORA was built directly from the official 05_Item_Equipable.ora template, retained at app/assets/templates/05_Item_Equipable.ora. Open the ORA in GIMP for the original layer groups and editable artwork/text layers.\n")
+            output.write(source_dir / f"{stem}.ora", f"Layered Sources/Weapons/{stem}.ora")
     print(f"Built {len(built)} Weapon cards directly from the official Item Equipable template.")
 if __name__ == "__main__": main()

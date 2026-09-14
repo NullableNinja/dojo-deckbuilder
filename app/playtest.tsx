@@ -20,6 +20,7 @@ import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
+import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
@@ -362,13 +363,17 @@ function spendFocus(board: Board, amount: number) {
   if (!spend) return board;
   return { ...board, focus: board.focus - spend, focusSpentThisTurn: (board.focusSpentThisTurn ?? 0) + spend };
 }
-function marketPriceFor(board: Board, card: CardEntry | undefined) {
+function marketBasePriceFor(board: Board, card: CardEntry | undefined) {
   if (!card) return Number.POSITIVE_INFINITY;
   const certificationDiscount = beltHasReward(board, "market-discount") && !board.boughtCardThisAscend ? 1 : 0;
   const printedCost = cardCost(card);
   const qualified = qualifiedNextPurchaseDiscount(board.stage3cStatuses, printedCost);
   const base = printedCost + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === "Item" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount + qualified.amount;
   return Math.max(qualified.minimumFinalCost || 0, base, 0);
+}
+function marketPriceFor(board: Board, card: CardEntry | undefined) {
+  if (!card) return Number.POSITIVE_INFINITY;
+  return previewQuickDuelCharacterPurchasePrice(board, marketBasePriceFor(board, card));
 }
 function marketFocusAvailable(board: Board, card: CardEntry | undefined) {
   return spendableFocusForPurchase(board.focus, board.stage3cStatuses, card);
@@ -2810,12 +2815,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || !choice || choice.kind !== "stage3c-raffle") return current;
     const revealed = cardFor(choice.revealedCardId);
     if (!revealed) return { ...current, pendingChoice: null };
-    const price = marketPriceFor(current.player, revealed);
+    const basePrice = marketBasePriceFor(current.player, revealed);
+    const price = previewQuickDuelCharacterPurchasePrice(current.player, basePrice);
     if (buy && marketFocusAvailable(current.player, revealed) >= price) {
       const focusBefore = current.player.focus;
-      let player: Board = spendMarketFocus(current.player, revealed, price);
+      const characterPurchase = commitQuickDuelCharacterPurchase(current.player, current.ai, revealed, basePrice, "player");
+      let player: Board = spendMarketFocus(characterPurchase.self, revealed, characterPurchase.price);
       player = stage3cConsumePurchase(markCompletedTask({ ...player, discard: [...player.discard, revealed.id], purchasedTypes: [...player.purchasedTypes, revealed.cardType], cardsBought: player.cardsBought + 1, boughtCardThisAscend: true }), revealed);
-      return write(current, `Dojo Raffle Ticket purchase: ${revealed.name} for ${price} Focus (${focusBefore} → ${player.focus}).`, { player, pendingChoice: null, marketPurchasedThisRound: true });
+      return write(current, `Dojo Raffle Ticket purchase: ${revealed.name} for ${characterPurchase.price} Focus (${focusBefore} → ${player.focus}).`, { player, ai: characterPurchase.opponent, pendingChoice: null, marketPurchasedThisRound: true });
     }
     return write(current, `Dojo Raffle Ticket passes on ${revealed.name}; it goes to the bottom of the Market deck.`, { marketDeck: [revealed.id, ...current.marketDeck], pendingChoice: null });
   });
@@ -2901,13 +2908,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-ascend" || current.winner) return current;
     const card = cardFor(id);
     const slot = current.market.indexOf(id);
-    const price = marketPriceFor(current.player, card);
-    if (!card || slot < 0 || marketFocusAvailable(current.player, card) < price) return current;
+    if (!card || slot < 0) return current;
+    const basePrice = marketBasePriceFor(current.player, card);
+    const price = previewQuickDuelCharacterPurchasePrice(current.player, basePrice);
+    if (marketFocusAvailable(current.player, card) < price) return current;
     const focusBefore = current.player.focus;
-    let nextPlayer: Board = spendMarketFocus(current.player, card, price);
+    const characterPurchase = commitQuickDuelCharacterPurchase(current.player, current.ai, card, basePrice, "player");
+    let nextPlayer: Board = spendMarketFocus(characterPurchase.self, card, characterPurchase.price);
     nextPlayer = stage3cConsumePurchase(markCompletedTask({ ...nextPlayer, discard: [...nextPlayer.discard, id], purchasedTypes: [...nextPlayer.purchasedTypes, card.cardType], cardsBought: nextPlayer.cardsBought + 1, boughtCardThisAscend: true, nextItemCostPenalty: card.cardType === "Item" ? 0 : nextPlayer.nextItemCostPenalty }), card);
     const refilled = refillPurchasedMarketSlot(current.market, current.marketDeck, current.marketDiscard, slot);
-    const purchased = write(current, `Bought ${card.name} for ${price} Focus (${focusBefore} → ${nextPlayer.focus}). The top Market card immediately fills the slot.`, { player: nextPlayer, ...refilled, marketPurchasedThisRound: true });
+    const purchased = write(current, `Bought ${card.name} for ${characterPurchase.price} Focus (${focusBefore} → ${nextPlayer.focus}). The top Market card immediately fills the slot.`, { player: nextPlayer, ai: characterPurchase.opponent, ...refilled, marketPurchasedThisRound: true });
     const revealedId = refilled.market[slot];
     const lucky = revealedId ? nextPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033")) : null;
     return lucky && revealedId ? write(purchased, `${cardFor(revealedId)?.name ?? "A Market card"} was revealed. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } }) : purchased;
@@ -3402,7 +3412,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }) : null;
     return { combo, evaluation, triggered: player.triggeredCombos.includes(id) };
   }).filter(Boolean) as { combo: CardEntry; evaluation: ReturnType<typeof evaluateCombo> | null; triggered: boolean }[];
-  const affordableNow = match.market.filter((id) => cardFor(id) && cardCost(cardFor(id)) <= player.focus).length;
+  const affordableNow = match.market.filter((id) => {
+    const card = cardFor(id);
+    return Boolean(card && marketFocusAvailable(player, card) >= marketPriceFor(player, card));
+  }).length;
   const ascendStepIndex = deskView === "belt" ? 1 : 0;
   const ascendStepTitle = deskView === "combo" ? "Combo Docket" : deskView === "belt" ? "Belt Check" : "Acquisition Desk";
   const ascendStepHelp = deskView === "combo"
@@ -3523,7 +3536,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           {deskView === "market" && <section className="ascend-market" aria-label="Seven-card Shared Market">
             <header><div><span className="eyebrow">Seven live records · full cards</span><h3>Choose with the text visible</h3></div><p>{match.phase === "player-ascend" ? "Buy any number you can afford. Each purchase is replaced immediately by the top Market card." : "The row persists between rounds. If nobody buys for a full round, Market Mercy refreshes all seven cards."}</p></header>
             {match.phase === "player-ascend" && comboOffer && <FeaturedComboPanel card={comboOffer} focus={player.focus} learnedCount={player.learnedCombos.length} attempted={player.comboAttemptedTurn} onLearn={() => cycleCombo(true)} onPass={() => cycleCombo(false)} onContinue={() => setDeskView("belt")} onInspect={() => setInspectedId(comboOffer.id)} />}
-            <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = player.focus >= cardCost(card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
+            <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = marketFocusAvailable(player, card) >= marketPriceFor(player, card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
           </section>}
           {deskView === "combo" && <section className="ascend-combo combo-panel">
             <p className="combo-digital-note"><b>Learned Combos stay face up beside your fighter.</b> During Yell, the live Combo rack shows the printed requirement and previews whether your selected Attack will complete it. Supported payoffs fire automatically; anything not yet automated is labeled instead of being silently faked.</p>
@@ -3644,7 +3657,10 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
 function finishAiTurn(current: Match, line: string, sceneChanges: boolean, houseRuleIds: readonly string[]) {
   const aiPurchase = current.market.filter((id) => marketPriceFor(current.ai, cardFor(id)) <= marketFocusAvailable(current.ai, cardFor(id))).sort((left, right) => aiMarketScore(cardFor(right)!, current.ai) - aiMarketScore(cardFor(left)!, current.ai))[0];
   const purchasedCard = aiPurchase ? cardFor(aiPurchase) : null;
-  let aiAfterPurchase = purchasedCard ? stage3cConsumePurchase(markCompletedTask({ ...spendMarketFocus(current.ai, purchasedCard, marketPriceFor(current.ai, purchasedCard)), discard: [...current.ai.discard, purchasedCard.id], purchasedTypes: [...current.ai.purchasedTypes, purchasedCard.cardType], cardsBought: current.ai.cardsBought + 1 }), purchasedCard) : current.ai;
+  const aiBasePrice = purchasedCard ? marketBasePriceFor(current.ai, purchasedCard) : Number.POSITIVE_INFINITY;
+  const characterPurchase = purchasedCard ? commitQuickDuelCharacterPurchase(current.ai, current.player, purchasedCard, aiBasePrice, "ai") : null;
+  let aiAfterPurchase = purchasedCard && characterPurchase ? stage3cConsumePurchase(markCompletedTask({ ...spendMarketFocus(characterPurchase.self, purchasedCard, characterPurchase.price), discard: [...characterPurchase.self.discard, purchasedCard.id], purchasedTypes: [...characterPurchase.self.purchasedTypes, purchasedCard.cardType], cardsBought: characterPurchase.self.cardsBought + 1 }), purchasedCard) : current.ai;
+  const playerAfterPurchase = characterPurchase?.opponent ?? current.player;
   let market = current.market;
   let marketDeck = current.marketDeck;
   let marketDiscard = current.marketDiscard;
@@ -3663,7 +3679,7 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean, house
     aiAfterPurchase = applyBeltPromotion(aiAfterPurchase, aiAfterPurchase.belt + 1);
     promotionLog = `Computer certifies ${nextBelt.name} Belt.${aiAfterPurchase.maxHp > before.maxHp ? ` Max HP ${before.maxHp} → ${aiAfterPurchase.maxHp}; HP ${before.hp} → ${aiAfterPurchase.hp}.` : ""}`;
   }
-  const hostedHide = publishQuickDuelPlaytestLifecycleEvent({ ...current, ai: aiAfterPurchase }, "ai", "onHide", quickDuelHostOperations, cardFor).match;
+  const hostedHide = publishQuickDuelPlaytestLifecycleEvent({ ...current, player: playerAfterPurchase, ai: aiAfterPurchase }, "ai", "onHide", quickDuelHostOperations, cardFor).match;
   const nextAi = playAreaCleanup(hostedHide.ai);
   const purchaseLog = purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing.";
   const finished = { ...hostedHide, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...hostedHide.log].slice(0, 32) };
