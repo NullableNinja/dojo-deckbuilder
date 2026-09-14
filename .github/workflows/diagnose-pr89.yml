@@ -1,0 +1,46 @@
+name: Diagnose PR89 failing test
+
+on:
+  push:
+    branches:
+      - stage3e-character-purchase-attempt-event
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage3e-character-purchase-attempt-event
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - name: Capture full regression failure
+        shell: bash
+        run: |
+          set +e
+          npm test > /tmp/pr89-test.log 2>&1
+          status=$?
+          mkdir -p diagnostics
+          {
+            echo "exit_status=$status"
+            echo "--- LAST 240 LINES ---"
+            tail -n 240 /tmp/pr89-test.log
+          } > diagnostics/pr89-test-failure.txt
+          exit 0
+      - name: Commit diagnostic report
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diagnostics/pr89-test-failure.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: capture PR89 test failure [skip ci]"
+            git push origin HEAD:stage3e-character-purchase-attempt-event
+          fi
