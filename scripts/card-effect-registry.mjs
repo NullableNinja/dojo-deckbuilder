@@ -13,19 +13,21 @@ const FAMILY_BY_FILE = new Map([
   ["combos.json", "Combo"],
   ["locations.json", "Location"],
   ["characters.json", "Character"],
+  ["reactions.json", "Reaction Item"],
 ]);
 
-function cardFamily(card) {
+export function cardFamily(card) {
   const catalogId = String(card?.catalogId ?? "").toUpperCase();
   if (catalogId.includes("-STA-")) return "Starter";
   if (catalogId.includes("-ATK-")) return "Attack";
   if (catalogId.includes("-DEF-")) return "Defense";
   if (catalogId.includes("-KAT-")) return "Kata";
   if (catalogId.includes("-CON-")) return "Consumable";
+  if (catalogId.includes("-RIT-")) return "Reaction Item";
   if (catalogId.includes("-CMB-")) return "Combo";
   if (catalogId.includes("-LOC-")) return "Location";
   if (catalogId.includes("-CHR-")) return "Character";
-  if (catalogId.includes("-DEQ-") || catalogId.includes("-GEA-")) return "Equipment";
+  if (catalogId.includes("-DEQ-") || catalogId.includes("-GEA-") || catalogId.includes("-WPN-")) return "Equipment";
 
   const subtype = String(card?.subtype ?? "").toLocaleLowerCase();
   const type = String(card?.cardType ?? "").toLocaleLowerCase();
@@ -33,6 +35,7 @@ function cardFamily(card) {
   if (subtype === "defense") return "Defense";
   if (subtype === "kata") return "Kata";
   if (subtype === "consumable") return "Consumable";
+  if (subtype === "reaction item") return "Reaction Item";
   if (["weapon", "gear", "defense equipment"].includes(subtype)) return "Equipment";
   if (type === "combo") return "Combo";
   if (type === "location") return "Location";
