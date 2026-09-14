@@ -506,9 +506,10 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
         if (hasMark(self, "turn:conditionalAttack")) { const mode = event.selectedMode ?? (actor === "ai" ? "focus" : null); if (!mode) choices.push(makeChoice(effect, "Choose the Hit reward.", ["cycle", "focus"], false, "selectedMode")); else if (mode === "focus") { self = { ...self, focus: self.focus + 1 }; activated = true; } else { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; } }
         break;
       case "character.revealReplacementOnceGame": {
+        if (!event.replacementId) break;
         const accept = event.optionalAccepted ?? (actor === "ai" ? true : undefined);
         if (accept === undefined) choices.push(makeChoice(effect, "Discard this reveal and replace it from the same deck?", ["accept", "skip"], true, "optionalAccepted"));
-        else if (accept && event.replacementId) { event.selectedId = event.replacementId; activated = true; }
+        else if (accept) { event.selectedId = event.replacementId; activated = true; }
         break;
       }
       case "character.equipDiscardPermanentUntilHide": {

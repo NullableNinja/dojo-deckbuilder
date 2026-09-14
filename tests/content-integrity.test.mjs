@@ -51,7 +51,7 @@ test("active rules and play surfaces use the persistent Market and fixed Quick D
   assert.match(playtest, /marketPurchasedThisRound/);
   assert.match(playtest, /const choosePendingDiscard/);
   assert.match(playtest, /function applyBeltPromotion/);
-  assert.match(playtest, /Bought \$\{card\.name\} for \$\{price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);
+  assert.match(playtest, /Bought \$\{card\.name\} for \$\{characterPurchase\.price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);
   assert.equal(JSON.parse(definition).economy.market.refill, "top-card-after-purchase");
   assert.equal(JSON.parse(definition).progression.quickDuelUsesFullBeltRewards, false);
   assert.equal(JSON.parse(manifest).rulesRevision, "v2.3-r5");
