@@ -321,6 +321,7 @@ function publishCharacterLifecycleTransitions<Board extends QuickDuelTransitionB
   turnAdvanced: boolean,
 ): QuickDuelTransitionMatch<Board> {
   let next = nextInput;
+  const turnActor = turnAdvanced ? activeActor(next) : null;
 
   if (roundAdvanced) {
     for (const actor of ["player", "ai"] as const) {
@@ -328,19 +329,22 @@ function publishCharacterLifecycleTransitions<Board extends QuickDuelTransitionB
       if (!looksLikeCharacterRuntimeBoard(board)) continue;
       next = setActorBoard(next, actor, resetCharacterHostRound(board) as Board);
     }
+  } else if (turnActor) {
+    const board = actorBoard(next, turnActor);
+    if (looksLikeCharacterRuntimeBoard(board)) {
+      next = setActorBoard(next, turnActor, resetCharacterHostTurn(board) as Board);
+    }
+  }
+
+  if (roundAdvanced) {
     for (const actor of ["player", "ai"] as const) {
       const published = publishCharacterTransitionEvent(next, actor, { type: "roundStart" });
       next = published.match;
     }
   }
 
-  if (turnAdvanced) {
-    const actor = activeActor(next);
-    const board = actorBoard(next, actor);
-    if (looksLikeCharacterRuntimeBoard(board)) {
-      next = setActorBoard(next, actor, resetCharacterHostTurn(board) as Board);
-    }
-    next = publishCharacterTransitionEvent(next, actor, { type: "turnStart" }).match;
+  if (turnActor) {
+    next = publishCharacterTransitionEvent(next, turnActor, { type: "turnStart" }).match;
   }
 
   return next;
@@ -517,11 +521,11 @@ export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransi
     next = setActorBoard(next, actor, withComboHostFacts(nextBoard, facts));
   }
 
+  next = publishCharacterLifecycleTransitions(previous, next, roundAdvanced, turnAdvanced);
   next = publishCardPlayedCharacterTransitions(previous, next, lookup);
   next = publishDiscardedCharacterTransitions(previous, next, lookup, turnAdvanced);
   next = publishSpeedChangedCharacterTransitions(previous, next);
   next = publishPromotionCharacterTransitions(previous, next);
-  next = publishCharacterLifecycleTransitions(previous, next, roundAdvanced, turnAdvanced);
   next = publishSceneChangeCharacterTransitions(previous, next);
 
   const exchange = next.lastExchange;
