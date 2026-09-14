@@ -14,6 +14,23 @@
     "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
     "rootCause": "Live Hit execution, state projection, Player/AI parity, and same-turn first-Hit usage are verified. Turn-scope reset across the real turn boundary is owned by active Stage 3E PR #93 and is not yet independently certified here."
   },
+  "DDB-CHR-CORE-029": {
+    "reachableInQuickDuel": true,
+    "liveHostConnected": true,
+    "playerExecutionVerified": false,
+    "aiExecutionVerified": false,
+    "choiceUiVerified": false,
+    "stateMutationVerified": false,
+    "durationResetVerified": false,
+    "effectVisibleUnderstandable": false,
+    "regressionTestPresent": false,
+    "executionStatus": "FAIL_RESOLVER_NOT_REACHED",
+    "failureCategories": [
+      "FAIL_RESOLVER_NOT_REACHED"
+    ],
+    "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
+    "rootCause": "A real Location change publishes the sceneChange Character event, but the Quick Duel transition host supplies no replacementId. character.revealReplacementOnceGame requires replacementId and exits without creating the player choice, AI replacement, usage consumption, or state mutation. The failing black-box reproduction is Actions run 34904775081. Repair belongs in app/quick-duel-transition-host.ts, currently owned by active Stage 3E PR #93."
+  },
   "DDB-CHR-CORE-030": {
     "reachableInQuickDuel": true,
     "liveHostConnected": true,

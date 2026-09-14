@@ -157,14 +157,24 @@ test("Character acceptance matrix inventories every canonical Core Character and
   assert.equal(pollo.stateMutationVerified, true);
   assert.equal(pollo.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
 
+  const ronin = matrix.rows.find((row) => row.catalogId === "DDB-CHR-CORE-029");
+  assert.equal(ronin.executionStatus, "FAIL_RESOLVER_NOT_REACHED");
+  assert.equal(ronin.liveHostConnected, true);
+  assert.equal(ronin.playerExecutionVerified, false);
+  assert.equal(ronin.aiExecutionVerified, false);
+  assert.ok(ronin.failureCategories.includes("FAIL_RESOLVER_NOT_REACHED"));
+  assert.equal(ronin.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
+
   const ducktape = matrix.rows.find((row) => row.catalogId === "DDB-CHR-CORE-030");
   assert.equal(ducktape.executionStatus, "PASS_EXECUTES");
   assert.ok(ducktape.failureCategories.includes("FAIL_DURATION"));
   assert.ok(ducktape.failureCategories.includes("FAIL_EFFECT_INVISIBLE"));
   assert.equal(ducktape.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
 
-  assert.equal(matrix.statusCounts.BLOCKED_ACTIVE_STAGE3E, 2);
-  assert.equal(matrix.statusCounts.PENDING_EXECUTION, 39);
+  assert.equal(matrix.statusCounts.BLOCKED_ACTIVE_STAGE3E, 3);
+  assert.equal(matrix.statusCounts.PENDING_EXECUTION, 38);
   assert.equal(matrix.executionCounts.PASS_EXECUTES, 2);
+  assert.equal(matrix.executionCounts.FAIL_RESOLVER_NOT_REACHED, 1);
   assert.equal(matrix.failureCounts.FAIL_DURATION, 1);
+  assert.equal(matrix.failureCounts.FAIL_RESOLVER_NOT_REACHED, 1);
 });
