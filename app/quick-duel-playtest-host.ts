@@ -43,8 +43,15 @@ type QuickDuelCharacterChoiceState = {
   choice: CharacterRuntimeChoice;
 };
 
+type QuickDuelPendingStrikeCharacterFacts = {
+  cardId?: string;
+  attackPower: number;
+  modifierBonus?: number;
+};
+
 type QuickDuelPlaytestStateMatch<Board extends QuickDuelComboMatchBoard> = QuickDuelPlaytestHostMatch<Board> & {
   pendingChoice?: unknown | null;
+  pendingStrike?: QuickDuelPendingStrikeCharacterFacts | null;
   winner?: QuickDuelPlaytestActor | null;
 };
 
@@ -148,6 +155,49 @@ function surfaceDeferredCharacterChoice<
   if (!isCharacterChoiceState(deferred)) return match;
   const cleared = withDeferredCharacterChoice(match, null);
   return { ...cleared, pendingChoice: deferred } as Match;
+}
+
+function projectIncomingAttackCharacterEvent<
+  Board extends QuickDuelComboMatchBoard & QuickDuelCharacterCombatBoard,
+  Match extends QuickDuelPlaytestStateMatch<Board>,
+>(match: Match, event: CharacterRuntimeEvent | null): Match {
+  if (event?.type !== "incomingAttackDeclared" || !match.pendingStrike || !Number.isFinite(event.attackPower)) return match;
+  return {
+    ...match,
+    pendingStrike: {
+      ...match.pendingStrike,
+      attackPower: Math.max(0, Number(event.attackPower)),
+      modifierBonus: Math.max(0, Number(event.modifierBonus ?? match.pendingStrike.modifierBonus ?? 0)),
+    },
+  } as Match;
+}
+
+function publishCharacterIncomingAttackTransition<
+  Board extends QuickDuelComboMatchBoard & QuickDuelCharacterCombatBoard,
+  Match extends QuickDuelPlaytestStateMatch<Board>,
+>(previous: Match, next: Match): Match {
+  if (previous.pendingStrike || !next.pendingStrike) return next;
+
+  const event: CharacterRuntimeEvent = {
+    type: "incomingAttackDeclared",
+    attackPower: next.pendingStrike.attackPower,
+    modifierBonus: Math.max(0, Number(next.pendingStrike.modifierBonus ?? 0)),
+  };
+  const character = publishQuickDuelPlaytestCharacterEvent(next, "player", event);
+  let result = projectIncomingAttackCharacterEvent(character.match as Match, character.event);
+
+  if (character.event && character.choices.length > 0) {
+    const pending: QuickDuelCharacterChoiceState = {
+      kind: "character-runtime",
+      event: character.event,
+      choice: character.choices[0],
+    };
+    result = result.pendingChoice
+      ? withDeferredCharacterChoice(result, pending)
+      : ({ ...result, pendingChoice: pending } as Match);
+  }
+
+  return surfaceDeferredCharacterChoice(result);
 }
 
 function quickDuelCharacterHitEvent<Board extends QuickDuelCharacterCombatBoard>(
@@ -306,7 +356,8 @@ export function applyQuickDuelPlaytestTransition<
   lookup: ComboHostCardLookup,
 ): Match {
   const structured = { ...next, ...applyQuickDuelStructuredTransition(previous, next, lookup) } as Match;
-  return publishCharacterCombatTransition(previous, structured, lookup);
+  const incomingAttack = publishCharacterIncomingAttackTransition(previous, structured);
+  return publishCharacterCombatTransition(previous, incomingAttack, lookup);
 }
 
 /**
@@ -444,10 +495,15 @@ export function resolveQuickDuelPlaytestCharacterChoice<
   const value = choice.selectionField === "optionalAccepted"
     ? selection === "accept"
     : selection;
-  return publishQuickDuelPlaytestCharacterEvent(match, actor, {
+  const resolved = publishQuickDuelPlaytestCharacterEvent(match, actor, {
     ...event,
     [choice.selectionField]: value,
   });
+  if (event.type !== "incomingAttackDeclared" || !resolved.event) return resolved;
+  return {
+    ...resolved,
+    match: projectIncomingAttackCharacterEvent(resolved.match as Match & QuickDuelPlaytestStateMatch<Board>, resolved.event),
+  };
 }
 
 export function hostQuickDuelPlaytestCardEvent<
