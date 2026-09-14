@@ -22,6 +22,8 @@ jobs:
           node-version: 22.12.0
           cache: npm
       - run: npm ci
+      - name: Correct patch transport assumptions
+        run: node .tmp/fix-delayed-market-patch.mjs
       - name: Apply canonical and runtime patch
         run: node .tmp/delayed-market-refill-patch.mjs
       - name: Regenerate canonical mirrors
