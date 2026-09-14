@@ -21,7 +21,7 @@ jobs:
           node-version: '22.12.0'
           cache: npm
       - run: npm ci
-      - name: Capture full regression failure
+      - name: Capture failing assertions only
         shell: bash
         run: |
           set +e
@@ -30,8 +30,10 @@ jobs:
           mkdir -p diagnostics
           {
             echo "exit_status=$status"
-            echo "--- LAST 240 LINES ---"
-            tail -n 240 /tmp/pr89-test.log
+            echo "--- FAILING TEST BLOCKS ---"
+            grep -n -B 8 -A 45 -E '^not ok |AssertionError|ERR_ASSERTION|# fail [1-9]' /tmp/pr89-test.log || true
+            echo "--- SUMMARY ---"
+            tail -n 16 /tmp/pr89-test.log
           } > diagnostics/pr89-test-failure.txt
           exit 0
       - name: Commit diagnostic report
