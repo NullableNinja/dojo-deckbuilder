@@ -5,9 +5,6 @@ on:
     branches:
       - stage3e-character-lifecycle-boundaries
 
-permissions:
-  contents: write
-
 jobs:
   diagnostic:
     runs-on: ubuntu-latest
@@ -15,26 +12,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: stage3e-character-lifecycle-boundaries
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
       - run: npm ci
       - run: python .github/temp-patch-lifecycle.py
-      - name: Targeted lifecycle canary
-        run: node --experimental-strip-types --test tests/quick-duel-character-lifecycle-host.test.mjs
-      - name: Generated data/source drift
-        run: npm run game:check
-      - name: Production build
-        run: npm run build
-      - name: Node repository tests
-        run: node --experimental-strip-types --test tests/*.test.mjs
-      - name: Commit certified lifecycle correction
+      - name: Character tests
+        run: node --experimental-strip-types --test tests/character-*.test.mjs tests/quick-duel-character-*.test.mjs tests/runtime-effect-certification-character.test.mjs
+      - name: Quick Duel tests
+        run: node --experimental-strip-types --test tests/quick-duel-*.test.mjs
+      - name: Playtest tests
+        run: node --experimental-strip-types --test tests/playtest-*.test.mjs
+      - name: Remaining tests
+        shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/temp-patch-lifecycle.py
-          git rm .github/workflows/temp-stage3e-lifecycle-diagnostic.yml
-          git add app/quick-duel-transition-host.ts
-          git commit -m "fix(stage3e): order Character lifecycle resets before events"
-          git push origin HEAD:stage3e-character-lifecycle-boundaries
+          mapfile -t files < <(find tests -maxdepth 1 -name '*.test.mjs' -print | sort | grep -Ev '/(character-|quick-duel-|playtest-|runtime-effect-certification-character\.test\.mjs$)')
+          node --experimental-strip-types --test "${files[@]}"
