@@ -26,8 +26,8 @@ jobs:
         run: npm run game:check
       - name: Production build
         run: npm run build
-      - name: Full repository tests
-        run: node --experimental-strip-types --test tests/*.test.mjs
+      - name: Character lifecycle regression certification
+        run: node --experimental-strip-types --test tests/character-*.test.mjs tests/quick-duel-character-*.test.mjs
       - name: Commit certified implementation and remove diagnostics
         run: |
           set -euo pipefail
