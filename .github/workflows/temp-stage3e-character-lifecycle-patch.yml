@@ -1,0 +1,96 @@
+name: Temporary Stage 3E Character lifecycle patch
+
+on:
+  push:
+    branches:
+      - stage3e-character-lifecycle-boundaries
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage3e-character-lifecycle-boundaries
+          fetch-depth: 0
+      - name: Apply lifecycle transition patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("app/quick-duel-transition-host.ts")
+          source = path.read_text()
+
+          import_anchor = 'import { publishQuickDuelCharacterEvent } from "./quick-duel-structured-host.ts";\n'
+          import_replacement = (
+              'import { resetCharacterHostRound, resetCharacterHostTurn } from "./character-playtest-bridge.ts";\n'
+              + import_anchor
+          )
+          if import_anchor not in source:
+              raise SystemExit("structured-host import anchor not found")
+          source = source.replace(import_anchor, import_replacement, 1)
+
+          function_anchor = 'function publishCardPlayedCharacterTransitions<Board extends QuickDuelTransitionBoard>(\n'
+          lifecycle_helper = r'''function publishCharacterLifecycleTransitions<Board extends QuickDuelTransitionBoard>(
+            previous: QuickDuelTransitionMatch<Board>,
+            nextInput: QuickDuelTransitionMatch<Board>,
+            roundAdvanced: boolean,
+            turnAdvanced: boolean,
+          ): QuickDuelTransitionMatch<Board> {
+            let next = nextInput;
+
+            if (roundAdvanced) {
+              for (const actor of ["player", "ai"] as const) {
+                const board = actorBoard(next, actor);
+                if (!looksLikeCharacterRuntimeBoard(board)) continue;
+                next = setActorBoard(next, actor, resetCharacterHostRound(board) as Board);
+              }
+              for (const actor of ["player", "ai"] as const) {
+                const published = publishCharacterTransitionEvent(next, actor, { type: "roundStart" });
+                next = published.match;
+              }
+            }
+
+            if (turnAdvanced) {
+              const actor = activeActor(next);
+              const board = actorBoard(next, actor);
+              if (looksLikeCharacterRuntimeBoard(board)) {
+                next = setActorBoard(next, actor, resetCharacterHostTurn(board) as Board);
+              }
+              next = publishCharacterTransitionEvent(next, actor, { type: "turnStart" }).match;
+            }
+
+            return next;
+          }
+
+          '''
+          if function_anchor not in source:
+              raise SystemExit("card-play transition anchor not found")
+          source = source.replace(function_anchor, lifecycle_helper + function_anchor, 1)
+
+          order_anchor = '''  next = publishSpeedChangedCharacterTransitions(previous, next);
+          next = publishPromotionCharacterTransitions(previous, next);
+          next = publishSceneChangeCharacterTransitions(previous, next);
+          '''
+          order_replacement = '''  next = publishSpeedChangedCharacterTransitions(previous, next);
+          next = publishPromotionCharacterTransitions(previous, next);
+          next = publishCharacterLifecycleTransitions(previous, next, roundAdvanced, turnAdvanced);
+          next = publishSceneChangeCharacterTransitions(previous, next);
+          '''
+          if order_anchor not in source:
+              raise SystemExit("transition ordering anchor not found")
+          source = source.replace(order_anchor, order_replacement, 1)
+          path.write_text(source)
+      - name: Remove temporary workflow and commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temp-stage3e-character-lifecycle-patch.yml
+          git add app/quick-duel-transition-host.ts
+          git commit -m "feat(stage3e): publish Character lifecycle boundaries"
+          git push origin HEAD:stage3e-character-lifecycle-boundaries
