@@ -118,10 +118,10 @@ assert old in text
 text = text.replace(old, new, 1)
 
 old = '''  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + activeEquipment.power);
-  const damageModifier = locationModifier.damage + fighterModifier.damage;'''
+  const consumedAttackBoard = stage3cConsumeAttackStatuses(activeEquipment.board, card, zone);'''
 new = '''  const attackPower = Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK") + activeEquipment.board.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + activeEquipment.power);
   const modifierBonus = Math.max(0, attackPower - Math.max(0, cardPower(card) + fighterStat(activeEquipment.board, "ATK")));
-  const damageModifier = locationModifier.damage + fighterModifier.damage;'''
+  const consumedAttackBoard = stage3cConsumeAttackStatuses(activeEquipment.board, card, zone);'''
 assert old in text
 text = text.replace(old, new, 1)
 
