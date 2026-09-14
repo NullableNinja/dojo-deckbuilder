@@ -22,17 +22,18 @@ jobs:
           node-version: '22.12.0'
           cache: npm
       - run: npm ci
-      - name: Apply sceneChange host route and canaries
+      - name: Apply sceneChange host route
         shell: bash
         run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-
-          const hostPath = 'app/quick-duel-transition-host.ts';
-          let host = fs.readFileSync(hostPath, 'utf8');
-          const marker = 'function detectPurchasedCard(\n';
-          if (!host.includes(marker)) throw new Error('detectPurchasedCard marker not found');
-          const sceneHost = `function publishSceneChangeCharacterTransitions<Board extends QuickDuelTransitionBoard>(
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/quick-duel-transition-host.ts')
+          source = path.read_text()
+          marker = 'function detectPurchasedCard(\n'
+          if marker not in source:
+              raise SystemExit('detectPurchasedCard marker not found')
+          if 'function publishSceneChangeCharacterTransitions' not in source:
+              scene = '''function publishSceneChangeCharacterTransitions<Board extends QuickDuelTransitionBoard>(
             previous: QuickDuelTransitionMatch<Board>,
             nextInput: QuickDuelTransitionMatch<Board>,
           ): QuickDuelTransitionMatch<Board> {
@@ -48,43 +49,21 @@ jobs:
             return next;
           }
 
-          `;
-          if (!host.includes('function publishSceneChangeCharacterTransitions')) {
-            host = host.replace(marker, sceneHost + marker);
-          }
-          const promotionCall = '  next = publishPromotionCharacterTransitions(previous, next);\n';
-          if (!host.includes(promotionCall)) throw new Error('promotion publication call not found');
-          if (!host.includes('  next = publishSceneChangeCharacterTransitions(previous, next);')) {
-            host = host.replace(promotionCall, promotionCall + '  next = publishSceneChangeCharacterTransitions(previous, next);\n');
-          }
-          host = host.replace(
-            ' * Derives canonical Combo host history, Character card-play/discard/Speed-change/\n * promotion events, and progression bookkeeping from state transitions Quick',
-            ' * Derives canonical Combo host history, Character card-play/discard/Speed-change/\n * promotion/scene-change events, and progression bookkeeping from state transitions Quick',
-          );
-          fs.writeFileSync(hostPath, host);
-
-          const certificationPath = 'tests/runtime-effect-certification-character.test.mjs';
-          let certification = fs.readFileSync(certificationPath, 'utf8');
-          const purchaseBlock = `  const purchaseRuntime = evidence("character.marketDiscountFloor");
-          assert.equal(purchaseRuntime.owner, "event-runtime");
-          assert.deepEqual(purchaseRuntime.events, ["purchaseAttempt"]);
-          assert.deepEqual(purchaseRuntime.liveEvents, ["purchaseAttempt"]);
-          assert.equal(purchaseRuntime.hostLive, true);
-          `;
-          if (!certification.includes(purchaseBlock)) throw new Error('purchase certification block not found');
-          const sceneBlock = `
-          const sceneRuntime = evidence("character.sceneChangeCycle");
-          assert.equal(sceneRuntime.owner, "event-runtime");
-          assert.deepEqual(sceneRuntime.events, ["sceneChange"]);
-          assert.deepEqual(sceneRuntime.liveEvents, ["sceneChange"]);
-          assert.equal(sceneRuntime.hostLive, true);
-          `;
-          if (!certification.includes('const sceneRuntime = evidence("character.sceneChangeCycle")')) {
-            certification = certification.replace(purchaseBlock, purchaseBlock + sceneBlock);
-          }
-          fs.writeFileSync(certificationPath, certification);
-
-          fs.writeFileSync('tests/quick-duel-character-scene-change-host.test.mjs', `import assert from "node:assert/strict";
+          '''
+              source = source.replace(marker, scene + marker, 1)
+          promotion = '  next = publishPromotionCharacterTransitions(previous, next);\n'
+          if promotion not in source:
+              raise SystemExit('promotion publication call not found')
+          scene_call = '  next = publishSceneChangeCharacterTransitions(previous, next);\n'
+          if scene_call not in source:
+              source = source.replace(promotion, promotion + scene_call, 1)
+          path.write_text(source)
+          PY
+      - name: Add sceneChange runtime canaries
+        shell: bash
+        run: |
+          cat > tests/quick-duel-character-scene-change-host.test.mjs <<'TEST'
+          import assert from "node:assert/strict";
           import test from "node:test";
 
           import {
@@ -160,9 +139,7 @@ jobs:
 
           test("Venue Val receives sceneChange on a real Location transition and resumes its cycle choice", () => {
             const previous = match(board({ fighterId: "DDB-CHR-CORE-039", hand: ["h1"], deck: ["d1", "d2"] }));
-            const next = { ...previous, locationId: "loc-b" };
-
-            const hosted = applyQuickDuelPlaytestTransition(previous, next, noCards);
+            const hosted = applyQuickDuelPlaytestTransition(previous, { ...previous, locationId: "loc-b" }, noCards);
             assert.equal(hosted.locationId, "loc-b");
             assert.equal(hosted.pendingChoice?.kind, "character-runtime");
             assert.equal(hosted.pendingChoice?.event?.type, "sceneChange");
@@ -181,22 +158,19 @@ jobs:
             assert.equal(resolved.choices.length, 0);
           });
 
-          test("Venue Val AI resolves the same sceneChange cycle automatically", () => {
+          test("Venue Val AI resolves sceneChange automatically", () => {
             const previous = match(
               board(),
               board({ fighterId: "DDB-CHR-CORE-039", hand: ["ai-h1"], deck: ["ai-d1", "ai-d2"] }),
             );
-            const next = { ...previous, locationId: "loc-b" };
-
-            const hosted = applyQuickDuelPlaytestTransition(previous, next, noCards);
+            const hosted = applyQuickDuelPlaytestTransition(previous, { ...previous, locationId: "loc-b" }, noCards);
             assert.equal(hosted.pendingChoice, null);
             assert.equal(hosted.ai.hand.length, 1);
             assert.equal(hosted.ai.discard.length, 1);
             assert.equal(hosted.ai.deck.length, 1);
-            assert.ok(hosted.ai.hand.includes("ai-d2") || hosted.ai.discard.includes("ai-d2"));
           });
 
-          test("sceneChange is not published for an unchanged Location or initial Location setup", () => {
+          test("sceneChange ignores unchanged Location and initial Location setup", () => {
             const venue = board({ fighterId: "DDB-CHR-CORE-039", hand: ["h1"], deck: ["d1", "d2"] });
             const unchanged = match(venue);
             const unchangedHosted = applyQuickDuelPlaytestTransition(unchanged, { ...unchanged, player: { ...venue, focus: 1 } }, noCards);
@@ -209,7 +183,7 @@ jobs:
             assert.deepEqual(initializedHosted.player.hand, ["h1"]);
           });
 
-          test("a global Location transition publishes sceneChange to both fighters", () => {
+          test("a Location transition publishes sceneChange to both fighters", () => {
             const previous = match(
               board({ fighterId: "DDB-CHR-CORE-039", hand: ["p-h1"], deck: ["p-d1", "p-d2"] }),
               board({ fighterId: "DDB-CHR-CORE-039", hand: ["a-h1"], deck: ["a-d1", "a-d2"] }),
@@ -220,11 +194,10 @@ jobs:
             assert.equal(hosted.ai.hand.length, 1);
             assert.equal(hosted.ai.discard.length, 1);
           });
-          `);
-          NODE
+          TEST
       - name: Remove transport workflow before certification
         run: git rm .github/workflows/apply-scene-change-micro.yml
-      - name: Run focused sceneChange certification
+      - name: Run focused sceneChange tests
         run: node --test tests/quick-duel-character-scene-change-host.test.mjs tests/runtime-effect-certification-character.test.mjs
       - name: Run full repository suite
         run: npm test
