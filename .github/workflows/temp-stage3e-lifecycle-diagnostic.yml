@@ -1,34 +1,40 @@
-name: Temporary Stage 3E lifecycle certification
+name: Temporary Stage 3E lifecycle final certification
 
 on:
   push:
     branches:
       - stage3e-character-lifecycle-boundaries
 
+permissions:
+  contents: write
+
 jobs:
-  diagnostic:
+  certify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: stage3e-character-lifecycle-boundaries
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
       - run: npm ci
-      - run: python .github/temp-patch-lifecycle.py
-      - name: Character family registry
-        continue-on-error: true
-        run: node --experimental-strip-types --test tests/character-family-registry.test.mjs
-      - name: Character playtest bridge
-        continue-on-error: true
-        run: node --experimental-strip-types --test tests/character-playtest-bridge.test.mjs
-      - name: Character runtime enforcement
-        continue-on-error: true
-        run: node --experimental-strip-types --test tests/character-runtime-enforcement.test.mjs
-      - name: Quick Duel Character host tests
-        continue-on-error: true
-        run: node --experimental-strip-types --test tests/quick-duel-character-*.test.mjs
-      - name: Character runtime certification
-        continue-on-error: true
-        run: node --experimental-strip-types --test tests/runtime-effect-certification-character.test.mjs
+      - name: Apply corrected lifecycle boundary
+        run: python .github/temp-patch-lifecycle.py
+      - name: Generated-data/source drift
+        run: npm run game:check
+      - name: Production build
+        run: npm run build
+      - name: Full repository tests
+        run: node --experimental-strip-types --test tests/*.test.mjs
+      - name: Commit certified implementation and remove diagnostics
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/temp-patch-lifecycle.py
+          git rm .github/workflows/temp-stage3e-lifecycle-diagnostic.yml
+          git add app/quick-duel-transition-host.ts tests/quick-duel-character-lifecycle-host.test.mjs
+          git commit -m "feat(stage3e): publish Character lifecycle boundaries"
+          git push origin HEAD:stage3e-character-lifecycle-boundaries
