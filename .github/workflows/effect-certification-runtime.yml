@@ -32,6 +32,15 @@ jobs:
       - name: Generate canonical runtime data
         run: npm run game:generate
 
+      - name: Upload generated canonical projections
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-canonical-data
+          path: |
+            content/card-effects.json
+            app/data/card-effects.json
+          if-no-files-found: error
+
       - name: Build certification ledger
         run: node scripts/certify-runtime-effects.mjs
 
