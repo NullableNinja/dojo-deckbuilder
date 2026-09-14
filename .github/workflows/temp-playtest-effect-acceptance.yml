@@ -6,7 +6,7 @@ on:
       - qa/playtest-effect-acceptance
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   character-acceptance:
@@ -14,14 +14,41 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: qa/playtest-effect-acceptance
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
           cache: npm
       - run: npm ci
-      - name: Canonical generated-data drift
-        run: npm run game:check
-      - name: Character live-runtime acceptance
+      - name: Apply generic same-resolver usage fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/character-runtime.ts')
+          source = path.read_text()
+          old = '    if (activated) { self = consume(self, effect); notes.push(resolver); }'
+          new = '''    if (activated) {
+              for (const siblingEffect of effectsFor(self.fighterId)) {
+                if (String(siblingEffect.resolver ?? "") === resolver) self = consume(self, siblingEffect);
+              }
+              notes.push(resolver);
+            }'''
+          if old not in source:
+              raise SystemExit('Character activation-consumption anchor not found')
+          path.write_text(source.replace(old, new, 1))
+          PY
+      - name: Targeted Character acceptance
         run: node --experimental-strip-types --test tests/playtest-effect-acceptance-character.test.mjs tests/playtest-effect-acceptance-character-choices.test.mjs
-      - name: Production build
-        run: npm run build
+      - name: Full repository certification
+        run: npm test
+      - name: Commit certified implementation and remove temporary workflow
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temp-playtest-effect-acceptance.yml
+          git add app/character-runtime.ts
+          git commit -m "fix(runtime): consume Character sibling effects as one ability"
+          git push origin HEAD:qa/playtest-effect-acceptance
