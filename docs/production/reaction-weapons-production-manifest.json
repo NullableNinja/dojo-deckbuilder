@@ -161,8 +161,26 @@
             {"cardId":"DDB-WPN-CORE-025","name":"Frozen Burrito","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-025_frozen-burrito.png","card":"app/assets/cards/weapons/ddb-wpn-core-025_frozen-burrito.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-025_frozen-burrito_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"}
           ]
         }
-      ],
-      "activeBatch": {"batch":"weapons-006","worker":"codex","status":"claimed","cardIds":["DDB-WPN-CORE-026","DDB-WPN-CORE-027","DDB-WPN-CORE-028","DDB-WPN-CORE-029","DDB-WPN-CORE-030"]}
+      ,
+        {
+          "batch": "weapons-006", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora",
+          "cardIds": ["DDB-WPN-CORE-026", "DDB-WPN-CORE-027", "DDB-WPN-CORE-028", "DDB-WPN-CORE-029", "DDB-WPN-CORE-030"],
+          "layeredSourceArchives": [
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-026_giant-foam-finger_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-027_gladius_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-028_grandma-s-wooden-spoon_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-029_hand-axe_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-030_hook-swords_Editable_ORA.zip"
+          ],
+          "records": [
+            {"cardId":"DDB-WPN-CORE-026","name":"Giant Foam Finger","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-026_giant-foam-finger.png","card":"app/assets/cards/weapons/ddb-wpn-core-026_giant-foam-finger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-026_giant-foam-finger_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-027","name":"Gladius","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-027_gladius.png","card":"app/assets/cards/weapons/ddb-wpn-core-027_gladius.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-027_gladius_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-028","name":"Grandma's Wooden Spoon","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-028_grandmas-wooden-spoon.png","card":"app/assets/cards/weapons/ddb-wpn-core-028_grandma-s-wooden-spoon.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-028_grandma-s-wooden-spoon_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-029","name":"Hand Axe","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-029_hand-axe.png","card":"app/assets/cards/weapons/ddb-wpn-core-029_hand-axe.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-029_hand-axe_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-030","name":"Hook Swords","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-030_hook-swords.png","card":"app/assets/cards/weapons/ddb-wpn-core-030_hook-swords.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-030_hook-swords_Editable_ORA.zip"}
+          ]
+        }
+      ]
     }
   }
 }
