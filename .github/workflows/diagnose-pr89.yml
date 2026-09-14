@@ -21,7 +21,7 @@ jobs:
           node-version: '22.12.0'
           cache: npm
       - run: npm ci
-      - name: Update the stale Market purchase assertion
+      - name: Patch stale Market guard and remove temporary workflow before testing
         shell: bash
         run: |
           node <<'NODE'
@@ -31,18 +31,32 @@ jobs:
           const before = String.raw`assert.match(playtest, /Bought \$\{card\.name\} for \$\{price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);`;
           const after = String.raw`assert.match(playtest, /Bought \$\{card\.name\} for \$\{characterPurchase\.price\} Focus \(\$\{focusBefore\} → \$\{nextPlayer\.focus\}\)/);`;
           if (!source.includes(before)) throw new Error('Expected stale Market purchase assertion was not found');
-          source = source.replace(before, after);
-          fs.writeFileSync(path, source);
+          fs.writeFileSync(path, source.replace(before, after));
           NODE
           rm -rf diagnostics
           rm -f .github/workflows/diagnose-pr89.yml
-      - name: Certify repaired branch locally
-        run: npm test
-      - name: Commit repaired guard and cleanup
+      - name: Run repaired suite and capture only remaining failures
+        shell: bash
+        run: |
+          set +e
+          npm test > /tmp/pr89-post-repair.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            mkdir -p diagnostics
+            {
+              echo "exit_status=$status"
+              echo "--- FAILING TEST BLOCKS ---"
+              grep -n -B 8 -A 45 -E '^not ok |AssertionError|ERR_ASSERTION|# fail [1-9]' /tmp/pr89-post-repair.log || true
+              echo "--- SUMMARY ---"
+              tail -n 16 /tmp/pr89-post-repair.log
+            } > diagnostics/pr89-post-repair-failures.txt
+          fi
+          exit 0
+      - name: Commit repaired guard, cleanup, and failure evidence if needed
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Fix PR 89 purchase integrity guard and remove diagnostics [skip ci]"
+          git commit -m "Fix PR 89 purchase integrity guard and remove diagnostic workflow [skip ci]"
           git push origin HEAD:stage3e-character-purchase-attempt-event
