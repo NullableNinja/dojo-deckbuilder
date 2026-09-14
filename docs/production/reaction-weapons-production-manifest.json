@@ -180,7 +180,8 @@
             {"cardId":"DDB-WPN-CORE-030","name":"Hook Swords","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-030_hook-swords.png","card":"app/assets/cards/weapons/ddb-wpn-core-030_hook-swords.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-030_hook-swords_Editable_ORA.zip","publishingCommit":"c6567eec3e7c90000b852f89c715dac9fd312bd8"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {"batch":"weapons-007","worker":"codex","status":"claimed","cardIds":["DDB-WPN-CORE-031","DDB-WPN-CORE-032","DDB-WPN-CORE-033","DDB-WPN-CORE-034","DDB-WPN-CORE-035"]}
     }
   }
 }
