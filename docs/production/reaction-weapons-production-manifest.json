@@ -79,13 +79,27 @@
             {"cardId":"DDB-WPN-CORE-005","name":"Brass Knuckles","artwork":"app/assets/art/weapons/source/ddb-wpn-core-005_brass-knuckles.png","card":"app/assets/cards/weapons/ddb-wpn-core-005_brass-knuckles.webp"}
           ]
         }
-      ],
-      "activeBatch": {
-        "batch": "weapons-002",
-        "worker": "codex",
-        "status": "claimed",
-        "cardIds": ["DDB-WPN-CORE-006", "DDB-WPN-CORE-007", "DDB-WPN-CORE-008", "DDB-WPN-CORE-009", "DDB-WPN-CORE-010"]
-      }
+      ,
+        {
+          "batch": "weapons-002",
+          "status": "complete",
+          "cardIds": ["DDB-WPN-CORE-006", "DDB-WPN-CORE-007", "DDB-WPN-CORE-008", "DDB-WPN-CORE-009", "DDB-WPN-CORE-010"],
+          "layeredSourceArchives": [
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-006_broken-bottle_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-007_museum-gift-nunchaku_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-008_butterfly-knife-balisong_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-009_chain-whip_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-010_club_Editable_ORA.zip"
+          ],
+          "records": [
+            {"cardId":"DDB-WPN-CORE-006","name":"Broken Bottle","artwork":"app/assets/art/weapons/source/ddb-wpn-core-006_broken-bottle.png","card":"app/assets/cards/weapons/ddb-wpn-core-006_broken-bottle.webp"},
+            {"cardId":"DDB-WPN-CORE-007","name":"Museum-Gift Nunchaku","artwork":"app/assets/art/weapons/source/ddb-wpn-core-007_museum-gift-nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-007_museum-gift-nunchaku.webp"},
+            {"cardId":"DDB-WPN-CORE-008","name":"Butterfly Knife (Balisong)","artwork":"app/assets/art/weapons/source/ddb-wpn-core-008_butterfly-knife-balisong.png","card":"app/assets/cards/weapons/ddb-wpn-core-008_butterfly-knife-balisong.webp"},
+            {"cardId":"DDB-WPN-CORE-009","name":"Chain Whip","artwork":"app/assets/art/weapons/source/ddb-wpn-core-009_chain-whip.png","card":"app/assets/cards/weapons/ddb-wpn-core-009_chain-whip.webp"},
+            {"cardId":"DDB-WPN-CORE-010","name":"Club","artwork":"app/assets/art/weapons/source/ddb-wpn-core-010_club.png","card":"app/assets/cards/weapons/ddb-wpn-core-010_club.webp"}
+          ]
+        }
+      ]
     }
   }
 }
