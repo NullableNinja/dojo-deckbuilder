@@ -3,6 +3,12 @@ import test from "node:test";
 import { loadGameData } from "../engine/rules-loader.mjs";
 import { Game } from "../engine/core.mjs";
 
+const starterCards = (data) => data.definition.starterDeck
+  .map((entry) => data.byId.get(entry.catalogId))
+  .filter(Boolean);
+const starterAttacks = (data) => starterCards(data).filter((card) => Number(card.stats?.["Attack Power"]) > 0);
+const starterDefenses = (data) => starterCards(data).filter((card) => Number(card.stats?.Guard) > 0);
+
 test("engine loads canonical game data without hard-coded inventory assumptions", async () => {
   const data = await loadGameData();
   assert.ok(data.definition, "canonical game definition must load");
@@ -25,8 +31,8 @@ test("Defense Practice grants printed Focus without changing HP", async () => {
   const data = await loadGameData();
   const game = new Game(data, { seed: 3 });
   const player = game.players[0];
-  const defense = player.hand.find((card) => Number(card.stats?.Guard) > 0) ?? data.byId.get("DDB-STA-CORE-009");
-  assert.ok(defense, "test requires a canonical Defense card");
+  const defense = player.hand.find((card) => Number(card.stats?.Guard) > 0) ?? starterDefenses(data)[0];
+  assert.ok(defense, "canonical Starter deck must contain a Defense card");
   if (!player.hand.includes(defense)) player.hand.push(defense);
   const hp = player.hp;
   assert.equal(game.practice(player, defense), true);
@@ -39,15 +45,15 @@ test("played Defense is consumed and cannot block a second Attack", async () => 
   const game = new Game(data, { seed: 9 });
   const attacker = game.players[0];
   const defender = game.players[1];
-  const firstAttack = data.byId.get("DDB-STA-CORE-003");
-  const secondAttack = data.byId.get("DDB-STA-CORE-004");
-  const defense = data.byId.get("DDB-STA-CORE-009");
-  assert.ok(firstAttack && secondAttack && defense, "starter combat cards must resolve from canonical data");
-  attacker.hand.push(firstAttack, secondAttack);
+  const attacks = starterAttacks(data).slice(0, 2);
+  const defense = starterDefenses(data)[0];
+  assert.equal(attacks.length, 2, "canonical Starter deck must contain at least two Attacks");
+  assert.ok(defense, "canonical Starter deck must contain a Defense");
+  attacker.hand.push(...attacks);
   defender.hand.push(defense);
   const beforeFocus = defender.focus;
-  const first = game.resolveAttack(attacker, defender, firstAttack, { defenseCard: defense });
-  const second = game.resolveAttack(attacker, defender, secondAttack, { defenseCard: null });
+  const first = game.resolveAttack(attacker, defender, attacks[0], { defenseCard: defense });
+  const second = game.resolveAttack(attacker, defender, attacks[1], { defenseCard: null });
   assert.equal(defender.focus, beforeFocus + Number(defense.focusValue));
   assert.equal(first.defense, defense);
   assert.equal(second.defense, null);
@@ -77,12 +83,12 @@ test("a turn may play every legal Attack in hand", async () => {
   const game = new Game(data, { seed: 21 });
   const player = game.players[0];
   const defender = game.players[1];
-  const attacks = ["DDB-STA-CORE-002", "DDB-STA-CORE-003", "DDB-STA-CORE-004"].map((id) => data.byId.get(id));
-  assert.ok(attacks.every(Boolean), "starter Attacks must resolve from canonical data");
-  player.hand = attacks;
+  const attacks = starterAttacks(data).slice(0, 3);
+  assert.equal(attacks.length, 3, "canonical Starter deck must contain at least three Attacks");
+  player.hand = [...attacks];
   player.deck = [];
   player.discard = [];
   defender.hp = 100;
   game.botTurn(0);
-  assert.equal(game.events.filter((event) => event.type === "attack" && event.attacker === 0).length, 3);
+  assert.equal(game.events.filter((event) => event.type === "attack" && event.attacker === 0).length, attacks.length);
 });
