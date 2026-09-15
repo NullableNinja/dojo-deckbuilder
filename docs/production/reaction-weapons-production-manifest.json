@@ -222,7 +222,13 @@
             {"cardId":"DDB-WPN-CORE-040","name":"Kunai (Throwing Knives)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-040_kunai-throwing-knives.png","card":"app/assets/cards/weapons/ddb-wpn-core-040_kunai-throwing-knives.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-040_kunai-throwing-knives_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {
+        "batch": "weapons-009",
+        "worker": "codex",
+        "status": "claimed",
+        "cardIds": ["DDB-WPN-CORE-041", "DDB-WPN-CORE-042", "DDB-WPN-CORE-043", "DDB-WPN-CORE-044", "DDB-WPN-CORE-045"]
+      }
     }
   }
 }
