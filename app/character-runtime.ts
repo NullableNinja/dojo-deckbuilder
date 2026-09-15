@@ -269,6 +269,14 @@ export function resetCharacterRound(board: CharacterRuntimeBoard) {
   return { ...board, usedCharacterEffectIdsThisTurn: [], usedCharacterEffectIdsThisRound: [], characterMarks: nextMarks };
 }
 
+export function characterRuntimeEventAvailable(board: CharacterRuntimeBoard, event: CharacterRuntimeEventType) {
+  return effectsFor(board.fighterId).some((effect) => isAvailable(board, effect, event));
+}
+
+export function characterCanReadyEquipment(board: CharacterRuntimeBoard, equipmentId: string) {
+  return !hasMark(board, `turn:rebootLocked:${equipmentId}`);
+}
+
 export function characterCanEquip(board: CharacterRuntimeBoard, card: CharacterRuntimeCard) {
   const restricted = effectsFor(board.fighterId).some((effect) => effect.resolver === "character.cannotEquipWeapons");
   return !(restricted && (card.subtype === "Weapon" || hasTag(card, "Weapon")));
@@ -529,9 +537,19 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
       case "character.reduceLargeAttackModifier": if (Number(event.modifierBonus ?? 0) >= 2) { event.attackPower = Math.max(0, Number(event.attackPower ?? 0) - amount); self = mark(self, "round:nerfhammerReduced"); activated = true; } break;
       case "character.green.linkedReductionRetaliation": if (hasMark(self, "round:nerfhammerReduced")) { self = { ...self, nextAttackBonus: self.nextAttackBonus + amount }; activated = true; } break;
       case "character.exhaustReadyEquipmentLock": {
-        const options = event.candidateIds ?? self.equipment; const selected = event.selectedId ?? (actor === "ai" ? options[0] : null);
-        if (options.length && !selected) choices.push(makeChoice(effect, "Choose Equipment to exhaust then immediately ready.", options, false));
-        else if (selected && self.equipment.includes(selected)) { self = mark(self, `turn:rebootLocked:${selected}`); activated = true; }
+        const exhausted = new Set(self.exhaustedEquipment ?? []);
+        const options = (event.candidateIds ?? self.equipment).filter((id) => self.equipment.includes(id) && !exhausted.has(id));
+        const selected = event.selectedId ?? (actor === "ai" ? options[0] : null);
+        if (options.length && !selected) {
+          choices.push(makeChoice(effect, "Choose a ready Equipment to exhaust for this Character ability.", options, false));
+        } else if (selected && options.includes(selected)) {
+          self = mark({
+            ...self,
+            focus: self.focus + Math.max(0, amount),
+            exhaustedEquipment: [...new Set([...(self.exhaustedEquipment ?? []), selected])],
+          }, `turn:rebootLocked:${selected}`);
+          activated = true;
+        }
         break;
       }
       case "character.green.linkedRebootCycle": if (Object.keys(markMap(self)).some((key) => key.startsWith("turn:rebootLocked:"))) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedMode, 1, 1, "selectedMode"); self = cycled.board; activated = cycled.resolved; } break;
