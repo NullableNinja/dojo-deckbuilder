@@ -1,0 +1,84 @@
+{
+  "DDB-CHR-CORE-011": {
+    "reachableInQuickDuel": true,
+    "liveHostConnected": true,
+    "playerExecutionVerified": true,
+    "aiExecutionVerified": true,
+    "choiceUiVerified": null,
+    "stateMutationVerified": true,
+    "durationResetVerified": false,
+    "effectVisibleUnderstandable": null,
+    "regressionTestPresent": true,
+    "executionStatus": "PASS_EXECUTES",
+    "failureCategories": [],
+    "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
+    "rootCause": "Live Hit execution, state projection, Player/AI parity, and same-turn first-Hit usage are verified. Turn-scope reset across the real turn boundary is owned by active Stage 3E PR #93 and is not yet independently certified here."
+  },
+  "DDB-CHR-CORE-024": {
+    "reachableInQuickDuel": true,
+    "liveHostConnected": true,
+    "playerExecutionVerified": true,
+    "aiExecutionVerified": true,
+    "choiceUiVerified": false,
+    "stateMutationVerified": true,
+    "durationResetVerified": false,
+    "effectVisibleUnderstandable": null,
+    "regressionTestPresent": true,
+    "executionStatus": "PASS_EXECUTES",
+    "failureCategories": [],
+    "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
+    "rootCause": "Initiate publication, player choice/resume, AI deterministic resolution, resulting attack bonus, and same-round usage suppression are verified through the Quick Duel playtest lifecycle host. Full round-boundary reset remains owned by active Stage 3E PR #93; visual rendering of the choice itself has not been black-box verified."
+  },
+  "DDB-CHR-CORE-029": {
+    "reachableInQuickDuel": true,
+    "liveHostConnected": true,
+    "playerExecutionVerified": false,
+    "aiExecutionVerified": false,
+    "choiceUiVerified": false,
+    "stateMutationVerified": false,
+    "durationResetVerified": false,
+    "effectVisibleUnderstandable": false,
+    "regressionTestPresent": false,
+    "executionStatus": "FAIL_RESOLVER_NOT_REACHED",
+    "failureCategories": [
+      "FAIL_RESOLVER_NOT_REACHED"
+    ],
+    "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
+    "rootCause": "A real Location change publishes the sceneChange Character event, but the Quick Duel transition host supplies no replacementId. character.revealReplacementOnceGame requires replacementId and exits without creating the player choice, AI replacement, usage consumption, or state mutation. The failing black-box reproduction is Actions run 34904775081. Repair belongs in app/quick-duel-transition-host.ts, currently owned by active Stage 3E PR #93."
+  },
+  "DDB-CHR-CORE-030": {
+    "reachableInQuickDuel": true,
+    "liveHostConnected": true,
+    "playerExecutionVerified": true,
+    "aiExecutionVerified": true,
+    "choiceUiVerified": false,
+    "stateMutationVerified": true,
+    "durationResetVerified": false,
+    "effectVisibleUnderstandable": false,
+    "regressionTestPresent": true,
+    "executionStatus": "PASS_EXECUTES",
+    "failureCategories": [
+      "FAIL_DURATION",
+      "FAIL_EFFECT_INVISIBLE"
+    ],
+    "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
+    "rootCause": "Canonical Sensei Ducktape says the borrowed permanent is discarded at end of turn, but the structured/runtime path is named character.equipDiscardPermanentUntilHide, the player prompt says until Hide, and current host tests return it on Hide. Correct end-of-turn cleanup requires the transition boundary currently owned by Stage 3E PR #93."
+  },
+  "DDB-CHR-CORE-039": {
+    "reachableInQuickDuel": true,
+    "liveHostConnected": true,
+    "playerExecutionVerified": true,
+    "aiExecutionVerified": true,
+    "choiceUiVerified": false,
+    "stateMutationVerified": true,
+    "durationResetVerified": false,
+    "effectVisibleUnderstandable": null,
+    "regressionTestPresent": true,
+    "executionStatus": "PASS_EXECUTES",
+    "failureCategories": [
+      "FAIL_USAGE_SCOPE"
+    ],
+    "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
+    "rootCause": "A real Location transition reaches the Character runtime: the player receives and resumes the draw/discard decision and AI resolves the same cycle automatically. Current main can reopen the once-per-round ability on a second Scene Change because Venue Val has sibling structured rows sharing character.sceneChangeCycle and only one sibling use is consumed. Stage 3E PR #104 owns the generic shared-resolver availability correction, so PR #94 records this as FAIL_USAGE_SCOPE instead of duplicating the production fix. Full round-boundary reset and visual choice rendering remain uncertified here."
+  }
+}
