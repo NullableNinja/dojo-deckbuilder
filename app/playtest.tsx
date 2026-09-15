@@ -21,7 +21,7 @@ import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefe
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
-import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
+import { applyQuickDuelPlaytestTransition, commitQuickDuelPlaytestComboRevealSelection, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestComboReveal, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -2778,13 +2778,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!pending || pending.kind !== "character-runtime") return current;
     const base = { ...current, pendingChoice: null };
     const resolved = resolveQuickDuelPlaytestCharacterChoice(base, "player", pending.event, pending.choice, selection);
+    let resolvedMatch = resolved.match;
+    if (pending.event.type === "comboReveal" && resolved.event) {
+      const projected = commitQuickDuelPlaytestComboRevealSelection(resolvedMatch.comboOfferId, resolvedMatch.comboDeck, resolved.event);
+      resolvedMatch = { ...resolvedMatch, ...projected };
+    }
     const nextChoice = resolved.choices[0];
     const pendingChoice: PendingChoice | null = resolved.event && nextChoice
       ? { kind: "character-runtime", event: resolved.event, choice: nextChoice }
       : null;
     const selectedCard = cardFor(selection);
     const label = selectedCard?.name ?? (["skip", "decline", "cancel"].includes(selection) ? "declined" : selection);
-    return write(resolved.match, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} resolves ${pending.choice.prompt}: ${label}.`, { pendingChoice });
+    return write(resolvedMatch, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} resolves ${pending.choice.prompt}: ${label}.`, { pendingChoice });
   };
 
   const resolveCharacterRuntimeChoice = (selection: string) => setMatch((current) =>
@@ -2901,7 +2906,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
   const enterAscend = () => {
     setDeskView("market");
-    setMatch((current) => current?.phase === "player-yell" && !current.pendingDiscard && !current.pendingChoice ? write(current, "Ascend: the acquisition desk opens. Spend this turn's Focus before it leaves your mat.", { phase: "player-ascend", selectedAttackId: null, player: { ...current.player, boughtCardThisAscend: false } }) : current);
+    setMatch((current) => {
+      if (!current || current.phase !== "player-yell" || current.pendingDiscard || current.pendingChoice) return current;
+      const ascended = write(current, "Ascend: the acquisition desk opens. Spend this turn's Focus before it leaves your mat.", { phase: "player-ascend", selectedAttackId: null, player: { ...current.player, boughtCardThisAscend: false } });
+      const reveal = publishQuickDuelPlaytestComboReveal(ascended, "player", ascended.comboOfferId, ascended.comboDeck);
+      const choice = reveal.choices[0];
+      return {
+        ...reveal.match,
+        comboOfferId: reveal.comboOfferId,
+        comboDeck: reveal.comboDeck,
+        pendingChoice: reveal.event && choice ? { kind: "character-runtime", event: reveal.event, choice } : reveal.match.pendingChoice,
+      };
+    });
   };
 
   const buyMarket = (id: string) => setMatch((current) => {

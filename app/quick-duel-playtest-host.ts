@@ -12,6 +12,7 @@ import {
 } from "./quick-duel-character-event-context.ts";
 import type { RuntimeCommand, RuntimeTrigger } from "./family-effect-runtime.ts";
 import { runtimeCardFor } from "./runtime-card-catalog.ts";
+import { characterHostSubscriptions } from "./character-playtest-bridge.ts";
 import {
   applyQuickDuelStructuredTransition,
   hostQuickDuelComboEvent,
@@ -307,6 +308,69 @@ export function applyQuickDuelPlaytestTransition<
 ): Match {
   const structured = { ...next, ...applyQuickDuelStructuredTransition(previous, next, lookup) } as Match;
   return publishCharacterCombatTransition(previous, structured, lookup);
+}
+
+export type QuickDuelPlaytestComboRevealResult<Match> = QuickDuelPlaytestCharacterEventResult<Match> & {
+  comboOfferId: string | null;
+  comboDeck: string[];
+};
+
+function characterSubscribesToEvent(board: CharacterRuntimeBoard, event: CharacterRuntimeEvent["type"]) {
+  return characterHostSubscriptions().some((entry) => entry.cardId === board.fighterId && entry.events.includes(event));
+}
+
+export function commitQuickDuelPlaytestComboRevealSelection(
+  comboOfferId: string | null,
+  comboDeck: string[],
+  event: CharacterRuntimeEvent | null,
+) {
+  if (!comboOfferId || event?.type !== "comboReveal" || !event.selectedId) return { comboOfferId, comboDeck };
+  const revealIds = event.revealIds ?? [];
+  if (revealIds.length !== 2 || !revealIds.includes(comboOfferId) || !revealIds.includes(event.selectedId)) return { comboOfferId, comboDeck };
+  const extraId = revealIds.find((id) => id !== comboOfferId) ?? null;
+  if (!extraId || comboDeck[0] !== extraId) return { comboOfferId, comboDeck };
+  const unselectedId = event.selectedId === comboOfferId ? extraId : comboOfferId;
+  return {
+    comboOfferId: event.selectedId,
+    comboDeck: [...comboDeck.slice(1), unselectedId],
+  };
+}
+
+export function publishQuickDuelPlaytestComboReveal<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  comboOfferId: string | null,
+  comboDeck: string[],
+): QuickDuelPlaytestComboRevealResult<Match> {
+  const board = actor === "player" ? match.player : match.ai;
+  const extraId = comboDeck[0] ?? null;
+  if (!comboOfferId || !extraId || !characterSubscribesToEvent(board, "comboReveal")) {
+    return {
+      match, published: false, conflict: false,
+      reason: !comboOfferId ? "No face-up Combo is available." : !extraId ? "No additional Combo is available to reveal." : "Character has no comboReveal subscription.",
+      event: null, choices: [], notes: [], comboOfferId, comboDeck,
+    };
+  }
+
+  let character = publishQuickDuelPlaytestCharacterEvent(match, actor, {
+    type: "comboReveal",
+    revealIds: [comboOfferId, extraId],
+  });
+
+  if (actor === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(character.match, actor, character.event, choice, selection);
+    }
+  }
+
+  const projected = commitQuickDuelPlaytestComboRevealSelection(comboOfferId, comboDeck, character.event);
+  return { ...character, ...projected };
 }
 
 /**
