@@ -183,6 +183,7 @@ test("Character acceptance matrix inventories every canonical Core Character and
   assert.equal(venue.playerExecutionVerified, true);
   assert.equal(venue.aiExecutionVerified, true);
   assert.equal(venue.stateMutationVerified, true);
+  assert.ok(venue.failureCategories.includes("FAIL_USAGE_SCOPE"));
   assert.equal(venue.finalCertificationStatus, "BLOCKED_ACTIVE_STAGE3E");
 
   assert.equal(matrix.statusCounts.BLOCKED_ACTIVE_STAGE3E, 5);
@@ -191,4 +192,5 @@ test("Character acceptance matrix inventories every canonical Core Character and
   assert.equal(matrix.executionCounts.FAIL_RESOLVER_NOT_REACHED, 1);
   assert.equal(matrix.failureCounts.FAIL_DURATION, 1);
   assert.equal(matrix.failureCounts.FAIL_RESOLVER_NOT_REACHED, 1);
+  assert.equal(matrix.failureCounts.FAIL_USAGE_SCOPE, 1);
 });
