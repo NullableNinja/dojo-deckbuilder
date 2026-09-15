@@ -1,0 +1,42 @@
+name: Ten-item Repo Hygiene Pass
+
+on:
+  push:
+    branches:
+      - cleanup/repo-hygiene-10-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Apply ten cleanups
+        run: node scripts/repo-hygiene-pass.mjs
+      - name: Verify repository
+        run: npm run verify
+      - name: Verify no retired baggage remains
+        run: |
+          test ! -e reports/card-effect-audit.json
+          test ! -e public/playtest-critical-hotfix.css
+          test ! -e public/search-dashboard-layout-fix.css
+          ! grep -R "FAMILY_BY_FILE\|simulation-v2.3" scripts engine tests README.md docs/ENGINE-ARCHITECTURE.md
+          ! grep -E "DDB-(STA|CMB|CHR)-CORE-[0-9]+" tests/engine.test.mjs tests/rules-json-runtime.test.mjs
+      - name: Remove one-time hygiene machinery
+        run: rm scripts/repo-hygiene-pass.mjs .github/workflows/repo-hygiene-10.yml
+      - name: Commit cleanup
+        run: |
+          git config user.name "Thomas Bryant"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: complete ten-item repository hygiene pass"
+          git push origin HEAD:cleanup/repo-hygiene-10-20260915
