@@ -37,6 +37,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm -f .github/temp-patch-ronin-reveal.py
           git rm -f .github/workflows/temp-stage3e-ronin-reveal.yml
-          git add content/card-effects/characters.json content/card-effects.json app/data/card-effects.json app/character-runtime.ts tests/quick-duel-character-ronin-reveal.test.mjs
+          git add content/card-effects/characters.json content/card-effects.json app/data/card-effects.json app/character-runtime.ts app/quick-duel-playtest-host.ts app/quick-duel-character-event-routes.ts app/playtest.tsx tests/character-runtime-enforcement.test.mjs tests/quick-duel-character-ronin-reveal.test.mjs
           git commit -m "feat(stage3e): make Ronin reveal replacement hidden-deck safe"
           git push origin HEAD:stage3e-character-ronin-reveal
