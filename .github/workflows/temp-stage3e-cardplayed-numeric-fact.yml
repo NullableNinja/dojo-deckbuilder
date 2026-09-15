@@ -1,0 +1,40 @@
+name: Temporary Stage 3E cardPlayed numeric fact certification
+
+on:
+  push:
+    branches:
+      - stage3e-character-cardplayed-numeric-fact
+
+permissions:
+  contents: write
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage3e-character-cardplayed-numeric-fact
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+      - run: npm ci
+      - name: Apply cardPlayed numeric fact host wiring
+        run: python .github/temp-patch-cardplayed-numeric-fact.py
+      - name: Canonical source drift
+        run: npm run game:check
+      - name: Production build
+        run: npm run build
+      - name: CardPlayed numeric fact certification
+        run: node --experimental-strip-types --test tests/quick-duel-character-card-played-facts.test.mjs tests/quick-duel-character-card-played-host.test.mjs tests/character-runtime-enforcement.test.mjs
+      - name: Commit certified implementation and remove temporary machinery
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f .github/temp-patch-cardplayed-numeric-fact.py
+          git rm -f .github/workflows/temp-stage3e-cardplayed-numeric-fact.yml
+          git add app/structured-card-facts.ts app/quick-duel-transition-host.ts tests/quick-duel-character-card-played-facts.test.mjs
+          git commit -m "feat(stage3e): publish Ink Fist numeric card fact"
+          git push origin HEAD:stage3e-character-cardplayed-numeric-fact
