@@ -386,6 +386,89 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   };
 }
 
+type QuickDuelCharacterAttackLookupCard = {
+  cardType?: string | null;
+  subtype?: string | null;
+  tags?: string[] | null;
+};
+type QuickDuelCharacterAttackCardLookup = (id: string) => QuickDuelCharacterAttackLookupCard | null | undefined;
+
+function quickDuelCharacterAttackDeclaredEvent<Board extends CharacterRuntimeBoard>(
+  board: Board,
+  card: CharacterRuntimeEvent["card"],
+  selectedZone: string,
+  attackPower: number,
+  lookup: QuickDuelCharacterAttackCardLookup,
+): CharacterRuntimeEvent {
+  const printedZone = String(card?.zone ?? "").split(",")[0]?.trim() || null;
+  const previousAttackZone = board.zonesPlayed.at(-1) ?? null;
+  const isKata = (candidate: ReturnType<QuickDuelCharacterAttackCardLookup>) => String(candidate?.subtype ?? candidate?.cardType ?? "").toLocaleLowerCase() === "kata";
+  const isWeapon = (candidate: ReturnType<QuickDuelCharacterAttackCardLookup>) =>
+    String(candidate?.subtype ?? "").toLocaleLowerCase() === "weapon"
+    || (candidate?.tags ?? []).some((tag) => String(tag).toLocaleLowerCase() === "weapon");
+  return {
+    type: "attackDeclared",
+    card: card ?? null,
+    zone: selectedZone,
+    selectedZone,
+    printedZone,
+    previousAttackZone,
+    attackPower: Math.max(0, attackPower),
+    firstAttackThisTurn: board.attacksThisTurn === 0,
+    usedConsumableThisTurn: board.usedConsumableThisRound,
+    playedKataEarlierThisTurn: board.cardsThisTurn.some((id) => isKata(lookup(id))),
+    differentZoneFromPreviousAttack: Boolean(previousAttackZone && previousAttackZone !== selectedZone),
+    hasWeaponEquipped: board.equipment.some((id) => isWeapon(lookup(id))),
+  };
+}
+
+export function publishQuickDuelPlaytestAttackDeclared<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  card: CharacterRuntimeEvent["card"],
+  selectedZone: string,
+  attackPower: number,
+  lookup: QuickDuelCharacterAttackCardLookup = runtimeCardFor,
+): QuickDuelPlaytestCharacterEventResult<Match> {
+  const board = actor === "player" ? match.player : match.ai;
+  let character = publishQuickDuelPlaytestCharacterEvent(
+    match,
+    actor,
+    quickDuelCharacterAttackDeclaredEvent(board, card, selectedZone, attackPower, lookup),
+  );
+  if (actor === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(character.match, actor, character.event, choice, selection);
+    }
+  }
+  return character;
+}
+
+export function previewQuickDuelPlaytestCharacterAttackZones<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  card: CharacterRuntimeEvent["card"],
+  baseZones: string[],
+  lookup: QuickDuelCharacterAttackCardLookup = runtimeCardFor,
+) {
+  const zones = new Set(baseZones);
+  for (const candidate of ["High", "Mid", "Low"]) {
+    if (zones.has(candidate)) continue;
+    const preview = publishQuickDuelPlaytestAttackDeclared(match, actor, card, candidate, 0, lookup);
+    if (preview.event?.changedZone || preview.choices.some((choice) => choice.options.length > 0)) zones.add(candidate);
+  }
+  return ["High", "Mid", "Low"].filter((zone) => zones.has(zone));
+}
+
 export type QuickDuelPlaytestEquipResult<Match> = QuickDuelPlaytestCharacterEventResult<Match> & {
   allowed: boolean;
 };

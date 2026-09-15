@@ -41,15 +41,12 @@ function board(fighterId = "test-fighter") {
   };
 }
 
-test("migration-safe Character publisher refuses compatibility-conflicted pre-action events", () => {
-  for (const type of ["attackDeclared"]) {
-    const self = board();
-    const opponent = board("opponent");
-    const publication = publishQuickDuelCharacterEventSafely(self, opponent, { type }, "player");
-    assert.equal(publication.published, false, type);
-    assert.equal(publication.conflict, true, type);
-    assert.equal(publication.result, null, type);
-    assert.equal(self.hostSentinel, "preserve-me");
+test("Stage 3E has no compatibility-conflicted Character pre-action events", () => {
+  for (const type of ["attackDeclared", "damageIncoming", "equip"]) {
+    const publication = publishQuickDuelCharacterEventSafely(board(), board("opponent"), { type }, "player");
+    assert.equal(publication.published, true, type);
+    assert.equal(publication.conflict, false, type);
+    assert.ok(publication.result, type);
   }
 });
 

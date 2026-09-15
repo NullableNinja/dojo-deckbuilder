@@ -21,24 +21,8 @@ export type CharacterResolverOwnership = {
  * runtime become its sole owner.
  */
 export const QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS: Readonly<
-  Record<CharacterCompatibilityHelper, readonly string[]>
-> = {
-  characterAllowedAttackZones: [
-    "character.firstSpinAttackRound",
-    "character.firstHighAttackToMid",
-    "character.declaredAttackZoneChange",
-    "character.discardToChangeDeclaredZone",
-  ],
-  characterAttackModifier: [
-    "character.firstAttackAfterConsumable",
-    "character.firstKickDifferentZone",
-    "character.firstUnarmedAttack",
-    "character.conditionalAttackPower",
-    "character.green.linkedZoneChangePower",
-    "character.green.linkedRecycleLowAttack",
-  ],
-
-} as const;
+  Partial<Record<CharacterCompatibilityHelper, readonly string[]>>
+> = {} as const;
 
 const compatibilityOwner = new Map<string, CharacterCompatibilityHelper>();
 for (const [helper, resolvers] of Object.entries(QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS) as [CharacterCompatibilityHelper, readonly string[]][]) {
@@ -74,9 +58,7 @@ export function quickDuelEventRuntimeOwnedResolvers() {
  * certification guard, not a replacement rules engine. The final migration
  * removes the helper call and therefore removes the conflict.
  */
-export const QUICK_DUEL_CHARACTER_COMPATIBILITY_EVENTS: readonly CharacterRuntimeEventType[] = [
-  "attackDeclared",
-] as const;
+export const QUICK_DUEL_CHARACTER_COMPATIBILITY_EVENTS: readonly CharacterRuntimeEventType[] = [] as const;
 
 export function quickDuelCharacterEventHasCompatibilityConflict(event: CharacterRuntimeEventType) {
   return QUICK_DUEL_CHARACTER_COMPATIBILITY_EVENTS.includes(event);

@@ -27,21 +27,19 @@ test("every canonical Core Character resolver has exactly one migration owner", 
   assert.deepEqual(compatibility.filter((resolver) => eventRuntime.includes(resolver)), []);
 });
 
-test("temporary compatibility ownership only names real canonical structured resolvers", () => {
-  for (const [helper, resolvers] of Object.entries(QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS)) {
-    assert.ok(resolvers.length > 0, `${helper} must own at least one resolver while it remains in Quick Duel`);
-    for (const resolver of resolvers) assert.ok(canonicalResolvers.includes(resolver), `${helper} owns unknown resolver ${resolver}`);
-  }
+test("Stage 3E leaves no Character resolver in temporary compatibility ownership", () => {
+  assert.deepEqual(QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS, {});
+  assert.deepEqual(quickDuelCompatibilityOwnedResolvers(), []);
+  assert.deepEqual(quickDuelEventRuntimeOwnedResolvers(), canonicalResolvers);
 });
 
-test("compatibility ownership mirrors the direct Character helpers still used by Playtest", () => {
-  for (const helper of Object.keys(QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS)) {
-    assert.match(playtestSource, new RegExp(`\\b${helper}\\s*\\(`), `${helper} should remain compatibility-owned only while Playtest calls it directly`);
-  }
+test("Playtest no longer calls the temporary Character compatibility helpers", () => {
+  assert.doesNotMatch(playtestSource, /characterAllowedAttackZones\s*\(/);
+  assert.doesNotMatch(playtestSource, /characterAttackModifier\s*\(/);
 });
 
 test("events that would double-apply current helpers are explicitly blocked from blind event publication", () => {
-  assert.equal(quickDuelCharacterEventHasCompatibilityConflict("attackDeclared"), true);
+  assert.equal(quickDuelCharacterEventHasCompatibilityConflict("attackDeclared"), false);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("damageIncoming"), false);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("equip"), false);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("cardPlayed"), false);
