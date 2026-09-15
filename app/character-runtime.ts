@@ -415,11 +415,13 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
       case "character.discardToChangeDeclaredZone":
       case "character.firstSpinAttackRound": {
         const first = event.firstAttackThisTurn ?? self.attacksThisTurn === 0;
-        if (resolver === "character.firstHighAttackToMid" && !first) break;
+        const printedZone = String(event.printedZone ?? "").toLocaleLowerCase();
+        const selectedZone = String(event.selectedZone ?? event.zone ?? "").toLocaleLowerCase();
+        if (resolver === "character.firstHighAttackToMid" && (!first || printedZone !== "high" || selectedZone !== "mid")) break;
         if (resolver === "character.firstSpinAttackRound" && (!first || !hasTag(event.card, "Spin"))) break;
-        const changed = Boolean(event.selectedZone && event.selectedZone !== event.printedZone);
+        const changed = Boolean(selectedZone && printedZone && selectedZone !== printedZone);
         if (resolver === "character.discardToChangeDeclaredZone" && changed) {
-          if (!event.selectedId || !self.hand.includes(event.selectedId)) { choices.push(makeChoice(effect, "Discard a card to change the declared Attack zone.", self.hand)); break; }
+          if (!event.selectedId || !self.hand.includes(event.selectedId)) { choices.push(makeChoice(effect, "Discard a card to change the declared Attack zone.", self.hand, false)); break; }
           self = discard(self, 1, event.selectedId);
         }
         if (changed) { event.changedZone = true; self = mark(self, "turn:changedAttack"); activated = true; }
