@@ -1,0 +1,25 @@
+name: Temporary Stage 3E attackDeclared reject map
+
+on:
+  push:
+    branches: [stage3e-attack-declared-current-main]
+
+jobs:
+  map:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage3e-attack-declared-current-main
+          fetch-depth: 0
+      - name: Map rejected playtest hunks
+        shell: bash
+        run: |
+          set -u
+          git diff --binary addc08e291a046925990ae47b656e4031cfb782e 744b18ae3fa24ef7a689eaaf6e4aa4d6e1f0ae7b -- app/playtest.tsx > /tmp/playtest.patch
+          git apply --reject --whitespace=nowarn /tmp/playtest.patch || true
+          echo '=== REJECTED HUNKS ==='
+          if test -f app/playtest.tsx.rej; then cat app/playtest.tsx.rej; else echo 'NONE'; fi
+          echo '=== END REJECTS ==='
+          exit 0
