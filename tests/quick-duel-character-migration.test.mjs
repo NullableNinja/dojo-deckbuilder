@@ -43,7 +43,7 @@ test("compatibility ownership mirrors the direct Character helpers still used by
 test("events that would double-apply current helpers are explicitly blocked from blind event publication", () => {
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("attackDeclared"), true);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("damageIncoming"), false);
-  assert.equal(quickDuelCharacterEventHasCompatibilityConflict("equip"), true);
+  assert.equal(quickDuelCharacterEventHasCompatibilityConflict("equip"), false);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("cardPlayed"), false);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("hit"), false);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("block"), false);

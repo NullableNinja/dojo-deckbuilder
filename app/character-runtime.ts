@@ -93,6 +93,7 @@ export type CharacterRuntimeEvent = {
   optionalAccepted?: boolean;
   modifierBonus?: number;
   targetId?: string | null;
+  allowed?: boolean;
 };
 
 export type CharacterRuntimeChoice = {
@@ -463,7 +464,9 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
       case "character.green.linkedKickHitSpeed":
         if (hasMark(self, "turn:kickBonus")) { self = { ...self, tempSpeed: self.tempSpeed + amount }; activated = true; }
         break;
-      case "character.cannotEquipWeapons": if (event.card && !characterCanEquip(self, event.card)) { self = mark(self, "round:equipRejected", event.card.id); activated = true; } break;
+      case "character.cannotEquipWeapons":
+        if (event.card && !characterCanEquip(self, event.card)) { event.allowed = false; activated = true; }
+        break;
       case "character.firstUnarmedAttack":
         if ((event.firstAttackThisTurn ?? self.attacksThisTurn === 0) && !event.hasWeaponEquipped) { event.attackPower = Number(event.attackPower ?? 0) + amount; activated = true; }
         break;

@@ -42,7 +42,7 @@ function board(fighterId = "test-fighter") {
 }
 
 test("migration-safe Character publisher refuses compatibility-conflicted pre-action events", () => {
-  for (const type of ["attackDeclared", "equip"]) {
+  for (const type of ["attackDeclared"]) {
     const self = board();
     const opponent = board("opponent");
     const publication = publishQuickDuelCharacterEventSafely(self, opponent, { type }, "player");
@@ -54,7 +54,7 @@ test("migration-safe Character publisher refuses compatibility-conflicted pre-ac
 });
 
 test("non-overlapping Character events publish through the canonical structured runtime", () => {
-  for (const type of ["cardPlayed", "damageIncoming", "hit", "block", "kataPlayed", "promotion", "hide"]) {
+  for (const type of ["cardPlayed", "damageIncoming", "equip", "hit", "block", "kataPlayed", "promotion", "hide"]) {
     const publication = publishQuickDuelCharacterEventSafely(board(), board("opponent"), { type }, "player");
     assert.equal(publication.published, true, type);
     assert.equal(publication.conflict, false, type);
