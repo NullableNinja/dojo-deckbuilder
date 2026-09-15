@@ -245,7 +245,13 @@
             {"cardId":"DDB-WPN-CORE-045","name":"Nunchaku","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-045_nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-045_nunchaku.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-045_nunchaku_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {
+        "batch": "weapons-010",
+        "worker": "codex",
+        "status": "claimed",
+        "cardIds": ["DDB-WPN-CORE-046", "DDB-WPN-CORE-047", "DDB-WPN-CORE-048", "DDB-WPN-CORE-049", "DDB-WPN-CORE-050"]
+      }
     }
   }
 }
