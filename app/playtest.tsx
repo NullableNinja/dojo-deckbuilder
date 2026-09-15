@@ -19,10 +19,10 @@ import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, sp
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
-import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
+import { characterAllowedAttackZones, characterAttackModifier, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
-import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
+import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 import { normalizePendingDamageChoice } from "./playtest-state-recovery";
@@ -2178,8 +2178,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-initiate" || current.winner) return current;
     const card = cardFor(id);
     if (!card || !isPermanent(card)) return current;
-    if (!characterCanEquip(current.player, card)) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);
-    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id] }, card, "player");
+    const characterEquip = publishQuickDuelPlaytestEquip(current, "player", card);
+    if (!characterEquip.allowed) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);
+    const equippedMatch = characterEquip.match;
+    let nextPlayer = applyCardEffects({ ...equippedMatch.player, hand: removeOne(equippedMatch.player.hand, id), playArea: [...equippedMatch.player.playArea, id], cardsThisTurn: [...equippedMatch.player.cardsThisTurn, id] }, card, "player");
     let pendingChoice: PendingChoice | null = null;
     const beltName = belts[nextPlayer.belt]?.name ?? "White";
     for (const sourceId of nextPlayer.equipment) {
@@ -2191,11 +2193,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       if (plan.draw) nextPlayer = drawCards(nextPlayer, plan.draw);
       if (plan.discard) {
         const count = Math.min(plan.discard, nextPlayer.hand.length);
-        if (count) return write(current, `${card.name} equipped. ${source.name} requires ${count} discard${count === 1 ? "" : "s"}.`, { player: nextPlayer, pendingDiscard: { sourceCardId: source.id, remaining: count, sourceFollowup: false } });
+        if (count) return write(equippedMatch, `${card.name} equipped. ${source.name} requires ${count} discard${count === 1 ? "" : "s"}.`, { player: nextPlayer, pendingDiscard: { sourceCardId: source.id, remaining: count, sourceFollowup: false } });
       }
       if (plan.readyOther && (nextPlayer.exhaustedEquipment ?? []).some((candidate) => candidate !== sourceId)) pendingChoice = { kind: "ready-equipment", sourceCardId: source.id, optional: true };
     }
-    return write(current, `${card.name} equipped during Initiate. ${cardEffectNote(card)}`, { player: nextPlayer, pendingChoice });
+    return write(equippedMatch, `${card.name} equipped during Initiate. ${cardEffectNote(card)}`, { player: nextPlayer, pendingChoice });
   });
 
 
@@ -3574,7 +3576,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const permanent = isPermanent(card);
           const choosingDiscard = Boolean(match.pendingDiscard);
           const choosingEffect = Boolean(match.pendingChoice);
-          const canInitiate = match.phase === "player-initiate" && permanent && characterCanEquip(player, card);
+          const canInitiate = match.phase === "player-initiate" && permanent && publishQuickDuelPlaytestEquip(match, "player", card).allowed;
           const attackAllowed = !stage3cRestrictionBlocks(player.stage3cRestrictions, "attack");
           const consumableAllowed = !isCoreConsumableCard(card) || (!stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(player)));
           const canUse = match.phase === "player-yell" && (attack ? attackAllowed : (defense ? !player.defensePracticeUsed : !permanent && consumableAllowed));
@@ -3826,7 +3828,8 @@ function prepareAiTurn(current: Match) {
   }
   const supportIds = nextAi.hand.filter((id) => {
     const card = cardFor(id);
-    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || !characterCanEquip(nextAi, card)) return false;
+    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk") return false;
+    if (isPermanent(card) && !publishQuickDuelPlaytestEquip({ ...current, player: nextPlayer, ai: nextAi }, "ai", card).allowed) return false;
     if (isCoreConsumableCard(card)) return canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(nextAi));
     return true;
   });
@@ -3841,6 +3844,12 @@ function prepareAiTurn(current: Match) {
     if (isCoreConsumableCard(card) && stage3cRestrictionBlocks(nextAi.stage3cRestrictions, "consumable")) continue;
     const locationModifier = locationFocusModifier(cardFor(current.locationId), card, nextAi);
     if (isKata(card)) nextAi = stage3cConsumeKata(nextAi);
+    if (isPermanent(card)) {
+      const characterEquip = publishQuickDuelPlaytestEquip({ ...current, player: nextPlayer, ai: nextAi }, "ai", card);
+      if (!characterEquip.allowed) continue;
+      nextPlayer = characterEquip.match.player;
+      nextAi = characterEquip.match.ai;
+    }
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
     if (isCoreConsumableCard(card)) {
       nextAi = applyCardEffects(nextAi, card, "ai", "afterResolve", stage3cConsumableContext(nextAi));
