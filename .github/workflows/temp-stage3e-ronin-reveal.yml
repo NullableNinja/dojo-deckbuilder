@@ -24,6 +24,8 @@ jobs:
         run: python .github/temp-patch-ronin-test.py
       - name: Apply Ronin reveal runtime correction
         run: python .github/temp-patch-ronin-reveal.py
+      - name: Normalize Ronin reveal card type
+        run: python .github/temp-patch-ronin-typefix.py
       - name: Regenerate canonical outputs
         run: npm run game:generate
       - name: Canonical source drift
@@ -39,6 +41,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm -f .github/temp-patch-ronin-test.py
           git rm -f .github/temp-patch-ronin-reveal.py
+          git rm -f .github/temp-patch-ronin-typefix.py
           git rm -f .github/workflows/temp-stage3e-ronin-reveal.yml
           git add content/card-effects/characters.json content/card-effects.json app/data/card-effects.json app/character-runtime.ts app/quick-duel-playtest-host.ts app/quick-duel-character-event-routes.ts app/playtest.tsx tests/character-runtime-enforcement.test.mjs tests/quick-duel-character-ronin-reveal.test.mjs
           git commit -m "feat(stage3e): make Ronin reveal replacement hidden-deck safe"
