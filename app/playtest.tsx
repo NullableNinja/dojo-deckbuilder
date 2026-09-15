@@ -4,10 +4,10 @@ import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
-import { compileCardEffects, describeEffectPlan, effectPlanForCard } from "./card-effects";
+import { describeEffectPlan, effectPlanForCard } from "./card-effects";
 import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroyJunkChoicePlan, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
-import { finalAttackAllowedZones, finalAttackCycle, finalAttackDefensiveReactionBonus, finalAttackEquipmentSuppression, finalAttackFireDrillFeint, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackOptionalAttackCost, finalAttackPowerBonus } from "./attack-final-effects";
+import { finalAttackAllowedZones, finalAttackCycle, finalAttackEquipmentSuppression, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackPowerBonus } from "./attack-final-effects";
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
 import { consumableRuntimeCommands, structuredConsumableMandatoryDiscard, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";
 import { canPlayCoreConsumableInPhase, stage3cRestrictionBlocks } from "./stage3c-consumable-play-window.ts";
@@ -23,15 +23,39 @@ import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
-import "./combo-rack.css";
-import "./playtest-production-mat.css";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 import { normalizePendingDamageChoice } from "./playtest-state-recovery";
 import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";
 import { QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, spendQuickDuelTrainingStripeForHealing } from "./quick-duel-training-stripes.ts";
 import { markQuickDuelBeltCheckAction, quickDuelBeltCheckActionAvailability } from "./quick-duel-belt-check-actions.ts";
 
+/**
+ * QUICK DUEL REACT SHELL
+ *
+ * This file coordinates the browser experience; it is not the rules database.
+ *
+ * What belongs here:
+ * - React state, dialogs, controls, and turn/phase orchestration.
+ * - Translating player/AI actions into generic runtime and host calls.
+ * - Presenting the canonical state returned by those hosts.
+ *
+ * What does NOT belong here:
+ * - New card-specific rules, costs, stats, or effect definitions.
+ * - New identity-specific mechanics that can be expressed in canonical JSON plus
+ *   a generic resolver/host.
+ *
+ * Canonical truth lives under content/*.json and is generated into app/data/*.json.
+ * A few identity/prose fallbacks remain below as migration debt so existing games
+ * keep working; those sections are labeled. Do not expand them with new rules.
+ */
+
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
+
+// -----------------------------------------------------------------------------
+// REACT-SIDE STATE SHAPES
+// These types describe the state the UI needs to render and coordinate Quick Duel.
+// They do not define canonical card/rule content; that comes from generated JSON.
+// -----------------------------------------------------------------------------
 
 type CardEntry = {
   id: string;
@@ -458,6 +482,12 @@ function refreshMarketRow(market: string[], marketDeck: string[], marketDiscard:
 
 type CombatModifier = { value: number; notes: string[] };
 type AttackModifier = { power: number; damage: number; notes: string[] };
+// -----------------------------------------------------------------------------
+// LEGACY LOCATION COMPATIBILITY — MIGRATION DEBT
+// Any location-name/prose checks below are compatibility fallbacks, not the desired
+// architecture. New Location behavior belongs in canonical structured effects.
+// -----------------------------------------------------------------------------
+
 function locationAttackModifier(location: CardEntry | undefined, card: CardEntry, board: Board, zone: string): AttackModifier {
   if (!location) return { power: 0, damage: 0, notes: [] };
   const firstAttack = board.attacksThisTurn === 0;
@@ -908,6 +938,13 @@ function autoActivateAiDefenseGuardEquipment(board: Board) {
   return { board: next, guard, notes };
 }
 
+// -----------------------------------------------------------------------------
+// COMBAT ORCHESTRATION ADAPTERS
+// These helpers gather canonical/runtime facts into the shape the React duel needs.
+// Prefer adding behavior to generic resolvers/hosts rather than branching on card IDs
+// or names here.
+// -----------------------------------------------------------------------------
+
 function attackAllowedZones(board: Board, card: CardEntry) {
   const conditional = finalAttackAllowedZones(card, { boughtCardLastAscend: board.boughtCardLastAscend });
   if (conditional.handled && conditional.zones.length > 1) return conditional.zones;
@@ -1004,6 +1041,14 @@ function withPlayerCharacterChoice(result: {
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
 
+// -----------------------------------------------------------------------------
+// STRUCTURED RUNTIME COMPATIBILITY BRIDGE
+// The stage3c* names are historical, but this code is live. It adapts current board
+// state to the generic structured-effect runtime. Do not delete it merely because
+// the migration stage is over; retire pieces only when their callers move to a
+// newer generic host.
+// -----------------------------------------------------------------------------
+
 function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {
   return {
     hasTempo: board.tempo,
@@ -1020,7 +1065,7 @@ function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {
   };
 }
 
-function stage3cDefenseContext(defender: Board, attacker: Board, defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext & { weaponAttack: boolean; defenderAttackedThisRound: boolean } {
+function stage3cDefenseContext(defender: Board, attacker: Board, _defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext & { weaponAttack: boolean; defenderAttackedThisRound: boolean } {
   const matchingArmor = equipmentDefenseModifier(defender, zone).value > 0;
   return {
     hasTempo: defender.tempo,
@@ -1562,6 +1607,13 @@ function playerDiscardChoiceCount(card: CardEntry, timing: "onPlay" | "onHit" | 
     .reduce((total, effect) => total + effect.amount, 0);
 }
 
+// -----------------------------------------------------------------------------
+// LEGACY EFFECT COMPATIBILITY — MIGRATION DEBT
+// Structured JSON/resolvers are authoritative. The prose/name fallbacks in this
+// section exist only so not-yet-migrated behavior keeps working. New mechanics must
+// NOT be added here; add them to canonical JSON and a reusable resolver/host.
+// -----------------------------------------------------------------------------
+
 function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai", timing: "onPlay" | "onHit" | "onBlock" | "afterResolve" = "onPlay", familyContext: DefenseRuntimeContext | ConsumableRuntimeContext = {}, grantPrintedFocus = true) {
   let next = { ...board };
   const migratedFamily = isCoreDefenseCard(card) || isCoreConsumableCard(card);
@@ -1670,6 +1722,12 @@ function autoPlayAiDefensiveConsumable(board: Board, expectedIncomingDamage: num
   return { board: next, card: selected, notes: [`${selected.name} is used as the computer's defensive Reaction`] };
 }
 
+// -----------------------------------------------------------------------------
+// AI DECISION HELPERS
+// The AI chooses among legal actions here; legality/effects still come from the
+// canonical runtime. AI heuristics may rank choices, but should not invent rules.
+// -----------------------------------------------------------------------------
+
 function bestDefense(board: Board, zone: string, attackPower = Number.POSITIVE_INFINITY, difficulty: Difficulty = "certified", location?: CardEntry, incomingAttack?: CardEntry, attacker?: Board, piercing = 0, armorPenalty = 0) {
   const options = legalDefenseIds(board, zone);
   if (!options.length || (difficulty === "student" && Math.random() < .28)) return null;
@@ -1721,7 +1779,12 @@ function playAreaCleanup(board: Board) {
   return drawCards({ ...readyBoard, hand: [], playArea: [], equipment: readyBoard.equipment, exhaustedEquipment: readyBoard.exhaustedEquipment ?? [], equipmentAttackPlan: null, discard, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, attacksThisTurn: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], nextAttackBonus: 0, wasHitSinceLastTurn: false, playedDefenseSinceLastTurn: false, blockedSinceLastTurn: false, usedEffectIdsThisTurn: [], nextAttackArmorPenalty: 0, comboAttemptedTurn: false, boughtCardLastAscend: Boolean(readyBoard.boughtCardThisAscend), boughtCardThisAscend: false, targetEquipmentDefPenalties: {}, attackLockedThisTurn: false, reactionItemUsedSinceLastTurn: false, suppressedEquipmentPenaltyIds: [], completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false }, gameDefinition.turn.handSize + (beltHasReward(readyBoard, "hand-size") ? 1 : 0));
 }
 
-function cardLabel(card: CardEntry) { return `${card.name} · ${card.catalogId}`; }
+
+// -----------------------------------------------------------------------------
+// PRESENTATION COMPONENTS
+// From here, components turn already-resolved game state into the Paper-Fu UI.
+// Keep mechanics out of rendering helpers whenever possible.
+// -----------------------------------------------------------------------------
 
 function NativeCardArt({ card }: { card: CardEntry }) {
   const glyph = isAttack(card) ? "✦" : isDefense(card) ? "◆" : isKata(card) ? "◎" : isPermanent(card) ? "▣" : card.cardType === "Combo" ? "∞" : "✺";
@@ -1973,6 +2036,13 @@ function SetupView({ selectedId, setSelectedId, settings, setSettings, begin }: 
 function MobilePlaytestNotice() {
   return <section className="playtest-mobile-notice paper-stack"><span className="eyebrow">Desktop field test</span><h1>Quick Duel needs a bigger mat.</h1><p>The playable teaser is intentionally hidden on phones. Open this page on a desktop or laptop to fight; the rules and Card Library remain fully mobile-friendly.</p></section>;
 }
+
+// -----------------------------------------------------------------------------
+// MAIN QUICK DUEL COORDINATOR
+// This component owns browser state and delegates mechanical work to the helpers and
+// runtime hosts above. When this section becomes hard to follow, extract UI/state
+// orchestration — do not move canonical rules back into React.
+// -----------------------------------------------------------------------------
 
 export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards") => void }) {
   const [selectedId, setSelectedId] = useState(() => characters.find((card) => card.name === "Sensei Ducktape")?.id ?? characters[0].id);
@@ -3496,8 +3566,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         {equipmentActions.length > 0 && <div className="equipment-reaction-strip equipment-trigger-strip" aria-label="Available Equipment actions"><span>Equipment actions</span>{equipmentActions.map((item) => <button type="button" disabled={Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)} key={item.id}><b>Exhaust {item.name}</b><small>{equipmentActivationSummary(item)}</small></button>)}</div>}
         <div className="play-card-row">{player.hand.map((id, index) => {
           const card = cardFor(id); if (!card) return null;
-          const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card); const badHabit = card.catalogId === gameDefinition.economy.badHabitFocus.catalogId;
-          const choosingDiscard = Boolean(match.pendingDiscard);
+          const attack = isAttack(card); const defense = isDefense(card); const permanent = isPermanent(card);           const choosingDiscard = Boolean(match.pendingDiscard);
           const choosingEffect = Boolean(match.pendingChoice);
           const canInitiate = match.phase === "player-initiate" && permanent && characterCanEquip(player, card);
           const attackAllowed = !stage3cRestrictionBlocks(player.stage3cRestrictions, "attack");
@@ -3575,7 +3644,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           <div><dt>ATK</dt><dd>{fighterStat(inspectedBoard, "ATK")}</dd></div><div><dt>DEF</dt><dd>{fighterStat(inspectedBoard, "DEF")}</dd></div><div><dt>SPD</dt><dd>{fighterStat(inspectedBoard, "Speed")}</dd></div><div><dt>XP</dt><dd>{inspectedBoard.xp}</dd></div><div><dt>Focus</dt><dd>{inspectedBoard.focus}</dd></div><div><dt>Belt</dt><dd>{belts[inspectedBoard.belt].name}</dd></div>
         </dl> : <dl><div><dt>Focus Cost</dt><dd>{inspected.fpCost ?? "—"}</dd></div><div><dt>Focus Value</dt><dd>{inspected.focusValue ?? "—"}</dd></div><div><dt>Zone</dt><dd>{inspected.zone ?? "—"}</dd></div><div><dt>Timing</dt><dd>{inspected.timing ?? "—"}</dd></div></dl>}
         <section className="inspector-rules"><span>Printed rules text</span><p>{inspected.rulesText ?? "No printed rules text."}</p></section>
-        {inspectedBoard && <section className="inspector-loadout"><header><div><span className="eyebrow">Current equipment</span><h3>Fighter loadout</h3></div><small>{inspectedBoard.equipment.length} equipped card{inspectedBoard.equipment.length === 1 ? "" : "s"} · {(inspectedBoard.exhaustedEquipment ?? []).length} exhausted</small></header><div className="inspector-loadout-grid">{LOADOUT_SLOTS.map((slot) => { const equipped = inspectedBoard.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && equipmentSlotLabel(card) === slot)); return <article className={`equipment-slot ${equipped.length ? "is-filled" : ""}`} key={slot}><span>{slot}</span>{equipped.length ? <div>{equipped.map((item, index) => { const exhausted = isEquipmentExhausted(inspectedBoard, item.id); const plan = equipmentActivationPlan(item); const optionalDefensePlan = optionalCombatDamageReductionEquipment(item) || postBlockEquipmentCycle(item); const ownLoadout = inspectedBoard === player; const legalPhase = plan?.kind === "speed-cycle" ? match.phase === "player-initiate" || match.phase === "player-yell" : plan?.kind === "incoming-zone-penalty" || plan?.kind === "defense-guard" ? match.phase === "defense-window" : plan ? match.phase === "player-yell" : false; return <div className={`equipment-slot-control ${exhausted ? "is-exhausted" : ""}`} key={`${item.id}-${index}`}><button type="button" onClick={() => setInspectedId(item.id)}><span className="equipment-slot-art">{artistUrl(item) ? <img src={artistUrl(item)} alt="" /> : <NativeCardArt card={item} />}</span><b>{item.name}</b><small>{exhausted ? "EXHAUSTED" : "READY"} · {item.details?.Slot ? String(item.details.Slot) : item.subtype}</small></button>{ownLoadout && plan && <button type="button" className="equipment-activate" disabled={exhausted || !legalPhase || Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)}>{exhausted ? "Exhausted" : legalPhase ? "Exhaust →" : plan?.kind === "incoming-zone-penalty" || plan?.kind === "defense-guard" ? "Use in Reaction" : "Use during Yell"}</button>}</div>; })}</div> : <em>Empty</em>}</article>; })}</div></section>}
+        {inspectedBoard && <section className="inspector-loadout"><header><div><span className="eyebrow">Current equipment</span><h3>Fighter loadout</h3></div><small>{inspectedBoard.equipment.length} equipped card{inspectedBoard.equipment.length === 1 ? "" : "s"} · {(inspectedBoard.exhaustedEquipment ?? []).length} exhausted</small></header><div className="inspector-loadout-grid">{LOADOUT_SLOTS.map((slot) => { const equipped = inspectedBoard.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && equipmentSlotLabel(card) === slot)); return <article className={`equipment-slot ${equipped.length ? "is-filled" : ""}`} key={slot}><span>{slot}</span>{equipped.length ? <div>{equipped.map((item, index) => { const exhausted = isEquipmentExhausted(inspectedBoard, item.id); const plan = equipmentActivationPlan(item);  const ownLoadout = inspectedBoard === player; const legalPhase = plan?.kind === "speed-cycle" ? match.phase === "player-initiate" || match.phase === "player-yell" : plan?.kind === "incoming-zone-penalty" || plan?.kind === "defense-guard" ? match.phase === "defense-window" : plan ? match.phase === "player-yell" : false; return <div className={`equipment-slot-control ${exhausted ? "is-exhausted" : ""}`} key={`${item.id}-${index}`}><button type="button" onClick={() => setInspectedId(item.id)}><span className="equipment-slot-art">{artistUrl(item) ? <img src={artistUrl(item)} alt="" /> : <NativeCardArt card={item} />}</span><b>{item.name}</b><small>{exhausted ? "EXHAUSTED" : "READY"} · {item.details?.Slot ? String(item.details.Slot) : item.subtype}</small></button>{ownLoadout && plan && <button type="button" className="equipment-activate" disabled={exhausted || !legalPhase || Boolean(match.pendingChoice)} onClick={() => activateEquipment(item.id)}>{exhausted ? "Exhausted" : legalPhase ? "Exhaust →" : plan?.kind === "incoming-zone-penalty" || plan?.kind === "defense-guard" ? "Use in Reaction" : "Use during Yell"}</button>}</div>; })}</div> : <em>Empty</em>}</article>; })}</div></section>}
         <footer>{inspectedBoard ? "Click an equipped card to inspect it. " : `${cardEffectNote(inspected)} `}Click the card image to magnify it. Press Escape to close.</footer>
       </article>
     </div>}
@@ -3626,7 +3695,6 @@ function applyBeltPromotion(board: Board, beltIndex: number) {
 
 function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string[], useTempo: boolean) {
   const card = cardFor(cardId)!;
-  const fighter = cardFor(current.ai.fighterId);
   const anyZone = attackHasFlexibleZone(current.ai, card);
   const zone = anyZone ? ["High", "Mid", "Low"][Math.floor(Math.random() * 3)] : card.zone?.split(",")[0] ?? "High";
   const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "ai", card, zone, cardFor, quickDuelHostOperations);
@@ -3725,7 +3793,6 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string, house
 
 function prepareAiTurn(current: Match) {
   current = publishQuickDuelPlaytestLifecycleEvent(current, "ai", "onInitiate", quickDuelHostOperations).match;
-  const fighter = cardFor(current.ai.fighterId);
   const initiatedAi = applyInitiateCarryover({ ...current.ai, usedEffectIdsThisTurn: [] });
   const turnEquipment = autoActivateAiTurnEquipment(initiatedAi);
   const aiStart = turnEquipment.board;

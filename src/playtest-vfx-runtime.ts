@@ -1,4 +1,3 @@
-import "../app/playtest-vfx.css";
 import { derivePlaytestEvents, dispatchPlaytestEvent, PLAYTEST_EVENT_NAME, type FighterSide, type PlaytestEvent, type PlaytestMatchSnapshot } from "./playtest-events";
 import { buildVfxPresentationCues, type VfxPresentationCue } from "./playtest-vfx-presentation";
 
