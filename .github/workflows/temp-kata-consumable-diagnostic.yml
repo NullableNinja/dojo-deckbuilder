@@ -1,42 +1,319 @@
-name: Temporary Kata Consumable diagnostic
+name: Temporary Kata Consumable repair
 on:
   push:
     branches: [fix/kata-consumable-runtime-certification]
+permissions:
+  contents: write
 jobs:
-  inspect:
+  repair:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/kata-consumable-runtime-certification
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
       - run: npm ci
-      - name: Classify Kata and Consumable runtime work
+      - name: Patch structured Kata bridge into live resolver surface
         shell: bash
         run: |
-          echo '=== KATA RUNTIME REFERENCES ==='
-          grep -RInE 'resolveKataEffects|resolveKataEffect|kata-playtest-bridge|SUPPORTED_KATA_RESOLVERS' app tests || true
-          echo '=== PLAYTEST KATA CALLS ==='
-          grep -nE 'isKata\(|structuredFocusIfFastest|mandatoryDiscardChoiceCount|discardChoiceFollowup|deckLookPlan|structuredNextAttackAnyZone|structuredNextAttackFlow' app/playtest.tsx | head -300 || true
-          echo '=== KATA RESOLVER COUNTS ==='
-          node --input-type=module <<'NODE'
+          python <<'PY'
+          from pathlib import Path
+
+          p = Path('app/kata-playtest-bridge.ts')
+          s = p.read_text()
+          s = s.replace('  firstCardPlayedThisTurn?: boolean;\n};', '  firstCardPlayedThisTurn?: boolean;\n  firstAttackThisTurn?: boolean;\n};')
+          old = '''export function kataFastestFocusForHost(card: RuntimeCardLike, selfSpeed: number, opponentSpeed: number) {
+  return kataCommandsForHost(card, "afterResolve", { isFastest: selfSpeed > opponentSpeed })
+    .filter((command) => command.action === "gainFocus")
+    .reduce((total, command) => total + Number(command.amount ?? 0), 0);
+}
+
+export function kataNextAttackFlowForHost(card: RuntimeCardLike, trigger: string, facts: KataHostFacts = {}) {
+  const commands = kataCommandsForHost(card, trigger, facts);
+  const handled = commands.some((command) => command.kind === "grantFlow" || command.action === "grantFlow");
+  return { handled, grant: handled };
+}
+
+export function kataNextAttackAnyZoneForHost(card: RuntimeCardLike, trigger: string, facts: KataHostFacts = {}) {
+  const commands = kataCommandsForHost(card, trigger, facts);
+  const matching = commands.filter((command) => command.kind === "armZoneOverride" || command.action === "chooseZone");
+  return { handled: matching.length > 0, grant: matching.length > 0 };
+}
+'''
+          new = '''export function kataFastestFocusForHost(card: RuntimeCardLike, selfSpeed: number, opponentSpeed: number) {
+  return kataCommandsForHost(card, "afterResolve", { isFastest: selfSpeed > opponentSpeed })
+    .filter((command) => command.resolver === "kata.conditional" && command.action === "gainFocus")
+    .reduce((total, command) => total + Number(command.amount ?? 0), 0);
+}
+
+export function kataNextAttackFlowForHost(card: RuntimeCardLike, trigger: string, facts: KataHostFacts = {}) {
+  const commands = kataCommandsForHost(card, trigger, facts);
+  const flowCommands = commands.filter((command) => command.resolver === "kata.flowGrant" || command.resolver === "kata.branch");
+  const matching = flowCommands.filter((command) => {
+    if (!(command.kind === "grantFlow" || command.action === "grantFlow" || command.params?.grantFlowTo === "nextAttack")) return false;
+    const zones = stringArrayParam(command, "attackZones").map((zone) => zone.toLocaleLowerCase());
+    if (zones.length && !facts.attackZone) return false;
+    if (zones.length && facts.attackZone && !zones.includes(String(facts.attackZone).toLocaleLowerCase())) return false;
+    return true;
+  });
+  return { handled: flowCommands.length > 0 && matching.length > 0, grant: matching.length > 0 };
+}
+
+export function kataNextAttackAnyZoneForHost(card: RuntimeCardLike, trigger: string, facts: KataHostFacts = {}) {
+  const commands = kataCommandsForHost(card, trigger, facts);
+  const candidates = commands.filter((command) => command.resolver === "kata.zoneOverride" || command.resolver === "kata.branch");
+  const matching = candidates.filter((command) => {
+    if (!(command.kind === "armZoneOverride" || command.action === "chooseZone")) return false;
+    if (command.params?.firstAttackThisTurn === true && facts.firstAttackThisTurn !== true) return false;
+    return true;
+  });
+  return { handled: candidates.length > 0, grant: matching.length > 0 };
+}
+'''
+          if old not in s:
+              raise SystemExit('kata bridge target block not found')
+          p.write_text(s.replace(old, new))
+
+          p = Path('app/effect-resolvers.ts')
+          s = p.read_text()
+          marker = 'import { structuredLocationAttackForHost } from "./location-playtest-bridge.ts";\n'
+          addition = '''import {
+  kataConditionalHealForHost,
+  kataDeckLookPlanForHost,
+  kataDiscardFollowupForHost,
+  kataFastestFocusForHost,
+  kataMandatoryDiscardCountForHost,
+  kataNextAttackAnyZoneForHost,
+  kataNextAttackFlowForHost,
+} from "./kata-playtest-bridge.ts";\n'''
+          if addition not in s:
+              s = s.replace(marker, marker + addition)
+          s = s.replace('''function isCoreConsumable(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
+  return catalogId(card).startsWith("DDB-CON-CORE-");
+}
+
+function isCoreLocation''', '''function isCoreConsumable(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
+  return catalogId(card).startsWith("DDB-CON-CORE-");
+}
+
+function isCoreKata(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
+  return catalogId(card).startsWith("DDB-KAT-CORE-");
+}
+
+function isCoreLocation''')
+          s = s.replace('''export function mandatoryDiscardChoiceCount(card: Parameters<typeof legacy.mandatoryDiscardChoiceCount>[0]) {
+  if (isCoreConsumable(card)) return structuredConsumableMandatoryDiscard(card);
+  return legacy.mandatoryDiscardChoiceCount(card);
+}''', '''export function mandatoryDiscardChoiceCount(card: Parameters<typeof legacy.mandatoryDiscardChoiceCount>[0]) {
+  if (isCoreConsumable(card)) return structuredConsumableMandatoryDiscard(card);
+  if (isCoreKata(card)) return kataMandatoryDiscardCountForHost(card);
+  return legacy.mandatoryDiscardChoiceCount(card);
+}''')
+          s = s.replace('''export function conditionalHealAfterHit(
+  card: Parameters<typeof legacy.conditionalHealAfterHit>[0],
+  wasHitSinceLastTurn: boolean,
+) {
+  // Migrated Defense/Consumable healing is executed by the structured family
+  // runtime at its declared trigger. Never parse their printed prose here.
+  if (isCoreDefense(card) || isCoreConsumable(card)) return 0;
+  return legacy.conditionalHealAfterHit(card, wasHitSinceLastTurn);
+}''', '''export function conditionalHealAfterHit(
+  card: Parameters<typeof legacy.conditionalHealAfterHit>[0],
+  wasHitSinceLastTurn: boolean,
+) {
+  // Migrated Defense/Consumable healing is executed by the structured family
+  // runtime at its declared trigger. Never parse their printed prose here.
+  if (isCoreDefense(card) || isCoreConsumable(card)) return 0;
+  if (isCoreKata(card)) {
+    const structured = kataConditionalHealForHost(card, { wasHitSinceLastTurn });
+    if (structured) return structured;
+  }
+  return legacy.conditionalHealAfterHit(card, wasHitSinceLastTurn);
+}''')
+          s = s.replace('''export function discardChoiceFollowup(
+  source: Parameters<typeof legacy.discardChoiceFollowup>[0],
+  discarded: Parameters<typeof legacy.discardChoiceFollowup>[1],
+) {
+  if (isCoreDefense(source) || isCoreConsumable(source)) {
+    return { focus: 0, nextAttackPower: 0, nextDefenseGuard: 0, notes: [] as string[] };
+  }
+  return legacy.discardChoiceFollowup(source, discarded);
+}''', '''export function discardChoiceFollowup(
+  source: Parameters<typeof legacy.discardChoiceFollowup>[0],
+  discarded: Parameters<typeof legacy.discardChoiceFollowup>[1],
+) {
+  if (isCoreDefense(source) || isCoreConsumable(source)) {
+    return { focus: 0, nextAttackPower: 0, nextDefenseGuard: 0, notes: [] as string[] };
+  }
+  if (isCoreKata(source)) {
+    return kataDiscardFollowupForHost(source, {
+      discardedCardType: String(discarded.cardType ?? discarded.subtype ?? ""),
+      discardedFocusValue: Number(discarded.focusValue ?? 0),
+    });
+  }
+  return legacy.discardChoiceFollowup(source, discarded);
+}
+
+export function structuredFocusIfFastest(
+  card: Parameters<typeof legacy.structuredFocusIfFastest>[0],
+  selfSpeed: number,
+  opponentSpeed: number,
+) {
+  if (isCoreKata(card)) return kataFastestFocusForHost(card, selfSpeed, opponentSpeed);
+  return legacy.structuredFocusIfFastest(card, selfSpeed, opponentSpeed);
+}''')
+          s = s.replace('''  if (isCoreConsumable(card)) {
+    const grant = consumableRuntimeCommands(card, context.timing)
+      .some((command) => command.effect === "combat.grantFlow" && command.duration === "nextAttack");
+    return { handled: structuredRuntimeEffects(card).some((effect) => effect.resolver === "consumable.nextAttackFlowUntilEndOfTurn"), grant };
+  }
+  return legacy.structuredNextAttackFlow(card, context);''', '''  if (isCoreConsumable(card)) {
+    const grant = consumableRuntimeCommands(card, context.timing)
+      .some((command) => command.effect === "combat.grantFlow" && command.duration === "nextAttack");
+    return { handled: structuredRuntimeEffects(card).some((effect) => effect.resolver === "consumable.nextAttackFlowUntilEndOfTurn"), grant };
+  }
+  if (isCoreKata(card)) {
+    const structured = kataNextAttackFlowForHost(card, context.timing, {
+      differentZoneFromPreviousAttack: Boolean(context.differentZoneFromPreviousAttack),
+    });
+    if (structured.handled) return structured;
+  }
+  return legacy.structuredNextAttackFlow(card, context);''')
+          s = s.replace('''  if (isCoreDefense(card)) {
+    const commands = defenseRuntimeCommands(card, context.timing);
+    const handled = structuredRuntimeEffects(card).some((effect) => effect.resolver === "defense.delayedZoneChoice");
+    return { handled, grant: commands.some((command) => command.effect === "combat.chooseZone") };
+  }
+  return legacy.structuredNextAttackAnyZone(card, context);''', '''  if (isCoreDefense(card)) {
+    const commands = defenseRuntimeCommands(card, context.timing);
+    const handled = structuredRuntimeEffects(card).some((effect) => effect.resolver === "defense.delayedZoneChoice");
+    return { handled, grant: commands.some((command) => command.effect === "combat.chooseZone") };
+  }
+  if (isCoreKata(card)) {
+    const structured = kataNextAttackAnyZoneForHost(card, context.timing, { firstAttackThisTurn: context.attackNumber === 0 });
+    if (structured.handled) return structured;
+  }
+  return legacy.structuredNextAttackAnyZone(card, context);''')
+          s = s.replace('''export function deckLookPlan(card: Parameters<typeof legacy.deckLookPlan>[0]): legacy.DeckLookPlan | null {
+  if (isCoreConsumable(card)) {''', '''export function deckLookPlan(card: Parameters<typeof legacy.deckLookPlan>[0]): legacy.DeckLookPlan | null {
+  if (isCoreKata(card)) {
+    const structured = kataDeckLookPlanForHost(card);
+    if (structured) return structured;
+  }
+  if (isCoreConsumable(card)) {''')
+          p.write_text(s)
+          PY
+
+          cat > tests/quick-duel-kata-consumable-runtime.test.mjs <<'TEST'
+          import test from 'node:test';
+          import assert from 'node:assert/strict';
           import fs from 'node:fs';
-          const cards=JSON.parse(fs.readFileSync('content/card-effects/katas.json','utf8')).cards;
-          const counts={};
-          for (const [id,card] of Object.entries(cards)) for (const e of card.effects) if (e.resolver) counts[e.resolver]=(counts[e.resolver]??0)+1;
-          console.log(JSON.stringify(counts,null,2));
-          const direct = new Set(['kata.conditional','kata.attackModifier','kata.defenseModifier','kata.nextAttackPiercing','kata.linkedAttackOutcome','kata.cardTypeThreshold']);
-          let directCount=0, branchCount=0, semanticCount=0, genericCount=0;
-          const semantic={};
-          for (const card of Object.values(cards)) for (const e of card.effects) {
-            if (!e.resolver) { genericCount++; continue; }
-            if (direct.has(e.resolver)) directCount++;
-            else if (e.resolver==='kata.branch') branchCount++;
-            else { semanticCount++; semantic[e.resolver]=(semantic[e.resolver]??0)+1; }
-          }
-          console.log({genericCount,directCount,branchCount,semanticCount,semantic});
+          import {
+            conditionalHealAfterHit,
+            deckLookPlan,
+            discardChoiceFollowup,
+            mandatoryDiscardChoiceCount,
+            structuredFocusIfFastest,
+            structuredNextAttackAnyZone,
+            structuredNextAttackFlow,
+          } from '../app/effect-resolvers.ts';
+          import {
+            consumableRuntimeCommands,
+            structuredConsumableDestroysAfterUse,
+            structuredConsumableMandatoryDiscard,
+            structuredConsumableReturnsToSupply,
+          } from '../app/consumable-effect-resolvers.ts';
+
+          const cards = JSON.parse(fs.readFileSync(new URL('../app/data/cards.json', import.meta.url), 'utf8')).cards;
+          const byCatalog = new Map(cards.map((card) => [card.catalogId, card]));
+          const card = (id) => {
+            const found = byCatalog.get(id);
+            assert.ok(found, `missing ${id}`);
+            return found;
+          };
+
+          test('Morning-Shift Meditation uses structured discard choice and zero-Focus followup', () => {
+            const kata = card('DDB-KAT-CORE-039');
+            assert.equal(mandatoryDiscardChoiceCount(kata), 1);
+            assert.equal(discardChoiceFollowup(kata, { cardType: 'Starter', focusValue: 0 }).focus, 1);
+            assert.equal(discardChoiceFollowup(kata, { cardType: 'Starter', focusValue: 1 }).focus, 0);
+          });
+
+          test('After-Action Huddle branches from the chosen discarded card', () => {
+            const kata = card('DDB-KAT-CORE-002');
+            assert.equal(mandatoryDiscardChoiceCount(kata), 1);
+            assert.equal(discardChoiceFollowup(kata, { cardType: 'Technique', focusValue: 1 }).nextAttackPower, 1);
+            assert.equal(discardChoiceFollowup(kata, { cardType: 'Item', focusValue: 1 }).nextDefenseGuard, 1);
+          });
+
+          test('structured Kata deck-look plans reach the generic Quick Duel deck-choice surface', () => {
+            assert.deepEqual(deckLookPlan(card('DDB-KAT-CORE-018')), { kind: 'pick-discard', count: 3, filter: 'defense-or-kata', optional: false, noMatchFocus: 1 });
+            assert.deepEqual(deckLookPlan(card('DDB-KAT-CORE-029')), { kind: 'pick-reorder', count: 3, filter: 'technique', optional: false });
+            assert.deepEqual(deckLookPlan(card('DDB-KAT-CORE-030')), { kind: 'pick-shuffle', count: 5, filter: 'item', optional: true });
+          });
+
+          test('Footwork Drill fastest reward is structured and does not trigger unrelated deferred Kata rewards', () => {
+            assert.equal(structuredFocusIfFastest(card('DDB-KAT-CORE-021'), 6, 4), 1);
+            assert.equal(structuredFocusIfFastest(card('DDB-KAT-CORE-021'), 4, 6), 0);
+            assert.equal(structuredFocusIfFastest(card('DDB-KAT-CORE-001'), 6, 4), 0);
+          });
+
+          test('Breath Control and Heian Shodan reach generic next-Attack state', () => {
+            assert.deepEqual(structuredNextAttackFlow(card('DDB-KAT-CORE-007'), { timing: 'onPlay' }), { handled: true, grant: true });
+            assert.deepEqual(structuredNextAttackAnyZone(card('DDB-KAT-CORE-026'), { timing: 'onPlay', attackNumber: 0 }), { handled: true, grant: true });
+          });
+
+          test('Recovery Stance conditional healing is driven by canonical Kata facts', () => {
+            assert.equal(conditionalHealAfterHit(card('DDB-KAT-CORE-047'), true), 3);
+            assert.equal(conditionalHealAfterHit(card('DDB-KAT-CORE-047'), false), 0);
+          });
+
+          test('Consumable mandatory discard and lifecycle are executable, not merely registered', () => {
+            const greenTea = card('DDB-CON-CORE-025');
+            assert.equal(structuredConsumableMandatoryDiscard(greenTea), 1);
+            assert.equal(consumableRuntimeCommands(greenTea, 'onPlay').some((command) => command.effect === 'core.draw' && command.amount === 2), true);
+            assert.equal(structuredConsumableReturnsToSupply(greenTea), true);
+            assert.equal(structuredConsumableDestroysAfterUse(greenTea), false);
+
+            const carbonated = card('DDB-CON-CORE-007');
+            assert.equal(structuredConsumableDestroysAfterUse(carbonated), true);
+            assert.equal(structuredConsumableReturnsToSupply(carbonated), false);
+          });
+
+          test('Quick Duel source actually invokes the certified Kata/Consumable surfaces', () => {
+            const source = fs.readFileSync(new URL('../app/playtest.tsx', import.meta.url), 'utf8');
+            assert.match(source, /mandatoryDiscardChoiceCount\(card\)/);
+            assert.match(source, /discardChoiceFollowup\(sourceCard, selected\)/);
+            assert.match(source, /deckLookPlan\(card\)/);
+            assert.match(source, /structuredFocusIfFastest\(card,/);
+            assert.match(source, /structuredConsumableMandatoryDiscard\(card,/);
+            assert.match(source, /returnsToSupplyAfterUse\(card\)/);
+            assert.match(source, /destroysAfterUse\(card\)/);
+          });
+          TEST
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+          const testFile = 'tests/quick-duel-kata-consumable-runtime.test.mjs';
+          if (!p.scripts.test.includes(testFile)) p.scripts.test += ' ' + testFile;
+          fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
           NODE
-          echo '=== CURRENT KATA BRIDGE EXPORTS ==='
-          grep -n '^export function' app/kata-playtest-bridge.ts || true
-          echo '=== CONSUMABLE SUPPORT SURFACES ==='
-          grep -nE 'consumableRuntimeCommands|structuredConsumableMandatoryDiscard|armConsumable|resolveConsumable|returnsToSupplyAfterUse|destroysAfterUse' app/playtest.tsx | head -300 || true
+
+      - name: Focused Kata Consumable acceptance
+        run: node --experimental-strip-types --test tests/quick-duel-kata-consumable-runtime.test.mjs
+      - name: Full verification
+        run: npm run verify
+      - name: Commit certified repair and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/temp-kata-consumable-diagnostic.yml
+          git config user.name "Thomas Bryant"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add app/kata-playtest-bridge.ts app/effect-resolvers.ts tests/quick-duel-kata-consumable-runtime.test.mjs package.json .github/workflows/temp-kata-consumable-diagnostic.yml
+          git diff --cached --check
+          git commit -m "fix: wire structured Kata bridge into Quick Duel"
+          git push origin HEAD:fix/kata-consumable-runtime-certification
