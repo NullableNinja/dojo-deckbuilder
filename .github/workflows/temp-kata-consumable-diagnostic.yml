@@ -11,28 +11,32 @@ jobs:
         with:
           node-version: 22.12.0
       - run: npm ci
-      - name: Inventory runtime integration
+      - name: Classify Kata and Consumable runtime work
         shell: bash
         run: |
-          echo '=== TEST FILES ==='
-          find tests -maxdepth 1 -type f | sort | grep -Ei 'kata|consum|effect|playtest' || true
           echo '=== KATA RUNTIME REFERENCES ==='
-          rg -n 'resolveKataEffects|resolveKataEffect|kata-effect-resolvers|SUPPORTED_KATA_RESOLVERS' app tests || true
-          echo '=== PLAYTEST KATA REFERENCES ==='
-          rg -n 'isKata\(|cardType.*Kata|subtype.*Kata|Kata' app/playtest.tsx | head -250 || true
-          echo '=== CONSUMABLE RUNTIME REFERENCES ==='
-          rg -n 'consumableRuntimeCommands|structuredConsumable|armConsumable|resolveConsumable' app/playtest.tsx | head -300 || true
-          echo '=== PACKAGE TEST ==='
-          node -e "const p=require('./package.json'); console.log(JSON.stringify({test:p.scripts?.test,verify:p.scripts?.verify},null,2))"
-          echo '=== KATA COUNTS ==='
+          grep -RInE 'resolveKataEffects|resolveKataEffect|kata-playtest-bridge|SUPPORTED_KATA_RESOLVERS' app tests || true
+          echo '=== PLAYTEST KATA CALLS ==='
+          grep -nE 'isKata\(|structuredFocusIfFastest|mandatoryDiscardChoiceCount|discardChoiceFollowup|deckLookPlan|structuredNextAttackAnyZone|structuredNextAttackFlow' app/playtest.tsx | head -300 || true
+          echo '=== KATA RESOLVER COUNTS ==='
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          const k=JSON.parse(fs.readFileSync('content/card-effects/katas.json','utf8')).cards;
-          let effects=0,resolverEffects=0,cardsWithResolvers=0;
-          for (const v of Object.values(k)) { effects += v.effects.length; const n=v.effects.filter(e=>e.resolver).length; resolverEffects+=n; if(n) cardsWithResolvers++; }
-          console.log({cards:Object.keys(k).length,effects,resolverEffects,cardsWithResolvers});
-          const c=JSON.parse(fs.readFileSync('content/card-effects/consumables.json','utf8')).cards;
-          let ce=0, cr=0, cc=0;
-          for (const v of Object.values(c)) { ce += v.effects.length; const n=v.effects.filter(e=>e.resolver).length; cr+=n; if(n) cc++; }
-          console.log({consumableCards:Object.keys(c).length,consumableEffects:ce,consumableResolverEffects:cr,consumableCardsWithResolvers:cc});
+          const cards=JSON.parse(fs.readFileSync('content/card-effects/katas.json','utf8')).cards;
+          const counts={};
+          for (const [id,card] of Object.entries(cards)) for (const e of card.effects) if (e.resolver) counts[e.resolver]=(counts[e.resolver]??0)+1;
+          console.log(JSON.stringify(counts,null,2));
+          const direct = new Set(['kata.conditional','kata.attackModifier','kata.defenseModifier','kata.nextAttackPiercing','kata.linkedAttackOutcome','kata.cardTypeThreshold']);
+          let directCount=0, branchCount=0, semanticCount=0, genericCount=0;
+          const semantic={};
+          for (const card of Object.values(cards)) for (const e of card.effects) {
+            if (!e.resolver) { genericCount++; continue; }
+            if (direct.has(e.resolver)) directCount++;
+            else if (e.resolver==='kata.branch') branchCount++;
+            else { semanticCount++; semantic[e.resolver]=(semantic[e.resolver]??0)+1; }
+          }
+          console.log({genericCount,directCount,branchCount,semanticCount,semantic});
           NODE
+          echo '=== CURRENT KATA BRIDGE EXPORTS ==='
+          grep -n '^export function' app/kata-playtest-bridge.ts || true
+          echo '=== CONSUMABLE SUPPORT SURFACES ==='
+          grep -nE 'consumableRuntimeCommands|structuredConsumableMandatoryDiscard|armConsumable|resolveConsumable|returnsToSupplyAfterUse|destroysAfterUse' app/playtest.tsx | head -300 || true
