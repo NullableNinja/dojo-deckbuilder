@@ -1,0 +1,111 @@
+name: Temporary Stage 3E equip reconstruction v3
+
+on:
+  push:
+    branches: [stage3e-equip-current-main]
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage3e-equip-current-main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - name: Reconstruct equip from live current-main seams
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --binary 4742f38afac9b3025f962020456ff699d9651ef9 addc08e291a046925990ae47b656e4031cfb782e -- \
+            app/character-runtime.ts \
+            app/quick-duel-character-migration.ts \
+            app/quick-duel-playtest-host.ts \
+            tests/quick-duel-character-equip-host.test.mjs \
+            > /tmp/equip-clean.patch
+          test -s /tmp/equip-clean.patch
+          git apply --3way /tmp/equip-clean.patch
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/playtest.tsx')
+          text = p.read_text()
+          def one(old, new, label):
+              global text
+              n = text.count(old)
+              if n != 1:
+                  raise SystemExit(f'{label}: expected 1 seam, found {n}')
+              text = text.replace(old, new, 1)
+
+          one(
+            'import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";',
+            'import { characterAllowedAttackZones, characterAttackModifier, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";',
+            'remove direct equip helper import')
+          one(
+            'import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";',
+            'import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";',
+            'import generic equip host')
+          one(
+            '    if (!characterCanEquip(current.player, card)) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);',
+            '    const characterEquip = publishQuickDuelPlaytestEquip(current, "player", card);\n    if (!characterEquip.allowed) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);\n    const equippedMatch = characterEquip.match;',
+            'player equip legality')
+          one(
+            '    let nextPlayer = applyCardEffects({ ...current.player, hand: removeOne(current.player.hand, id), playArea: [...current.player.playArea, id], cardsThisTurn: [...current.player.cardsThisTurn, id] }, card, "player");',
+            '    let nextPlayer = applyCardEffects({ ...equippedMatch.player, hand: removeOne(equippedMatch.player.hand, id), playArea: [...equippedMatch.player.playArea, id], cardsThisTurn: [...equippedMatch.player.cardsThisTurn, id] }, card, "player");',
+            'player equip state source')
+          one(
+            '        if (count) return write(current, `${card.name} equipped. ${source.name} requires ${count} discard${count === 1 ? "" : "s"}.`, { player: nextPlayer, pendingDiscard: { sourceCardId: source.id, remaining: count, sourceFollowup: false } });',
+            '        if (count) return write(equippedMatch, `${card.name} equipped. ${source.name} requires ${count} discard${count === 1 ? "" : "s"}.`, { player: nextPlayer, pendingDiscard: { sourceCardId: source.id, remaining: count, sourceFollowup: false } });',
+            'player equip discard continuation')
+          one(
+            '    return write(current, `${card.name} equipped during Initiate. ${cardEffectNote(card)}`, { player: nextPlayer, pendingChoice });',
+            '    return write(equippedMatch, `${card.name} equipped during Initiate. ${cardEffectNote(card)}`, { player: nextPlayer, pendingChoice });',
+            'player equip final write')
+          one(
+            '          const canInitiate = match.phase === "player-initiate" && permanent && characterCanEquip(player, card);',
+            '          const canInitiate = match.phase === "player-initiate" && permanent && publishQuickDuelPlaytestEquip(match, "player", card).allowed;',
+            'player equip preview')
+          one(
+            '    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk" || !characterCanEquip(nextAi, card)) return false;',
+            '    if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk") return false;\n    if (isPermanent(card) && !publishQuickDuelPlaytestEquip({ ...current, player: nextPlayer, ai: nextAi }, "ai", card).allowed) return false;',
+            'AI equip filtering')
+          one(
+            '    if (isKata(card)) nextAi = stage3cConsumeKata(nextAi);\n    nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});',
+            '    if (isKata(card)) nextAi = stage3cConsumeKata(nextAi);\n    if (isPermanent(card)) {\n      const characterEquip = publishQuickDuelPlaytestEquip({ ...current, player: nextPlayer, ai: nextAi }, "ai", card);\n      if (!characterEquip.allowed) continue;\n      nextPlayer = characterEquip.match.player;\n      nextAi = characterEquip.match.ai;\n    }\n    nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});',
+            'AI equip commit')
+          p.write_text(text)
+          PY
+
+          node --input-type=module <<'NODE'
+          import { readFile, writeFile } from 'node:fs/promises';
+          const path='package.json';
+          const pkg=JSON.parse(await readFile(path,'utf8'));
+          const testFile='tests/quick-duel-character-equip-host.test.mjs';
+          if(!pkg.scripts.test.includes(testFile)) pkg.scripts.test += ` ${testFile}`;
+          await writeFile(path, `${JSON.stringify(pkg,null,2)}\n`);
+          NODE
+          git diff --check
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Focused equip acceptance certification
+        run: node --experimental-strip-types --test tests/quick-duel-character-equip-host.test.mjs
+      - name: Current canonical runtime and build gate
+        run: npm run verify
+      - name: Commit certified reconstruction and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/temp-stage3e-equip-rebuild-v3.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Migrate Character equip to event runtime"
+          git push origin HEAD:stage3e-equip-current-main
