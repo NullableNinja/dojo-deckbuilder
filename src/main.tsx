@@ -5,15 +5,8 @@ import CompanionApp from "../app/companion-app";
 import PlaytestCardRouteLifecycle from "../app/playtest-card-route-lifecycle";
 import { installBeltCheckTrainingStripes } from "../app/belt-check-training-stripes";
 import "../app/card-inspector.css";
-import "../app/mobile-site-polish.css";
-import "../app/card-inspector-host-fix.css";
-import "../app/rulings-variants.css";
-import "../app/playtest-card-surface.css";
-import "../app/playtest-market-card-polish.css";
-import "../app/card-library-art-consistency.css";
-import "../app/playtest-layout.css";
+import "../app/playtest.css";
 import "../app/ascend-combo-popout";
-import "../app/belt-check-training-stripes.css";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;

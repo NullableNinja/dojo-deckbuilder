@@ -10,7 +10,6 @@ import {
   type SearchResultType,
 } from "./search";
 import { navigate, replaceRoute } from "./routing";
-import "./search-page.css";
 
 const SEARCH_GROUP_ICONS: Record<SearchResultType, string> = {
   card: "◇",
