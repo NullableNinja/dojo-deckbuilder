@@ -1,9 +1,6 @@
 name: temp-stage3e-coach
 
 on:
-  push:
-    branches:
-      - stage3e-character-coach-modification-fact
   workflow_dispatch:
 
 permissions:
@@ -24,6 +21,8 @@ jobs:
       - run: npm ci
       - name: Apply Coach Karen modification integration
         run: node scripts/temp-stage3e-coach-patch.mjs
+      - name: Apply Coach Karen certification repairs
+        run: node scripts/temp-stage3e-coach-fix.mjs
       - name: Regenerate canonical outputs
         run: npm run game:generate
       - name: Canonical source drift
@@ -42,7 +41,7 @@ jobs:
             tests/runtime-effect-certification-character.test.mjs
       - name: Commit certified implementation and remove temporary machinery
         run: |
-          rm -f .github/workflows/temp-stage3e-coach.yml scripts/temp-stage3e-coach-patch.mjs
+          rm -f .github/workflows/temp-stage3e-coach.yml scripts/temp-stage3e-coach-patch.mjs scripts/temp-stage3e-coach-fix.mjs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
@@ -54,8 +53,10 @@ jobs:
             content/card-effects/characters.json \
             content/card-effects.json \
             app/data/card-effects.json \
+            tests/character-runtime-enforcement.test.mjs \
             tests/quick-duel-character-coach-modification-host.test.mjs \
             .github/workflows/temp-stage3e-coach.yml \
-            scripts/temp-stage3e-coach-patch.mjs
+            scripts/temp-stage3e-coach-patch.mjs \
+            scripts/temp-stage3e-coach-fix.mjs
           git commit -m "feat(stage3e): publish Coach Karen card modification facts"
           git push origin HEAD:stage3e-character-coach-modification-fact
