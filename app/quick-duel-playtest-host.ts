@@ -11,6 +11,7 @@ import {
   type QuickDuelCharacterLifecycleFacts,
 } from "./quick-duel-character-event-context.ts";
 import type { RuntimeCommand, RuntimeTrigger } from "./family-effect-runtime.ts";
+import { clearOpponentCardModificationQueue, opponentCardModificationQueue, queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts.ts";
 import { runtimeCardFor } from "./runtime-card-catalog.ts";
 import {
   applyQuickDuelStructuredTransition,
@@ -297,6 +298,42 @@ function publishCharacterCombatTransition<
   return surfaceDeferredCharacterChoice(result);
 }
 
+function publishQueuedCharacterCardModifications<
+  Board extends QuickDuelComboMatchBoard & QuickDuelCharacterCombatBoard,
+  Match extends QuickDuelPlaytestStateMatch<Board>,
+>(match: Match): Match {
+  let result = match;
+  for (const actor of ["player", "ai"] as const) {
+    const queued = opponentCardModificationQueue(result[actor]);
+    if (!queued.length) continue;
+    result = { ...result, [actor]: clearOpponentCardModificationQueue(result[actor]) } as Match;
+    for (const modifiedCardType of queued) {
+      let character = publishQuickDuelPlaytestCharacterEvent(result, actor, {
+        type: "cardModified",
+        opponentModifiedCard: true,
+        modifiedCardType,
+      });
+      if (actor === "ai") {
+        for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+          const choice = character.choices[0];
+          const selection = chooseAiCharacterOption(choice);
+          if (selection === null) break;
+          character = resolveQuickDuelPlaytestCharacterChoice(character.match, actor, character.event, choice, selection);
+        }
+      }
+      result = character.match as Match;
+      if (actor === "player" && character.event && character.choices.length > 0) {
+        const pending: QuickDuelCharacterChoiceState = { kind: "character-runtime", event: character.event, choice: character.choices[0] };
+        result = result.pendingChoice
+          ? withDeferredCharacterChoice(result, pending)
+          : ({ ...result, pendingChoice: pending } as Match);
+        break;
+      }
+    }
+  }
+  return surfaceDeferredCharacterChoice(result);
+}
+
 export function applyQuickDuelPlaytestTransition<
   Board extends QuickDuelComboMatchBoard & QuickDuelCharacterCombatBoard,
   Match extends QuickDuelPlaytestStateMatch<Board>,
@@ -306,7 +343,8 @@ export function applyQuickDuelPlaytestTransition<
   lookup: ComboHostCardLookup,
 ): Match {
   const structured = { ...next, ...applyQuickDuelStructuredTransition(previous, next, lookup) } as Match;
-  return publishCharacterCombatTransition(previous, structured, lookup);
+  const combat = publishCharacterCombatTransition(previous, structured, lookup);
+  return publishQueuedCharacterCardModifications(combat);
 }
 
 /**
@@ -475,8 +513,12 @@ export function hostQuickDuelPlaytestCardEvent<
     event,
     statusEvent,
   );
+  let hostedBoards = hosted.boards;
+  for (const modifiedCardType of runtimeCommandCardModificationTypes(hosted.commands)) {
+    hostedBoards = { ...hostedBoards, opponent: queueOpponentCardModification(hostedBoards.opponent, modifiedCardType) };
+  }
   return {
-    match: withActorBoards(match, actor, hosted.boards),
+    match: withActorBoards(match, actor, hostedBoards),
     commands: hosted.commands,
     activatedComboIds: hosted.activatedComboIds,
   };
