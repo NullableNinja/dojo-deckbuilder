@@ -20,6 +20,7 @@ export const QUICK_DUEL_CHARACTER_EVENT_ROUTES: readonly QuickDuelCharacterEvent
   { event: "turnStart", timing: "phase-boundary", hostFact: "turnIndex changes or a new round chooses initiative", reason: "Turn-scoped Character state resets before the active fighter acts." },
   { event: "initiate", timing: "phase-boundary", hostFact: "active fighter enters Initiate", reason: "Initiate choices and delayed effects must resolve before Yell." },
   { event: "cardPlayed", timing: "transition", hostFact: "cardsThisTurn gains a card", reason: "Completed card play can publish family/type facts after the card enters play history." },
+  { event: "cardModified", timing: "transition", hostFact: "an opponent-targeted Attack/Defense card modifier is committed", reason: "Coach-style reactions observe proven opponent modification provenance without inferring from raw board deltas." },
   { event: "discarded", timing: "transition", hostFact: "discard pile gains a non-Hide discard", reason: "Discard-triggered abilities observe the actual card moved to discard." },
   { event: "speedChanged", timing: "transition", hostFact: "effective temporary Speed changes", reason: "Speed-linked abilities observe the committed Speed change." },
   { event: "attackDeclared", timing: "pre-action", hostFact: "legal Attack and declared zone before defense selection", reason: "Character abilities may change zone or Attack Power before the strike is committed." },

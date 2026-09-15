@@ -1833,6 +1833,7 @@
           "trigger": "passive",
           "target": "self",
           "resolver": "character.green.repeatModifiedCardTypeBonus",
+          "amount": 1,
           "action": "custom"
         }
       ]
