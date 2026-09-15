@@ -222,13 +222,29 @@
             {"cardId":"DDB-WPN-CORE-040","name":"Kunai (Throwing Knives)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-040_kunai-throwing-knives.png","card":"app/assets/cards/weapons/ddb-wpn-core-040_kunai-throwing-knives.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-040_kunai-throwing-knives_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"}
           ]
         }
-      ],
-      "activeBatch": {
-        "batch": "weapons-009",
-        "worker": "codex",
-        "status": "claimed",
-        "cardIds": ["DDB-WPN-CORE-041", "DDB-WPN-CORE-042", "DDB-WPN-CORE-043", "DDB-WPN-CORE-044", "DDB-WPN-CORE-045"]
-      }
+      ,
+        {
+          "batch": "weapons-009",
+          "status": "complete",
+          "family": "weapons",
+          "template": "app/assets/templates/05_Item_Equipable.ora",
+          "cardIds": ["DDB-WPN-CORE-041", "DDB-WPN-CORE-042", "DDB-WPN-CORE-043", "DDB-WPN-CORE-044", "DDB-WPN-CORE-045"],
+          "layeredSourceArchives": [
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-041_meteor-hammer_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-042_parking-lot-patience-stick_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-043_municipal-training-tonfa_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-044_naginata-polearm_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-045_nunchaku_Editable_ORA.zip"
+          ],
+          "records": [
+            {"cardId":"DDB-WPN-CORE-041","name":"Meteor Hammer","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-041_meteor-hammer.png","card":"app/assets/cards/weapons/ddb-wpn-core-041_meteor-hammer.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-041_meteor-hammer_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-042","name":"Parking-Lot Patience Stick","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-042_parking-lot-patience-stick.png","card":"app/assets/cards/weapons/ddb-wpn-core-042_parking-lot-patience-stick.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-042_parking-lot-patience-stick_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-043","name":"Municipal Training Tonfa","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-043_municipal-training-tonfa.png","card":"app/assets/cards/weapons/ddb-wpn-core-043_municipal-training-tonfa.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-043_municipal-training-tonfa_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-044","name":"Naginata (Polearm)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-044_naginata-polearm.png","card":"app/assets/cards/weapons/ddb-wpn-core-044_naginata-polearm.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-044_naginata-polearm_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-045","name":"Nunchaku","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-045_nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-045_nunchaku.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-045_nunchaku_Editable_ORA.zip"}
+          ]
+        }
+      ]
     }
   }
 }
