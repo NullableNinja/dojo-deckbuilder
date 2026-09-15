@@ -15,7 +15,8 @@
     "engine:local": "node engine/cli.mjs local",
     "engine:ai": "node engine/cli.mjs ai",
     "simulate": "node engine/simulate.mjs",
-    "test": "npm run game:check && npm run build && node --experimental-strip-types --test tests/*.test.mjs"
+    "test": "node --experimental-strip-types --test tests/engine.test.mjs tests/structured-effects.test.mjs tests/rules-json-runtime.test.mjs",
+    "verify": "npm run game:generate && npm run game:check && git diff --exit-code -- content/card-effects.json app/data && npm test && npm run build"
   },
   "dependencies": {
     "react": "19.2.6",
