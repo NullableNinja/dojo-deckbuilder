@@ -1,0 +1,46 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+import { effectPlanForCard } from "../app/card-effects.ts";
+
+const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
+const registry = JSON.parse(await readFile(new URL("../app/data/card-effects.json", import.meta.url), "utf8"));
+const cardsByCatalogId = new Map(cards.map((card) => [card.catalogId, card]));
+
+test("every canonical structured-effect entry resolves as structured data, never card prose", () => {
+  const failures = [];
+  for (const catalogId of Object.keys(registry.cards ?? {})) {
+    const card = cardsByCatalogId.get(catalogId);
+    if (!card) {
+      failures.push(`${catalogId}: missing generated canonical card`);
+      continue;
+    }
+    const plan = effectPlanForCard(card, registry);
+    if (plan.source !== "structured") failures.push(`${catalogId}: resolved through ${plan.source}`);
+  }
+  assert.deepEqual(failures, []);
+});
+
+test("structured effects override contradictory printed prose", () => {
+  const plan = effectPlanForCard({
+    rulesText: "Draw 99 cards and gain 99 Focus.",
+    effects: [
+      { id: "canonical-draw", trigger: "onPlay", action: "draw", target: "self", amount: 1 },
+    ],
+  });
+  assert.equal(plan.source, "structured");
+  assert.deepEqual(plan.effects, [{ timing: "onPlay", kind: "draw", amount: 1 }]);
+  assert.deepEqual(plan.unsupported, []);
+});
+
+test("unsupported structured behavior stays explicit instead of falling back to prose", () => {
+  const plan = effectPlanForCard({
+    rulesText: "Draw 99 cards.",
+    effects: [
+      { id: "canonical-custom", trigger: "onPlay", action: "custom", resolver: "test.pendingResolver" },
+    ],
+  });
+  assert.equal(plan.source, "structured");
+  assert.deepEqual(plan.effects, []);
+  assert.deepEqual(plan.unsupported, ["canonical-custom"]);
+});
