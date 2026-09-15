@@ -4,11 +4,12 @@ import {
   greenCharacterAbilityUnlocked,
   type CharacterStructuredEffect,
 } from "./character-effect-resolvers.ts";
+import { characterSemanticCardType, queueOpponentCardModification, type CharacterModifiedCardType } from "./character-card-modification-facts.ts";
 
 export type CharacterRuntimeActor = "player" | "ai";
 export type CharacterRuntimeZone = "High" | "Mid" | "Low";
 export type CharacterRuntimeEventType =
-  | "roundStart" | "turnStart" | "initiate" | "cardPlayed" | "discarded" | "speedChanged"
+  | "roundStart" | "turnStart" | "initiate" | "cardPlayed" | "cardModified" | "discarded" | "speedChanged"
   | "attackDeclared" | "incomingAttackDeclared" | "hit" | "block" | "damageIncoming" | "equip"
   | "kataPlayed" | "comboReveal" | "purchaseAttempt" | "promotion" | "sceneChange" | "reboot" | "hide";
 
@@ -79,6 +80,7 @@ export type CharacterRuntimeEvent = {
   sceneChanged?: boolean;
   noCombatDamagePreviousTurn?: boolean;
   opponentModifiedCard?: boolean;
+  modifiedCardType?: CharacterModifiedCardType;
   discardedOutsideHide?: boolean;
   discardedJunk?: boolean;
   destroyedJunk?: boolean;
@@ -123,8 +125,8 @@ const resolverEvents: Record<string, CharacterRuntimeEventType[]> = {
   "character.green.linkedReducedAttackBlockCycle": ["block"],
   "character.discardOutsideHideNextAttack": ["discarded"],
   "character.green.linkedAttackHitRecycle": ["hit"],
-  "character.opponentModificationCycle": ["cardPlayed"],
-  "character.green.repeatModifiedCardTypeBonus": ["cardPlayed"],
+  "character.opponentModificationCycle": ["cardModified"],
+  "character.green.repeatModifiedCardTypeBonus": ["cardModified"],
   "character.marketDiscountFloor": ["purchaseAttempt"],
   "character.damageThreshold": ["damageIncoming"],
   "character.green.delayedDamagePreventionFocus": ["damageIncoming"],
@@ -218,10 +220,14 @@ function usage(board: CharacterRuntimeBoard, effect: CharacterStructuredEffect) 
 
 function isAvailable(board: CharacterRuntimeBoard, effect: CharacterStructuredEffect, event: CharacterRuntimeEventType) {
   const resolver = String(effect.resolver ?? "");
+  const used = usage(board, effect);
+  const resolverEffectIds = effectsFor(board.fighterId)
+    .filter((entry) => String(entry.resolver ?? "") === resolver)
+    .map(idFor);
   return Boolean(resolver)
     && (resolverEvents[resolver] ?? []).includes(event)
     && (!resolver.startsWith("character.green.") || greenCharacterAbilityUnlocked(board.belt))
-    && !usage(board, effect).includes(idFor(effect));
+    && !resolverEffectIds.some((id) => used.includes(id));
 }
 
 function consume(board: CharacterRuntimeBoard, effect: CharacterStructuredEffect) {
@@ -369,15 +375,18 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
         if (hasMark(self, "turn:discardPoweredAttack") && event.selectedId && self.discard.includes(event.selectedId)) { const pile = [...self.discard]; pile.splice(pile.indexOf(event.selectedId), 1); self = { ...self, discard: pile, deck: [event.selectedId, ...self.deck] }; activated = true; }
         break;
       case "character.opponentModificationCycle":
-        if (event.opponentModifiedCard) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.resolved ? mark(cycled.board, "round:modifiedCardType", event.card?.cardType ?? "") : cycled.board; activated = cycled.resolved; }
+        if (event.modifiedCardType) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.resolved ? mark(cycled.board, "round:modifiedCardType", event.modifiedCardType) : cycled.board; activated = cycled.resolved; }
         break;
-      case "character.green.repeatModifiedCardTypeBonus":
-        if (markMap(self)["round:modifiedCardType"] === event.card?.cardType) {
-          if (event.card?.cardType === "Attack") self = { ...self, nextAttackBonus: self.nextAttackBonus + amount };
-          else if (event.card?.cardType === "Defense") self = { ...self, nextDefenseCardBonus: (self.nextDefenseCardBonus ?? 0) + amount };
+      case "character.green.repeatModifiedCardTypeBonus": {
+        const modifiedType = markMap(self)["round:modifiedCardType"];
+        if (modifiedType === event.modifiedCardType) {
+          if (modifiedType === "Attack") self = { ...self, nextAttackBonus: self.nextAttackBonus + amount };
+          else if (modifiedType === "Defense") self = { ...self, nextDefenseCardBonus: (self.nextDefenseCardBonus ?? 0) + amount };
+          self = clearMark(self, "round:modifiedCardType");
           activated = true;
         }
         break;
+      }
       case "character.marketDiscountFloor":
         if (Number(event.modifierBonus ?? 0) < 0) activated = true;
         break;
@@ -434,7 +443,7 @@ export function applyCharacterRuntimeEvent(selfInput: CharacterRuntimeBoard, opp
         if ((event.firstAttackThisTurn ?? self.attacksThisTurn === 0) && (event.usedConsumableThisTurn ?? self.usedConsumableThisRound)) { event.attackPower = Number(event.attackPower ?? 0) + amount; self = mark(self, "turn:consumableAttack"); activated = true; }
         break;
       case "character.green.linkedAttackHitPenalty":
-        if (hasMark(self, "turn:consumableAttack")) { opponent = { ...opponent, nextAttackBonus: opponent.nextAttackBonus + amount }; activated = true; }
+        if (hasMark(self, "turn:consumableAttack")) { opponent = queueOpponentCardModification({ ...opponent, nextAttackBonus: opponent.nextAttackBonus + amount }, "Attack"); activated = true; }
         break;
       case "character.green.linkedChangedAttackHitCycle":
         if (event.changedZone || hasMark(self, "turn:changedAttack")) { const cycled = cycleWithPlayerChoice(self, effect, resolver, actor, choices, event.selectedId); self = cycled.board; activated = cycled.resolved; }

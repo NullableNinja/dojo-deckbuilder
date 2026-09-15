@@ -100,10 +100,13 @@ test("004 Boo-Fu: discard outside Hide powers next Attack and Green recycles a d
 });
 
 test("005 Coach Karen: opponent modification cycles and Green primes the matching card type", () => {
-  const first = run("DDB-CHR-CORE-005", { type: "cardPlayed", opponentModifiedCard: true, card: attack(), selectedId: "h1" });
+  const first = run("DDB-CHR-CORE-005", { type: "cardModified", opponentModifiedCard: true, modifiedCardType: "Attack" });
   assert.ok(first.self.discard.includes("h1"));
-  const second = applyCharacterRuntimeEvent(first.self, first.opponent, { type: "cardPlayed", card: attack() }, "ai");
+  assert.equal(first.self.nextAttackBonus, 1);
+  const second = applyCharacterRuntimeEvent(first.self, first.opponent, { type: "cardModified", opponentModifiedCard: true, modifiedCardType: "Defense" }, "ai");
   assert.equal(second.self.nextAttackBonus, 1);
+  assert.equal(second.self.nextDefenseCardBonus, 0, "the once-per-round Coach ability must not reopen through its sibling effect row");
+  assert.equal(second.self.discard.length, first.self.discard.length, "White must cycle only once per round");
 });
 
 test("006 Coupon Carl: eligible Market price is discounted with floor 4", () => {

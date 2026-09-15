@@ -20,6 +20,7 @@ import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
+import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
@@ -1130,7 +1131,11 @@ function applyStage3CCommands(board: Board, commands: RuntimeCommand[], controll
 
 function applyStage3CTiming(board: Board, card: CardEntry, trigger: RuntimeTrigger, controller: "player" | "ai", context: DefenseRuntimeContext | ConsumableRuntimeContext = {}, target: "self" | "opponent" = "self") {
   const commands = stage3cCommands(card, trigger, context).filter((command) => (command.target ?? "self") === target);
-  return applyStage3CCommands(board, commands.map((command) => ({ ...command, target: "self" })), controller);
+  let next = applyStage3CCommands(board, commands.map((command) => ({ ...command, target: "self" })), controller);
+  if (target === "opponent") {
+    for (const modifiedCardType of runtimeCommandCardModificationTypes(commands)) next = queueOpponentCardModification(next, modifiedCardType);
+  }
+  return next;
 }
 
 function expireStage3C(board: Board, duration: string) {
@@ -1460,11 +1465,11 @@ function applyTargetHitDebuffs(board: Board, card: CardEntry, context: { previou
   const notes: string[] = [];
   let next = board;
   if (attackPenalty) {
-    next = { ...next, nextAttackBonus: next.nextAttackBonus - attackPenalty };
+    next = queueOpponentCardModification({ ...next, nextAttackBonus: next.nextAttackBonus - attackPenalty }, "Attack");
     notes.push(`target next Attack -${attackPenalty} Attack Power`);
   }
   if (defensePenalty) {
-    next = { ...next, nextDefenseCardBonus: (next.nextDefenseCardBonus ?? 0) - defensePenalty };
+    next = queueOpponentCardModification({ ...next, nextDefenseCardBonus: (next.nextDefenseCardBonus ?? 0) - defensePenalty }, "Defense");
     notes.push(`target next Defense card -${defensePenalty} Guard`);
   }
   if (speedPenalty) {
@@ -2556,7 +2561,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextAi = applyStage3CTiming(nextAi, card, "afterResolve", "ai", stage3cConsumableContext(nextPlayer), "opponent");
     } else {
       const defensePenalty = targetNextDefensePenalty(card);
-      if (defensePenalty) nextAi = { ...nextAi, nextDefenseCardBonus: (nextAi.nextDefenseCardBonus ?? 0) - defensePenalty };
+      if (defensePenalty) nextAi = queueOpponentCardModification({ ...nextAi, nextDefenseCardBonus: (nextAi.nextDefenseCardBonus ?? 0) - defensePenalty }, "Defense");
     }
     if (isCoreConsumableCard(card)) {
       if (card.catalogId === "DDB-CON-CORE-009") {
@@ -3852,7 +3857,7 @@ function prepareAiTurn(current: Match) {
     else if (returnsToSupplyAfterUse(card)) nextAi = returnResolvedConsumable(nextAi, card);
     if (!isCoreConsumableCard(card)) {
       const defensePenalty = targetNextDefensePenalty(card);
-      if (defensePenalty) nextPlayer = { ...nextPlayer, nextDefenseCardBonus: (nextPlayer.nextDefenseCardBonus ?? 0) - defensePenalty };
+      if (defensePenalty) nextPlayer = queueOpponentCardModification({ ...nextPlayer, nextDefenseCardBonus: (nextPlayer.nextDefenseCardBonus ?? 0) - defensePenalty }, "Defense");
     }
     played.push(card.name);
   }
