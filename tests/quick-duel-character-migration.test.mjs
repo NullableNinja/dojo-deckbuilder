@@ -34,7 +34,7 @@ test("temporary compatibility ownership only names real canonical structured res
   }
 });
 
-test("compatibility ownership mirrors the four direct Character helpers still used by Playtest", () => {
+test("compatibility ownership mirrors the direct Character helpers still used by Playtest", () => {
   for (const helper of Object.keys(QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS)) {
     assert.match(playtestSource, new RegExp(`\\b${helper}\\s*\\(`), `${helper} should remain compatibility-owned only while Playtest calls it directly`);
   }
@@ -42,7 +42,7 @@ test("compatibility ownership mirrors the four direct Character helpers still us
 
 test("events that would double-apply current helpers are explicitly blocked from blind event publication", () => {
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("attackDeclared"), true);
-  assert.equal(quickDuelCharacterEventHasCompatibilityConflict("damageIncoming"), true);
+  assert.equal(quickDuelCharacterEventHasCompatibilityConflict("damageIncoming"), false);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("equip"), true);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("cardPlayed"), false);
   assert.equal(quickDuelCharacterEventHasCompatibilityConflict("hit"), false);

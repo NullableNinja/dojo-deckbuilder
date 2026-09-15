@@ -386,6 +386,37 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   };
 }
 
+export function publishQuickDuelPlaytestDamageIncoming<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  defender: QuickDuelPlaytestActor,
+  damage: number,
+): QuickDuelPlaytestCharacterEventResult<Match> {
+  let character = publishQuickDuelPlaytestCharacterEvent(match, defender, {
+    type: "damageIncoming",
+    damage: Math.max(0, damage),
+  });
+
+  if (defender === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(
+        character.match,
+        defender,
+        character.event,
+        choice,
+        selection,
+      );
+    }
+  }
+
+  return character;
+}
+
 export function publishQuickDuelPlaytestCharacterEvent<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,
