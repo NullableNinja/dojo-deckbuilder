@@ -24,6 +24,8 @@ jobs:
         run: python .github/temp-fix-attack-patch.py
       - name: Apply attackDeclared migration
         run: python .github/temp-patch-attack-declared.py
+      - name: Apply compiler postfix
+        run: python .github/temp-postfix-attack-patch.py
       - name: Canonical source drift
         run: npm run game:check
       - name: Production build
@@ -37,6 +39,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/temp-fix-attack-patch.py
           git rm .github/temp-patch-attack-declared.py
+          git rm .github/temp-postfix-attack-patch.py
           git rm .github/workflows/temp-stage3e-attack-declared.yml
           git add app/character-runtime.ts app/quick-duel-character-migration.ts app/quick-duel-playtest-host.ts app/playtest.tsx tests/quick-duel-character-migration.test.mjs tests/quick-duel-character-executor.test.mjs tests/quick-duel-character-attack-declared-host.test.mjs
           git commit -m "feat(stage3e): migrate Character attackDeclared to event runtime"
