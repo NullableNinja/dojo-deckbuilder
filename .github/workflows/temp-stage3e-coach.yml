@@ -1,6 +1,9 @@
 name: temp-stage3e-coach
 
 on:
+  push:
+    branches:
+      - stage3e-character-coach-modification-fact
   workflow_dispatch:
 
 permissions:
