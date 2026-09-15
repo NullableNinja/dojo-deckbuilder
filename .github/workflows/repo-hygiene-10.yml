@@ -22,6 +22,12 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Apply ten cleanups
         run: node scripts/repo-hygiene-pass.mjs
+      - name: Commit transformed state locally
+        run: |
+          git config user.name "Thomas Bryant"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: apply ten-item repository hygiene pass"
       - name: Verify repository
         run: npm run verify
       - name: Verify no retired baggage remains
@@ -33,10 +39,8 @@ jobs:
           ! grep -E "DDB-(STA|CMB|CHR)-CORE-[0-9]+" tests/engine.test.mjs tests/rules-json-runtime.test.mjs
       - name: Remove one-time hygiene machinery
         run: rm scripts/repo-hygiene-pass.mjs .github/workflows/repo-hygiene-10.yml
-      - name: Commit cleanup
+      - name: Commit and publish cleanup
         run: |
-          git config user.name "Thomas Bryant"
-          git config user.email "130773741+NullableNinja@users.noreply.github.com"
           git add -A
-          git commit -m "chore: complete ten-item repository hygiene pass"
+          git commit -m "chore: finalize repository hygiene pass"
           git push origin HEAD:cleanup/repo-hygiene-10-20260915
