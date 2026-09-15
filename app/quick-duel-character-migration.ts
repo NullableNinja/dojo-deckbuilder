@@ -3,8 +3,7 @@ import { characterRuntimeCoverage, type CharacterRuntimeEventType } from "./char
 export type CharacterCompatibilityHelper =
   | "characterAllowedAttackZones"
   | "characterAttackModifier"
-  | "characterCanEquip"
-  | "characterDamageReduction";
+  | "characterCanEquip";
 
 export type CharacterResolverOwnership = {
   resolver: string;
@@ -41,10 +40,6 @@ export const QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS: Readonly<
   ],
   characterCanEquip: [
     "character.cannotEquipWeapons",
-  ],
-  characterDamageReduction: [
-    "character.damageThreshold",
-    "character.firstHitDamagePrevention",
   ],
 } as const;
 
@@ -84,7 +79,6 @@ export function quickDuelEventRuntimeOwnedResolvers() {
  */
 export const QUICK_DUEL_CHARACTER_COMPATIBILITY_EVENTS: readonly CharacterRuntimeEventType[] = [
   "attackDeclared",
-  "damageIncoming",
   "equip",
 ] as const;
 
