@@ -205,6 +205,7 @@
           "status": "complete",
           "family": "weapons",
           "template": "app/assets/templates/05_Item_Equipable.ora",
+          "publishingCommit": "3f02a2b5b8273c233c37fcfeacad7dc5804010dc",
           "cardIds": ["DDB-WPN-CORE-036", "DDB-WPN-CORE-037", "DDB-WPN-CORE-038", "DDB-WPN-CORE-039", "DDB-WPN-CORE-040"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-036_karambit-hooked-dagger_Editable_ORA.zip",
@@ -214,11 +215,11 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-040_kunai-throwing-knives_Editable_ORA.zip"
           ],
           "records": [
-            {"cardId":"DDB-WPN-CORE-036","name":"Karambit (Hooked Dagger)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-036_karambit-hooked-dagger.png","card":"app/assets/cards/weapons/ddb-wpn-core-036_karambit-hooked-dagger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-036_karambit-hooked-dagger_Editable_ORA.zip"},
-            {"cardId":"DDB-WPN-CORE-037","name":"Katana (Japanese Sword)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-037_katana-japanese-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-037_katana-japanese-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-037_katana-japanese-sword_Editable_ORA.zip"},
-            {"cardId":"DDB-WPN-CORE-038","name":"Kris (Curved Dagger)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-038_kris-curved-dagger.png","card":"app/assets/cards/weapons/ddb-wpn-core-038_kris-curved-dagger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-038_kris-curved-dagger_Editable_ORA.zip"},
-            {"cardId":"DDB-WPN-CORE-039","name":"Kubotan","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-039_kubotan.png","card":"app/assets/cards/weapons/ddb-wpn-core-039_kubotan.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-039_kubotan_Editable_ORA.zip"},
-            {"cardId":"DDB-WPN-CORE-040","name":"Kunai (Throwing Knives)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-040_kunai-throwing-knives.png","card":"app/assets/cards/weapons/ddb-wpn-core-040_kunai-throwing-knives.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-040_kunai-throwing-knives_Editable_ORA.zip"}
+            {"cardId":"DDB-WPN-CORE-036","name":"Karambit (Hooked Dagger)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-036_karambit-hooked-dagger.png","card":"app/assets/cards/weapons/ddb-wpn-core-036_karambit-hooked-dagger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-036_karambit-hooked-dagger_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"},
+            {"cardId":"DDB-WPN-CORE-037","name":"Katana (Japanese Sword)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-037_katana-japanese-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-037_katana-japanese-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-037_katana-japanese-sword_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"},
+            {"cardId":"DDB-WPN-CORE-038","name":"Kris (Curved Dagger)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-038_kris-curved-dagger.png","card":"app/assets/cards/weapons/ddb-wpn-core-038_kris-curved-dagger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-038_kris-curved-dagger_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"},
+            {"cardId":"DDB-WPN-CORE-039","name":"Kubotan","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-039_kubotan.png","card":"app/assets/cards/weapons/ddb-wpn-core-039_kubotan.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-039_kubotan_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"},
+            {"cardId":"DDB-WPN-CORE-040","name":"Kunai (Throwing Knives)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-040_kunai-throwing-knives.png","card":"app/assets/cards/weapons/ddb-wpn-core-040_kunai-throwing-knives.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-040_kunai-throwing-knives_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"}
           ]
         }
       ]
