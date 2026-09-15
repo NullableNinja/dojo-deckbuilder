@@ -21,7 +21,7 @@ import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefe
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { characterAllowedAttackZones, characterAttackModifier, characterCanEquip, characterDamageReduction, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
-import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
+import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestLifecycleEvent, publishQuickDuelPlaytestReveal, resolveQuickDuelPlaytestCharacterChoice } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import "./combo-rack.css";
 import "./playtest-production-mat.css";
@@ -438,6 +438,124 @@ function refillPurchasedMarketSlot(market: string[], marketDeck: string[], marke
   const nextMarket = [...market];
   nextMarket[slot] = refill.revealed[0] ?? "";
   return { market: nextMarket.filter(Boolean), marketDeck: refill.marketDeck, marketDiscard: refill.marketDiscard };
+}
+
+type QuickDuelPublicRevealSource = "market" | "location";
+
+function quickDuelPublicRevealReplacementAvailable(current: Match, revealSource: QuickDuelPublicRevealSource) {
+  return revealSource === "market"
+    ? current.marketDeck.length + current.marketDiscard.length > 0
+    : current.locations.length > 0;
+}
+
+function offerLuckyAfterPublicReveal(current: Match, revealSource: QuickDuelPublicRevealSource, revealedCardId: string): Match {
+  if (current.pendingChoice) return current;
+  const lucky = current.player.hand
+    .map(cardFor)
+    .find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033"));
+  if (!lucky) return current;
+  const marketSlot = revealSource === "market" ? current.market.indexOf(revealedCardId) : undefined;
+  if (revealSource === "market" && (marketSlot ?? -1) < 0) return current;
+  const label = cardFor(revealedCardId)?.name ?? (revealSource === "market" ? "A Market card" : "A Location");
+  return {
+    ...current,
+    pendingChoice: {
+      kind: "stage3c-lucky-reveal",
+      sourceCardId: lucky.id,
+      revealKind: revealSource,
+      revealedCardId,
+      ...(marketSlot !== undefined ? { marketSlot } : {}),
+    },
+    log: [`${label} was revealed. Lucky Dumpling may replace it.`, ...current.log].slice(0, 32),
+  };
+}
+
+function replaceAcceptedPublicReveal(
+  current: Match,
+  event: CharacterRuntimeEvent,
+  actor: "player" | "ai",
+): Match {
+  const revealSource = event.revealSource;
+  const revealedCardId = event.card?.id;
+  if (!event.replacementRequested || !revealSource || !revealedCardId) return current;
+
+  let replacementId: string | null = null;
+  let replaced = current;
+  if (revealSource === "market") {
+    const slot = current.market.indexOf(revealedCardId);
+    if (slot < 0) return current;
+    const refill = revealMarketCards(current.marketDeck, [...current.marketDiscard, revealedCardId], 1);
+    replacementId = refill.revealed[0] ?? null;
+    if (!replacementId) return current;
+    const market = [...current.market];
+    market[slot] = replacementId;
+    replaced = { ...current, market, marketDeck: refill.marketDeck, marketDiscard: refill.marketDiscard };
+  } else {
+    replacementId = current.locations[0] ?? null;
+    if (!replacementId) return current;
+    replaced = { ...current, locationId: replacementId, locations: current.locations.slice(1) };
+  }
+
+  const resolved = publishQuickDuelPlaytestReveal(
+    replaced,
+    actor,
+    {
+      cardId: replacementId,
+      revealSource,
+      replacementAvailable: quickDuelPublicRevealReplacementAvailable(replaced, revealSource),
+      replacementResolved: true,
+    },
+    cardFor,
+  );
+  const replacementLabel = cardFor(replacementId)?.name ?? "a replacement";
+  const next = {
+    ...resolved.match,
+    log: [`Character reroll replaces ${cardFor(revealedCardId)?.name ?? "the reveal"} with ${replacementLabel}.`, ...resolved.match.log].slice(0, 32),
+  } as Match;
+  return hostQuickDuelPublicReveal(next, revealSource, replacementId);
+}
+
+function hostQuickDuelPublicReveal(
+  current: Match,
+  revealSource: QuickDuelPublicRevealSource,
+  revealedCardId: string,
+  skipPlayer = false,
+): Match {
+  if (current.pendingChoice) return current;
+  const replacementAvailable = quickDuelPublicRevealReplacementAvailable(current, revealSource);
+  let next = current;
+
+  if (!skipPlayer) {
+    const playerReveal = publishQuickDuelPlaytestReveal(
+      next,
+      "player",
+      { cardId: revealedCardId, revealSource, replacementAvailable },
+      cardFor,
+    );
+    next = playerReveal.match;
+    if (playerReveal.event && playerReveal.choices[0]) {
+      return {
+        ...next,
+        pendingChoice: { kind: "character-runtime", event: playerReveal.event, choice: playerReveal.choices[0] },
+      };
+    }
+  }
+
+  const aiReveal = publishQuickDuelPlaytestReveal(
+    next,
+    "ai",
+    { cardId: revealedCardId, revealSource, replacementAvailable },
+    cardFor,
+  );
+  next = aiReveal.match;
+  if (aiReveal.event?.replacementRequested) return replaceAcceptedPublicReveal(next, aiReveal.event, "ai");
+  return offerLuckyAfterPublicReveal(next, revealSource, revealedCardId);
+}
+
+function continuePublicRevealAfterPlayerChoice(current: Match, event: CharacterRuntimeEvent): Match {
+  if (event.type !== "reveal" || !event.revealSource || !event.card?.id) return current;
+  if (event.replacementRequested) return replaceAcceptedPublicReveal(current, event, "player");
+  return hostQuickDuelPublicReveal(current, event.revealSource, event.card.id, true);
 }
 
 function refreshMarketRow(market: string[], marketDeck: string[], marketDiscard: string[]) {
@@ -2784,7 +2902,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : null;
     const selectedCard = cardFor(selection);
     const label = selectedCard?.name ?? (["skip", "decline", "cancel"].includes(selection) ? "declined" : selection);
-    return write(resolved.match, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} resolves ${pending.choice.prompt}: ${label}.`, { pendingChoice });
+    const logged = write(resolved.match, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} resolves ${pending.choice.prompt}: ${label}.`, { pendingChoice });
+    return resolved.event?.type === "reveal" && !nextChoice
+      ? continuePublicRevealAfterPlayerChoice(logged, resolved.event)
+      : logged;
   };
 
   const resolveCharacterRuntimeChoice = (selection: string) => setMatch((current) =>
@@ -2919,8 +3040,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const refilled = refillPurchasedMarketSlot(current.market, current.marketDeck, current.marketDiscard, slot);
     const purchased = write(current, `Bought ${card.name} for ${characterPurchase.price} Focus (${focusBefore} → ${nextPlayer.focus}). The top Market card immediately fills the slot.`, { player: nextPlayer, ai: characterPurchase.opponent, ...refilled, marketPurchasedThisRound: true });
     const revealedId = refilled.market[slot];
-    const lucky = revealedId ? nextPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033")) : null;
-    return lucky && revealedId ? write(purchased, `${cardFor(revealedId)?.name ?? "A Market card"} was revealed. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } }) : purchased;
+    return revealedId ? hostQuickDuelPublicReveal(purchased, "market", revealedId) : purchased;
   });
 
   const cycleCombo = (learn: boolean) => setMatch((current) => {
@@ -3713,12 +3833,12 @@ function advanceRound(current: Match, sceneChanges: boolean, line: string, house
   const marketRefreshLabel = marketScramble ? "Market Scramble" : "Market Mercy";
   const marketNote = marketScramble ? "Market Scramble refreshes all seven slots." : current.marketPurchasedThisRound ? "The Shared Market remains in place." : "No one bought a card, so Market Mercy refreshes all seven slots.";
   const advanced: Match = { ...current, ...marketState, player: initiatedPlayer, ai: initiatedAi, marketPurchasedThisRound: false, pendingDiscard: null, pendingChoice: hostedInitiate.pendingChoice ?? null, pendingCombatContinuation: null, locationId, locations: sceneChanges ? freshLocations.slice(1) : current.locations, round: nextRound, phase: playerFirst ? "player-initiate" as const : "ai-ready" as const, turnOrder, turnIndex: 0 as const, selectedAttackId: null, log: [`Honor ${nextRound}: ${cardFor(locationId)?.name ?? "Tournament Mat"} is active. Both fighters gain 1 XP and refresh Tempo. ${marketNote} ${playerFirst ? "You" : "Computer"} take initiative.`, line, ...current.log].slice(0, 32) };
-  const lucky = initiatedPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033"));
-  if (!advanced.pendingChoice && sceneChanges && lucky && locationId !== current.locationId) { const message = `${cardFor(locationId)?.name ?? "A Location"} was revealed. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "location", revealedCardId: locationId } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
-  if (!advanced.pendingChoice && marketRefreshes && lucky) {
+  if (!advanced.pendingChoice && sceneChanges && locationId !== current.locationId) {
+    return hostQuickDuelPublicReveal(advanced, "location", locationId);
+  }
+  if (!advanced.pendingChoice && marketRefreshes) {
     const revealedId = marketState.market.find((id) => !current.market.includes(id));
-    const slot = revealedId ? marketState.market.indexOf(revealedId) : -1;
-    if (revealedId && slot >= 0) { const message = `${cardFor(revealedId)?.name ?? "A Market card"} was revealed during ${marketRefreshLabel}. Lucky Dumpling may replace it.`; return { ...advanced, pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } as PendingChoice, log: [message, ...advanced.log].slice(0, 32) }; }
+    if (revealedId) return hostQuickDuelPublicReveal(advanced, "market", revealedId);
   }
   return advanced;
 }

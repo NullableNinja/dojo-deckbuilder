@@ -252,11 +252,25 @@ test("028 Punchline Pete: Kata setup powers first Attack and Green linked Hit re
   assert.equal(second.self.focus, 1);
 });
 
-test("029 Ronin Reroll: replacement reveal is once per game", () => {
-  const first = run("DDB-CHR-CORE-029", { type: "sceneChange", replacementId: "scene-2", optionalAccepted: true });
-  assert.equal(first.event.selectedId, "scene-2");
-  const second = applyCharacterRuntimeEvent(first.self, first.opponent, { type: "sceneChange", replacementId: "scene-3", optionalAccepted: true }, "ai");
-  assert.equal(second.event.selectedId ?? null, null);
+test("029 Ronin Reroll: public reveal requests one hidden-safe replacement per game", () => {
+  const first = run("DDB-CHR-CORE-029", {
+    type: "reveal",
+    card: { id: "scene-1" },
+    revealSource: "location",
+    replacementAvailable: true,
+    optionalAccepted: true,
+  });
+  assert.equal(first.event.replacementRequested, true);
+  assert.equal(first.event.replacementId, undefined);
+  assert.equal(first.event.selectedId, undefined);
+  const second = applyCharacterRuntimeEvent(first.self, first.opponent, {
+    type: "reveal",
+    card: { id: "scene-2" },
+    revealSource: "location",
+    replacementAvailable: true,
+    optionalAccepted: true,
+  }, "ai");
+  assert.equal(second.event.replacementRequested, undefined);
 });
 
 test("030 Sensei Ducktape: Initiate can equip permanent from discard and Hide returns it to discard", () => {

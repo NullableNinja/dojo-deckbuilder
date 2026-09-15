@@ -2436,6 +2436,16 @@
           "target": "chosen-card",
           "resolver": "character.revealReplacementOnceGame",
           "action": "custom"
+        },
+        {
+          "id": "character-ronin-green-location-xp",
+          "effect": "core.gainXP",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "immediate",
+          "resolver": "character.green.linkedLocationReplacementXp",
+          "action": "custom"
         }
       ]
     },

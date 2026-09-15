@@ -33,6 +33,7 @@ export const QUICK_DUEL_CHARACTER_EVENT_ROUTES: readonly QuickDuelCharacterEvent
   { event: "purchaseAttempt", timing: "pre-action", hostFact: "Market card and base price before Focus is spent", reason: "Character discounts/replacement choices must resolve before payment." },
   { event: "promotion", timing: "transition", hostFact: "belt index increases", reason: "Promotion-linked Character rewards observe the completed certification." },
   { event: "sceneChange", timing: "pre-action", hostFact: "new Location reveal before it becomes final", reason: "Location replacement/reveal abilities require the candidate before final scene commitment." },
+  { event: "reveal", timing: "transition", hostFact: "public Market or Location card reveal plus same-deck replacement availability", reason: "Reveal reactions see only the public card; hidden replacement identity stays undisclosed until acceptance." },
   { event: "reboot", timing: "phase-boundary", hostFact: "Reboot/ready window opens", reason: "Equipment lock/ready Character abilities resolve during the reboot window." },
   { event: "hide", timing: "phase-boundary", hostFact: "fighter completes Hide before turn handoff", reason: "Temporary borrowed Equipment and Hide cleanup resolve before the opponent turn begins." },
 ] as const;
