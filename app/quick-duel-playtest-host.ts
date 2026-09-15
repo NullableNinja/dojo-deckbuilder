@@ -424,6 +424,36 @@ export function publishQuickDuelPlaytestLifecycleEvent<
   };
 }
 
+export type QuickDuelPlaytestEquipResult<Match> = QuickDuelPlaytestCharacterEventResult<Match> & {
+  allowed: boolean;
+};
+
+export function publishQuickDuelPlaytestEquip<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  card: CharacterRuntimeEvent["card"],
+): QuickDuelPlaytestEquipResult<Match> {
+  let character = publishQuickDuelPlaytestCharacterEvent(match, actor, {
+    type: "equip",
+    card: card ?? null,
+    allowed: true,
+  });
+
+  if (actor === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(character.match, actor, character.event, choice, selection);
+    }
+  }
+
+  return { ...character, allowed: character.event?.allowed !== false };
+}
+
 export function publishQuickDuelPlaytestDamageIncoming<
   Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
   Match extends QuickDuelPlaytestHostMatch<Board>,

@@ -2,8 +2,7 @@ import { characterRuntimeCoverage, type CharacterRuntimeEventType } from "./char
 
 export type CharacterCompatibilityHelper =
   | "characterAllowedAttackZones"
-  | "characterAttackModifier"
-  | "characterCanEquip";
+  | "characterAttackModifier";
 
 export type CharacterResolverOwnership = {
   resolver: string;
@@ -38,9 +37,7 @@ export const QUICK_DUEL_CHARACTER_COMPATIBILITY_RESOLVERS: Readonly<
     "character.green.linkedZoneChangePower",
     "character.green.linkedRecycleLowAttack",
   ],
-  characterCanEquip: [
-    "character.cannotEquipWeapons",
-  ],
+
 } as const;
 
 const compatibilityOwner = new Map<string, CharacterCompatibilityHelper>();
@@ -79,7 +76,6 @@ export function quickDuelEventRuntimeOwnedResolvers() {
  */
 export const QUICK_DUEL_CHARACTER_COMPATIBILITY_EVENTS: readonly CharacterRuntimeEventType[] = [
   "attackDeclared",
-  "equip",
 ] as const;
 
 export function quickDuelCharacterEventHasCompatibilityConflict(event: CharacterRuntimeEventType) {
