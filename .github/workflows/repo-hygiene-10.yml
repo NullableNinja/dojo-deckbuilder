@@ -22,6 +22,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Apply ten cleanups
         run: node scripts/repo-hygiene-pass.mjs
+      - name: Regenerate derived game data
+        run: npm run game:generate
       - name: Commit transformed state locally
         run: |
           git config user.name "Thomas Bryant"
