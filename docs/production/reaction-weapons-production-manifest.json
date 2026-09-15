@@ -199,7 +199,8 @@
             {"cardId":"DDB-WPN-CORE-035","name":"Kampalan (Southeast Asian Weapon)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-035_kampalan-southeast-asian-weapon.png","card":"app/assets/cards/weapons/ddb-wpn-core-035_kampalan-southeast-asian-weapon.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-035_kampalan-southeast-asian-weapon_Editable_ORA.zip","publishingCommit":"341dd600508e3dfe1cdea35776934fcb0e8607a5"}
           ]
         }
-      ]
+      ],
+      "activeBatch": {"batch":"weapons-008","worker":"codex","status":"claimed","cardIds":["DDB-WPN-CORE-036","DDB-WPN-CORE-037","DDB-WPN-CORE-038","DDB-WPN-CORE-039","DDB-WPN-CORE-040"]}
     }
   }
 }
