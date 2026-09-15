@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { applyCharacterRuntimeEvent } from "../app/character-runtime.ts";
+import { publishQuickDuelPlaytestReveal } from "../app/quick-duel-playtest-host.ts";
 
 function board(overrides = {}) {
   return {
@@ -108,4 +110,37 @@ test("Ronin's once-per-game reroll stays consumed after the first accepted revea
   }, "player");
   assert.equal(result.choices.length, 0);
   assert.equal(result.event.replacementRequested, undefined);
+});
+
+
+test("Quick Duel reveal host surfaces the player decision without exposing a replacement id", () => {
+  const match = { player: board(), ai: opponent };
+  const result = publishQuickDuelPlaytestReveal(match, "player", {
+    cardId: "market-visible",
+    revealSource: "market",
+    replacementAvailable: true,
+  }, (id) => id === "market-visible" ? marketCard : null);
+  assert.equal(result.choices.length, 1);
+  assert.equal(result.event?.replacementId, undefined);
+  assert.equal(result.event?.replacementRequested, undefined);
+});
+
+test("Quick Duel reveal host auto-resolves the same legal Ronin choice for AI", () => {
+  const match = { player: opponent, ai: board() };
+  const result = publishQuickDuelPlaytestReveal(match, "ai", {
+    cardId: "location-visible",
+    revealSource: "location",
+    replacementAvailable: true,
+  }, (id) => id === "location-visible" ? locationCard : null);
+  assert.equal(result.choices.length, 0);
+  assert.equal(result.event?.replacementRequested, true);
+  assert.ok(result.match.ai.usedCharacterEffectIdsThisGame.includes("character-ronin-reroll"));
+});
+
+test("Playtest routes real Market and Honor reveals through the generic reveal host", () => {
+  const source = readFileSync(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.match(source, /hostQuickDuelPublicReveal\(purchased, "market", revealedId\)/);
+  assert.match(source, /hostQuickDuelPublicReveal\(advanced, "location", locationId\)/);
+  assert.match(source, /continuePublicRevealAfterPlayerChoice\(logged, resolved\.event\)/);
+  assert.doesNotMatch(source, /DDB-CHR-CORE-029|Ronin Reroll/);
 });
