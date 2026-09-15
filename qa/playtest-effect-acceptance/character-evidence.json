@@ -75,8 +75,10 @@
     "effectVisibleUnderstandable": null,
     "regressionTestPresent": true,
     "executionStatus": "PASS_EXECUTES",
-    "failureCategories": [],
+    "failureCategories": [
+      "FAIL_USAGE_SCOPE"
+    ],
     "finalCertificationStatus": "BLOCKED_ACTIVE_STAGE3E",
-    "rootCause": "A real Location transition reaches the Character runtime, the player receives and resumes the discard decision after drawing, AI resolves the same cycle automatically, and a second Scene Change in the same round is suppressed. Full round-boundary reset remains owned by active Stage 3E PR #93; visual rendering of the player choice has not been black-box verified."
+    "rootCause": "A real Location transition reaches the Character runtime: the player receives and resumes the draw/discard decision and AI resolves the same cycle automatically. Current main can reopen the once-per-round ability on a second Scene Change because Venue Val has sibling structured rows sharing character.sceneChangeCycle and only one sibling use is consumed. Stage 3E PR #104 owns the generic shared-resolver availability correction, so PR #94 records this as FAIL_USAGE_SCOPE instead of duplicating the production fix. Full round-boundary reset and visual choice rendering remain uncertified here."
   }
 }
