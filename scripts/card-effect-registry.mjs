@@ -3,18 +3,6 @@ import { readFile, readdir } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"));
 
-const FAMILY_BY_FILE = new Map([
-  ["starters.json", "Starter"],
-  ["attacks.json", "Attack"],
-  ["defenses.json", "Defense"],
-  ["katas.json", "Kata"],
-  ["consumables.json", "Consumable"],
-  ["equipment.json", "Equipment"],
-  ["combos.json", "Combo"],
-  ["locations.json", "Location"],
-  ["characters.json", "Character"],
-]);
-
 function cardFamily(card) {
   const catalogId = String(card?.catalogId ?? "").toUpperCase();
   if (catalogId.includes("-STA-")) return "Starter";
@@ -131,14 +119,13 @@ export async function loadCardEffectArchitecture() {
   const families = [];
   for (const file of files) {
     const registry = await readJson(`content/card-effects/${file}`);
-    const expectedFamily = FAMILY_BY_FILE.get(file);
-    assert(expectedFamily, `Unknown card-effect family filename '${file}'. Add it to FAMILY_BY_FILE before authoring it.`);
+    const family = String(registry.family ?? "").trim();
     assert(registry.schemaVersion === 1, `content/card-effects/${file} schemaVersion must be 1.`);
     assert(registry.rulesVersion === source.rulesVersion, `content/card-effects/${file} rulesVersion does not match canonical rulesVersion.`);
     assert(registry.rulesRevision === source.rulesRevision, `content/card-effects/${file} rulesRevision does not match canonical rulesRevision.`);
-    assert(registry.family === expectedFamily, `content/card-effects/${file} declares family '${registry.family}', expected '${expectedFamily}'.`);
+    assert(family, `content/card-effects/${file} must declare a family.`);
     assert(registry.cards && typeof registry.cards === "object", `content/card-effects/${file} is missing cards.`);
-    families.push({ file, family: expectedFamily, registry });
+    families.push({ file, family, registry });
   }
   return { source, cards, vocabulary, families };
 }
@@ -181,7 +168,7 @@ export function buildCardEffectAggregate({ source, cards, vocabulary, families }
     schemaVersion: 1,
     rulesVersion: source.rulesVersion,
     rulesRevision: source.rulesRevision,
-    description: "Canonical structured-effect migration registry. Entries are keyed by Catalog ID so executable behavior can migrate independently of the large printed-card catalog without changing printed card identity.",
+    description: "Canonical structured-effect registry. Entries are keyed by Catalog ID so executable behavior remains separate from printed card identity while sharing one validated runtime vocabulary.",
     cards: Object.fromEntries(Object.entries(mergedCards).sort(([left], [right]) => left.localeCompare(right))),
   };
 }

@@ -1,67 +1,67 @@
 # Dojo Deckbuilder
 
-The official interactive companion for **Dojo Deckbuilder**: Quick Start, full rules, card library, rulings and errata, glossary, backstory, and house rules.
+The official interactive companion and Quick Duel field test for **Dojo Deckbuilder**.
 
 ## Live site
 
-After GitHub Pages is enabled for this repository, the site is published at:
-
 <https://nullableninja.github.io/dojo-deckbuilder/>
 
-## Run locally
+## Source of truth
 
-Install [Node.js 22](https://nodejs.org/), then open a terminal in this repository and run:
+Game content is authored under `content/`.
+
+- `content/dojo-game.json` — executable game definition and global configuration
+- `content/rules.json` — rules and rulings content
+- `content/cards.json` — canonical printed card catalog
+- `content/effects.json` — reusable structured-effect vocabulary
+- `content/card-effects/*.json` — executable card behavior by family
+- `content/card-effects.json` — generated aggregate; do not hand-edit
+
+`app/data/` is generated application data. It is a consumer of canonical content, not an authoring surface. Run `npm run game:generate` after canonical edits and commit the generated result.
+
+## Local development
+
+Requires Node.js 22.12 or newer.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Open the local address printed by Vite. Stop the local server with `Ctrl+C`.
-
-## Production build
+Useful commands:
 
 ```bash
-npm run build
+npm run verify          # canonical generation/check + runtime tests + production build
+npm run game:generate   # regenerate application data from content/
+npm run engine:local    # two-player terminal engine
+npm run engine:ai       # human vs. bot terminal engine
+npm run simulate -- 10000
 ```
 
-The deployable static website is written to `dist/`, including a real `dist/index.html`.
+Simulation output is local/generated analysis under `reports/` and is intentionally not committed.
 
-## Play and simulate the rules engine
+## Architecture
 
-The engine uses the canonical `app/data/game-definition.json`, `rules.json`, and `cards.json` files. No installation beyond Node.js is required.
+The maintenance rule is simple:
 
-```bash
-npm run engine:local       # two-player pass-and-play
-npm run engine:ai          # human vs. balanced bot
-npm run simulate -- 10000  # headless batch; writes reports/simulation-v2.3.json
-```
+> **Canonical JSON defines the game. Runtime code executes it. React orchestrates it. CSS presents it.**
 
-See `docs/ENGINE-ARCHITECTURE.md` for the rules-as-data contract, supported rule coverage, and extension boundary.
+Do not add a mechanic to React or CSS when it belongs in canonical content or a reusable resolver. Compatibility fallbacks may still exist while older printed effects finish migrating; new mechanics should not extend those fallbacks.
 
-The Play the Game setup screen includes a background simulator for 1–1,000 games. It keeps the interface responsive while producing win rates, average length, top card picks, and XP/Focus curves from the current rules snapshot.
-
-Quick Duel intentionally ships in the proven main companion bundle. Do not reintroduce lazy-loading/code-splitting for `PlaytestView` without an end-to-end browser regression test; a prior split-chunk deployment produced a blank field-test screen after the loading handoff.
-
-## GitHub Pages deployment
-
-`.github/workflows/deploy-pages.yml` automatically builds and publishes the site whenever `main` changes. In GitHub, open **Settings → Pages** and set **Source** to **GitHub Actions** once. Future pushes to `main` deploy automatically.
+See `docs/ENGINE-ARCHITECTURE.md` for the executable-data boundary.
 
 ## Project structure
 
-- `app/companion-app.tsx` — interactive site interface
-- `app/globals.css` — Paper-Fu visual system and responsive layout
-- `app/data/` — searchable cards and rules data
-- `app/assets/` — site artwork and character images
-- `src/main.tsx` — static React entry point
-- `index.html` — Vite document entry point
+- `content/` — canonical rules, cards, effects, schemas, and structured card behavior
+- `engine/` — deterministic terminal/simulation engine
+- `app/` — React companion, Quick Duel orchestration, shared runtime hosts, and generated `app/data/`
+- `src/` — Vite entry point and Playtest event/VFX infrastructure
+- `tests/` — small permanent architecture/runtime behavior gate
+- `scripts/` — canonical generation/validation and production-card tooling
+- `public/` — static web/PWA/download assets
 
-<!-- Consumable card artwork refresh: v2.3. -->
-<!-- Layered Defensive Equipment and Consumable ORA sources published. -->
-<!-- Deployment trigger: dark-mode rule table contrast. -->
-<!-- Deployment trigger: smart companion tools. -->
+Quick Duel presentation is intentionally consolidated into `app/globals.css`, `app/card-inspector.css`, and `app/playtest.css`; do not reintroduce one-off patch stylesheets.
 
-<!-- Illustrated Defensive Equipment Paper-Fu card set published. -->
-<!-- Illustrated Gear Paper-Fu card set published. -->
+## Deployment
 
-<!-- Deployment trigger: complete Learned Combo card faces and editable ORA archive. -->
+`.github/workflows/deploy-pages.yml` runs the same `npm run verify` gate for pull requests and `main`, then deploys successful `main` builds to GitHub Pages.

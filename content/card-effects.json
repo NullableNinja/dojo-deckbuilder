@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "rulesVersion": "v2.3",
   "rulesRevision": "v2.3-r5",
-  "description": "Canonical structured-effect migration registry. Entries are keyed by Catalog ID so executable behavior can migrate independently of the large printed-card catalog without changing printed card identity.",
+  "description": "Canonical structured-effect registry. Entries are keyed by Catalog ID so executable behavior remains separate from printed card identity while sharing one validated runtime vocabulary.",
   "cards": {
     "DDB-ATK-CORE-001": {
       "name": "Aftermarket Uppercut",

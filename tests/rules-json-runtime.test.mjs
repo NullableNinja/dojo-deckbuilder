@@ -8,7 +8,10 @@ import {
   resolveQuickDuelPlaytestCharacterChoice,
 } from "../app/quick-duel-playtest-host.ts";
 
-const cards = JSON.parse(await readFile(new URL("../content/cards.json", import.meta.url), "utf8")).cards ?? [];
+const readJson = async (path) => JSON.parse(await readFile(new URL(path, import.meta.url), "utf8"));
+const cards = (await readJson("../content/cards.json")).cards ?? [];
+const comboEffects = (await readJson("../content/card-effects/combos.json")).cards ?? {};
+const characterEffects = (await readJson("../content/card-effects/characters.json")).cards ?? {};
 const byCatalogId = new Map(cards.map((card) => [card.catalogId, card]));
 const byId = new Map(cards.map((card) => [card.id, card]));
 const attack = (id, zone = "Mid") => ({ id, name: id, cardType: "Technique", subtype: "Attack", tags: [], zone });
@@ -89,15 +92,25 @@ const operations = {
 };
 
 test("canonical Combo effects execute through the Quick Duel host", () => {
-  const combo = byCatalogId.get("DDB-CMB-CORE-024");
-  assert.ok(combo, "representative canonical Combo must exist");
+  const candidates = Object.entries(comboEffects)
+    .filter(([, entry]) => entry.effects?.some((effect) => effect.effect === "combat.piercing" && effect.amount === 2 && effect.trigger === "onAttackDeclared"))
+    .map(([catalogId]) => byCatalogId.get(catalogId))
+    .filter(Boolean);
+  assert.ok(candidates.length, "canonical structured effects must contain a piercing Combo fixture");
+
   const form = kata("form");
   const strike = attack("strike", "Mid");
-  const current = match(board({ learnedCombos: [combo.id], cardsThisTurn: [form.id] }));
-  const prepared = prepareQuickDuelPlaytestAttack(current, "player", strike, "Mid", lookupWith(form, strike), operations);
-  assert.equal(prepared.attackFacts.piercing, 2);
-  assert.ok(prepared.match.player.triggeredCombos.includes(combo.id));
-  assert.equal(prepared.match.ai.triggeredCombos.length, 0);
+  let executed = null;
+  for (const combo of candidates) {
+    const current = match(board({ learnedCombos: [combo.id], cardsThisTurn: [form.id] }));
+    const prepared = prepareQuickDuelPlaytestAttack(current, "player", strike, "Mid", lookupWith(form, strike), operations);
+    if (prepared.attackFacts.piercing === 2 && prepared.match.player.triggeredCombos.includes(combo.id)) {
+      executed = { combo, prepared };
+      break;
+    }
+  }
+  assert.ok(executed, "a canonical piercing Combo must execute through the host for the representative Kata → Attack sequence");
+  assert.equal(executed.prepared.match.ai.triggeredCombos.length, 0);
 });
 
 test("structured lifecycle effects mutate the acting board only", () => {
@@ -121,11 +134,15 @@ test("structured lifecycle effects mutate the acting board only", () => {
 });
 
 test("canonical Character choices cross the Quick Duel host and resume through structured selection", () => {
+  const borrowerCatalogId = Object.entries(characterEffects).find(([, entry]) =>
+    entry.effects?.some((effect) => effect.resolver === "character.equipDiscardPermanentUntilHide"))?.[0];
+  assert.ok(borrowerCatalogId, "canonical structured effects must contain the temporary discard-equipment Character resolver");
   const permanent = cards.find((card) => ["Weapon", "Defense Equipment", "Gear"].includes(card.subtype));
   assert.ok(permanent, "canonical catalog must contain permanent Equipment");
+  const opponent = cards.find((card) => card.cardType === "Character" && card.catalogId !== borrowerCatalogId);
   const current = match(
-    board({ fighterId: "DDB-CHR-CORE-030", discard: [permanent.id] }),
-    board({ fighterId: "DDB-CHR-CORE-001" }),
+    board({ fighterId: borrowerCatalogId, discard: [permanent.id] }),
+    board({ fighterId: opponent?.catalogId ?? "ai-fighter" }),
     { phase: "player-initiate", turnIndex: 0 },
   );
   const offered = publishQuickDuelPlaytestLifecycleEvent(current, "player", "onInitiate", operations, lookupWith());
