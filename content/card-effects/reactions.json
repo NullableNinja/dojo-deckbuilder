@@ -1,0 +1,35 @@
+{
+  "$schema": "../card-effect-family.schema.json",
+  "schemaVersion": 1,
+  "rulesVersion": "v2.3",
+  "rulesRevision": "v2.3-r5",
+  "family": "Reaction Item",
+  "description": "Canonical structured executable effects for Core Reaction Items. Reaction timing and eligibility are represented by shared triggers and conditions; runtime hosts must not dispatch mechanics from card names or Catalog IDs.",
+  "cards": {
+    "DDB-RIT-CORE-001": {
+      "name": "Caution: Wet Floor",
+      "effects": [
+        {
+          "id": "reaction-caution-wet-floor-low-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "source",
+          "amount": -3,
+          "duration": "immediate",
+          "conditions": [
+            { "kind": "incomingAttackTargetsSelf", "operator": "eq", "value": true },
+            { "kind": "attackZones", "operator": "includes", "value": "Low" }
+          ]
+        },
+        {
+          "id": "reaction-caution-wet-floor-destroy-source",
+          "effect": "core.destroy",
+          "trigger": "afterResolve",
+          "target": "source",
+          "amount": 1,
+          "duration": "immediate"
+        }
+      ]
+    }
+  }
+}

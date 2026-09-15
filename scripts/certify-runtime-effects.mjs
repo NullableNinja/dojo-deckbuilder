@@ -1,5 +1,6 @@
 import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
 import { extname } from "node:path";
+import { cardFamily } from "./card-effect-registry.mjs";
 import { characterResolverHostEvidence } from "./runtime-effect-certification-character.mjs";
 
 const root = new URL("../", import.meta.url);
@@ -30,33 +31,17 @@ const testSources = new Map(await Promise.all(testFiles.map(async (path) => [pat
 const quickDuelHost = appSources.get("app/quick-duel-playtest-host.ts") ?? "";
 const quickDuelTransitionHost = appSources.get("app/quick-duel-transition-host.ts") ?? "";
 const quickDuelStructuredHost = appSources.get("app/quick-duel-structured-host.ts") ?? "";
-const quickDuelPurchaseHost = appSources.get("app/quick-duel-character-purchase-host.ts") ?? "";
 const characterRuntimeSource = appSources.get("app/character-runtime.ts") ?? "";
 const characterMigrationSource = appSources.get("app/quick-duel-character-migration.ts") ?? "";
 
 const catalogCards = cardsCatalog.cards ?? [];
 const cardByCatalogId = new Map(catalogCards.map((card) => [card.catalogId, card]));
 const starterCatalogIds = new Set((gameDefinition.starterDeck ?? []).map((entry) => entry.catalogId));
+const mechanicalCatalogCards = catalogCards.filter((card) => Boolean(cardFamily(card)));
+const structuredCardIds = new Set(Object.keys(effectsRegistry.cards ?? {}));
 
 const locationNameBlock = playtest.match(/const QUICK_DUEL_LOCATION_NAMES = new Set\(\[([\s\S]*?)\]\);/m)?.[1] ?? "";
 const quickDuelLocationNames = new Set([...locationNameBlock.matchAll(/["']([^"']+)["']/g)].map((match) => match[1]));
-
-const familyFromId = (id) => {
-  const code = String(id).match(/^DDB-([A-Z]+)-/)?.[1] ?? "UNKNOWN";
-  return ({
-    STA: "Starter",
-    ATK: "Attack",
-    DEF: "Defense",
-    KAT: "Kata",
-    CON: "Consumable",
-    DEQ: "Equipment",
-    GEA: "Equipment",
-    WPN: "Equipment",
-    CMB: "Combo",
-    LOC: "Location",
-    CHR: "Character",
-  })[code] ?? code;
-};
 
 const countOccurrences = (source, token) => token ? source.split(token).length - 1 : 0;
 const callCount = (token) => countOccurrences(playtest, `${token}(`);
@@ -71,6 +56,7 @@ const familyHostEvidence = {
   Starter: () => /starterIds|applyCardEffects/.test(playtest),
   Combo: () => callCount("publishQuickDuelPlaytestLifecycleEvent") > 0 || callCount("prepareQuickDuelPlaytestAttack") > 0,
   Location: () => /resolveLocationEffects\(|structuredLocation|locationRuntimeDelta\(/.test(playtest),
+  "Reaction Item": () => false,
 };
 
 function effectHostEvidence(family) {
@@ -92,7 +78,7 @@ function cardReachability(cardId, family) {
   }
   if (family === "Character") return { reachable: true, reason: "character-selector" };
   if (family === "Combo") return { reachable: true, reason: "combo-pool" };
-  if (["Attack", "Defense", "Kata", "Consumable", "Equipment"].includes(family)) {
+  if (["Attack", "Defense", "Kata", "Consumable", "Equipment", "Reaction Item"].includes(family)) {
     const inPool = card.cardType === "Technique" || card.cardType === "Item";
     return inPool ? { reachable: true, reason: "market-pool" } : { reachable: false, reason: `cardType-${card.cardType}-not-in-market` };
   }
@@ -105,9 +91,39 @@ function sourceFilesContaining(token, sources) {
 }
 
 const rows = [];
+for (const card of mechanicalCatalogCards) {
+  if (structuredCardIds.has(card.catalogId)) continue;
+  const family = cardFamily(card) ?? "UNKNOWN";
+  const reachability = cardReachability(card.catalogId, family);
+  rows.push({
+    family,
+    cardId: card.catalogId,
+    cardName: card.name ?? card.catalogId,
+    effectId: "",
+    effect: "",
+    trigger: "",
+    resolver: "",
+    characterEvents: [],
+    characterLiveEvents: [],
+    characterOwner: null,
+    characterCompatibilityHelper: null,
+    cardReachable: reachability.reachable,
+    reachabilityReason: reachability.reason,
+    familyHostEvidence: false,
+    requiresPlayerChoiceUi: false,
+    playerChoiceUiEvidence: false,
+    resolverEvidence: false,
+    resolverFiles: [],
+    testEvidence: false,
+    testFiles: [],
+    certification: "FAIL_STRUCTURE",
+    rootCause: "Canonical mechanical card has no structured effect definition in content/card-effects/*.json.",
+  });
+}
+
 for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
-  const family = familyFromId(cardId);
   const card = cardByCatalogId.get(cardId);
+  const family = cardFamily(card) ?? "UNKNOWN";
   const reachability = cardReachability(cardId, family);
   for (const effect of cardEntry.effects ?? []) {
     const effectId = String(effect.id ?? "");
@@ -128,7 +144,6 @@ for (const [cardId, cardEntry] of Object.entries(effectsRegistry.cards ?? {})) {
           quickDuelHostSource: quickDuelHost,
           quickDuelTransitionSource: quickDuelTransitionHost,
           quickDuelStructuredHostSource: quickDuelStructuredHost,
-          quickDuelPurchaseHostSource: quickDuelPurchaseHost,
         })
       : null;
     const familyHost = characterHost ? characterHost.hostLive : effectHostEvidence(family);
@@ -190,17 +205,22 @@ const byFamily = {};
 const byStatus = {};
 for (const row of rows) {
   byFamily[row.family] ??= { effects: 0, statuses: {} };
-  byFamily[row.family].effects += 1;
+  if (row.effectId) byFamily[row.family].effects += 1;
   byFamily[row.family].statuses[row.certification] = (byFamily[row.family].statuses[row.certification] ?? 0) + 1;
   byStatus[row.certification] = (byStatus[row.certification] ?? 0) + 1;
 }
 
-const cardsWithEffects = new Set(rows.map((row) => row.cardId));
+const effectRows = rows.filter((row) => row.effectId);
+const missingStructureRows = rows.filter((row) => row.certification === "FAIL_STRUCTURE");
+const cardsWithEffects = new Set(effectRows.map((row) => row.cardId));
 const failedCards = new Set(rows.filter((row) => row.certification.startsWith("FAIL") || row.certification.startsWith("UNVERIFIED")).map((row) => row.cardId));
 const summary = {
   generatedAt: new Date().toISOString(),
   source: "content/card-effects.json",
-  effects: rows.length,
+  mechanicalCanonicalCards: mechanicalCatalogCards.length,
+  structuredDefinitions: structuredCardIds.size,
+  missingStructuredDefinitions: missingStructureRows.length,
+  effects: effectRows.length,
   cardsWithStructuredEffects: cardsWithEffects.size,
   cardsNotFullyCertified: failedCards.size,
   byStatus,
@@ -217,8 +237,11 @@ await writeFile(new URL("reports/runtime-effect-certification.json", root), `${J
 const markdown = [
   "# Runtime Effect Certification",
   "",
-  `Generated from canonical \`content/card-effects.json\`.`,
+  `Generated from canonical \`content/cards.json\` and \`content/card-effects.json\`.`,
   "",
+  `- Canonical mechanical cards: **${summary.mechanicalCanonicalCards}**`,
+  `- Structured definitions: **${summary.structuredDefinitions}**`,
+  `- Missing structured definitions: **${summary.missingStructuredDefinitions}**`,
   `- Structured effects: **${summary.effects}**`,
   `- Cards with structured effects: **${summary.cardsWithStructuredEffects}**`,
   `- Cards not fully certified: **${summary.cardsNotFullyCertified}**`,
@@ -228,7 +251,7 @@ const markdown = [
   "",
   "## Status totals",
   "",
-  "| Status | Effects |",
+  "| Status | Entries |",
   "|---|---:|",
   ...Object.entries(byStatus).sort().map(([status, count]) => `| ${status} | ${count} |`),
   "",
@@ -242,7 +265,9 @@ const markdown = [
   "",
   "| Family | Card | Effect | Trigger | Resolver | Status | Root cause |",
   "|---|---|---|---|---|---|---|",
-  ...rows.filter((row) => row.certification !== "STATIC_PASS").map((row) => `| ${row.family} | ${row.cardId} ${row.cardName.replaceAll("|", "\\|")} | ${row.effectId} | ${row.trigger} | ${row.resolver || "—"} | ${row.certification} | ${row.rootCause.replaceAll("|", "\\|")} |`),
+  ...rows.filter((row) => row.certification !== "STATIC_PASS").map((row) => `| ${row.family} | ${row.cardId} ${row.cardName.replaceAll("|", "\\|")} | ${row.effectId || "—"} | ${row.trigger || "—"} | ${row.resolver || "—"} | ${row.certification} | ${row.rootCause.replaceAll("|", "\\|")} |`),
+  "",
+  "> FAIL_STRUCTURE is derived from the canonical card catalog. A mechanical card cannot disappear from certification merely because its structured definition is missing.",
   "",
   "> Character host certification follows resolver → runtime-event → migration ownership. Raw canonical trigger text is reported for reference but is not treated as execution evidence.",
   "",
