@@ -1,38 +1,37 @@
-name: Temporary Kata batch3 audit
+name: Temporary Kata batch3 certification
 on:
   push:
     branches: [fix/effect-runtime-certification-batch3]
+permissions:
+  contents: write
 jobs:
-  audit:
+  certify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/effect-runtime-certification-batch3
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
       - run: npm ci
-      - name: Inventory remaining Kata runtime families
-        shell: bash
+      - name: Apply Kata runtime patch
+        run: python scripts/temp-kata-batch3-implement.py
+      - name: Focused acceptance
+        run: node --experimental-strip-types --test tests/quick-duel-kata-combat-runtime.test.mjs tests/quick-duel-kata-consumable-runtime.test.mjs tests/quick-duel-consumable-host-coverage.test.mjs
+      - name: Full verification
+        run: npm run verify
+      - name: Diff check
+        run: git diff --check
+      - name: Commit clean implementation
+        if: success()
         run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const cards = JSON.parse(fs.readFileSync('content/card-effects/katas.json','utf8')).cards;
-          const groups = new Map();
-          for (const [id, card] of Object.entries(cards)) {
-            for (const effect of card.effects) {
-              const key = effect.resolver ?? '(direct)';
-              if (!groups.has(key)) groups.set(key, []);
-              groups.get(key).push({id, name: card.name, effect: effect.id, trigger: effect.trigger, action: effect.action, duration: effect.duration ?? ''});
-            }
-          }
-          for (const [resolver, rows] of [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0]))) {
-            console.log(`\n=== ${resolver} (${rows.length}) ===`);
-            for (const row of rows) console.log(`${row.id} | ${row.name} | ${row.effect} | ${row.trigger} | ${row.action} | ${row.duration}`);
-          }
-          NODE
-          echo '=== KATA BRIDGE EXPORTS ==='
-          grep -n '^export function kata' app/kata-playtest-bridge.ts || true
-          echo '=== KATA BRIDGE CONSUMERS ==='
-          grep -R -n 'kata[A-Z].*ForHost\|kataCommandsForHost' app --exclude=kata-playtest-bridge.ts || true
-          echo '=== KATA LEGACY EFFECT HELPERS USED BY PLAYTEST ==='
-          grep -n 'structuredConditionalFocus\|conditionalAttackPowerBonus\|attackPiercing\|conditionalHealAfterHit\|discardChoiceFollowup\|deckLookPlan\|destroyJunkChoicePlan\|mandatoryDiscardChoiceCount\|structuredNextAttackFlow\|structuredNextAttackAnyZone' app/playtest.tsx || true
+          rm -f .github/workflows/temp-kata-batch3-audit.yml
+          rm -f .github/workflows/temp-kata-batch3-implement.yml
+          rm -f scripts/temp-kata-batch3-implement.py
+          git config user.name "NullableNinja"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix simple Kata combat runtime execution"
+          git push origin HEAD:fix/effect-runtime-certification-batch3
