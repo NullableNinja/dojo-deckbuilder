@@ -1,5 +1,5 @@
 import { resolveKataEffects, type KataCommand, type KataCondition, type KataStructuredEffect } from "./kata-effect-resolvers.ts";
-import { structuredRuntimeEffects, type RuntimeCardLike } from "./family-effect-runtime.ts";
+import { conditionValue, structuredRuntimeEffects, type RuntimeCardLike } from "./family-effect-runtime.ts";
 
 export type KataHostFacts = Record<string, unknown> & {
   belt?: string;
@@ -20,6 +20,7 @@ export type KataHostFacts = Record<string, unknown> & {
   damage?: number;
   attackIsReversal?: boolean;
   firstCardPlayedThisTurn?: boolean;
+  firstAttackThisTurn?: boolean;
 };
 
 export type KataDeckLookPlan =
@@ -153,6 +154,7 @@ export function kataDiscardFollowupForHost(card: RuntimeCardLike, facts: KataHos
   let nextDefenseGuard = 0;
   const notes: string[] = [];
   for (const command of kataCommandsForHost(card, "afterResolve", facts)) {
+    if (command.resolver !== "kata.discardBranch") continue;
     if (command.action === "gainFocus") {
       focus += Number(command.amount ?? 0);
       notes.push(`structured Kata discard +${Number(command.amount ?? 0)} Focus`);
@@ -169,18 +171,36 @@ export function kataDiscardFollowupForHost(card: RuntimeCardLike, facts: KataHos
 
 export function kataFastestFocusForHost(card: RuntimeCardLike, selfSpeed: number, opponentSpeed: number) {
   return kataCommandsForHost(card, "afterResolve", { isFastest: selfSpeed > opponentSpeed })
-    .filter((command) => command.action === "gainFocus")
+    .filter((command) => command.resolver === "kata.conditional" && command.action === "gainFocus")
     .reduce((total, command) => total + Number(command.amount ?? 0), 0);
 }
 
 export function kataNextAttackFlowForHost(card: RuntimeCardLike, trigger: string, facts: KataHostFacts = {}) {
+  const structured = structuredRuntimeEffects(card).filter((effect) => {
+    if (effect.resolver === "kata.flowGrant") return true;
+    return effect.resolver === "kata.branch" && conditionValue(effect, "grantFlowTo") === "nextAttack";
+  });
   const commands = kataCommandsForHost(card, trigger, facts);
-  const handled = commands.some((command) => command.kind === "grantFlow" || command.action === "grantFlow");
-  return { handled, grant: handled };
+  const matching = commands.filter((command) => {
+    if (!(command.kind === "grantFlow" || command.action === "grantFlow" || command.params?.grantFlowTo === "nextAttack")) return false;
+    const zones = stringArrayParam(command, "attackZones").map((zone) => zone.toLocaleLowerCase());
+    if (zones.length && !facts.attackZone) return false;
+    if (zones.length && facts.attackZone && !zones.includes(String(facts.attackZone).toLocaleLowerCase())) return false;
+    return true;
+  });
+  return { handled: structured.length > 0, grant: matching.length > 0 };
 }
 
 export function kataNextAttackAnyZoneForHost(card: RuntimeCardLike, trigger: string, facts: KataHostFacts = {}) {
+  const structured = structuredRuntimeEffects(card).filter((effect) => {
+    if (effect.resolver === "kata.zoneOverride") return true;
+    return effect.resolver === "kata.branch" && String(effect.action ?? effect.effect ?? "") === "chooseZone";
+  });
   const commands = kataCommandsForHost(card, trigger, facts);
-  const matching = commands.filter((command) => command.kind === "armZoneOverride" || command.action === "chooseZone");
-  return { handled: matching.length > 0, grant: matching.length > 0 };
+  const matching = commands.filter((command) => {
+    if (!(command.kind === "armZoneOverride" || command.action === "chooseZone")) return false;
+    if (command.params?.firstAttackThisTurn === true && facts.firstAttackThisTurn !== true) return false;
+    return true;
+  });
+  return { handled: structured.length > 0, grant: matching.length > 0 };
 }
