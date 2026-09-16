@@ -21,6 +21,7 @@ import { chooseAiTemporaryStatusRemoval, removableTemporaryStatuses, removeTempo
 import { structuredConsumableTopRevealPlan } from "./stage3c-consumable-reveal.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
+import { isCoreKataCard, kataRuntimeCommandsForHost, type KataHostFacts } from "./kata-playtest-bridge.ts";
 import { characterAllowedAttackZones, characterAttackModifier, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
@@ -622,8 +623,9 @@ function attackPiercingModifier(attacker: Board, defender: Board, card: CardEntr
   const direct = attackPiercing(card, { matchingArmor, targetEquipmentCount: defender.equipment.length, targetHasExhaustedEquipment: Boolean(defender.exhaustedEquipment?.length), speedChangedThisRound: Boolean(attacker.speedChangedThisRound) });
   const equipped = attacker.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
   const equipment = equipmentPiercing(equipped, { firstAttack: attacker.attacksThisTurn === 0, zone, matchingArmor, attackTags: card.tags });
-  const value = direct.amount + equipment.amount + comboPiercing;
-  const notes = [...direct.notes, ...equipment.sources, ...(comboPiercing ? [`Combo grants Piercing ${comboPiercing}`] : [])];
+  const kataStatusPiercing = stage3cAttackPiercing(attacker, card, zone);
+  const value = direct.amount + equipment.amount + comboPiercing + kataStatusPiercing;
+  const notes = [...direct.notes, ...equipment.sources, ...(comboPiercing ? [`Combo grants Piercing ${comboPiercing}`] : []), ...(kataStatusPiercing ? [`Structured Kata grants Piercing ${kataStatusPiercing}`] : [])];
   return { value, notes };
 }
 
@@ -1063,6 +1065,21 @@ function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {
   };
 }
 
+function stage3cKataContext(board: Board, card: CardEntry): KataHostFacts {
+  const sourceRecorded = board.cardsThisTurn.includes(card.id);
+  return {
+    belt: belts[board.belt]?.name,
+    wasHitSinceLastTurn: Boolean(board.wasHitSinceLastTurn),
+    hasWeaponEquipped: board.equipment.some((id) => { const item = cardFor(id); return Boolean(item && isWeapon(item)); }),
+    hasTempo: Boolean(board.tempo),
+    playedAttackThisTurn: board.attacksThisTurn > 0,
+    hpAtOrBelowHalfMax: board.hp <= board.maxHp / 2,
+    usedConsumableThisTurn: Boolean(board.usedConsumableThisRound),
+    firstCardPlayedThisTurn: sourceRecorded ? board.cardsThisTurn.length === 1 : board.cardsThisTurn.length === 0,
+    firstAttackThisTurn: board.attacksThisTurn === 0,
+  };
+}
+
 function stage3cDefenseContext(defender: Board, attacker: Board, _defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext & { weaponAttack: boolean; defenderAttackedThisRound: boolean } {
   const matchingArmor = equipmentDefenseModifier(defender, zone).value > 0;
   return {
@@ -1242,6 +1259,10 @@ function stage3cAttackStatusMatches(status: RuntimeStatus, card: CardEntry, zone
 
 function stage3cAttackPowerBonus(board: Board, card: CardEntry, zone: string, isReversal = false) {
   return (board.stage3cStatuses ?? []).filter((status) => stage3cAttackStatusMatches(status, card, zone, isReversal) && status.effect === "combat.modifyAttackPower").reduce((total, status) => total + status.amount, 0);
+}
+
+function stage3cAttackPiercing(board: Board, card: CardEntry, zone: string, isReversal = false) {
+  return (board.stage3cStatuses ?? []).filter((status) => stage3cAttackStatusMatches(status, card, zone, isReversal) && status.effect === "combat.piercing").reduce((total, status) => total + status.amount, 0);
 }
 
 function stage3cAttackFlow(board: Board, card: CardEntry, zone: string, isReversal = false) {
@@ -1627,6 +1648,9 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
       if (equipmentSpeedModifier(card)) next.speedChangedThisRound = true;
     }
   }
+  if (isCoreKataCard(card)) {
+    next = applyStage3CCommands(next, kataRuntimeCommandsForHost(card, timing, stage3cKataContext(next, card)), owner);
+  }
   if (migratedFamily) {
     const context = Object.keys(familyContext).length ? familyContext : isCoreConsumableCard(card) ? stage3cConsumableContext(next) : familyContext;
     next = applyStage3CTiming(next, card, timing, owner, context, "self");
@@ -1646,7 +1670,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
       if (effect.kind === "heal") next.hp = Math.min(next.maxHp, next.hp + effect.amount);
     }
   }
-  if (timing === "onPlay") {
+  if (timing === "onPlay" && !isCoreKataCard(card)) {
     const conditionalHeal = conditionalHealAfterHit(card, board.wasHitSinceLastTurn);
     if (conditionalHeal) next.hp = Math.min(next.maxHp, next.hp + conditionalHeal);
   }

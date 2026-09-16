@@ -52,6 +52,7 @@ const PREDICATE_KINDS = new Set([
   "minimumDamage",
   "attackIsReversal",
   "firstCardPlayedThisTurn",
+  "firstAttackThisTurn",
 ]);
 
 function compare(actual: unknown, expected: unknown, operator = "eq") {
