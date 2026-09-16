@@ -96,7 +96,7 @@ test("Emergency Shoelace is recognized as a Disarm replacement Reaction", () => 
 test("Dojo Coupon and Lunch Voucher have purchase-time consumers", () => {
   const coupon = consumableRuntimeCommands(card("DDB-CON-CORE-011"), "onPlay", solo).find((c) => c.resolver === "consumable.restrictedFocusItemsEquipment");
   assert.ok(coupon);
-  const weapon = card("DDB-EQP-CORE-001") ?? { cardType: "Item", subtype: "Weapon" };
+  const weapon = cards.find((entry) => entry.cardType === "Item" && /weapon/i.test(String(entry.subtype ?? ""))) ?? { cardType: "Item", subtype: "Weapon" };
   assert.equal(spendableFocusForPurchase(5, [{ sourceEffectId: coupon.sourceEffectId, effect: coupon.effect, target: "self", amount: coupon.amount, duration: coupon.duration, resolver: coupon.resolver, qualifier: coupon.qualifier, appliedImmediately: false }], weapon), 5);
 
   const voucher = consumableRuntimeCommands(card("DDB-CON-CORE-030"), "onPlay", solo).find((c) => c.resolver === "consumable.ascendPurchaseDiscount");
