@@ -1,21 +1,36 @@
-name: Temporary Kata batch6 audit
+name: Temporary Kata batch6 certification
 on:
   push:
     branches: [fix/effect-runtime-certification-batch6]
+permissions:
+  contents: write
 jobs:
-  audit:
+  certify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/effect-runtime-certification-batch6
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
-      - name: Pinpoint next-Defense host calls
-        shell: bash
+      - run: npm ci
+      - name: Apply Breakroom deferred Defense patch
+        run: python scripts/temp-kata-batch6-implement.py
+      - name: Focused acceptance
+        run: node --experimental-strip-types --test tests/quick-duel-kata-deferred-defense-runtime.test.mjs tests/quick-duel-kata-defense-hide-runtime.test.mjs tests/quick-duel-kata-stateful-runtime.test.mjs tests/quick-duel-kata-combat-runtime.test.mjs
+      - name: Full verification
+        run: npm run verify
+      - name: Diff check
+        run: git diff --check
+      - name: Commit clean implementation
+        if: success()
         run: |
-          echo '=== STAGE3C NEXT DEFENSE CALLS ==='
-          grep -n -A15 -B15 'stage3cNextDefenseGuardBonus' app/playtest.tsx || true
-          echo '=== CONSUME DEFENSE CALLS ==='
-          grep -n -A15 -B15 'stage3cConsumeDefenseStatuses' app/playtest.tsx || true
-          echo '=== BOUGHT CARD CARRYOVER WRITES ==='
-          grep -n -A8 -B8 'boughtCardLastAscend' app/playtest.tsx || true
+          rm -f .github/workflows/temp-kata-batch6-audit.yml
+          rm -f scripts/temp-kata-batch6-implement.py
+          git config user.name "NullableNinja"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix conditional first-Defense Kata watcher"
+          git push origin HEAD:fix/effect-runtime-certification-batch6
