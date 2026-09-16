@@ -46,23 +46,9 @@ for (const [catalogId, entry] of Object.entries(effects)) {
     const command = commands.find((candidate) => candidate.sourceEffectId === effect.id) ?? null;
     const token = effect.resolver;
     const refs = hostSource.split(token).length - 1;
-    rows.push({
-      catalogId,
-      name: entry.name,
-      effectId: effect.id,
-      trigger: effect.trigger,
-      resolver: effect.resolver,
-      declaredEffect: effect.effect ?? effect.action ?? "",
-      declaredDuration: effect.duration ?? "immediate",
-      commandEffect: command?.effect ?? null,
-      commandDuration: command?.duration ?? null,
-      commandChoice: Boolean(command?.choice),
-      qualifier: command?.qualifier ?? null,
-      hostRefs: refs,
-    });
+    rows.push({ catalogId, name: entry.name, effectId: effect.id, trigger: effect.trigger, resolver: effect.resolver, declaredEffect: effect.effect ?? effect.action ?? "", declaredDuration: effect.duration ?? "immediate", commandEffect: command?.effect ?? null, commandDuration: command?.duration ?? null, commandChoice: Boolean(command?.choice), qualifier: command?.qualifier ?? null, hostRefs: refs });
   }
 }
-console.log("RESOLVER_ROWS=" + JSON.stringify(rows));
 const byResolver = new Map();
 for (const row of rows) {
   const current = byResolver.get(row.resolver) ?? { resolver: row.resolver, effects: 0, hostRefs: row.hostRefs, choices: 0, triggers: new Set(), commandEffects: new Set(), durations: new Set() };
@@ -74,6 +60,7 @@ for (const row of rows) {
   byResolver.set(row.resolver, current);
 }
 const summary = [...byResolver.values()].map((row) => ({ ...row, triggers: [...row.triggers], commandEffects: [...row.commandEffects], durations: [...row.durations] })).sort((a,b) => a.hostRefs - b.hostRefs || a.resolver.localeCompare(b.resolver));
-console.log("RESOLVER_SUMMARY=" + JSON.stringify(summary));
 console.log("ZERO_HOST_REFS=" + JSON.stringify(summary.filter((row) => row.hostRefs === 0)));
 console.log("CHOICE_RESOLVERS=" + JSON.stringify(summary.filter((row) => row.choices > 0)));
+const suspects = ["DDB-CON-CORE-008","DDB-CON-CORE-017","DDB-CON-CORE-020","DDB-CON-CORE-028","DDB-CON-CORE-036","DDB-CON-CORE-040","DDB-CON-CORE-049","DDB-CON-CORE-050","DDB-CON-CORE-058"];
+console.log("SUSPECT_RULES=" + JSON.stringify(suspects.map((id) => { const c=cardById.get(id); return {catalogId:id,name:c?.name,rulesText:c?.rulesText}; })));
