@@ -16,6 +16,16 @@ import {
 } from "./consumable-effect-resolvers.ts";
 import { conditionValue, structuredRuntimeEffects } from "./family-effect-runtime.ts";
 import { structuredLocationAttackForHost } from "./location-playtest-bridge.ts";
+import {
+  kataConditionalHealForHost,
+  kataDeckLookPlanForHost,
+  kataDestroyPlanForHost,
+  kataDiscardFollowupForHost,
+  kataFastestFocusForHost,
+  kataMandatoryDiscardCountForHost,
+  kataNextAttackAnyZoneForHost,
+  kataNextAttackFlowForHost,
+} from "./kata-playtest-bridge.ts";
 
 export * from "./effect-resolvers-legacy.ts";
 
@@ -29,6 +39,10 @@ function isCoreDefense(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
 
 function isCoreConsumable(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
   return catalogId(card).startsWith("DDB-CON-CORE-");
+}
+
+function isCoreKata(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
+  return catalogId(card).startsWith("DDB-KAT-CORE-");
 }
 
 function isCoreLocation(card: Parameters<typeof legacy.destroysAfterUse>[0]) {
@@ -77,17 +91,31 @@ export function returnsToSupplyAfterUse(card: Parameters<typeof legacy.destroysA
 
 export function destroyJunkChoiceCount(card: Parameters<typeof legacy.destroyJunkChoiceCount>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableDestroyJunkCount(card);
+  if (isCoreKata(card)) return kataDestroyPlanForHost(card)?.count ?? 0;
   return legacy.destroyJunkChoiceCount(card);
 }
 
 export function destroyJunkChoicePlan(card: Parameters<typeof legacy.destroyJunkChoiceCount>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableDestroyJunkPlan(card);
+  if (isCoreKata(card)) {
+    const plan = kataDestroyPlanForHost(card);
+    if (plan) {
+      return {
+        resolver: "kata.destroyChoice" as const,
+        count: plan.count,
+        sources: plan.sources,
+        optional: plan.optional,
+        drawAfterSuccess: plan.drawAfterHandDestroy,
+      };
+    }
+  }
   const count = legacy.destroyJunkChoiceCount(card);
   return count ? { resolver: "legacy" as const, count, sources: ["hand", "discard"] as ("hand" | "discard")[], optional: false, drawAfterSuccess: 0 } : null;
 }
 
 export function mandatoryDiscardChoiceCount(card: Parameters<typeof legacy.mandatoryDiscardChoiceCount>[0]) {
   if (isCoreConsumable(card)) return structuredConsumableMandatoryDiscard(card);
+  if (isCoreKata(card)) return kataMandatoryDiscardCountForHost(card);
   return legacy.mandatoryDiscardChoiceCount(card);
 }
 
@@ -116,6 +144,10 @@ export function conditionalHealAfterHit(
   // Migrated Defense/Consumable healing is executed by the structured family
   // runtime at its declared trigger. Never parse their printed prose here.
   if (isCoreDefense(card) || isCoreConsumable(card)) return 0;
+  if (isCoreKata(card)) {
+    const structured = kataConditionalHealForHost(card, { wasHitSinceLastTurn });
+    if (structuredRuntimeEffects(card).some((effect) => effect.resolver === "kata.conditional" && String(effect.action ?? effect.effect ?? "").includes("heal"))) return structured;
+  }
   return legacy.conditionalHealAfterHit(card, wasHitSinceLastTurn);
 }
 
@@ -126,7 +158,22 @@ export function discardChoiceFollowup(
   if (isCoreDefense(source) || isCoreConsumable(source)) {
     return { focus: 0, nextAttackPower: 0, nextDefenseGuard: 0, notes: [] as string[] };
   }
+  if (isCoreKata(source)) {
+    return kataDiscardFollowupForHost(source, {
+      discardedCardType: String(discarded.cardType ?? discarded.subtype ?? ""),
+      discardedFocusValue: Number(discarded.focusValue ?? 0),
+    });
+  }
   return legacy.discardChoiceFollowup(source, discarded);
+}
+
+export function structuredFocusIfFastest(
+  card: Parameters<typeof legacy.structuredFocusIfFastest>[0],
+  selfSpeed: number,
+  opponentSpeed: number,
+) {
+  if (isCoreKata(card)) return kataFastestFocusForHost(card, selfSpeed, opponentSpeed);
+  return legacy.structuredFocusIfFastest(card, selfSpeed, opponentSpeed);
 }
 
 export function structuredNextAttackFlow(
@@ -137,6 +184,12 @@ export function structuredNextAttackFlow(
     const grant = consumableRuntimeCommands(card, context.timing)
       .some((command) => command.effect === "combat.grantFlow" && command.duration === "nextAttack");
     return { handled: structuredRuntimeEffects(card).some((effect) => effect.resolver === "consumable.nextAttackFlowUntilEndOfTurn"), grant };
+  }
+  if (isCoreKata(card)) {
+    const structured = kataNextAttackFlowForHost(card, context.timing, {
+      differentZoneFromPreviousAttack: Boolean(context.differentZoneFromPreviousAttack),
+    });
+    if (structured.handled) return structured;
   }
   return legacy.structuredNextAttackFlow(card, context);
 }
@@ -149,6 +202,10 @@ export function structuredNextAttackAnyZone(
     const commands = defenseRuntimeCommands(card, context.timing);
     const handled = structuredRuntimeEffects(card).some((effect) => effect.resolver === "defense.delayedZoneChoice");
     return { handled, grant: commands.some((command) => command.effect === "combat.chooseZone") };
+  }
+  if (isCoreKata(card)) {
+    const structured = kataNextAttackAnyZoneForHost(card, context.timing, { firstAttackThisTurn: context.attackNumber === 0 });
+    if (structured.handled) return structured;
   }
   return legacy.structuredNextAttackAnyZone(card, context);
 }
@@ -167,6 +224,10 @@ export function optionalDiscardDrawChoice(card: Parameters<typeof legacy.optiona
 }
 
 export function deckLookPlan(card: Parameters<typeof legacy.deckLookPlan>[0]): legacy.DeckLookPlan | null {
+  if (isCoreKata(card)) {
+    const structured = kataDeckLookPlanForHost(card);
+    if (structured) return structured;
+  }
   if (isCoreConsumable(card)) {
     const reorder = structuredRuntimeEffects(card).find((effect) => effect.resolver === "consumable.reorderTopThree");
     if (reorder) {
