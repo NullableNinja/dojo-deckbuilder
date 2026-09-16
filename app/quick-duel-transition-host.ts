@@ -18,6 +18,7 @@ import type {
   CharacterRuntimeEvent,
 } from "./character-runtime.ts";
 import { publishQuickDuelCharacterEvent } from "./quick-duel-structured-host.ts";
+import { structuredCardHasNoPrintedNumericEffect } from "./structured-card-facts.ts";
 import { canonicalTrainingStripeConfig } from "./training-stripes-config.ts";
 import {
   awardProvisionalTrainingStripe,
@@ -331,6 +332,7 @@ function publishCardPlayedCharacterTransitions<Board extends QuickDuelTransition
         zone: played.zone,
         thirdDifferentCardTypeThisTurn: played.thirdDifferentCardTypeThisTurn,
         completedBeltExam: played.completedBeltExam,
+        noPrintedNumericEffect: structuredCardHasNoPrintedNumericEffect(played.card) === true,
       });
       next = published.match;
       if (published.unresolvedPlayerChoice) break;
