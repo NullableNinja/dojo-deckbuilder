@@ -10,20 +10,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
-      - name: Inspect next-Defense status lifecycle
+      - name: Pinpoint next-Defense host calls
         shell: bash
         run: |
-          echo '=== NEXT DEFENSE CALLS ==='
-          grep -R -n 'nextDefenseGuardBonus\|consumeNextDefenseStatuses' app tests || true
-          echo '=== DEFENSE RESOLUTION CONTEXT ==='
-          grep -n -A45 -B25 'nextDefenseGuardBonus' app/playtest.tsx || true
-          echo '=== STATUS EXPIRY ==='
-          grep -n -A35 -B10 'function stage3cAdvanceRound\|function stage3cEndTurn\|expireStage3CQualified' app/playtest.tsx || true
-          echo '=== BREAKROOM EFFECT ==='
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const k=JSON.parse(fs.readFileSync('content/card-effects/katas.json','utf8')).cards;
-          console.log(JSON.stringify(k['DDB-KAT-CORE-005'], null, 2));
-          const cards=JSON.parse(fs.readFileSync('app/data/cards.json','utf8')).cards;
-          console.log(cards.find(c=>c.catalogId==='DDB-KAT-CORE-005'));
-          NODE
+          echo '=== STAGE3C NEXT DEFENSE CALLS ==='
+          grep -n -A15 -B15 'stage3cNextDefenseGuardBonus' app/playtest.tsx || true
+          echo '=== CONSUME DEFENSE CALLS ==='
+          grep -n -A15 -B15 'stage3cConsumeDefenseStatuses' app/playtest.tsx || true
+          echo '=== BOUGHT CARD CARRYOVER WRITES ==='
+          grep -n -A8 -B8 'boughtCardLastAscend' app/playtest.tsx || true
