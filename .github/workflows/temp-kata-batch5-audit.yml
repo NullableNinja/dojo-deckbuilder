@@ -1,0 +1,24 @@
+name: Temporary Kata batch5 audit
+on:
+  push:
+    branches: [fix/effect-runtime-certification-batch5]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+      - name: Inspect live DEF, Defense-status, and Hide seams
+        shell: bash
+        run: |
+          echo '=== FIGHTER STAT ==='
+          grep -n -A35 -B5 'fighterStat' app/playtest.tsx | head -120 || true
+          echo '=== DEFENSE STATUS SEMANTICS ==='
+          cat app/stage3c-defense-status-semantics.ts
+          echo '=== HIDE PATHS ==='
+          sed -n '3040,3110p' app/playtest.tsx
+          sed -n '3780,3835p' app/playtest.tsx
+          echo '=== PURCHASE CARRYOVER ==='
+          grep -n -A12 -B8 'boughtCardLastAscend' app/playtest.tsx | head -120 || true
