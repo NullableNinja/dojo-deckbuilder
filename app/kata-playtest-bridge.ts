@@ -251,7 +251,14 @@ export function kataRuntimeCommandsForHost(
     if (resolver === "kata.branch" && !(command.action === "heal" || command.kind === "grantFlow")) return [];
     if (resolver === "kata.damagePrevention" && command.kind !== "armDamagePrevention") return [];
     if (resolver === "kata.defenseModifier" && command.action !== "modifyDefense") return [];
-    if (resolver === "kata.deferredConditional" && !(trigger === "onHide" && ["gainFocus", "heal"].includes(String(command.action ?? "")))) return [];
+    if (resolver === "kata.deferredConditional") {
+      const hideOutcome = trigger === "onHide" && ["gainFocus", "heal"].includes(String(command.action ?? ""));
+      const nextDefenseWatcher = trigger === "onPlay"
+        && command.kind === "armDeferredConditional"
+        && command.action === "modifyGuard"
+        && command.duration === "nextDefense";
+      if (!hideOutcome && !nextDefenseWatcher) return [];
+    }
 
     const effect = command.kind === "grantFlow"
       ? "combat.grantFlow"
@@ -269,7 +276,9 @@ export function kataRuntimeCommandsForHost(
           : String(command.duration ?? "immediate");
     const qualifier = resolver === "kata.damagePrevention"
       ? { ...command.params, expires: command.params?.firstDamageEventBefore }
-      : command.params;
+      : resolver === "kata.deferredConditional" && trigger === "onPlay" && duration === "nextDefense"
+        ? { ...command.params, expires: "endOfRound" }
+        : command.params;
     return [{
       sourceEffectId: String(command.effectId ?? `kata:${resolver}:${trigger}`),
       effect,

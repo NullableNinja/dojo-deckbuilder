@@ -1289,7 +1289,10 @@ function stage3cConsumeAttackStatuses(board: Board, card: CardEntry, zone: strin
 }
 
 function stage3cNextDefenseGuardBonus(board: Board) {
-  return nextDefenseGuardBonus(board.stage3cStatuses ?? []);
+  return nextDefenseGuardBonus(board.stage3cStatuses ?? [], {
+    firstDefenseThisRound: !board.defendedThisRound,
+    boughtCardThisTurn: Boolean(board.boughtCardLastAscend),
+  });
 }
 
 function stage3cIncomingAttackDefenseBonus(board: Board) {
