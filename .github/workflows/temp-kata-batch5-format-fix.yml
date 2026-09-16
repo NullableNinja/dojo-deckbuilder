@@ -1,0 +1,58 @@
+name: Temporary Kata batch5 format fix
+on:
+  push:
+    branches: [fix/effect-runtime-certification-batch5]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/effect-runtime-certification-batch5
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+      - run: npm ci
+      - name: Restore canonical source formatting with intended semantic edits only
+        shell: bash
+        run: |
+          git show 1574c9409f8709b136328290a2b5581b2a7f0eb4:content/card-effects/katas.json > /tmp/katas-original.json
+          python - <<'PY'
+          from pathlib import Path
+          lines = Path('/tmp/katas-original.json').read_text().splitlines(True)
+          targets = {'DDB-KAT-CORE-028', 'DDB-KAT-CORE-050'}
+          found = set()
+          out = []
+          for line in lines:
+              hit = next((cid for cid in targets if f'"{cid}"' in line), None)
+              if hit:
+                  if '"resolver":"kata.defenseModifier"' not in line or '"action":"modifyGuard"' not in line:
+                      raise SystemExit(f'unexpected canonical defense effect shape for {hit}')
+                  line = line.replace('"action":"modifyGuard"', '"action":"modifyDefense"', 1)
+                  found.add(hit)
+              out.append(line)
+          if found != targets:
+              raise SystemExit(f'missing target rows: {targets - found}')
+          Path('content/card-effects/katas.json').write_text(''.join(out))
+          PY
+          npm run game:generate
+      - name: Commit formatting correction and regenerated aggregates
+        run: |
+          git config user.name "NullableNinja"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add content/card-effects/katas.json content/card-effects.json app/data/card-effects.json
+          git commit -m "Restore Kata source formatting after DEF correction"
+      - name: Verify clean implementation
+        run: npm run verify
+      - name: Verify diff hygiene
+        run: git diff --check
+      - name: Remove temporary workflow and publish
+        if: success()
+        run: |
+          rm -f .github/workflows/temp-kata-batch5-format-fix.yml
+          git add -A
+          git commit -m "chore: remove Kata batch5 format fixer"
+          git push origin HEAD:fix/effect-runtime-certification-batch5
