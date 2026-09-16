@@ -1,25 +1,36 @@
-name: Temporary Kata batch4 audit
+name: Temporary Kata batch4 certification
 on:
   push:
     branches: [fix/effect-runtime-certification-batch4]
+permissions:
+  contents: write
 jobs:
-  audit:
+  certify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/effect-runtime-certification-batch4
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
-      - name: Print target canonical cards and state seams
-        shell: bash
+      - run: npm ci
+      - name: Apply stateful Kata runtime patch
+        run: python scripts/temp-kata-batch4-implement.py
+      - name: Focused acceptance
+        run: node --experimental-strip-types --test tests/quick-duel-kata-stateful-runtime.test.mjs tests/quick-duel-kata-combat-runtime.test.mjs tests/quick-duel-kata-consumable-runtime.test.mjs tests/quick-duel-consumable-host-coverage.test.mjs
+      - name: Full verification
+        run: npm run verify
+      - name: Diff check
+        run: git diff --check
+      - name: Commit clean implementation
+        if: success()
         run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const cards=JSON.parse(fs.readFileSync('app/data/cards.json','utf8')).cards;
-          const ids=['DDB-KAT-CORE-005','DDB-KAT-CORE-028','DDB-KAT-CORE-037','DDB-KAT-CORE-047','DDB-KAT-CORE-050','DDB-KAT-CORE-051'];
-          for(const id of ids){ const c=cards.find(x=>x.catalogId===id); console.log('\nCARD',id,c?.name); console.log('RULES',c?.rulesText); }
-          const k=JSON.parse(fs.readFileSync('content/card-effects/katas.json','utf8')).cards;
-          for(const id of ids) console.log('\nEFFECTS',id,JSON.stringify(k[id]?.effects,null,2));
-          NODE
-          echo '=== PURCHASE / DEFENSE / HIDE FACTS ==='
-          grep -n 'boughtCardThis\|defendedThisRound\|onHide\|nextInitiate\|stage3cTakeDamagePrevention' app/playtest.tsx | head -200 || true
+          rm -f .github/workflows/temp-kata-batch4-audit.yml
+          rm -f scripts/temp-kata-batch4-implement.py
+          git config user.name "NullableNinja"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix stateful Kata branch and prevention effects"
+          git push origin HEAD:fix/effect-runtime-certification-batch4
