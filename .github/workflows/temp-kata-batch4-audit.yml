@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - name: Apply stateful Kata runtime patch
         run: python scripts/temp-kata-batch4-implement.py
+      - name: Apply prevention typing fix
+        run: python scripts/temp-kata-batch4-typefix.py
       - name: Focused acceptance
         run: node --experimental-strip-types --test tests/quick-duel-kata-stateful-runtime.test.mjs tests/quick-duel-kata-combat-runtime.test.mjs tests/quick-duel-kata-consumable-runtime.test.mjs tests/quick-duel-consumable-host-coverage.test.mjs
       - name: Full verification
@@ -29,6 +31,7 @@ jobs:
         run: |
           rm -f .github/workflows/temp-kata-batch4-audit.yml
           rm -f scripts/temp-kata-batch4-implement.py
+          rm -f scripts/temp-kata-batch4-typefix.py
           git config user.name "NullableNinja"
           git config user.email "130773741+NullableNinja@users.noreply.github.com"
           git add -A
