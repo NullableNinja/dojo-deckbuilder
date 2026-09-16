@@ -1,5 +1,5 @@
 import { resolveKataEffects, type KataCommand, type KataCondition, type KataStructuredEffect } from "./kata-effect-resolvers.ts";
-import { conditionValue, structuredRuntimeEffects, type RuntimeCardLike } from "./family-effect-runtime.ts";
+import { conditionValue, structuredRuntimeEffects, type RuntimeCardLike, type RuntimeCommand, type RuntimeTrigger } from "./family-effect-runtime.ts";
 
 export type KataHostFacts = Record<string, unknown> & {
   belt?: string;
@@ -203,4 +203,59 @@ export function kataNextAttackAnyZoneForHost(card: RuntimeCardLike, trigger: str
     return true;
   });
   return { handled: structured.length > 0, grant: matching.length > 0 };
+}
+
+
+const SIMPLE_KATA_RUNTIME_RESOLVERS = new Set([
+  "kata.conditional",
+  "kata.attackModifier",
+  "kata.nextAttackPiercing",
+]);
+
+const KATA_RUNTIME_EFFECT_BY_ACTION: Record<string, string> = {
+  draw: "core.draw",
+  discard: "core.discard",
+  heal: "core.heal",
+  gainFocus: "core.gainFocus",
+  gainXP: "core.gainXP",
+  modifySpeed: "combat.modifySpeed",
+  modifyAttackPower: "combat.modifyAttackPower",
+  modifyDefense: "combat.modifyDefense",
+  modifyGuard: "combat.modifyGuard",
+  preventDamage: "combat.preventDamage",
+  dealDamage: "combat.dealDamage",
+  grantFlow: "combat.grantFlow",
+  chooseZone: "combat.chooseZone",
+  piercing: "combat.piercing",
+};
+
+/**
+ * Converts only Kata resolvers that already fit the generic one-shot/status runtime.
+ * Complex choices, deferred watchers, equipment actions, discounts, reveals, and
+ * multi-event plans intentionally stay out until their matching host protocol exists.
+ */
+export function kataRuntimeCommandsForHost(
+  card: RuntimeCardLike,
+  trigger: RuntimeTrigger,
+  facts: KataHostFacts = {},
+): RuntimeCommand[] {
+  return kataCommandsForHost(card, trigger, facts).flatMap((command) => {
+    const resolver = String(command.resolver ?? "");
+    if (!SIMPLE_KATA_RUNTIME_RESOLVERS.has(resolver)) return [];
+    if (resolver === "kata.attackModifier" && !(command.action === "modifyAttackPower" && command.duration === "nextAttack")) return [];
+    if (resolver === "kata.nextAttackPiercing" && !(command.action === "piercing" && command.duration === "nextAttack")) return [];
+    const effect = KATA_RUNTIME_EFFECT_BY_ACTION[String(command.action ?? "")];
+    if (!effect) return [];
+    return [{
+      sourceEffectId: String(command.effectId ?? `kata:${resolver}:${trigger}`),
+      effect,
+      trigger,
+      target: "self",
+      amount: Number(command.amount ?? 0),
+      duration: String(command.duration ?? "immediate"),
+      resolver,
+      conditions: [],
+      qualifier: command.params,
+    }];
+  });
 }
