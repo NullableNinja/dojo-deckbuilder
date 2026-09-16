@@ -1,0 +1,240 @@
+name: Temporary Kata batch3 implement
+on:
+  push:
+    branches: [fix/effect-runtime-certification-batch3]
+permissions:
+  contents: write
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/effect-runtime-certification-batch3
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+      - run: npm ci
+      - name: Patch canonical Kata runtime host
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/kata-playtest-bridge.ts')
+          s = p.read_text()
+          old = 'import { conditionValue, structuredRuntimeEffects, type RuntimeCardLike } from "./family-effect-runtime.ts";'
+          new = 'import { conditionValue, structuredRuntimeEffects, type RuntimeCardLike, type RuntimeCommand, type RuntimeTrigger } from "./family-effect-runtime.ts";'
+          if old not in s:
+              raise SystemExit('kata bridge import anchor missing')
+          s = s.replace(old, new, 1)
+          addition = r'''
+
+const SIMPLE_KATA_RUNTIME_RESOLVERS = new Set([
+  "kata.conditional",
+  "kata.attackModifier",
+  "kata.nextAttackPiercing",
+]);
+
+const KATA_RUNTIME_EFFECT_BY_ACTION: Record<string, string> = {
+  draw: "core.draw",
+  discard: "core.discard",
+  heal: "core.heal",
+  gainFocus: "core.gainFocus",
+  gainXP: "core.gainXP",
+  modifySpeed: "combat.modifySpeed",
+  modifyAttackPower: "combat.modifyAttackPower",
+  modifyDefense: "combat.modifyDefense",
+  modifyGuard: "combat.modifyGuard",
+  preventDamage: "combat.preventDamage",
+  dealDamage: "combat.dealDamage",
+  grantFlow: "combat.grantFlow",
+  chooseZone: "combat.chooseZone",
+  piercing: "combat.piercing",
+};
+
+/**
+ * Converts only Kata resolvers that already fit the generic one-shot/status runtime.
+ * Complex choices, deferred watchers, equipment actions, discounts, reveals, and
+ * multi-event plans intentionally stay out until their matching host protocol exists.
+ */
+export function kataRuntimeCommandsForHost(
+  card: RuntimeCardLike,
+  trigger: RuntimeTrigger,
+  facts: KataHostFacts = {},
+): RuntimeCommand[] {
+  return kataCommandsForHost(card, trigger, facts).flatMap((command) => {
+    const resolver = String(command.resolver ?? "");
+    if (!SIMPLE_KATA_RUNTIME_RESOLVERS.has(resolver)) return [];
+    if (resolver === "kata.attackModifier" && !(command.action === "modifyAttackPower" && command.duration === "nextAttack")) return [];
+    if (resolver === "kata.nextAttackPiercing" && !(command.action === "piercing" && command.duration === "nextAttack")) return [];
+    const effect = KATA_RUNTIME_EFFECT_BY_ACTION[String(command.action ?? "")];
+    if (!effect) return [];
+    return [{
+      sourceEffectId: String(command.effectId ?? `kata:${resolver}:${trigger}`),
+      effect,
+      trigger,
+      target: "self",
+      amount: Number(command.amount ?? 0),
+      duration: String(command.duration ?? "immediate"),
+      resolver,
+      conditions: [],
+      qualifier: command.params,
+    }];
+  });
+}
+'''
+          if 'export function kataRuntimeCommandsForHost(' in s:
+              raise SystemExit('kata runtime adapter already exists')
+          s += addition
+          p.write_text(s)
+          PY
+      - name: Wire Kata commands and Piercing into Quick Duel
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/playtest.tsx')
+          s = p.read_text()
+          import_anchor = 'import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";\n'
+          import_add = import_anchor + 'import { isCoreKataCard, kataRuntimeCommandsForHost, type KataHostFacts } from "./kata-playtest-bridge.ts";\n'
+          if import_anchor not in s:
+              raise SystemExit('playtest import anchor missing')
+          s = s.replace(import_anchor, import_add, 1)
+
+          context_anchor = '''function stage3cConsumableContext(board: Board): ConsumableRuntimeContext {\n  return {\n    hasTempo: board.tempo,\n    hpThresholdMet: board.hp <= 10,\n    handEmptyAfterHeal: board.hand.length === 0,\n    normalAttacksResolvedThisTurn: board.attacksThisTurn,\n    friendlyTargetCount: 1,\n    opponentTargetCount: 1,\n    temporaryNegativeModifierPresent: board.tempSpeed < 0 || board.nextAttackBonus < 0 || (board.nextDefenseCardBonus ?? 0) < 0,\n    removedTemporaryNegativeModifier: false,\n    sameTurnSourceActive: true,\n    reactionItemUsedSinceLastTurn: Boolean(board.reactionItemUsedSinceLastTurn),\n    revealedFocusValue: board.deck.length ? cardFocus(cardFor(board.deck[board.deck.length - 1])) : 0,\n  };\n}\n'''
+          context_add = context_anchor + '''\nfunction stage3cKataContext(board: Board, card: CardEntry): KataHostFacts {\n  const sourceRecorded = board.cardsThisTurn.includes(card.id);\n  return {\n    belt: belts[board.belt]?.name,\n    wasHitSinceLastTurn: Boolean(board.wasHitSinceLastTurn),\n    hasWeaponEquipped: board.equipment.some((id) => { const item = cardFor(id); return Boolean(item && isWeapon(item)); }),\n    hasTempo: Boolean(board.tempo),\n    playedAttackThisTurn: board.attacksThisTurn > 0,\n    hpAtOrBelowHalfMax: board.hp <= board.maxHp / 2,\n    usedConsumableThisTurn: Boolean(board.usedConsumableThisRound),\n    firstCardPlayedThisTurn: sourceRecorded ? board.cardsThisTurn.length === 1 : board.cardsThisTurn.length === 0,\n    firstAttackThisTurn: board.attacksThisTurn === 0,\n  };\n}\n'''
+          if context_anchor not in s:
+              raise SystemExit('Kata context anchor missing')
+          s = s.replace(context_anchor, context_add, 1)
+
+          apply_anchor = '''  if (migratedFamily) {\n    const context = Object.keys(familyContext).length ? familyContext : isCoreConsumableCard(card) ? stage3cConsumableContext(next) : familyContext;\n    next = applyStage3CTiming(next, card, timing, owner, context, "self");\n  } else {\n'''
+          apply_new = '''  if (isCoreKataCard(card)) {\n    next = applyStage3CCommands(next, kataRuntimeCommandsForHost(card, timing, stage3cKataContext(next, card)), owner);\n  }\n  if (migratedFamily) {\n    const context = Object.keys(familyContext).length ? familyContext : isCoreConsumableCard(card) ? stage3cConsumableContext(next) : familyContext;\n    next = applyStage3CTiming(next, card, timing, owner, context, "self");\n  } else {\n'''
+          if apply_anchor not in s:
+              raise SystemExit('applyCardEffects anchor missing')
+          s = s.replace(apply_anchor, apply_new, 1)
+
+          heal_anchor = '''  if (timing === "onPlay") {\n    const conditionalHeal = conditionalHealAfterHit(card, board.wasHitSinceLastTurn);\n    if (conditionalHeal) next.hp = Math.min(next.maxHp, next.hp + conditionalHeal);\n  }\n'''
+          heal_new = '''  if (timing === "onPlay" && !isCoreKataCard(card)) {\n    const conditionalHeal = conditionalHealAfterHit(card, board.wasHitSinceLastTurn);\n    if (conditionalHeal) next.hp = Math.min(next.maxHp, next.hp + conditionalHeal);\n  }\n'''
+          if heal_anchor not in s:
+              raise SystemExit('conditional heal anchor missing')
+          s = s.replace(heal_anchor, heal_new, 1)
+
+          power_anchor = '''function stage3cAttackPowerBonus(board: Board, card: CardEntry, zone: string, isReversal: boolean) {\n  return (board.stage3cStatuses ?? [])\n    .filter((status) => status.effect === "combat.modifyAttackPower" && stage3cAttackStatusMatches(status, card, zone, isReversal))\n    .reduce((total, status) => total + status.amount, 0);\n}\n'''
+          power_new = power_anchor + '''\nfunction stage3cAttackPiercing(board: Board, card: CardEntry, zone: string, isReversal = false) {\n  return (board.stage3cStatuses ?? [])\n    .filter((status) => status.effect === "combat.piercing" && stage3cAttackStatusMatches(status, card, zone, isReversal))\n    .reduce((total, status) => total + status.amount, 0);\n}\n'''
+          if power_anchor not in s:
+              raise SystemExit('attack status anchor missing')
+          s = s.replace(power_anchor, power_new, 1)
+
+          pierce_anchor = '''  const value = direct.amount + equipment.amount + comboPiercing;\n  const notes = [...direct.notes, ...equipment.sources, ...(comboPiercing ? [`Combo grants Piercing ${comboPiercing}`] : [])];\n'''
+          pierce_new = '''  const kataStatusPiercing = stage3cAttackPiercing(attacker, card, zone);\n  const value = direct.amount + equipment.amount + comboPiercing + kataStatusPiercing;\n  const notes = [...direct.notes, ...equipment.sources, ...(comboPiercing ? [`Combo grants Piercing ${comboPiercing}`] : []), ...(kataStatusPiercing ? [`Structured Kata grants Piercing ${kataStatusPiercing}`] : [])];\n'''
+          if pierce_anchor not in s:
+              raise SystemExit('piercing modifier anchor missing')
+          s = s.replace(pierce_anchor, pierce_new, 1)
+          p.write_text(s)
+          PY
+      - name: Add Kata combat acceptance
+        shell: bash
+        run: |
+          cat > tests/quick-duel-kata-combat-runtime.test.mjs <<'EOF'
+          import test from "node:test";
+          import assert from "node:assert/strict";
+          import fs from "node:fs";
+          import { kataRuntimeCommandsForHost } from "../app/kata-playtest-bridge.ts";
+          import { applyRuntimeCommands, createFamilyRuntimeState, runtimeStatusAmount } from "../app/family-effect-runtime.ts";
+
+          const cards = JSON.parse(fs.readFileSync(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
+          const byCatalog = new Map(cards.map((entry) => [entry.catalogId, entry]));
+          function card(id) {
+            const found = byCatalog.get(id);
+            assert.ok(found, `missing canonical card ${id}`);
+            return found;
+          }
+
+          function commands(id, facts = {}, trigger = "onPlay") {
+            return kataRuntimeCommandsForHost(card(id), trigger, facts);
+          }
+
+          test("conditional Katas execute canonical Focus, Speed, and draw effects from host facts", () => {
+            assert.equal(commands("DDB-KAT-CORE-004", { belt: "Brown" }).find((c) => c.effect === "core.gainFocus")?.amount, 2);
+            assert.equal(commands("DDB-KAT-CORE-004", { belt: "Green" }).length, 0);
+
+            const offPeak = commands("DDB-KAT-CORE-041", { hasTempo: false });
+            assert.equal(offPeak.find((c) => c.effect === "core.gainFocus")?.amount, 1);
+            assert.equal(offPeak.find((c) => c.effect === "combat.modifySpeed")?.amount, 1);
+            assert.equal(commands("DDB-KAT-CORE-041", { hasTempo: true }).length, 0);
+
+            assert.equal(commands("DDB-KAT-CORE-045", { firstCardPlayedThisTurn: true }).find((c) => c.effect === "core.gainFocus")?.amount, 1);
+            assert.equal(commands("DDB-KAT-CORE-052", { usedConsumableThisTurn: true }).find((c) => c.effect === "core.gainFocus")?.amount, 1);
+            assert.equal(commands("DDB-KAT-CORE-054", { wasHitSinceLastTurn: true }).find((c) => c.effect === "core.draw")?.amount, 1);
+          });
+
+          test("Recovery and Emergency healing run through the generic Kata command path", () => {
+            assert.equal(commands("DDB-KAT-CORE-047", { wasHitSinceLastTurn: true }).find((c) => c.effect === "core.heal")?.amount, 3);
+            assert.equal(commands("DDB-KAT-CORE-047", { wasHitSinceLastTurn: false }).some((c) => c.effect === "core.heal"), false);
+            assert.equal(commands("DDB-KAT-CORE-014", { wasHitSinceLastTurn: true }).find((c) => c.effect === "core.heal")?.amount, 3);
+          });
+
+          test("Empty Hand Form arms a real next-Attack power status only when its canonical conditions match", () => {
+            const eligible = commands("DDB-KAT-CORE-016", { hasWeaponEquipped: false, firstAttackThisTurn: true });
+            assert.deepEqual(eligible.map((c) => [c.effect, c.amount, c.duration]), [["combat.modifyAttackPower", 2, "nextAttack"]]);
+            assert.equal(commands("DDB-KAT-CORE-016", { hasWeaponEquipped: true, firstAttackThisTurn: true }).length, 0);
+            assert.equal(commands("DDB-KAT-CORE-016", { hasWeaponEquipped: false, firstAttackThisTurn: false }).length, 0);
+            const state = applyRuntimeCommands(createFamilyRuntimeState(), eligible);
+            assert.equal(runtimeStatusAmount(state, "nextAttack", "combat.modifyAttackPower"), 2);
+          });
+
+          test("Bassai Dai and Saifa arm consumable-style next-Attack Piercing statuses", () => {
+            const bassai = commands("DDB-KAT-CORE-003");
+            const saifa = commands("DDB-KAT-CORE-049");
+            assert.deepEqual(bassai.map((c) => [c.effect, c.amount, c.duration]), [["combat.piercing", 2, "nextAttack"]]);
+            assert.deepEqual(saifa.map((c) => [c.effect, c.amount, c.duration]), [["combat.piercing", 1, "nextAttack"]]);
+            const state = applyRuntimeCommands(createFamilyRuntimeState(), bassai);
+            assert.equal(runtimeStatusAmount(state, "nextAttack", "combat.piercing"), 2);
+          });
+
+          test("persistent conditional Speed uses the shared runtime and expires with its status", () => {
+            const offPeak = commands("DDB-KAT-CORE-041", { hasTempo: false });
+            const state = applyRuntimeCommands(createFamilyRuntimeState(), offPeak);
+            assert.equal(state.self.focus, 1);
+            assert.equal(state.self.speed, 1);
+            assert.equal(state.statuses.some((status) => status.effect === "combat.modifySpeed" && status.duration === "endOfRound"), true);
+          });
+
+          test("Quick Duel consumes generic Kata commands and Kata Piercing without card identity dispatch", () => {
+            const source = fs.readFileSync(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+            assert.match(source, /kataRuntimeCommandsForHost\(card, timing, stage3cKataContext\(next, card\)\)/);
+            assert.match(source, /stage3cAttackPiercing\(attacker, card, zone\)/);
+            assert.match(source, /timing === "onPlay" && !isCoreKataCard\(card\)/);
+            assert.doesNotMatch(source, /DDB-KAT-CORE-003|DDB-KAT-CORE-016|DDB-KAT-CORE-041|DDB-KAT-CORE-049/);
+          });
+          EOF
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          p = Path('package.json')
+          data = json.loads(p.read_text())
+          target = ' tests/quick-duel-kata-consumable-runtime.test.mjs'
+          addition = target + ' tests/quick-duel-kata-combat-runtime.test.mjs'
+          if 'tests/quick-duel-kata-combat-runtime.test.mjs' not in data['scripts']['test']:
+              if target not in data['scripts']['test']:
+                  raise SystemExit('package test anchor missing')
+              data['scripts']['test'] = data['scripts']['test'].replace(target, addition, 1)
+          p.write_text(json.dumps(data, indent=2) + '\n')
+          PY
+      - name: Certify batch
+        shell: bash
+        run: |
+          node --experimental-strip-types --test tests/quick-duel-kata-combat-runtime.test.mjs tests/quick-duel-kata-consumable-runtime.test.mjs tests/quick-duel-consumable-host-coverage.test.mjs
+          npm run verify
+          git diff --check
+      - name: Commit clean implementation
+        if: success()
+        shell: bash
+        run: |
+          rm -f .github/workflows/temp-kata-batch3-audit.yml .github/workflows/temp-kata-batch3-implement.yml
+          git config user.name "NullableNinja"
+          git config user.email "130773741+NullableNinja@users.noreply.github.com"
+          git add app/kata-playtest-bridge.ts app/playtest.tsx tests/quick-duel-kata-combat-runtime.test.mjs package.json .github/workflows
+          git commit -m "Fix simple Kata combat runtime execution"
+          git push origin HEAD:fix/effect-runtime-certification-batch3
