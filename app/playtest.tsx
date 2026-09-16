@@ -22,6 +22,7 @@ import { structuredConsumableTopRevealPlan } from "./stage3c-consumable-reveal.t
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { isCoreKataCard, kataRuntimeCommandsForHost, type KataHostFacts } from "./kata-playtest-bridge.ts";
+import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { characterAllowedAttackZones, characterAttackModifier, type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
@@ -1219,6 +1220,7 @@ function expireStage3C(board: Board, duration: string) {
 
 function stage3cStartTurn(board: Board) {
   let next = expireStage3C(board, "nextTurn");
+  next = { ...next, stage3cStatuses: expirePreventionAtNextInitiate(next.stage3cStatuses ?? []) };
   const initiate = (next.stage3cStatuses ?? []).filter((status) => status.duration === "nextInitiate");
   for (const status of initiate) if (status.effect === "core.gainFocus") next = gainFocus(next, status.amount);
   const ids = new Set(initiate.map((status) => status.sourceEffectId));
@@ -1292,15 +1294,11 @@ function stage3cConsumeIncomingAttackStatuses(board: Board) {
 }
 
 function stage3cTakeDamagePrevention(board: Board, damage: number) {
-  const statuses = (board.stage3cStatuses ?? []).filter((status) => status.duration === "nextDamage" && status.effect === "combat.preventDamage");
-  if (!statuses.length || damage <= 0) return { board, damage, notes: [] as string[] };
-  const prevention = statuses.reduce((total, status) => total + Math.max(0, status.amount), 0);
-  const ids = new Set(statuses.map((status) => status.sourceEffectId));
-  return {
-    board: { ...board, stage3cStatuses: (board.stage3cStatuses ?? []).filter((status) => !ids.has(status.sourceEffectId)) },
-    damage: Math.max(0, damage - prevention),
-    notes: ["Structured prevention reduces damage by " + prevention],
-  };
+  const resolved = resolveNextDamagePreventionStatuses(board.stage3cStatuses ?? [], damage, "Attack");
+  if (resolved.statuses === board.stage3cStatuses && !resolved.focus && resolved.damage === damage) return { board, damage, notes: resolved.notes };
+  let next: Board = { ...board, stage3cStatuses: resolved.statuses };
+  if (resolved.focus) next = gainFocus(next, resolved.focus);
+  return { board: next, damage: resolved.damage, notes: resolved.notes };
 }
 
 function stage3cCurrentDefensePrevention(defense: CardEntry | null | undefined, context: DefenseRuntimeContext) {
@@ -1692,8 +1690,6 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   if (timing === "onPlay" && /After your first Attack resolves[^.]*next Attack gains Flow/i.test(text) && board.attacksThisTurn === 0) {
     next.flowAfterFirstAttack = true;
   } else if (timing === "onPlay" && /(?:^|[.!?]\s+)(?:Your|The) next [^.]*Attack[^.]*gains Flow/i.test(text)) {
-    next.nextAttackHasFlow = true;
-  } else if (timing === "onPlay" && card.name === "Second Wind Form" && board.hp > board.maxHp / 2) {
     next.nextAttackHasFlow = true;
   } else if (timing === "onHit" && /(?:On Hit|If (?:this Attack|it|that Attack) Hits?)[^.]*next [^.]*Attack[^.]*gains Flow/i.test(text)) {
     next.nextAttackHasFlow = true;
