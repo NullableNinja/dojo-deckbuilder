@@ -174,7 +174,10 @@ export function resolveKataEffect(effect: KataStructuredEffect, context: KataRes
       if (effect.action === "custom" && params(effect).grantFlowTo) return [semantic("grantFlow", effect)];
       return [direct(effect)];
     case "kata.deferredConditional":
-      return [semantic("armDeferredConditional", effect)];
+      // onPlay deferred effects arm a future watcher. Lifecycle-timed deferred
+      // effects (for example onHide) resolve only when their canonical facts match.
+      if (effect.trigger === "onPlay") return [semantic("armDeferredConditional", effect)];
+      return predicatesMatch(effect, values) ? [semantic("armDeferredConditional", effect)] : [];
     case "kata.deferredEvent":
       return predicatesMatch(effect, values) ? [semantic("resolveDeferredEvent", effect)] : [];
     case "kata.discardBranch":

@@ -212,6 +212,8 @@ const SIMPLE_KATA_RUNTIME_RESOLVERS = new Set([
   "kata.nextAttackPiercing",
   "kata.branch",
   "kata.damagePrevention",
+  "kata.defenseModifier",
+  "kata.deferredConditional",
 ]);
 
 const KATA_RUNTIME_EFFECT_BY_ACTION: Record<string, string> = {
@@ -248,6 +250,8 @@ export function kataRuntimeCommandsForHost(
     if (resolver === "kata.nextAttackPiercing" && !(command.action === "piercing" && command.duration === "nextAttack")) return [];
     if (resolver === "kata.branch" && !(command.action === "heal" || command.kind === "grantFlow")) return [];
     if (resolver === "kata.damagePrevention" && command.kind !== "armDamagePrevention") return [];
+    if (resolver === "kata.defenseModifier" && command.action !== "modifyDefense") return [];
+    if (resolver === "kata.deferredConditional" && !(trigger === "onHide" && ["gainFocus", "heal"].includes(String(command.action ?? "")))) return [];
 
     const effect = command.kind === "grantFlow"
       ? "combat.grantFlow"
@@ -255,11 +259,14 @@ export function kataRuntimeCommandsForHost(
         ? "combat.preventDamage"
         : KATA_RUNTIME_EFFECT_BY_ACTION[String(command.action ?? "")];
     if (!effect) return [];
+    const deferredDuration = String(command.params?.duration ?? "");
     const duration = command.kind === "grantFlow"
       ? String(command.params?.grantFlowTo ?? "nextAttack")
       : resolver === "kata.damagePrevention"
         ? "nextDamage"
-        : String(command.duration ?? "immediate");
+        : resolver === "kata.defenseModifier" && !command.duration && deferredDuration === "untilStartOfNextTurn"
+          ? "nextTurn"
+          : String(command.duration ?? "immediate");
     const qualifier = resolver === "kata.damagePrevention"
       ? { ...command.params, expires: command.params?.firstDamageEventBefore }
       : command.params;

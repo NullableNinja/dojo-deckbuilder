@@ -1081,6 +1081,17 @@ function stage3cKataContext(board: Board, card: CardEntry): KataHostFacts {
   };
 }
 
+function applyKataHideEffects(board: Board, controller: "player" | "ai") {
+  let next = board;
+  for (const id of board.playArea) {
+    const card = cardFor(id);
+    if (!card || !isCoreKataCard(card)) continue;
+    const commands = kataRuntimeCommandsForHost(card, "onHide", stage3cKataContext(next, card));
+    if (commands.length) next = applyStage3CCommands(next, commands, controller);
+  }
+  return next;
+}
+
 function stage3cDefenseContext(defender: Board, attacker: Board, _defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext & { weaponAttack: boolean; defenderAttackedThisRound: boolean } {
   const matchingArmor = equipmentDefenseModifier(defender, zone).value > 0;
   return {
@@ -3067,7 +3078,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     setMatch((current) => {
       if (!current || current.phase !== "player-ascend") return current;
       const hostedHide = publishQuickDuelPlaytestLifecycleEvent(current, "player", "onHide", quickDuelHostOperations, cardFor).match;
-      const nextPlayer = playAreaCleanup(hostedHide.player);
+      const kataHidePlayer = applyKataHideEffects(hostedHide.player, "player");
+      const nextPlayer = playAreaCleanup(kataHidePlayer);
       const hidden = write(hostedHide, "Hide: unspent Focus clears and your next hand is drawn.", { player: nextPlayer, winner: nextPlayer.hp ? hostedHide.winner : "ai" });
       if (!nextPlayer.hp) return hidden;
       if (current.turnIndex === 0) return write(hidden, "The computer is second in this round's initiative order.", { phase: "ai-ready", turnIndex: 1 });
@@ -3800,7 +3812,8 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean, house
     promotionLog = `Computer certifies ${nextBelt.name} Belt.${aiAfterPurchase.maxHp > before.maxHp ? ` Max HP ${before.maxHp} → ${aiAfterPurchase.maxHp}; HP ${before.hp} → ${aiAfterPurchase.hp}.` : ""}`;
   }
   const hostedHide = publishQuickDuelPlaytestLifecycleEvent({ ...current, player: playerAfterPurchase, ai: aiAfterPurchase }, "ai", "onHide", quickDuelHostOperations, cardFor).match;
-  const nextAi = playAreaCleanup(hostedHide.ai);
+  const kataHideAi = applyKataHideEffects(hostedHide.ai, "ai");
+  const nextAi = playAreaCleanup(kataHideAi);
   const purchaseLog = purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing.";
   const finished = { ...hostedHide, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...hostedHide.log].slice(0, 32) };
   if (!nextAi.hp) return finished;

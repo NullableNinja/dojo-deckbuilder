@@ -10217,7 +10217,7 @@
         {
           "id": "kata-jion-defense",
           "trigger": "onPlay",
-          "action": "modifyGuard",
+          "action": "modifyDefense",
           "target": "self",
           "amount": 1,
           "duration": "endOfRound",
@@ -10874,7 +10874,7 @@
         {
           "id": "kata-sanchin-defense",
           "trigger": "onPlay",
-          "action": "modifyGuard",
+          "action": "modifyDefense",
           "target": "self",
           "amount": 2,
           "conditions": [
