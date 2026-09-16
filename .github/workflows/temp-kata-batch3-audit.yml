@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - name: Apply Kata runtime patch
         run: python scripts/temp-kata-batch3-implement.py
+      - name: Apply missing Kata predicate fix
+        run: python scripts/temp-kata-predicate-fix.py
       - name: Focused acceptance
         run: node --experimental-strip-types --test tests/quick-duel-kata-combat-runtime.test.mjs tests/quick-duel-kata-consumable-runtime.test.mjs tests/quick-duel-consumable-host-coverage.test.mjs
       - name: Full verification
@@ -30,6 +32,7 @@ jobs:
           rm -f .github/workflows/temp-kata-batch3-audit.yml
           rm -f .github/workflows/temp-kata-batch3-implement.yml
           rm -f scripts/temp-kata-batch3-implement.py
+          rm -f scripts/temp-kata-predicate-fix.py
           git config user.name "NullableNinja"
           git config user.email "130773741+NullableNinja@users.noreply.github.com"
           git add -A
