@@ -503,11 +503,15 @@ export type EquipmentAttackDeclarationContext = {
   incomingAttackTargetsSelf: boolean;
   firstIncomingAttackThisRound?: boolean;
   usedEffectIdsThisGame?: string[];
+  defenderHandSize?: number;
+  retargetAvailable?: boolean;
 };
 
 export type EquipmentAttackDeclarationResolution = {
   handled: boolean;
   preventAttackDamage: boolean;
+  choiceRequired: boolean;
+  choiceSourceIds: string[];
   destroySourceIds: string[];
   matchedEffectIds: string[];
   unsupported: string[];
@@ -528,6 +532,8 @@ export function structuredEquipmentAttackDeclarationResolution(
   const result: EquipmentAttackDeclarationResolution = {
     handled: false,
     preventAttackDamage: false,
+    choiceRequired: false,
+    choiceSourceIds: [],
     destroySourceIds: [],
     matchedEffectIds: [],
     unsupported: [],
@@ -539,7 +545,7 @@ export function structuredEquipmentAttackDeclarationResolution(
     result.handled = true;
     for (const effect of effects.filter((candidate) => candidate.trigger === "onAttackDeclared")) {
       const effectId = String(effect.id ?? "unknown-equipment-attack-declaration-effect");
-      if (effect.effect !== "core.custom" || effect.target !== "self") {
+      if (effect.effect !== "core.custom" || !["self", "opponent"].includes(String(effect.target ?? ""))) {
         result.unsupported.push(effectId);
         continue;
       }
@@ -554,7 +560,15 @@ export function structuredEquipmentAttackDeclarationResolution(
         oncePerGame: !usedThisGame.has(effectId),
       };
       if (!equipmentConditionsMatch(effect, values)) continue;
-      if (equipmentHasCondition(effect, "choiceKind")) {
+      const choiceKind = effect.conditions?.find((condition) => String(condition.kind ?? "") === "choiceKind")?.value;
+      if (effect.target === "opponent" && choiceKind === "discard-or-retarget") {
+        if (!context.incomingAttackTargetsSelf || context.retargetAvailable || (context.defenderHandSize ?? 0) <= 0) continue;
+        result.choiceRequired = true;
+        result.choiceSourceIds.push(String(card.id ?? card.catalogId ?? ""));
+        result.matchedEffectIds.push(effectId);
+        continue;
+      }
+      if (effect.target !== "self" || equipmentHasCondition(effect, "choiceKind")) {
         result.unsupported.push(effectId);
         continue;
       }

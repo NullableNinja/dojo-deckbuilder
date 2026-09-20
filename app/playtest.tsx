@@ -216,6 +216,7 @@ type PendingChoice =
   | { kind: "equipment-zone"; sourceCardId: string; power: number; piercing: number; blockedFocus: number; requireDifferentPreviousZone: boolean }
   | { kind: "incoming-equipment-zone"; sourceCardId: string; attackPowerPenalty: number }
   | { kind: "prevent-combat-damage"; sourceCardId: string; defenseId: string | null; reduce: number; damage: number; readyAtHideMinBelt: string; readyAtHideMinDamage: number }
+  | { kind: "equipment-attack-response"; sourceCardId: string; attackCardId: string }
   | { kind: "post-block-cycle"; sourceCardId: string; draw: number; discard: number }
   | { kind: "ready-equipment"; sourceCardId: string; optional: boolean }
   | { kind: "attack-equipment-target"; sourceCardId: string; candidates: string[]; amount: number }
@@ -1201,15 +1202,31 @@ function applyStructuredEquipmentAttackDeclaration(board: Board, firstIncomingAt
     incomingAttackTargetsSelf: true,
     firstIncomingAttackThisRound,
     usedEffectIdsThisGame: board.equipmentEffectIdsThisGame,
+    defenderHandSize: board.hand.length,
+    retargetAvailable: false,
   });
-  if (!resolution.matchedEffectIds.length) return { board, preventAttackDamage: false, notes: [] as string[] };
+  if (!resolution.matchedEffectIds.length) return { board, preventAttackDamage: false, choiceRequired: false, choiceSourceCardId: null as string | null, notes: [] as string[] };
   let next = board;
   for (const sourceId of resolution.destroySourceIds) next = destroyEquipment(next, sourceId);
   next = { ...next, equipmentEffectIdsThisGame: [...new Set([...(next.equipmentEffectIdsThisGame ?? []), ...resolution.matchedEffectIds])] };
   return {
     board: next,
     preventAttackDamage: resolution.preventAttackDamage,
-    notes: resolution.preventAttackDamage ? ["Equipment intercepts the declared Attack and prevents its damage"] : [],
+    choiceRequired: resolution.choiceRequired,
+    choiceSourceCardId: resolution.choiceSourceIds[0] ?? null,
+    notes: [
+      ...(resolution.preventAttackDamage ? ["Equipment intercepts the declared Attack and prevents its damage"] : []),
+      ...(resolution.choiceRequired ? ["Equipment requires the attacker to discard before Defense"] : []),
+    ],
+  };
+}
+
+function resolveAiEquipmentAttackResponse(board: Board, response: ReturnType<typeof applyStructuredEquipmentAttackDeclaration>) {
+  if (!response.choiceRequired || !response.choiceSourceCardId || !board.hand.length) return { board, notes: [] as string[] };
+  const discardedId = [...board.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right)) || left.localeCompare(right))[0];
+  return {
+    board: { ...board, hand: removeOne(board.hand, discardedId), discard: [...board.discard, discardedId] },
+    notes: [`AI discards ${cardFor(discardedId)?.name ?? "a card"} for the declared Attack response`],
   };
 }
 
@@ -2713,7 +2730,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     current = declaration.match;
     const incomingEquipmentResponse = applyStructuredEquipmentAttackDeclaration(current.ai, (current.ai.attacksReceivedThisRound ?? 0) === 0);
-    current = { ...current, ai: incomingEquipmentResponse.board };
+    const aiAttackResponse = resolveAiEquipmentAttackResponse(incomingEquipmentResponse.board, incomingEquipmentResponse);
+    current = { ...current, ai: aiAttackResponse.board };
     const zone = declaration.zone;
     const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "player", card, zone, cardFor, quickDuelHostOperations);
     current = preparedComboAttack.match;
@@ -2902,7 +2920,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...incomingEquipmentResponse.notes, ...thresholdProtection.notes, ...aiIncomingReaction.notes, ...(aiReactionCard && aiDeclaredReaction ? [`${aiReactionCard.name}: ${aiDeclaredReaction.notes.join(", ")}`] : []), ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...equipmentBlockNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...incomingEquipmentResponse.notes, ...aiAttackResponse.notes, ...thresholdProtection.notes, ...aiIncomingReaction.notes, ...(aiReactionCard && aiDeclaredReaction ? [`${aiReactionCard.name}: ${aiDeclaredReaction.notes.join(", ")}`] : []), ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...equipmentBlockNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
     return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, airHornPassedReactionIds: [], airHornAiConsumableSpentThisStrike: false, airHornAiDefenseSpentThisStrike: false, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
   };
@@ -3214,6 +3232,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || !choice) return current;
     const selected = cardFor(cardId);
     if (!selected) return current;
+
+    if (choice.kind === "equipment-attack-response") {
+      if (source !== "hand" || !current.player.hand.includes(cardId)) return current;
+      const player = { ...current.player, hand: removeOne(current.player.hand, cardId), discard: [...current.player.discard, cardId] };
+      return write(current, `${selected.name} discarded for the incoming Attack response. Defense may proceed.`, { player, pendingChoice: null });
+    }
 
     if (choice.kind === "equipment-purchase-card") {
       if (source !== "hand" || !choice.handIds.includes(cardId) || !current.player.hand.includes(cardId)) return current;
@@ -3866,7 +3890,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     current = declaration.match;
     const incomingEquipmentResponse = applyStructuredEquipmentAttackDeclaration(current.ai, (current.ai.attacksReceivedThisRound ?? 0) === 0);
-    current = { ...current, ai: incomingEquipmentResponse.board };
+    const aiAttackResponse = resolveAiEquipmentAttackResponse(incomingEquipmentResponse.board, incomingEquipmentResponse);
+    current = { ...current, ai: aiAttackResponse.board };
     const zone = declaration.zone;
     const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "player", card, zone, cardFor, quickDuelHostOperations, { isReversal: true });
     current = preparedComboAttack.match;
@@ -3931,7 +3956,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
     nextPlayer = markCompletedTask(nextPlayer);
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...incomingEquipmentResponse.notes, ...thresholdProtection.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...incomingModifier.notes, ...incomingEquipmentResponse.notes, ...aiAttackResponse.notes, ...thresholdProtection.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "player", card.id),
       actor: "player",
@@ -4034,6 +4059,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                   ? match.pendingChoice.revealed.map((id, index) => ({ id, source: "deck" as const, index })).filter((entry) => isAttack(cardFor(entry.id)!))
                   : match.pendingChoice?.kind === "stage3c-sparring-junk"
                     ? match.pendingChoice.junkIds.map((id, index) => ({ id, source: "discard" as const, index }))
+                    : match.pendingChoice?.kind === "equipment-attack-response"
+                      ? player.hand.map((id, index) => ({ id, source: "hand" as const, index }))
                     : [];
   const characterRuntimePending = characterRuntimePendingChoice(match.pendingChoice);
   const effectChoiceTitle = characterRuntimePending ? "Character ability"
@@ -4059,6 +4086,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           : match.pendingChoice?.kind === "deck-order" ? "Set your draw order"
             : match.pendingChoice?.kind === "equipment-zone" ? "Commit your Equipment zone"
               : match.pendingChoice?.kind === "incoming-equipment-zone" ? "Call the incoming zone"
+                : match.pendingChoice?.kind === "equipment-attack-response" ? "Answer the incoming Attack"
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? "Reduce this damage?"
                   : match.pendingChoice?.kind === "post-block-cycle" ? "Use post-Block Equipment?"
                     : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
@@ -4084,6 +4112,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           : match.pendingChoice?.kind === "deck-order" ? `Choose the card you want to draw ${match.pendingChoice.ordered.length ? `in position ${match.pendingChoice.ordered.length + 1}` : "first"}. ${match.pendingChoice.revealed.length} card${match.pendingChoice.revealed.length === 1 ? " remains" : "s remain"}.`
             : match.pendingChoice?.kind === "equipment-zone" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} is exhausted. Choose High, Mid, or Low for its armed next-Attack effect.`
               : match.pendingChoice?.kind === "incoming-equipment-zone" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} is exhausted. Call High, Mid, or Low against the declared ${match.pendingStrike?.zone ?? "incoming"} Attack.`
+                : match.pendingChoice?.kind === "equipment-attack-response" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} requires the defending player to discard 1 card before ${cardFor(match.pendingChoice.attackCardId)?.name ?? "the Attack"} can be defended. Quick Duel has no alternate legal target.`
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} can exhaust now to reduce ${match.pendingChoice.damage} combat damage by ${match.pendingChoice.reduce}. Declining still consumes this round's first-damage timing window.`
                   : match.pendingChoice?.kind === "post-block-cycle" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} triggered after the Block. Exhaust it to draw ${match.pendingChoice.draw}, then choose ${match.pendingChoice.discard} discard${match.pendingChoice.discard === 1 ? "" : "s"}, or decline and continue combat.`
                     : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
@@ -4344,6 +4373,9 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   current = declaration.match;
   const incomingEquipmentResponse = applyStructuredEquipmentAttackDeclaration(current.player, (current.player.attacksReceivedThisRound ?? 0) === 0);
   current = { ...current, player: incomingEquipmentResponse.board };
+  const pendingEquipmentResponse: PendingChoice | null = incomingEquipmentResponse.choiceRequired && incomingEquipmentResponse.choiceSourceCardId
+    ? { kind: "equipment-attack-response", sourceCardId: incomingEquipmentResponse.choiceSourceCardId, attackCardId: card.id }
+    : null;
   const zone = declaration.zone;
   const preparedComboAttack = prepareQuickDuelPlaytestAttack(current, "ai", card, zone, cardFor, quickDuelHostOperations);
   current = preparedComboAttack.match;
@@ -4367,7 +4399,7 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   if (flowDraw) nextAi = drawCards({ ...nextAi, flowUsedThisTurn: true }, 1);
   if (current.ai.flowAfterFirstAttack && current.ai.attacksThisTurn === 0) nextAi = { ...nextAi, flowAfterFirstAttack: false, nextAttackHasFlow: true };
   const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...activeEquipment.notes, ...incomingEquipmentResponse.notes, ...piercingModifier.notes];
-  return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1, offTurnConsumablePlayed: false }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, armorPenalty, conditionalCycle: conditionalCycle.draw || conditionalCycle.discard ? { draw: conditionalCycle.draw, discard: conditionalCycle.discard } : undefined, previousCardWasItem, damagePreventedAtDeclaration: incomingEquipmentResponse.preventAttackDamage, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
+  return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1, offTurnConsumablePlayed: false }, ai: nextAi, phase: "defense-window" as const, pendingChoice: pendingEquipmentResponse, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, armorPenalty, conditionalCycle: conditionalCycle.draw || conditionalCycle.discard ? { draw: conditionalCycle.draw, discard: conditionalCycle.discard } : undefined, previousCardWasItem, damagePreventedAtDeclaration: incomingEquipmentResponse.preventAttackDamage, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}${pendingEquipmentResponse ? "Discard one card before Defense. " : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
 }
 
 function finishAiTurn(initial: Match, line: string, sceneChanges: boolean, houseRuleIds: readonly string[]) {

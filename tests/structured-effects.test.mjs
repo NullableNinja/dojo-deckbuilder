@@ -297,6 +297,23 @@ test("Equipment declaration and damage prevention share once-per-game destructio
   assert.equal(cutoutAgain.preventAttackDamage, false);
   assert.deepEqual(cutoutAgain.matchedEffectIds, []);
 
+  const noSoliciting = structuredEquipmentAttackDeclarationResolution([{ id: "sign", catalogId: "DDB-DEQ-CORE-030" }], {
+    incomingAttackTargetsSelf: true,
+    firstIncomingAttackThisRound: true,
+    defenderHandSize: 2,
+  });
+  assert.equal(noSoliciting.choiceRequired, true);
+  assert.deepEqual(noSoliciting.choiceSourceIds, ["sign"]);
+  assert.deepEqual(noSoliciting.unsupported, []);
+
+  const noSolicitingEmptyHand = structuredEquipmentAttackDeclarationResolution([{ id: "sign", catalogId: "DDB-DEQ-CORE-030" }], {
+    incomingAttackTargetsSelf: true,
+    firstIncomingAttackThisRound: true,
+    defenderHandSize: 0,
+  });
+  assert.equal(noSolicitingEmptyHand.choiceRequired, false);
+  assert.deepEqual(noSolicitingEmptyHand.matchedEffectIds, []);
+
   const stuntDouble = structuredEquipmentDamagePrevention([{ id: "stunt", catalogId: "DDB-DEQ-CORE-040" }], { damage: 4 });
   assert.equal(stuntDouble.preventAll, true);
   assert.deepEqual(stuntDouble.destroySourceIds, ["stunt"]);
