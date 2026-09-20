@@ -1707,6 +1707,820 @@
         }
       ]
     },
+    "DDB-BAT-CORE-001": {
+      "name": "Ankle-Biter Express",
+      "effects": [
+        {
+          "id": "boss-ankle-biter-hit-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextHonor",
+          "resolver": "boss.attack.hitSpeedPenalty",
+          "action": "modifySpeed"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-002": {
+      "name": "Bell Tower Bomb",
+      "effects": [
+        {
+          "id": "boss-bell-tower-block-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "boss.attack.blockNextPower",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-003": {
+      "name": "Black-Gi Belt Crusher",
+      "effects": [
+        {
+          "id": "boss-black-gi-hit-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextHonor",
+          "resolver": "boss.attack.hitSpeedPenalty",
+          "action": "modifySpeed"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-004": {
+      "name": "Centerline Cataclysm",
+      "effects": [
+        {
+          "id": "boss-centerline-hit-discard",
+          "effect": "core.discard",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": 1,
+          "resolver": "boss.attack.hitDiscard",
+          "action": "discard",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-005": {
+      "name": "Coffin-Lid Chop",
+      "effects": [
+        {
+          "id": "boss-coffin-lid-block-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "boss.attack.blockNextPower",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-006": {
+      "name": "Crater-Maker Sweep",
+      "effects": [
+        {
+          "id": "boss-crater-hit-discard",
+          "effect": "core.discard",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": 1,
+          "resolver": "boss.attack.hitDiscard",
+          "action": "discard",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-007": {
+      "name": "Demon Crown Hammer",
+      "effects": [
+        {
+          "id": "boss-demon-crown-next-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "boss.attack.hitNextAttackPenalty",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-008": {
+      "name": "Dragon's Tax Kick",
+      "effects": [
+        {
+          "id": "boss-dragon-tax-next-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "boss.attack.hitNextAttackPenalty",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-009": {
+      "name": "Earthquake Heel Drop",
+      "effects": [
+        {
+          "id": "boss-earthquake-hit-discard",
+          "effect": "core.discard",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": 1,
+          "resolver": "boss.attack.hitDiscard",
+          "action": "discard",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-010": {
+      "name": "Eight-Count Body Blitz",
+      "effects": [
+        {
+          "id": "boss-eight-count-block-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "boss.attack.blockNextPower",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-011": {
+      "name": "Floor-Is-Lava Feint",
+      "effects": [
+        {
+          "id": "boss-floor-lava-block-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "boss.attack.blockNextPower",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-012": {
+      "name": "Hundred-Handed Drumbeat",
+      "effects": [
+        {
+          "id": "boss-hundred-handed-block-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onBlock",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "boss.attack.blockNextPower",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-013": {
+      "name": "Iron Horse Body Blow",
+      "effects": [
+        {
+          "id": "boss-iron-horse-tempo-lock",
+          "effect": "core.custom",
+          "trigger": "onHit",
+          "target": "opponent",
+          "duration": "endOfRound",
+          "resolver": "boss.attack.hitTempoLock",
+          "action": "custom"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-014": {
+      "name": "Kneequake Stampede",
+      "effects": [
+        {
+          "id": "boss-kneequake-tempo-lock",
+          "effect": "core.custom",
+          "trigger": "onHit",
+          "target": "opponent",
+          "duration": "endOfRound",
+          "resolver": "boss.attack.hitTempoLock",
+          "action": "custom"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-015": {
+      "name": "Leg-Sweeping Guillotine",
+      "effects": [
+        {
+          "id": "boss-leg-sweep-next-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "boss.attack.hitNextAttackPenalty",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-016": {
+      "name": "Meteor Fist",
+      "effects": [
+        {
+          "id": "boss-meteor-hit-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextHonor",
+          "resolver": "boss.attack.hitSpeedPenalty",
+          "action": "modifySpeed"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-017": {
+      "name": "Railroad Roundhouse",
+      "effects": [
+        {
+          "id": "boss-railroad-hit-discard",
+          "effect": "core.discard",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": 1,
+          "resolver": "boss.attack.hitDiscard",
+          "action": "discard",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-018": {
+      "name": "Ribcage Rattler",
+      "effects": [
+        {
+          "id": "boss-ribcage-defense-penalty",
+          "effect": "combat.modifyGuard",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextDefense",
+          "resolver": "boss.attack.hitDefensePenalty",
+          "action": "modifyGuard"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-019": {
+      "name": "Skybreaker Elbow",
+      "effects": [
+        {
+          "id": "boss-skybreaker-hit-discard",
+          "effect": "core.discard",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": 1,
+          "resolver": "boss.attack.hitDiscard",
+          "action": "discard",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BAT-CORE-020": {
+      "name": "Thunderclap Shoulder",
+      "effects": [
+        {
+          "id": "boss-thunderclap-defense-penalty",
+          "effect": "combat.modifyGuard",
+          "trigger": "onHit",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextDefense",
+          "resolver": "boss.attack.hitDefensePenalty",
+          "action": "modifyGuard"
+        }
+      ]
+    },
+    "DDB-BDF-CORE-001": {
+      "name": "Cranium Fortress",
+      "effects": [
+        {
+          "id": "boss-cranium-guard",
+          "effect": "combat.preventDamage",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 3,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "operator": "includesAny",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "boss.defense.guard",
+          "action": "preventDamage"
+        }
+      ]
+    },
+    "DDB-BDF-CORE-002": {
+      "name": "Earth-Grip Shell",
+      "effects": [
+        {
+          "id": "boss-earth-grip-guard",
+          "effect": "combat.preventDamage",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 4,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "operator": "includesAny",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "boss.defense.guard",
+          "action": "preventDamage"
+        }
+      ]
+    },
+    "DDB-BDF-CORE-003": {
+      "name": "Iron Centerline",
+      "effects": [
+        {
+          "id": "boss-iron-centerline-guard",
+          "effect": "combat.preventDamage",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 2,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "operator": "includesAny",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "boss.defense.guard",
+          "action": "preventDamage"
+        }
+      ]
+    },
+    "DDB-BDF-CORE-004": {
+      "name": "Rooted Mountain Stance",
+      "effects": [
+        {
+          "id": "boss-rooted-mountain-guard",
+          "effect": "combat.preventDamage",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 2,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "operator": "includesAny",
+              "value": [
+                "Low"
+              ]
+            }
+          ],
+          "resolver": "boss.defense.guard",
+          "action": "preventDamage"
+        }
+      ]
+    },
+    "DDB-BDF-CORE-005": {
+      "name": "Stone Rib Bastion",
+      "effects": [
+        {
+          "id": "boss-stone-rib-guard",
+          "effect": "combat.preventDamage",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 3,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "operator": "includesAny",
+              "value": [
+                "Mid"
+              ]
+            }
+          ],
+          "resolver": "boss.defense.guard",
+          "action": "preventDamage"
+        }
+      ]
+    },
+    "DDB-BDF-CORE-006": {
+      "name": "Temple Roof Guard",
+      "effects": [
+        {
+          "id": "boss-temple-roof-guard",
+          "effect": "combat.preventDamage",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 2,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "incomingZones",
+              "operator": "includesAny",
+              "value": [
+                "High"
+              ]
+            }
+          ],
+          "resolver": "boss.defense.guard",
+          "action": "preventDamage"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-001": {
+      "name": "Archive of Practical Fighting Wisdom, Now Upright",
+      "effects": [
+        {
+          "id": "boss-archive-kata-defense",
+          "effect": "combat.modifyDefense",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextHonor",
+          "resolver": "boss.profile.kataDefense",
+          "action": "custom"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-002": {
+      "name": "Captain Cone, Prophet of the Double-Parked Path",
+      "effects": [
+        {
+          "id": "boss-captain-cone-zone-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onAttackDeclared",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "immediate",
+          "resolver": "boss.profile.zoneChangeAttackPenalty",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-003": {
+      "name": "Chairman Foldwell, Supreme Director of Seating",
+      "effects": [
+        {
+          "id": "boss-chairman-exhaust-discard",
+          "effect": "core.discard",
+          "trigger": "passive",
+          "target": "opponent",
+          "amount": 1,
+          "resolver": "boss.profile.exhaustDiscard",
+          "action": "discard",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-004": {
+      "name": "Chief Inspector Buffer, Keeper of the Wet Floor",
+      "effects": [
+        {
+          "id": "boss-buffer-zone-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextHonor",
+          "resolver": "boss.profile.zoneSpeedPenalty",
+          "action": "modifySpeed"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-005": {
+      "name": "Director Clipwell and the Three Staplers of Doom",
+      "effects": [
+        {
+          "id": "boss-clipwell-start-turn-choice",
+          "effect": "core.custom",
+          "trigger": "onInitiate",
+          "target": "opponent",
+          "amount": 1,
+          "resolver": "boss.profile.startTurnDiscardOrPower",
+          "action": "custom"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-006": {
+      "name": "Lord Leasehold, Parking-Lot Dragon and Commercial Landlord",
+      "effects": [
+        {
+          "id": "boss-leasehold-equip-attack-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "passive",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "boss.profile.equipAttackPenalty",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-007": {
+      "name": "Madam Misdemeanor, Leaseholder of the Unlicensed Trolley",
+      "effects": [
+        {
+          "id": "boss-misdemeanor-ready-attack-power",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "oncePerRound"
+            }
+          ],
+          "resolver": "boss.profile.readyEquipmentPower",
+          "action": "modifyAttackPower"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-008": {
+      "name": "Sister Cinder, Court-Appointed Counsel for the Flaming Monks",
+      "effects": [
+        {
+          "id": "boss-sister-cinder-block-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "passive",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextHonor",
+          "resolver": "boss.profile.blockSpeedPenalty",
+          "action": "modifySpeed"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-009": {
+      "name": "Snack-Fu 5000: Vending Machine of Refund Denial",
+      "effects": [
+        {
+          "id": "boss-snack-fu-consumable-heal",
+          "effect": "core.heal",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "conditions": [
+            {
+              "kind": "oncePerRound"
+            }
+          ],
+          "resolver": "boss.profile.consumableHeal",
+          "action": "heal",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BPR-CORE-010": {
+      "name": "The Warranty Void: Combat Robot Sold Some Assembly Required",
+      "effects": [
+        {
+          "id": "boss-warranty-block-defense",
+          "effect": "combat.modifyDefense",
+          "trigger": "passive",
+          "target": "self",
+          "amount": 2,
+          "duration": "nextHonor",
+          "resolver": "boss.profile.blockDefense",
+          "action": "custom"
+        }
+      ]
+    },
+    "DDB-BST-CORE-001": {
+      "name": "Final Boss",
+      "effects": [
+        {
+          "id": "boss-final-enrage",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "resolver": "boss.stage.enrage",
+          "action": "custom"
+        }
+      ]
+    },
+    "DDB-BST-CORE-002": {
+      "name": "Mini-Boss",
+      "effects": [
+        {
+          "id": "boss-mini-stage-stats",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "resolver": "boss.stage.stats",
+          "action": "custom"
+        }
+      ]
+    },
+    "DDB-BST-CORE-003": {
+      "name": "Rival",
+      "effects": [
+        {
+          "id": "boss-rival-stage-stats",
+          "effect": "core.custom",
+          "trigger": "passive",
+          "target": "self",
+          "resolver": "boss.stage.stats",
+          "action": "custom"
+        }
+      ]
+    },
+    "DDB-BTQ-CORE-001": {
+      "name": "Bell of the Final Round",
+      "effects": [
+        {
+          "id": "boss-bell-enraged-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 2,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "targetHpAtMost",
+              "operator": "lte",
+              "value": 30
+            }
+          ],
+          "resolver": "boss.technique.conditionalNextAttackPower",
+          "action": "modifyAttackPower"
+        },
+        {
+          "id": "boss-bell-normal-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "targetHpAtMost",
+              "operator": "gt",
+              "value": 30
+            }
+          ],
+          "resolver": "boss.technique.conditionalNextAttackPower",
+          "action": "modifyAttackPower"
+        },
+        {
+          "id": "boss-bell-reveal",
+          "effect": "core.reveal",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "resolver": "boss.technique.revealNextArsenal",
+          "action": "custom",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BTQ-CORE-002": {
+      "name": "No-Sell the Pain",
+      "effects": [
+        {
+          "id": "boss-no-sell-heal",
+          "effect": "core.heal",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 3,
+          "resolver": "boss.technique.heal",
+          "action": "heal",
+          "duration": "immediate"
+        },
+        {
+          "id": "boss-no-sell-reveal",
+          "effect": "core.reveal",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "resolver": "boss.technique.revealNextArsenal",
+          "action": "custom",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BTQ-CORE-003": {
+      "name": "Pressure-Point Lecture",
+      "effects": [
+        {
+          "id": "boss-pressure-point-penalty",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onPlay",
+          "target": "opponent",
+          "amount": -1,
+          "duration": "nextAttack",
+          "resolver": "boss.technique.nextAttackPenalty",
+          "action": "modifyAttackPower"
+        },
+        {
+          "id": "boss-pressure-point-reveal",
+          "effect": "core.reveal",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "resolver": "boss.technique.revealNextArsenal",
+          "action": "custom",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BTQ-CORE-004": {
+      "name": "Roar of the Old Master",
+      "effects": [
+        {
+          "id": "boss-roar-next-attack",
+          "effect": "combat.modifyAttackPower",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextAttack",
+          "resolver": "boss.technique.nextAttackPower",
+          "action": "modifyAttackPower"
+        },
+        {
+          "id": "boss-roar-reveal",
+          "effect": "core.reveal",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "resolver": "boss.technique.revealNextArsenal",
+          "action": "custom",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BTQ-CORE-005": {
+      "name": "Stone-Faced Defiance",
+      "effects": [
+        {
+          "id": "boss-stone-faced-defense",
+          "effect": "combat.modifyDefense",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 2,
+          "duration": "nextHonor",
+          "resolver": "boss.technique.nextDefense",
+          "action": "custom"
+        },
+        {
+          "id": "boss-stone-faced-reveal",
+          "effect": "core.reveal",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "resolver": "boss.technique.revealNextArsenal",
+          "action": "custom",
+          "duration": "immediate"
+        }
+      ]
+    },
+    "DDB-BTQ-CORE-006": {
+      "name": "Vengeful Footwork",
+      "effects": [
+        {
+          "id": "boss-vengeful-speed",
+          "effect": "combat.modifySpeed",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "duration": "nextHonor",
+          "resolver": "boss.technique.nextSpeed",
+          "action": "modifySpeed"
+        },
+        {
+          "id": "boss-vengeful-reveal",
+          "effect": "core.reveal",
+          "trigger": "onPlay",
+          "target": "self",
+          "amount": 1,
+          "resolver": "boss.technique.revealNextArsenal",
+          "action": "custom",
+          "duration": "immediate"
+        }
+      ]
+    },
     "DDB-CHR-CORE-001": {
       "name": "Auntie Parry",
       "effects": [

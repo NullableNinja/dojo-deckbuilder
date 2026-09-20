@@ -4,6 +4,7 @@ import test from "node:test";
 import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
+import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
 const registry = JSON.parse(await readFile(new URL("../app/data/card-effects.json", import.meta.url), "utf8"));
@@ -84,4 +85,46 @@ test("effect coverage recognizes all completed Combo and Reaction Item resolver 
     .map((card) => ({ card, plan: effectPlanForCard(card, registry) }));
   assert.equal(plans.length, 67);
   assert.deepEqual(plans.filter(({ plan }) => plan.unsupported.length).map(({ card }) => card.catalogId), []);
+});
+
+test("the complete Boss cohort resolves through the generic Boss host", () => {
+  const bosses = cards.filter((card) => /-B(?:AT|PR|TQ|DF|ST)-/.test(card.catalogId ?? ""));
+  assert.equal(bosses.length, 45);
+  assert.deepEqual(
+    bosses.flatMap((card) => effectPlanForCard(card, registry).unsupported.map((effectId) => `${card.catalogId}/${effectId}`)),
+    [],
+  );
+
+  const enrage = resolveBossCardEvent({
+    card: "DDB-BST-CORE-001",
+    trigger: "passive",
+    context: { bossHp: 30 },
+    state: createBossRuntimeState({ boss: { hp: 30, maxHp: 40, hand: [], discard: [], statuses: [], restrictions: [] } }),
+  });
+  assert.equal(enrage.state.enraged, true);
+
+  const hit = resolveBossCardEvent({
+    card: "DDB-BAT-CORE-004",
+    trigger: "onHit",
+    state: createBossRuntimeState({ player: { hp: 10, maxHp: 10, hand: ["card-1"], discard: [], statuses: [], restrictions: [] } }),
+  });
+  assert.deepEqual(hit.state.player.hand, []);
+  assert.deepEqual(hit.state.player.discard, ["card-1"]);
+
+  const guard = resolveBossCardEvent({
+    card: "DDB-BDF-CORE-001",
+    trigger: "onPlay",
+    context: { incomingZones: ["High"] },
+    state: createBossRuntimeState(),
+  });
+  assert.deepEqual(guard.state.bossGuard && { zone: guard.state.bossGuard.zone, preventDamage: guard.state.bossGuard.preventDamage }, { zone: "High", preventDamage: 3 });
+
+  const technique = resolveBossCardEvent({
+    card: "DDB-BTQ-CORE-001",
+    trigger: "onPlay",
+    context: { bossHp: 25 },
+    state: createBossRuntimeState({ boss: { hp: 25, maxHp: 40, hand: [], discard: [], statuses: [], restrictions: [] } }),
+  });
+  assert.equal(technique.state.revealedArsenal, 1);
+  assert.ok(technique.state.boss.statuses.some((status) => status.amount === 2 && status.duration === "nextAttack"));
 });

@@ -22,6 +22,7 @@ This directory contains the canonical **authoring** registries for structured ex
 - `combos.json`
 - `locations.json`
 - `characters.json`
+- `bosses.json`
 
 Only create a family file when it contains real migrated entries; do not add empty placeholder registries merely to satisfy the directory list.
 

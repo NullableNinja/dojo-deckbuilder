@@ -14,6 +14,7 @@ function cardFamily(card) {
   if (catalogId.includes("-CMB-")) return "Combo";
   if (catalogId.includes("-LOC-")) return "Location";
   if (catalogId.includes("-CHR-")) return "Character";
+  if (catalogId.includes("-BAT-") || catalogId.includes("-BPR-") || catalogId.includes("-BTQ-") || catalogId.includes("-BDF-") || catalogId.includes("-BST-")) return "Boss";
   if (catalogId.includes("-DEQ-") || catalogId.includes("-GEA-")) return "Equipment";
 
   const subtype = String(card?.subtype ?? "").toLocaleLowerCase();
@@ -26,6 +27,7 @@ function cardFamily(card) {
   if (type === "combo") return "Combo";
   if (type === "location") return "Location";
   if (type === "character") return "Character";
+  if (type === "boss") return "Boss";
   return null;
 }
 

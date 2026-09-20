@@ -12,7 +12,7 @@
     "rulesVersion": { "type": "string", "minLength": 1 },
     "rulesRevision": { "type": "string", "minLength": 1 },
     "family": {
-      "enum": ["Starter", "Attack", "Defense", "Kata", "Consumable", "Reaction Item", "Equipment", "Combo", "Location", "Character"]
+      "enum": ["Starter", "Attack", "Defense", "Kata", "Consumable", "Reaction Item", "Equipment", "Combo", "Location", "Character", "Boss"]
     },
     "description": { "type": "string" },
     "cards": {

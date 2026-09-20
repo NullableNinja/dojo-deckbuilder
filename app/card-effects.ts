@@ -6,6 +6,7 @@ import { isSupportedConsumableResolver } from "./consumable-effect-resolvers.ts"
 import { SUPPORTED_KATA_RESOLVERS } from "./kata-effect-resolvers.ts";
 import { isSupportedComboResolver } from "./combo-runtime.ts";
 import { isReactionItemResolverSupported } from "./reaction-item-runtime.ts";
+import { isSupportedBossResolver } from "./boss-runtime.ts";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
 export type EffectKind = "draw" | "discard" | "heal" | "focus" | "speed" | "nextAttackPower";
@@ -234,7 +235,8 @@ function isImplementedDedicatedResolver(resolver: string) {
     || isReactionItemResolverSupported(resolver)
     || isSupportedCharacterResolver(resolver)
     || isSupportedDefenseResolver(resolver)
-    || isSupportedConsumableResolver(resolver);
+    || isSupportedConsumableResolver(resolver)
+    || isSupportedBossResolver(resolver);
 }
 
 function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): CardEffectPlan {
