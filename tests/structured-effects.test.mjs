@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredDefenseEquipmentBonus, structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
+import { structuredDefenseEquipmentBonus, structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
@@ -337,6 +337,15 @@ test("conditional Equipment defense uses the canonical lowest-XP fact", () => {
   assert.ok(shield);
   assert.equal(structuredDefenseEquipmentBonus(shield, "High", { selfIsLowestXp: false }), 1);
   assert.equal(structuredDefenseEquipmentBonus(shield, "High", { selfIsLowestXp: true }), 2);
+});
+
+test("canonical Equipment speed protection consumes its once-per-game window", () => {
+  const cape = structuredEquipmentSpeedPenaltyProtection([{ id: "cape", catalogId: "DDB-DEQ-CORE-046" }], {});
+  assert.equal(cape.ignorePenalty, true);
+  assert.deepEqual(cape.matchedEffectIds, ["equipment-deq-046-once-game-ignore-speed-penalty"]);
+  const spent = structuredEquipmentSpeedPenaltyProtection([{ id: "cape", catalogId: "DDB-DEQ-CORE-046" }], { usedEffectIdsThisGame: cape.matchedEffectIds });
+  assert.equal(spent.ignorePenalty, false);
+  assert.deepEqual(spent.matchedEffectIds, []);
 });
 
 test("threshold Equipment protection destroys its source and creates an expiring target lock", () => {

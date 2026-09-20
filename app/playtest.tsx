@@ -26,7 +26,7 @@ import { isCoreKataCard, kataEquipFromHandPlanForHost, kataRuntimeCommandsForHos
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
@@ -1274,6 +1274,15 @@ function applyStructuredEquipmentThresholdProtection(board: Board, damageTaken: 
   return { board: next, notes: ["Emergency protection activates at 5 HP or less; the source Equipment is destroyed"] };
 }
 
+function applyStructuredEquipmentSpeedPenaltyProtection(board: Board, penalty: number) {
+  if (penalty <= 0) return { board, penalty, notes: [] as string[] };
+  const equipment = board.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && isPermanent(card)));
+  const resolution = structuredEquipmentSpeedPenaltyProtection(equipment, { usedEffectIdsThisGame: board.equipmentEffectIdsThisGame });
+  if (!resolution.matchedEffectIds.length) return { board, penalty, notes: [] as string[] };
+  const next = { ...board, equipmentEffectIdsThisGame: [...new Set([...(board.equipmentEffectIdsThisGame ?? []), ...resolution.matchedEffectIds])] };
+  return { board: next, penalty: resolution.ignorePenalty ? 0 : penalty, notes: resolution.ignorePenalty ? ["Equipment ignores this Speed penalty and consumes its once-per-game protection"] : [] };
+}
+
 function reduceNonCharacterDamageForFighter(board: Board, damage: number): { board: Board; damage: number; note: string | null } {
   const structuredReduction = stage3cTakeDamagePrevention(board, damage);
   const structuredEquipmentPrevention = applyStructuredEquipmentDamagePrevention(structuredReduction.board, structuredReduction.damage);
@@ -1901,8 +1910,13 @@ function applyTargetHitDebuffs(board: Board, card: CardEntry, context: { previou
     notes.push(`target next Defense card -${defensePenalty} Guard`);
   }
   if (speedPenalty) {
-    next = { ...next, tempSpeed: next.tempSpeed - speedPenalty, speedChangedThisRound: true };
-    notes.push(`target -${speedPenalty} Speed until Honor`);
+    const protectedSpeed = applyStructuredEquipmentSpeedPenaltyProtection(next, speedPenalty);
+    next = protectedSpeed.board;
+    if (protectedSpeed.penalty) {
+      next = { ...next, tempSpeed: next.tempSpeed - protectedSpeed.penalty, speedChangedThisRound: true };
+      notes.push(`target -${protectedSpeed.penalty} Speed until Honor`);
+    }
+    notes.push(...protectedSpeed.notes);
   }
   return { board: next, notes };
 }

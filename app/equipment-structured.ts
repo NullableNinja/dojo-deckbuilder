@@ -634,6 +634,42 @@ export function structuredEquipmentDamagePrevention(
   return result;
 }
 
+export type EquipmentSpeedPenaltyProtectionResolution = {
+  handled: boolean;
+  ignorePenalty: boolean;
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+const SPEED_PENALTY_RUNTIME_CONDITIONS = new Set(["oncePerGame", "speedPenaltyEvent"]);
+
+/** Resolves Equipment that intercepts a qualifying negative Speed modifier. */
+export function structuredEquipmentSpeedPenaltyProtection(
+  cards: EquipmentCardLike[],
+  context: { usedEffectIdsThisGame?: string[] },
+): EquipmentSpeedPenaltyProtectionResolution {
+  const result: EquipmentSpeedPenaltyProtectionResolution = { handled: false, ignorePenalty: false, matchedEffectIds: [], unsupported: [] };
+  const usedThisGame = new Set(context.usedEffectIdsThisGame ?? []);
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    result.handled = true;
+    for (const effect of effects.filter((candidate) => candidate.trigger === "passive")) {
+      const effectId = String(effect.id ?? "unknown-equipment-speed-penalty-effect");
+      if (effect.effect !== "core.custom" || effect.target !== "self") continue;
+      if ((effect.conditions ?? []).some((condition) => !SPEED_PENALTY_RUNTIME_CONDITIONS.has(String(condition.kind ?? "")))) {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      if (usedThisGame.has(effectId)) continue;
+      if (!equipmentConditionsMatch(effect, { oncePerGame: true, speedPenaltyEvent: true })) continue;
+      result.ignorePenalty = true;
+      result.matchedEffectIds.push(effectId);
+    }
+  }
+  return result;
+}
+
 export type EquipmentThresholdProtectionContext = {
   hp: number;
   damageTaken: number;

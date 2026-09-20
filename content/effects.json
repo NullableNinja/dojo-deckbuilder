@@ -969,6 +969,7 @@
     "targetPermanentEquipmentCount": "Number of target permanent Equipment cards currently in play.",
     "targetTempoUsed": "The target's Tempo has already been spent for the relevant round.",
     "targetSpeedHigher": "The target's current Speed is strictly higher than the controller's current Speed.",
+    "speedPenaltyEvent": "The current resolution would apply a negative Speed modifier to the controller.",
     "hasFewerCardsThanTarget": "The controller has fewer cards in the compared zone/hand than the target, as defined by the card effect.",
     "selfSpeedChangedThisRound": "The controller's Speed has changed at least once this round.",
     "wasHitSinceLastTurn": "The controller was Hit after the end of their previous turn and before the current check.",

@@ -8805,6 +8805,11 @@
               "kind": "oncePerGame",
               "value": true,
               "operator": "eq"
+            },
+            {
+              "kind": "speedPenaltyEvent",
+              "value": true,
+              "operator": "eq"
             }
           ],
           "action": "custom"
