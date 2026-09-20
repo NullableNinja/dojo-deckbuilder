@@ -3,7 +3,7 @@ import type { RuntimeStatus } from "./family-effect-runtime.ts";
 export type PurchaseCardLike = { cardType?: string | null; subtype?: string | null; category?: string | null; fpCost?: string | number | null };
 
 function purchaseDiscountMatches(status: RuntimeStatus, printedCost: number, card?: PurchaseCardLike, purchasedTypes: string[] = []) {
-  if (status.duration !== "nextPurchase" || status.resolver !== "consumable.ascendPurchaseDiscount") return false;
+  if (status.duration !== "nextPurchase" || !["consumable.ascendPurchaseDiscount", "defense.nextPurchaseDiscount", "equipment.blockPurchaseDiscount"].includes(String(status.resolver ?? ""))) return false;
   if (printedCost < Number(status.qualifier?.minPrintedCost ?? 0)) return false;
   if (status.qualifier?.firstNovelPurchasedCardType === true && (!card?.cardType || purchasedTypes.includes(String(card.cardType)))) return false;
   return true;
@@ -59,7 +59,7 @@ export function consumeQualifiedNextPurchaseStatuses(statuses: RuntimeStatus[] |
 
 export function qualifiedNextComboLearnDiscount(statuses: RuntimeStatus[] | undefined) {
   const status = (statuses ?? []).find((candidate) => candidate.duration === "nextComboLearn" && candidate.resolver === "kata.comboDiscount");
-  return status ? { amount: Math.max(0, status.amount), sourceEffectId: status.sourceEffectId } : { amount: 0, sourceEffectId: null as string | null };
+  return status ? { amount: Math.max(0, -status.amount), sourceEffectId: status.sourceEffectId } : { amount: 0, sourceEffectId: null as string | null };
 }
 
 export function consumeQualifiedNextComboLearnDiscount(statuses: RuntimeStatus[] | undefined) {

@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredEquipmentHitResolution } from "../app/equipment-structured.ts";
+import { structuredEquipmentBlockResolution, structuredEquipmentHitResolution } from "../app/equipment-structured.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
 const registry = JSON.parse(await readFile(new URL("../app/data/card-effects.json", import.meta.url), "utf8"));
@@ -193,4 +193,30 @@ test("Equipment on-Hit modifiers resolve through the shared hit protocol", () =>
     usedEffectIdsThisTurn: ["equipment-wpn-025-hit-focus"],
   });
   assert.equal(frozenBurritoAgain.focus, 0);
+});
+
+test("Equipment on-Block modifiers resolve through one shared lifecycle", () => {
+  const block = (catalogId, context = {}) => structuredEquipmentBlockResolution([{ id: catalogId.toLowerCase(), catalogId }], {
+    incomingZone: "Low",
+    incomingAttackUsesWeapon: false,
+    defenseTags: ["Dodge"],
+    sourceArmorHelpedBlock: true,
+    firstArmorBlockThisRound: true,
+    defenderPlayedDefense: true,
+    sameOpponentAsBlockedAttack: true,
+    sameRoundOnly: true,
+    sameTurnOnly: true,
+    beltName: "Blue",
+    ...context,
+  });
+  assert.equal(block("DDB-DEQ-CORE-005").focus, 1);
+  assert.equal(block("DDB-DEQ-CORE-015").speed, 1);
+  const purchase = block("DDB-DEQ-CORE-011");
+  assert.equal(purchase.purchaseDiscount, -1);
+  assert.equal(purchase.minimumFinalCost, 1);
+  assert.equal(block("DDB-DEQ-CORE-034").opponentFocusLoss, 1);
+  assert.equal(block("DDB-WPN-CORE-013").nextAttackPower, 1);
+  const sectional = block("DDB-WPN-CORE-055");
+  assert.equal(sectional.nextAttackPower, 1);
+  assert.deepEqual(sectional.unsupported, ["equipment-wpn-055-dodge-block-cycle"]);
 });

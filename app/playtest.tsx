@@ -26,7 +26,7 @@ import { isCoreKataCard, kataRuntimeCommandsForHost, type KataHostFacts } from "
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
-import { structuredEquipmentHitResolution } from "./equipment-structured.ts";
+import { structuredEquipmentBlockResolution, structuredEquipmentHitResolution } from "./equipment-structured.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
@@ -878,6 +878,57 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
   return { attacker, target: defender, notes };
 }
 
+function applyStructuredEquipmentBlock(board: Board, opponent: Board, attackCard: CardEntry, defenseCard: CardEntry | null | undefined, zone: string, sourceArmorHelpedBlock: boolean, firstArmorBlockThisRound: boolean) {
+  const equipment = board.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && isPermanent(card)));
+  const resolution = structuredEquipmentBlockResolution(equipment, {
+    incomingZone: zone,
+    incomingAttackUsesWeapon: hasTag(attackCard, "Weapon") || opponent.equipment.some((id) => { const item = cardFor(id); return Boolean(item && isWeapon(item)); }),
+    incomingAttackTags: attackCard.tags,
+    defenseTags: defenseCard?.tags,
+    sourceArmorHelpedBlock,
+    firstArmorBlockThisRound,
+    defenderPlayedDefense: Boolean(defenseCard),
+    sameOpponentAsBlockedAttack: true,
+    armedEquipmentZoneMatched: Boolean(board.equipmentAttackPlan?.zone?.toLocaleLowerCase() === zone.toLocaleLowerCase()),
+    beltName: belts[board.belt]?.name,
+    usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
+    usedEffectIdsThisRound: board.equipmentEffectIdsThisRound,
+  });
+  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length && !resolution.focus && !resolution.draw && !resolution.nextAttackPower && !resolution.nextAttackPiercing && !resolution.speed && !resolution.purchaseDiscount && !resolution.opponentFocusLoss) return { board, opponent, notes: [] as string[] };
+  let nextBoard = board;
+  let nextOpponent = opponent;
+  if (resolution.focus) nextBoard = gainFocus(nextBoard, resolution.focus);
+  if (resolution.draw) nextBoard = drawCards(nextBoard, resolution.draw);
+  if (resolution.nextAttackPower) nextBoard = { ...nextBoard, nextAttackBonus: nextBoard.nextAttackBonus + resolution.nextAttackPower };
+  if (resolution.nextAttackPiercing) {
+    const piercingQualifier = resolution.nextAttackDifferentFromZones[0] ? { nextAttackDifferentFromZone: resolution.nextAttackDifferentFromZones[0] } : {};
+    nextBoard = {
+      ...nextBoard,
+      stage3cStatuses: [...(nextBoard.stage3cStatuses ?? []), { sourceEffectId: `equipment-block:${resolution.matchedEffectIds.join(",")}`, effect: "combat.piercing", target: "self", amount: resolution.nextAttackPiercing, duration: "nextAttack", resolver: "equipment.blockFollowup", qualifier: piercingQualifier, appliedImmediately: false }],
+    };
+  }
+  if (resolution.speed) {
+    nextBoard = { ...nextBoard, tempSpeed: nextBoard.tempSpeed + resolution.speed, speedChangedThisRound: true, stage3cStatuses: [...(nextBoard.stage3cStatuses ?? []), { sourceEffectId: `equipment-block-speed:${resolution.matchedEffectIds.join(",")}`, effect: "combat.modifySpeed", target: "self", amount: resolution.speed, duration: "endOfRound", resolver: "equipment.blockFollowup", qualifier: {}, appliedImmediately: true }] };
+  }
+  if (resolution.purchaseDiscount) {
+    nextBoard = { ...nextBoard, stage3cStatuses: [...(nextBoard.stage3cStatuses ?? []), { sourceEffectId: `equipment-block-purchase:${resolution.matchedEffectIds.join(",")}`, effect: "economy.modifyCost", target: "self", amount: resolution.purchaseDiscount, duration: "nextPurchase", resolver: "equipment.blockPurchaseDiscount", qualifier: { minimumFinalCost: resolution.minimumFinalCost }, appliedImmediately: false }] };
+  }
+  if (resolution.opponentFocusLoss) nextOpponent = { ...nextOpponent, focus: Math.max(0, nextOpponent.focus - resolution.opponentFocusLoss) };
+  for (const sourceId of resolution.exhaustSourceIds) if (nextBoard.equipment.includes(sourceId)) nextBoard = exhaustEquipment(nextBoard, sourceId);
+  nextBoard = { ...nextBoard, usedEffectIdsThisTurn: [...new Set([...(nextBoard.usedEffectIdsThisTurn ?? []), ...resolution.matchedEffectIds])], equipmentEffectIdsThisRound: [...new Set([...(nextBoard.equipmentEffectIdsThisRound ?? []), ...resolution.matchedEffectIds])] };
+  const notes = [
+    ...(resolution.focus ? [`Equipment Block effect gains ${resolution.focus} Focus`] : []),
+    ...(resolution.draw ? [`Equipment Block effect draws ${resolution.draw}`] : []),
+    ...(resolution.nextAttackPower ? [`Equipment Block effect primes next Attack +${resolution.nextAttackPower}`] : []),
+    ...(resolution.nextAttackPiercing ? [`Equipment Block effect grants next Attack Piercing ${resolution.nextAttackPiercing}`] : []),
+    ...(resolution.speed ? [`Equipment Block effect grants +${resolution.speed} Speed this round`] : []),
+    ...(resolution.purchaseDiscount ? [`Equipment Block effect arms ${Math.abs(resolution.purchaseDiscount)} Focus off the next purchase`] : []),
+    ...(resolution.opponentFocusLoss ? [`Equipment Block effect removes ${resolution.opponentFocusLoss} opponent Focus`] : []),
+    ...(resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : []),
+  ];
+  return { board: nextBoard, opponent: nextOpponent, notes };
+}
+
 function armedEquipmentAttackModifier(board: Board, zone: string) {
   const plan = board.equipmentAttackPlan;
   if (!plan) return { power: 0, piercing: 0, blockedFocus: 0, notes: [] as string[] };
@@ -1326,6 +1377,8 @@ function stage3cAttackStatusMatches(status: RuntimeStatus, card: CardEntry, zone
   if (tag && !hasTag(card, tag)) return false;
   const statusZone = String(status.qualifier?.nextAttackZone ?? "");
   if (statusZone && statusZone.toLocaleLowerCase() !== zone.toLocaleLowerCase()) return false;
+  const differentFromZone = String(status.qualifier?.nextAttackDifferentFromZone ?? "");
+  if (differentFromZone && differentFromZone.toLocaleLowerCase() === zone.toLocaleLowerCase()) return false;
   if (status.qualifier?.nextReversal && !isReversal) return false;
   return true;
 }
@@ -1398,7 +1451,7 @@ function stage3cCurrentDefensePrevention(defense: CardEntry | null | undefined, 
 function stage3cConsumePurchase(board: Board, purchasedCard?: CardEntry) {
   if (!purchasedCard) return expireStage3C(board, "nextPurchase");
   const statuses = consumeQualifiedNextPurchaseStatuses(board.stage3cStatuses, cardCost(purchasedCard), purchasedCard, board.purchasedTypes);
-  const qualifiedIds = new Set((board.stage3cStatuses ?? []).filter((status) => status.duration === "nextPurchase" && status.resolver === "consumable.ascendPurchaseDiscount").map((status) => status.sourceEffectId));
+  const qualifiedIds = new Set((board.stage3cStatuses ?? []).filter((status) => status.duration === "nextPurchase" && ["consumable.ascendPurchaseDiscount", "defense.nextPurchaseDiscount", "equipment.blockPurchaseDiscount"].includes(String(status.resolver ?? ""))).map((status) => status.sourceEffectId));
   const preserved = statuses.filter((status) => !qualifiedIds.has(status.sourceEffectId) || cardCost(purchasedCard) < Number(status.qualifier?.minPrintedCost ?? 0) || (status.qualifier?.firstNovelPurchasedCardType === true && board.purchasedTypes.includes(String(purchasedCard.cardType ?? ""))));
   return { ...board, stage3cStatuses: preserved };
 }
@@ -2589,6 +2642,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (conditionalCycle.draw) nextPlayer = drawCards(nextPlayer, conditionalCycle.draw);
     const cycleDiscardCount = nextAi.hp ? Math.min(conditionalCycle.discard, nextPlayer.hand.length) : 0;
     let defenseFollowupNotes: string[] = [];
+    let equipmentBlockNotes: string[] = [];
     if (defenseCard) {
       const familyDefenseContext = stage3cDefenseContext(nextAi, current.player, defenseCard, card, zone, attackPower, rawDamage, !hit);
       nextAi = stage3cConsumeDefenseStatuses(nextAi);
@@ -2602,6 +2656,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       }
       nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve", familyDefenseContext);
       nextPlayer = applyStage3CTiming(nextPlayer, defenseCard, "afterResolve", "player", familyDefenseContext, "opponent");
+    }
+    if (!hit) {
+      const equipmentBlock = applyStructuredEquipmentBlock(nextAi, nextPlayer, card, defenseCard, zone, equipmentDefenseModifier(nextAi, zone).value > 0, !current.ai.blockedThisRound);
+      nextAi = equipmentBlock.board;
+      nextPlayer = equipmentBlock.opponent;
+      equipmentBlockNotes = equipmentBlock.notes;
     }
     const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
@@ -2631,7 +2691,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...(aiReactionCard && aiDeclaredReaction ? [`${aiReactionCard.name}: ${aiDeclaredReaction.notes.join(", ")}`] : []), ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...(aiReactionCard && aiDeclaredReaction ? [`${aiReactionCard.name}: ${aiDeclaredReaction.notes.join(", ")}`] : []), ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...equipmentBlockNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
     return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, airHornPassedReactionIds: [], airHornAiConsumableSpentThisStrike: false, airHornAiDefenseSpentThisStrike: false, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
   };
@@ -3436,6 +3496,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!hit && pending.blockedFocus) nextAi.focus += pending.blockedFocus;
     if (hit && readyEquipmentOnHit(aiCard) && (nextAi.exhaustedEquipment ?? []).length) nextAi = readyEquipment(nextAi, (nextAi.exhaustedEquipment ?? [])[0]);
     let blockDiscardChoice = 0;
+    let equipmentBlockNotes: string[] = [];
     if (defenseCard) {
       if (!hit) {
         const familyDefenseContext = stage3cDefenseContext(nextPlayer, current.ai, defenseCard, aiCard, pending.zone, finalAttackPower, rawDamage, true);
@@ -3447,12 +3508,18 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextPlayer = applyCardEffects(nextPlayer, defenseCard, "player", "afterResolve", familyDefenseContext);
       nextAi = applyStage3CTiming(nextAi, defenseCard, "afterResolve", "ai", familyDefenseContext, "opponent");
     }
+    if (!hit) {
+      const equipmentBlock = applyStructuredEquipmentBlock(nextPlayer, nextAi, aiCard, defenseCard, pending.zone, armorModifier.value > 0, !current.player.blockedThisRound);
+      nextPlayer = equipmentBlock.board;
+      nextAi = equipmentBlock.opponent;
+      equipmentBlockNotes = equipmentBlock.notes;
+    }
     let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
     if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "onHit", quickDuelHostOperations, { currentAttackHit: true }).match;
     hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
-    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...aiConsumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
+    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...equipmentBlockNotes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...aiConsumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "ai", aiCard.id),
       actor: "ai",

@@ -78,11 +78,12 @@ function conditionMatches(condition: Condition, context: Record<string, unknown>
   const expected = condition.value;
   const actual = context[kind];
   if (kind === "minimumBelt") return beltAtLeast(context.beltName, expected);
-  if (["choiceKind", "scheduledTiming", "resolvedCardType", "firstAttackWithTagThisTurn", "attackHasTag", "nextAttackHasTag", "defenseHasTag", "minimumFinalCost", "sourceAffectedCountThreshold", "minimumDraw"].includes(kind)) return true;
+  if (["choiceKind", "scheduledTiming", "resolvedCardType", "firstAttackWithTagThisTurn", "attackHasTag", "nextAttackHasTag", "minimumFinalCost", "sourceAffectedCountThreshold", "minimumDraw", "nextPurchaseOnly", "draw", "discard", "sameRoundOnly", "sameTurnOnly", "nextAttackDifferentZone"].includes(kind)) return true;
   if (kind === "attackHasAnyTag") {
     const tags = tagsOf(context.attackTags);
     return Array.isArray(expected) && expected.some((tag) => includesTag(tags, tag));
   }
+  if (kind === "defenseHasTag") return includesTag(tagsOf(context.defenseTags), expected);
   if (kind === "attackZones") return Array.isArray(expected) && expected.map(String).some((zone) => zone.toLocaleLowerCase() === String(context.attackZone ?? "").toLocaleLowerCase());
   if (kind === "incomingZones") return Array.isArray(expected) && expected.map(String).some((zone) => zone.toLocaleLowerCase() === String(context.incomingZone ?? context.attackZone ?? "").toLocaleLowerCase());
   if (kind === "equippedCardSubtypeIn") return Array.isArray(expected) && expected.map(String).some((subtype) => subtype.toLocaleLowerCase() === String(context.equippedCardSubtype ?? "").toLocaleLowerCase());
@@ -491,6 +492,124 @@ export type EquipmentHitResolution = {
   matchedEffectIds: string[];
   unsupported: string[];
 };
+
+export type EquipmentBlockContext = {
+  incomingZone: string;
+  incomingAttackUsesWeapon?: boolean;
+  incomingAttackTags?: string[];
+  defenseTags?: string[];
+  sourceArmorHelpedBlock?: boolean;
+  firstArmorBlockThisRound?: boolean;
+  defenderPlayedDefense?: boolean;
+  sameOpponentAsBlockedAttack?: boolean;
+  armedEquipmentZoneMatched?: boolean;
+  sameRoundOnly?: boolean;
+  sameTurnOnly?: boolean;
+  nextAttackDifferentZone?: boolean;
+  beltName?: string;
+  usedEffectIdsThisTurn?: string[];
+  usedEffectIdsThisRound?: string[];
+};
+
+export type EquipmentBlockResolution = {
+  handled: boolean;
+  focus: number;
+  draw: number;
+  nextAttackPower: number;
+  nextAttackDifferentFromZones: string[];
+  nextAttackPiercing: number;
+  speed: number;
+  purchaseDiscount: number;
+  minimumFinalCost: number;
+  opponentFocusLoss: number;
+  exhaustSourceIds: string[];
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+const BLOCK_RUNTIME_CONDITIONS = new Set([
+  "incomingZones",
+  "incomingAttackUsesWeapon",
+  "incomingAttackTags",
+  "defenseHasTag",
+  "sourceArmorHelpedBlock",
+  "firstArmorBlockThisRound",
+  "defenderPlayedDefense",
+  "sameOpponentAsBlockedAttack",
+  "armedEquipmentZoneMatched",
+  "sameRoundOnly",
+  "sameTurnOnly",
+  "nextAttackDifferentZone",
+  "minimumBelt",
+  "oncePerTurn",
+  "oncePerRound",
+  "nextPurchaseOnly",
+  "minimumFinalCost",
+  "choiceKind",
+  "draw",
+  "discard",
+]);
+
+/** Resolves the choice-free Equipment effects published after a Block. */
+export function structuredEquipmentBlockResolution(cards: EquipmentCardLike[], context: EquipmentBlockContext): EquipmentBlockResolution {
+  const result: EquipmentBlockResolution = {
+    handled: false,
+    focus: 0,
+    draw: 0,
+    nextAttackPower: 0,
+    nextAttackDifferentFromZones: [],
+    nextAttackPiercing: 0,
+    speed: 0,
+    purchaseDiscount: 0,
+    minimumFinalCost: 0,
+    opponentFocusLoss: 0,
+    exhaustSourceIds: [],
+    matchedEffectIds: [],
+    unsupported: [],
+  };
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    result.handled = true;
+    for (const effect of effects.filter((candidate) => candidate.trigger === "onBlock")) {
+      const effectId = String(effect.id ?? "unknown-equipment-block-effect");
+      const unknown = (effect.conditions ?? []).filter((condition) => !BLOCK_RUNTIME_CONDITIONS.has(String(condition.kind ?? "")));
+      if (unknown.length) {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      const values = {
+        ...context,
+        incomingZone: context.incomingZone,
+        incomingZones: [context.incomingZone],
+        incomingAttackTags: context.incomingAttackTags ?? [],
+        defenseHasTag: context.defenseTags ?? [],
+        oncePerTurn: !(context.usedEffectIdsThisTurn ?? []).includes(effectId),
+        oncePerRound: !(context.usedEffectIdsThisRound ?? []).includes(effectId),
+      };
+      if (!equipmentConditionsMatch(effect, values)) continue;
+      const amount = Number(effect.amount ?? 0);
+      let applied = true;
+      if (effect.effect === "core.gainFocus" && effect.target === "self") result.focus += amount;
+      else if (effect.effect === "core.draw" && effect.target === "self") result.draw += amount;
+      else if (effect.effect === "combat.modifyAttackPower" && effect.target === "self" && effect.duration === "nextAttack") {
+        result.nextAttackPower += amount;
+        if (effect.conditions?.some((condition) => condition.kind === "nextAttackDifferentZone")) result.nextAttackDifferentFromZones.push(context.incomingZone);
+      }
+      else if (effect.effect === "combat.piercing" && effect.target === "self" && effect.duration === "nextAttack") result.nextAttackPiercing += amount;
+      else if (effect.effect === "combat.modifySpeed" && effect.target === "self" && effect.duration === "endOfRound") result.speed += amount;
+      else if (effect.effect === "economy.modifyCost" && effect.target === "self" && effect.conditions?.some((condition) => condition.kind === "nextPurchaseOnly")) {
+        result.purchaseDiscount += amount;
+        result.minimumFinalCost = Math.max(result.minimumFinalCost, Number(equipmentConditionValue(effect, "minimumFinalCost") ?? 0));
+      } else if (effect.effect === "economy.spendFocus" && effect.target === "opponent") result.opponentFocusLoss += Math.max(0, amount);
+      else if (effect.effect === "equipment.exhaust" && effect.target === "source") result.exhaustSourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      else applied = false;
+      if (applied) result.matchedEffectIds.push(effectId);
+      else result.unsupported.push(effectId);
+    }
+  }
+  return result;
+}
 
 const HIT_RUNTIME_CONDITIONS = new Set([
   "attackNumber",
