@@ -169,6 +169,10 @@ export function conditionsMatch(effect: StructuredRuntimeEffect, values: Record<
   return (effect.conditions ?? []).every((condition) => {
     const actual = values[String(condition.kind ?? "")];
     const expected = condition.value;
+    // A condition without an explicit value is a canonical boolean guard.  This
+    // keeps authoring concise (`incomingAttackTargetsSelf`) without making the
+    // runtime infer card identity or parse printed prose.
+    if (expected === undefined && (condition.operator ?? "eq") === "eq") return Boolean(actual);
     switch (condition.operator ?? "eq") {
       case "eq": return actual === expected;
       case "neq": return actual !== expected;
@@ -179,6 +183,9 @@ export function conditionsMatch(effect: StructuredRuntimeEffect, values: Record<
       case "includes": return Array.isArray(actual)
         ? actual.includes(expected)
         : String(actual ?? "").includes(String(expected ?? ""));
+      case "includesAny": return Array.isArray(actual) && Array.isArray(expected)
+        ? expected.some((entry) => actual.includes(entry))
+        : false;
       case "notIncludes": return Array.isArray(actual)
         ? !actual.includes(expected)
         : !String(actual ?? "").includes(String(expected ?? ""));

@@ -15,6 +15,7 @@ import { armConsumableAttackFollowupStatuses, isConsumableAttackFollowupStatus, 
 import { armConsumableHideStatuses, resolveConsumableHideStatuses } from "./stage3c-consumable-hide-followup.ts";
 import { chooseAiDefensiveConsumable } from "./stage3c-consumable-reaction-ai.ts";
 import { firstEventReactionCard, hasUntargetableStatus } from "./stage3c-consumable-event-reactions.ts";
+import { canPlayCoreReactionItem, chooseAiReactionItem, resolveQuickDuelReactionItem, type ReactionItemRuntimeContext } from "./reaction-item-runtime.ts";
 import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, spendableFocusForPurchase, spendFocusForPurchase } from "./stage3c-consumable-surface.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { chooseAiTemporaryStatusRemoval, removableTemporaryStatuses, removeTemporaryStatus } from "./stage3c-consumable-status-removal.ts";
@@ -1041,6 +1042,16 @@ function withPlayerCharacterChoice(result: {
 
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
+function isCoreReactionItemCard(card: CardEntry) { return card.catalogId.startsWith("DDB-RIT-CORE-"); }
+
+function reactionItemContext(zone: string, attacker: Board, normalAttack = true): ReactionItemRuntimeContext {
+  return {
+    incomingAttackTargetsSelf: true,
+    incomingZones: [zone],
+    attackNumber: attacker.attacksThisTurn + 1,
+    currentAttackIsNormal: normalAttack,
+  };
+}
 
 // -----------------------------------------------------------------------------
 // STRUCTURED RUNTIME COMPATIBILITY BRIDGE
@@ -2382,13 +2393,30 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const hasFlow = attackHasFlow(current.player, card, zone);
     const stage3cAttackBonus = stage3cAttackPowerBonus(current.player, card, zone);
     const baseAttackPower = Math.max(0, cardPower(card) + fighterStat(current.player, "ATK") + current.player.nextAttackBonus + stage3cAttackBonus + tempoBonus + locationModifier.power + fighterModifier.power + printedModifier.power + incomingModifier.power + armedEquipment.power - aiIncomingReaction.attackPowerPenalty);
+    const declaredReactionContext = reactionItemContext(zone, current.player);
+    const aiReactionCard = chooseAiReactionItem(
+      aiIncomingReaction.board.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreReactionItemCard(candidate))),
+      declaredReactionContext,
+    );
+    const aiDeclaredReaction = aiReactionCard
+      ? resolveQuickDuelReactionItem({
+          card: aiReactionCard,
+          self: aiIncomingReaction.board,
+          opponent: current.player,
+          strike: { attackPower: baseAttackPower, zone },
+          trigger: "onAttackDeclared",
+          context: declaredReactionContext,
+        })
+      : null;
+    const aiReactionBoard = aiDeclaredReaction?.self ?? aiIncomingReaction.board;
+    const declaredAttackPower = aiDeclaredReaction?.strike.attackPower ?? baseAttackPower;
     const playerAirHorn = firstEventReactionCard(current.player.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null;
-    const expectedIncomingDamage = Math.max(0, baseAttackPower - fighterStat(aiIncomingReaction.board, "DEF"));
+    const expectedIncomingDamage = Math.max(0, declaredAttackPower - fighterStat(aiReactionBoard, "DEF"));
     const aiConsumableCandidate = current.airHornAiConsumableSpentThisStrike
       ? null
-      : chooseAiDefensiveConsumable(aiIncomingReaction.board.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), {
-          ...stage3cConsumableContext(aiIncomingReaction.board),
-          missingHp: Math.max(0, aiIncomingReaction.board.maxHp - aiIncomingReaction.board.hp),
+      : chooseAiDefensiveConsumable(aiReactionBoard.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), {
+          ...stage3cConsumableContext(aiReactionBoard),
+          missingHp: Math.max(0, aiReactionBoard.maxHp - aiReactionBoard.hp),
           expectedIncomingDamage,
           friendlyTargetCount: 1,
           opponentTargetCount: 1,
@@ -2399,8 +2427,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       });
     }
     const aiConsumableReaction = current.airHornAiConsumableSpentThisStrike
-      ? { board: aiIncomingReaction.board, card: null as CardEntry | null, notes: ["Air Horn canceled the computer's Consumable Reaction"] }
-      : autoPlayAiDefensiveConsumable(aiIncomingReaction.board, expectedIncomingDamage);
+      ? { board: aiReactionBoard, card: null as CardEntry | null, notes: ["Air Horn canceled the computer's Consumable Reaction"] }
+      : autoPlayAiDefensiveConsumable(aiReactionBoard, expectedIncomingDamage);
     if (hasUntargetableStatus(aiConsumableReaction.board.stage3cStatuses)) {
       let player = applyCardEffects({ ...stage3cConsumeAttackStatuses(current.player, card, zone), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attacksThisTurn: current.player.attacksThisTurn + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id] }, card, "player");
       player = { ...player, nextAttackBonus: 0, nextAttackHasFlow: false, nextAttackAnyZone: false };
@@ -2409,7 +2437,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const defenseScenarioPower = afterDefenseAttackPowerBonus(card, true);
     const defenseId = current.airHornAiDefenseSpentThisStrike
       ? null
-      : bestDefense(aiConsumableReaction.board, zone, Math.max(0, baseAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value, armorPenalty);
+      : bestDefense(aiConsumableReaction.board, zone, Math.max(0, declaredAttackPower + defenseScenarioPower.amount), settings.difficulty, location, card, current.player, piercingModifier.value, armorPenalty);
     const defenseCard = defenseId ? cardFor(defenseId) : null;
     if (defenseCard && playerAirHorn && !(current.airHornPassedReactionIds ?? []).includes(defenseCard.id)) {
       return write(current, `${defenseCard.name} is played as the computer's one Defense for this strike. Air Horn can cancel it before Guard or printed effects resolve.`, {
@@ -2417,7 +2445,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       });
     }
     const postDefensePower = afterDefenseAttackPowerBonus(card, Boolean(defenseCard));
-    const attackPower = Math.max(0, baseAttackPower + postDefensePower.amount);
+    const attackPower = Math.max(0, declaredAttackPower + postDefensePower.amount);
     const aiDefenseReaction = defenseCard ? autoActivateAiDefenseGuardEquipment(aiConsumableReaction.board) : { board: aiConsumableReaction.board, guard: 0, notes: [] as string[] };
     const defenseModifier = locationDefenseModifier(location, defenseCard, aiDefenseReaction.board, zone);
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(aiDefenseReaction.board, current.player, defenseCard, card) : { value: 0, notes: [] as string[] };
@@ -2510,7 +2538,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...aiIncomingReaction.notes, ...(aiReactionCard && aiDeclaredReaction ? [`${aiReactionCard.name}: ${aiDeclaredReaction.notes.join(", ")}`] : []), ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
     return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, airHornPassedReactionIds: [], airHornAiConsumableSpentThisStrike: false, airHornAiDefenseSpentThisStrike: false, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
   };
@@ -2591,9 +2619,28 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       ? (!isCoreConsumableCard(card) || canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(current.player)))
       : current.phase === "player-ascend"
         ? isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "player-ascend", stage3cConsumableContext(current.player))
-        : current.phase === "defense-window" && isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(current.player));
+        : current.phase === "defense-window" && (
+          isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(current.player))
+          || isCoreReactionItemCard(card) && Boolean(current.pendingStrike) && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(current.pendingStrike!.zone, current.ai))
+        );
     if (!legalSupportPhase) return current;
     if (isCoreConsumableCard(card) && (current.player.stage3cRestrictions ?? []).includes("consumable")) return current;
+    if (isCoreReactionItemCard(card) && current.pendingStrike) {
+      const reaction = resolveQuickDuelReactionItem({
+        card,
+        self: current.player,
+        opponent: current.ai,
+        strike: { attackPower: current.pendingStrike.attackPower, zone: current.pendingStrike.zone },
+        trigger: "onAttackDeclared",
+        context: reactionItemContext(current.pendingStrike.zone, current.ai),
+      });
+      if (!reaction.applied) return current;
+      return write(current, `${card.name} is destroyed as a Reaction: ${reaction.notes.join("; ")}.`, {
+        player: reaction.self,
+        ai: reaction.opponent,
+        pendingStrike: { ...current.pendingStrike, attackPower: reaction.strike.attackPower },
+      });
+    }
     const aiAirHorn = current.phase === "defense-window" && String(card.timing ?? "").trim().toLocaleLowerCase() === "reaction"
       ? firstEventReactionCard(current.ai.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && isCoreConsumableCard(candidate))), "cancel-reaction") as CardEntry | null
       : null;
@@ -3411,6 +3458,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     if (match.phase === "defense-window") {
       if (isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(match.player))) playSupport(id);
+      else if (isCoreReactionItemCard(card) && match.pendingStrike && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(match.pendingStrike.zone, match.ai))) playSupport(id);
       else if (match.pendingStrike && legalDefenseIds(match.player, match.pendingStrike.zone).includes(id)) resolveDefense(id);
       return;
     }
@@ -3635,11 +3683,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const canInitiate = match.phase === "player-initiate" && permanent && publishQuickDuelPlaytestEquip(match, "player", card).allowed;
           const attackAllowed = !stage3cRestrictionBlocks(player.stage3cRestrictions, "attack");
           const consumableAllowed = !isCoreConsumableCard(card) || (!stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(player)));
-          const canUse = match.phase === "player-yell" && (attack ? attackAllowed : (defense ? !player.defensePracticeUsed : !permanent && consumableAllowed));
+          const reactionAllowed = !isCoreReactionItemCard(card);
+          const canUse = match.phase === "player-yell" && (attack ? attackAllowed : (defense ? !player.defensePracticeUsed : !permanent && consumableAllowed && reactionAllowed));
           const canDefend = match.phase === "defense-window" && defenseOptions.includes(id);
           const canReactConsumable = match.phase === "defense-window" && isCoreConsumableCard(card) && !stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(player));
+          const canReactItem = match.phase === "defense-window" && isCoreReactionItemCard(card) && Boolean(match.pendingStrike) && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(match.pendingStrike!.zone, match.ai));
           const canReverse = match.phase === "reversal-window" && attack && attackAllowed;
-          return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !(canDefend || canReactConsumable) : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={() => useHandCard(id)} onInspect={() => setInspectedId(id)} />;
+          return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !(canDefend || canReactConsumable || canReactItem) : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={() => useHandCard(id)} onInspect={() => setInspectedId(id)} />;
         })}</div>
         {match.phase === "reversal-window" && pendingAttack?.zone?.includes("Any") && <div className="hand-context-strip"><span>Choose reversal zone</span><fieldset className="zone-picker"><legend className="sr-only">Reversal zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}
         {match.phase === "player-yell" && !match.pendingDiscard && pendingAttack && attackHasFlexibleZone(player, pendingAttack) && <div className="hand-context-strip"><span>Declare zone for {pendingAttack.name}</span><fieldset className="zone-picker"><legend className="sr-only">Attack zone</legend>{["High", "Mid", "Low"].map((zone) => <button type="button" className={match.selectedZone === zone ? "is-selected" : ""} onClick={() => setMatch((current) => current ? { ...current, selectedZone: zone } : current)} key={zone}>{zone}</button>)}</fieldset></div>}

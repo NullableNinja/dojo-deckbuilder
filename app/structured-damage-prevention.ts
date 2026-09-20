@@ -21,8 +21,9 @@ export function resolveNextDamagePreventionStatuses(
   });
   if (!matching.length) return { statuses, damage, focus: 0, notes: [] };
 
+  const preventsAll = matching.some((status) => status.qualifier?.setDamageToZero === true);
   const prevention = matching.reduce((total, status) => total + Math.max(0, status.amount), 0);
-  const reducedDamage = Math.max(0, damage - prevention);
+  const reducedDamage = preventsAll ? 0 : Math.max(0, damage - prevention);
   const consumed = new Set(matching.map((status) => status.sourceEffectId));
   let focus = 0;
   for (const status of matching) {
@@ -34,7 +35,7 @@ export function resolveNextDamagePreventionStatuses(
     statuses: statuses.filter((status) => !consumed.has(status.sourceEffectId)),
     damage: reducedDamage,
     focus,
-    notes: [`Structured prevention reduces damage by ${Math.min(damage, prevention)}`, ...(focus ? [`Structured prevention grants ${focus} Focus`] : [])],
+    notes: [preventsAll ? "Structured prevention reduces damage to 0" : `Structured prevention reduces damage by ${Math.min(damage, prevention)}`, ...(focus ? [`Structured prevention grants ${focus} Focus`] : [])],
   };
 }
 
