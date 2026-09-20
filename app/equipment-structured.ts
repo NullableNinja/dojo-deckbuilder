@@ -487,6 +487,122 @@ export function resolveStructuredEquipmentEvent(card: EquipmentCardLike, trigger
   return { handled: true, matched, unsupported };
 }
 
+export type EquipmentAttackDeclarationContext = {
+  incomingAttackTargetsSelf: boolean;
+  firstIncomingAttackThisRound?: boolean;
+  usedEffectIdsThisGame?: string[];
+};
+
+export type EquipmentAttackDeclarationResolution = {
+  handled: boolean;
+  preventAttackDamage: boolean;
+  destroySourceIds: string[];
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+const ATTACK_DECLARATION_RUNTIME_CONDITIONS = new Set([
+  "incomingAttackTargetsSelf",
+  "firstIncomingAttackThisRound",
+  "oncePerGame",
+  "choiceKind",
+]);
+
+/** Resolves Equipment that answers an incoming Attack before Defense resolves. */
+export function structuredEquipmentAttackDeclarationResolution(
+  cards: EquipmentCardLike[],
+  context: EquipmentAttackDeclarationContext,
+): EquipmentAttackDeclarationResolution {
+  const result: EquipmentAttackDeclarationResolution = {
+    handled: false,
+    preventAttackDamage: false,
+    destroySourceIds: [],
+    matchedEffectIds: [],
+    unsupported: [],
+  };
+  const usedThisGame = new Set(context.usedEffectIdsThisGame ?? []);
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    result.handled = true;
+    for (const effect of effects.filter((candidate) => candidate.trigger === "onAttackDeclared")) {
+      const effectId = String(effect.id ?? "unknown-equipment-attack-declaration-effect");
+      if (effect.effect !== "core.custom" || effect.target !== "self") {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      if ((effect.conditions ?? []).some((condition) => !ATTACK_DECLARATION_RUNTIME_CONDITIONS.has(String(condition.kind ?? "")))) {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      const values = {
+        ...context,
+        incomingAttackTargetsSelf: Boolean(context.incomingAttackTargetsSelf),
+        firstIncomingAttackThisRound: Boolean(context.firstIncomingAttackThisRound),
+        oncePerGame: !usedThisGame.has(effectId),
+      };
+      if (!equipmentConditionsMatch(effect, values)) continue;
+      if (equipmentHasCondition(effect, "choiceKind")) {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      result.preventAttackDamage = true;
+      result.destroySourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      result.matchedEffectIds.push(effectId);
+    }
+  }
+  return result;
+}
+
+export type EquipmentDamagePreventionContext = {
+  damage: number;
+  usedEffectIdsThisGame?: string[];
+};
+
+export type EquipmentDamagePreventionResolution = {
+  handled: boolean;
+  preventAll: boolean;
+  destroySourceIds: string[];
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+/** Resolves mandatory passive Equipment that prevents all incoming damage. */
+export function structuredEquipmentDamagePrevention(
+  cards: EquipmentCardLike[],
+  context: EquipmentDamagePreventionContext,
+): EquipmentDamagePreventionResolution {
+  const result: EquipmentDamagePreventionResolution = {
+    handled: false,
+    preventAll: false,
+    destroySourceIds: [],
+    matchedEffectIds: [],
+    unsupported: [],
+  };
+  if (context.damage <= 0) return result;
+  const usedThisGame = new Set(context.usedEffectIdsThisGame ?? []);
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    result.handled = true;
+    for (const effect of effects.filter((candidate) => candidate.trigger === "passive")) {
+      const effectId = String(effect.id ?? "unknown-equipment-damage-prevention-effect");
+      if (effect.effect !== "core.custom" || effect.target !== "self") continue;
+      // A passive custom effect with only a once-per-game guard is the
+      // canonical contract for "when damage would be dealt, prevent all of
+      // it" Equipment. Other qualifiers belong to another lifecycle
+      // protocol and must remain explicit until that protocol is implemented.
+      if (effect.duration || (effect.conditions ?? []).some((condition) => String(condition.kind ?? "") !== "oncePerGame")) continue;
+      if ((effect.conditions ?? []).some((condition) => condition.value !== true)) continue;
+      if (usedThisGame.has(effectId)) continue;
+      result.preventAll = true;
+      result.destroySourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      result.matchedEffectIds.push(effectId);
+    }
+  }
+  return result;
+}
+
 export type EquipmentHitContext = {
   attackNumber: number;
   attackZone: string;

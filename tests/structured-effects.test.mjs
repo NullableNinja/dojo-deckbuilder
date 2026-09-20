@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentBlockResolution, structuredEquipmentHitResolution, structuredEquipmentPurchaseResolution, structuredPostBlockCycle } from "../app/equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentPurchaseResolution, structuredPostBlockCycle } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
@@ -278,6 +278,36 @@ test("Equipment on-Block modifiers resolve through one shared lifecycle", () => 
   const mirror = block("DDB-DEQ-CORE-045", { opponentTopCardId: "top-card" });
   assert.equal(mirror.revealedTopCardId, "top-card");
   assert.deepEqual(mirror.unsupported, []);
+});
+
+test("Equipment declaration and damage prevention share once-per-game destruction semantics", () => {
+  const cutout = structuredEquipmentAttackDeclarationResolution([{ id: "cutout", catalogId: "DDB-DEQ-CORE-007" }], {
+    incomingAttackTargetsSelf: true,
+    firstIncomingAttackThisRound: true,
+  });
+  assert.equal(cutout.preventAttackDamage, true);
+  assert.deepEqual(cutout.destroySourceIds, ["cutout"]);
+  assert.deepEqual(cutout.unsupported, []);
+
+  const cutoutAgain = structuredEquipmentAttackDeclarationResolution([{ id: "cutout", catalogId: "DDB-DEQ-CORE-007" }], {
+    incomingAttackTargetsSelf: true,
+    firstIncomingAttackThisRound: true,
+    usedEffectIdsThisGame: ["equipment-deq-007-once-game-zero-attack"],
+  });
+  assert.equal(cutoutAgain.preventAttackDamage, false);
+  assert.deepEqual(cutoutAgain.matchedEffectIds, []);
+
+  const stuntDouble = structuredEquipmentDamagePrevention([{ id: "stunt", catalogId: "DDB-DEQ-CORE-040" }], { damage: 4 });
+  assert.equal(stuntDouble.preventAll, true);
+  assert.deepEqual(stuntDouble.destroySourceIds, ["stunt"]);
+  assert.deepEqual(stuntDouble.unsupported, []);
+
+  const stuntDoubleAgain = structuredEquipmentDamagePrevention([{ id: "stunt", catalogId: "DDB-DEQ-CORE-040" }], {
+    damage: 4,
+    usedEffectIdsThisGame: ["equipment-deq-040-once-game-prevent-all-damage"],
+  });
+  assert.equal(stuntDoubleAgain.preventAll, false);
+  assert.deepEqual(stuntDoubleAgain.matchedEffectIds, []);
 });
 
 test("structured draw-discard Block choices use the shared post-Block cycle protocol", () => {
