@@ -4064,6 +4064,11 @@ function prepareAiTurn(current: Match) {
       badHabitFocusUsed: true,
     };
   }
+  // The support-card legality predicate may need the opponent board (for
+  // character equip permissions). Initialize it before the predicate closes
+  // over the value; otherwise the production bundle throws a TDZ error when
+  // the AI opens a turn with support cards.
+  let nextPlayer = current.player;
   const supportIds = nextAi.hand.filter((id) => {
     const card = cardFor(id);
     if (!card || isAttack(card) || isDefense(card) || card.subtype === "Junk") return false;
@@ -4075,7 +4080,6 @@ function prepareAiTurn(current: Match) {
   const played: string[] = [];
   const triggeredEquipment: string[] = [];
   let pendingChoice: PendingChoice | null = null;
-  let nextPlayer = current.player;
   for (const id of supportIds) {
     const card = cardFor(id);
     if (!card) continue;
