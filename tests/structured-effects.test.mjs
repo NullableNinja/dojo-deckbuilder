@@ -274,6 +274,10 @@ test("Equipment on-Block modifiers resolve through one shared lifecycle", () => 
   const sectional = block("DDB-WPN-CORE-055");
   assert.equal(sectional.nextAttackPower, 1);
   assert.deepEqual(sectional.unsupported, ["equipment-wpn-055-dodge-block-cycle"]);
+
+  const mirror = block("DDB-DEQ-CORE-045", { opponentTopCardId: "top-card" });
+  assert.equal(mirror.revealedTopCardId, "top-card");
+  assert.deepEqual(mirror.unsupported, []);
 });
 
 test("structured draw-discard Block choices use the shared post-Block cycle protocol", () => {

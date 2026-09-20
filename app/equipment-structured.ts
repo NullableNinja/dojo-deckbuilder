@@ -529,6 +529,7 @@ export type EquipmentBlockContext = {
   beltName?: string;
   usedEffectIdsThisTurn?: string[];
   usedEffectIdsThisRound?: string[];
+  opponentTopCardId?: string | null;
 };
 
 export type EquipmentBlockResolution = {
@@ -542,6 +543,7 @@ export type EquipmentBlockResolution = {
   purchaseDiscount: number;
   minimumFinalCost: number;
   opponentFocusLoss: number;
+  revealedTopCardId: string | null | undefined;
   exhaustSourceIds: string[];
   matchedEffectIds: string[];
   unsupported: string[];
@@ -583,6 +585,7 @@ export function structuredEquipmentBlockResolution(cards: EquipmentCardLike[], c
     purchaseDiscount: 0,
     minimumFinalCost: 0,
     opponentFocusLoss: 0,
+    revealedTopCardId: undefined,
     exhaustSourceIds: [],
     matchedEffectIds: [],
     unsupported: [],
@@ -622,6 +625,7 @@ export function structuredEquipmentBlockResolution(cards: EquipmentCardLike[], c
         result.purchaseDiscount += amount;
         result.minimumFinalCost = Math.max(result.minimumFinalCost, Number(equipmentConditionValue(effect, "minimumFinalCost") ?? 0));
       } else if (effect.effect === "economy.spendFocus" && effect.target === "opponent") result.opponentFocusLoss += Math.max(0, amount);
+      else if (effect.effect === "core.reveal" && effect.target === "opponent" && amount > 0) result.revealedTopCardId = context.opponentTopCardId ?? null;
       else if (effect.effect === "equipment.exhaust" && effect.target === "source") result.exhaustSourceIds.push(String(card.id ?? card.catalogId ?? ""));
       else applied = false;
       if (applied) result.matchedEffectIds.push(effectId);

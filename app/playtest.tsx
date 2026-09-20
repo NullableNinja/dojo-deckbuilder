@@ -988,12 +988,13 @@ function applyStructuredEquipmentBlock(board: Board, opponent: Board, attackCard
     firstArmorBlockThisRound,
     defenderPlayedDefense: Boolean(defenseCard),
     sameOpponentAsBlockedAttack: true,
+    opponentTopCardId: opponent.deck.at(-1) ?? null,
     armedEquipmentZoneMatched: Boolean(board.equipmentAttackPlan?.zone?.toLocaleLowerCase() === zone.toLocaleLowerCase()),
     beltName: belts[board.belt]?.name,
     usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
     usedEffectIdsThisRound: board.equipmentEffectIdsThisRound,
   });
-  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length && !resolution.focus && !resolution.draw && !resolution.nextAttackPower && !resolution.nextAttackPiercing && !resolution.speed && !resolution.purchaseDiscount && !resolution.opponentFocusLoss) return { board, opponent, notes: [] as string[] };
+  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length && !resolution.focus && !resolution.draw && !resolution.nextAttackPower && !resolution.nextAttackPiercing && !resolution.speed && !resolution.purchaseDiscount && !resolution.opponentFocusLoss && resolution.revealedTopCardId === undefined) return { board, opponent, notes: [] as string[] };
   let nextBoard = board;
   let nextOpponent = opponent;
   if (resolution.focus) nextBoard = gainFocus(nextBoard, resolution.focus);
@@ -1023,6 +1024,7 @@ function applyStructuredEquipmentBlock(board: Board, opponent: Board, attackCard
     ...(resolution.speed ? [`Equipment Block effect grants +${resolution.speed} Speed this round`] : []),
     ...(resolution.purchaseDiscount ? [`Equipment Block effect arms ${Math.abs(resolution.purchaseDiscount)} Focus off the next purchase`] : []),
     ...(resolution.opponentFocusLoss ? [`Equipment Block effect removes ${resolution.opponentFocusLoss} opponent Focus`] : []),
+    ...(resolution.revealedTopCardId !== undefined ? [`Equipment Block effect reveals ${resolution.revealedTopCardId ? cardFor(resolution.revealedTopCardId)?.name ?? "the opponent's top card" : "no card; the opponent's deck is empty"}`] : []),
     ...(resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : []),
   ];
   return { board: nextBoard, opponent: nextOpponent, notes };
