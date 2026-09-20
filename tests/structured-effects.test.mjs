@@ -173,4 +173,24 @@ test("Equipment on-Hit modifiers resolve through the shared hit protocol", () =>
   });
   assert.equal(yoYo.focus, 1);
   assert.deepEqual(yoYo.unsupported, []);
+
+  const frozenBurrito = structuredEquipmentHitResolution([{ id: "weapon", catalogId: "DDB-WPN-CORE-025" }], {
+    attackNumber: 2,
+    attackZone: "Low",
+    combatDamageDealt: 1,
+    firstHitThisTurn: false,
+    attackUsesSourceEquipment: true,
+    usedEffectIdsThisRound: ["some-other-equipment-effect"],
+  });
+  assert.equal(frozenBurrito.focus, 1);
+  assert.deepEqual(frozenBurrito.unsupported, []);
+
+  const frozenBurritoAgain = structuredEquipmentHitResolution([{ id: "weapon", catalogId: "DDB-WPN-CORE-025" }], {
+    attackNumber: 3,
+    attackZone: "Low",
+    combatDamageDealt: 1,
+    firstHitThisTurn: true,
+    usedEffectIdsThisTurn: ["equipment-wpn-025-hit-focus"],
+  });
+  assert.equal(frozenBurritoAgain.focus, 0);
 });

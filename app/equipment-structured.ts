@@ -504,6 +504,8 @@ const HIT_RUNTIME_CONDITIONS = new Set([
   "firstHitThisTurn",
   "firstQualifyingHitThisTurn",
   "firstHitWithSourceThisTurn",
+  "firstHitWithSourceThisRound",
+  "firstCombatDamageWithSourceThisTurn",
   "oncePerTurn",
   "oncePerRound",
 ]);
@@ -546,12 +548,16 @@ export function structuredEquipmentHitResolution(cards: EquipmentCardLike[], con
       if (requiredTag != null && !includesTag(tagsOf(context.attackTags), requiredTag)) continue;
       const usedThisTurn = context.usedEffectIdsThisTurn ?? [];
       const usedThisRound = context.usedEffectIdsThisRound ?? [];
-      const firstSourceHit = !usedThisRound.includes(effectId);
+      const firstSourceHitThisTurn = !usedThisTurn.includes(effectId);
+      const firstSourceHitThisRound = !usedThisRound.includes(effectId);
       const values = {
         ...context,
         attackHasTag: context.attackTags ?? [],
         attackHasAnyTag: context.attackTags ?? [],
-        firstHitWithSourceThisTurn: firstSourceHit,
+        firstQualifyingHitThisTurn: context.firstQualifyingHitThisTurn ?? firstSourceHitThisTurn,
+        firstHitWithSourceThisTurn: firstSourceHitThisTurn,
+        firstHitWithSourceThisRound: firstSourceHitThisRound,
+        firstCombatDamageWithSourceThisTurn: firstSourceHitThisTurn,
         oncePerTurn: !usedThisTurn.includes(effectId),
         oncePerRound: !usedThisRound.includes(effectId),
       };

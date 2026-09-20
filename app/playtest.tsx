@@ -842,7 +842,6 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
     attackTags: attackCard.tags,
     combatDamageDealt: damage,
     firstHitThisTurn: board.attacksThisTurn === 1,
-    firstQualifyingHitThisTurn: board.attacksThisTurn === 1,
     attackUsesSourceEquipment: true,
     usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
     usedEffectIdsThisRound: board.equipmentEffectIdsThisRound,
