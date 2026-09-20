@@ -16,7 +16,7 @@ import { armConsumableHideStatuses, resolveConsumableHideStatuses } from "./stag
 import { chooseAiDefensiveConsumable } from "./stage3c-consumable-reaction-ai.ts";
 import { firstEventReactionCard, hasUntargetableStatus } from "./stage3c-consumable-event-reactions.ts";
 import { canPlayCoreReactionItem, chooseAiReactionItem, resolveQuickDuelReactionItem, resolveQuickDuelReactionItemEvent, resolveReactionItemIncomingAttackOutcome, type ReactionItemRuntimeContext } from "./reaction-item-runtime.ts";
-import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, spendableFocusForPurchase, spendFocusForPurchase } from "./stage3c-consumable-surface.ts";
+import { consumeQualifiedNextComboLearnDiscount, consumeQualifiedNextPurchaseStatuses, qualifiedNextComboLearnDiscount, qualifiedNextPurchaseDiscount, spendableFocusForPurchase, spendFocusForPurchase } from "./stage3c-consumable-surface.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { chooseAiTemporaryStatusRemoval, removableTemporaryStatuses, removeTemporaryStatus } from "./stage3c-consumable-status-removal.ts";
 import { structuredConsumableTopRevealPlan } from "./stage3c-consumable-reveal.ts";
@@ -402,7 +402,7 @@ function marketBasePriceFor(board: Board, card: CardEntry | undefined) {
   if (!card) return Number.POSITIVE_INFINITY;
   const certificationDiscount = beltHasReward(board, "market-discount") && !board.boughtCardThisAscend ? 1 : 0;
   const printedCost = cardCost(card);
-  const qualified = qualifiedNextPurchaseDiscount(board.stage3cStatuses, printedCost);
+  const qualified = qualifiedNextPurchaseDiscount(board.stage3cStatuses, printedCost, card, board.purchasedTypes);
   const base = printedCost + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === "Item" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount + qualified.amount;
   return Math.max(qualified.minimumFinalCost || 0, base, 0);
 }
@@ -1125,6 +1125,19 @@ function stage3cKataContext(board: Board, card: CardEntry): KataHostFacts {
   };
 }
 
+function kataEconomyCommandsForHost(card: CardEntry, board: Board) {
+  if (!isCoreKataCard(card)) return [];
+  return kataRuntimeCommandsForHost(card, "onPlay", stage3cKataContext(board, card)).filter((command) => command.resolver === "kata.purchaseDiscount" || command.resolver === "kata.comboDiscount");
+}
+
+function kataHasAscendEconomyEffect(card: CardEntry, board: Board) {
+  return kataEconomyCommandsForHost(card, board).length > 0;
+}
+
+function kataHasAscendOnlyEconomyEffect(card: CardEntry, board: Board) {
+  return kataEconomyCommandsForHost(card, board).some((command) => command.qualifier?.window === "Ascend" || command.resolver === "kata.comboDiscount");
+}
+
 function applyKataHideEffects(board: Board, controller: "player" | "ai") {
   let next = board;
   for (const id of board.playArea) {
@@ -1384,9 +1397,9 @@ function stage3cCurrentDefensePrevention(defense: CardEntry | null | undefined, 
 
 function stage3cConsumePurchase(board: Board, purchasedCard?: CardEntry) {
   if (!purchasedCard) return expireStage3C(board, "nextPurchase");
-  const statuses = consumeQualifiedNextPurchaseStatuses(board.stage3cStatuses, cardCost(purchasedCard));
+  const statuses = consumeQualifiedNextPurchaseStatuses(board.stage3cStatuses, cardCost(purchasedCard), purchasedCard, board.purchasedTypes);
   const qualifiedIds = new Set((board.stage3cStatuses ?? []).filter((status) => status.duration === "nextPurchase" && status.resolver === "consumable.ascendPurchaseDiscount").map((status) => status.sourceEffectId));
-  const preserved = statuses.filter((status) => !qualifiedIds.has(status.sourceEffectId) || cardCost(purchasedCard) < Number(status.qualifier?.minPrintedCost ?? 0));
+  const preserved = statuses.filter((status) => !qualifiedIds.has(status.sourceEffectId) || cardCost(purchasedCard) < Number(status.qualifier?.minPrintedCost ?? 0) || (status.qualifier?.firstNovelPurchasedCardType === true && board.purchasedTypes.includes(String(purchasedCard.cardType ?? ""))));
   return { ...board, stage3cStatuses: preserved };
 }
 
@@ -2079,9 +2092,10 @@ function CombatStage({ match, currentLocation, selectedAttack, turnCoach, guided
   </section>;
 }
 
-function FeaturedComboPanel({ card, focus, learnedCount, attempted, onLearn, onPass, onContinue, onInspect }: { card: CardEntry; focus: number; learnedCount: number; attempted: boolean; onLearn: () => void; onPass: () => void; onContinue: () => void; onInspect: () => void }) {
+function FeaturedComboPanel({ card, focus, learnedCount, attempted, discount = 0, onLearn, onPass, onContinue, onInspect }: { card: CardEntry; focus: number; learnedCount: number; attempted: boolean; discount?: number; onLearn: () => void; onPass: () => void; onContinue: () => void; onInspect: () => void }) {
   const art = artistUrl(card);
-  const cost = cardCost(card);
+  const printedCost = cardCost(card);
+  const cost = Math.max(0, printedCost - discount);
   const headingId = `featured-combo-${presentationSlug(card.id)}`;
   const requirement = String(card.details?.["Sequence / Requirement"] ?? "See the printed Combo requirement.");
   const payoff = String(card.details?.Effect ?? card.rulesText ?? "See the printed Combo payoff.");
@@ -2090,7 +2104,7 @@ function FeaturedComboPanel({ card, focus, learnedCount, attempted, onLearn, onP
     <button type="button" className="ascend-featured-combo-card" onClick={onInspect} aria-label={`Inspect ${card.name}`}>
       {art ? <img src={art} alt="" loading="lazy" /> : <NativeCardArt card={card} />}
     </button>
-    <div className="ascend-featured-combo-meta"><b>{cost} FOCUS</b><span>{card.catalogId}</span></div>
+    <div className="ascend-featured-combo-meta"><b>{cost} FOCUS{discount ? ` · −${discount}` : ""}</b><span>{card.catalogId}</span></div>
     <div className="ascend-featured-combo-copy"><p><b>REQUIREMENT</b>{requirement}</p><p><b>PAYOFF</b>{payoff}</p>{card.flavorText && <em>{card.flavorText}</em>}</div>
     <div className="ascend-featured-combo-actions">
       {attempted ? <><strong className="ascend-featured-combo-filed">Combo decision filed for this Ascend.</strong><button type="button" className="button primary" onClick={onContinue}>Continue to Belt Check →</button></> : <><button type="button" className="button primary" disabled={focus < cost || learnedCount >= 2} onClick={onLearn}>Learn {card.name}</button><button type="button" className="button ghost" onClick={onPass}>Pass Combo</button></>}
@@ -2695,9 +2709,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const card = cardFor(id);
     if (!card || isAttack(card) || isDefense(card) || isPermanent(card)) return current;
     const legalSupportPhase = current.phase === "player-yell"
-      ? (!isCoreConsumableCard(card) || canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(current.player)))
+      ? (!kataHasAscendOnlyEconomyEffect(card, current.player) && (!isCoreConsumableCard(card) || canPlayCoreConsumableInPhase(card, "player-yell", stage3cConsumableContext(current.player))))
       : current.phase === "player-ascend"
-        ? isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "player-ascend", stage3cConsumableContext(current.player))
+        ? (isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "player-ascend", stage3cConsumableContext(current.player))) || kataHasAscendEconomyEffect(card, current.player)
         : current.phase === "defense-window" && (
           isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(current.player))
           || isCoreReactionItemCard(card) && Boolean(current.pendingStrike) && (
@@ -3223,14 +3237,15 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-ascend" || !current.comboOfferId || current.player.comboAttemptedTurn || current.winner) return current;
     const combo = cardFor(current.comboOfferId);
     if (!combo) return current;
-    const cost = cardCost(combo);
+    const comboDiscount = qualifiedNextComboLearnDiscount(current.player.stage3cStatuses);
+    const cost = Math.max(0, cardCost(combo) - comboDiscount.amount);
     if (learn && (current.player.focus < cost || current.player.learnedCombos.length >= 2)) return current;
     const nextOfferId = current.comboDeck[0] ?? null;
     const nextDeck = [...current.comboDeck.slice(1), ...(learn ? [] : [combo.id])];
     const player = learn
-      ? { ...spendFocus(current.player, cost), learnedCombos: [...current.player.learnedCombos, combo.id], comboAttemptedTurn: true }
+      ? { ...spendFocus({ ...current.player, stage3cStatuses: consumeQualifiedNextComboLearnDiscount(current.player.stage3cStatuses) }, cost), learnedCombos: [...current.player.learnedCombos, combo.id], comboAttemptedTurn: true }
       : { ...current.player, comboAttemptedTurn: true };
-    return write(current, learn ? `Learned Combo: ${combo.name}. It remains face up beside your delegation.` : `${combo.name} returned to the bottom of the Combo docket.`, { player, comboOfferId: nextOfferId, comboDeck: nextDeck });
+    return write(current, learn ? `Learned Combo: ${combo.name} for ${cost} Focus${comboDiscount.amount ? ` (Kata discount −${comboDiscount.amount})` : ""}. It remains face up beside your delegation.` : `${combo.name} returned to the bottom of the Combo docket.`, { player, comboOfferId: nextOfferId, comboDeck: nextDeck });
   });
 
   const promote = () => setMatch((current) => {
@@ -3647,7 +3662,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       return;
     }
     if (match.phase === "player-ascend") {
-      if (isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "player-ascend", stage3cConsumableContext(match.player))) playSupport(id);
+      if ((isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "player-ascend", stage3cConsumableContext(match.player))) || kataHasAscendEconomyEffect(card, match.player)) playSupport(id);
       return;
     }
     if (match.phase !== "player-yell") return;
@@ -3901,14 +3916,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           {match.phase === "player-ascend" && <aside className={`ascend-step-coach step-${ascendStepIndex + 1}`}><b>STEP {ascendStepIndex + 1}</b><span>{ascendStepHelp}</span></aside>}
           {deskView === "market" && <section className="ascend-market" aria-label="Seven-card Shared Market">
             <header><div><span className="eyebrow">Seven live records · full cards</span><h3>Choose with the text visible</h3></div><p>{match.phase === "player-ascend" ? "Buy any number you can afford. Each purchase is replaced immediately by the top Market card." : "The row persists between rounds. If nobody buys for a full round, Market Mercy refreshes all seven cards."}</p></header>
-            {match.phase === "player-ascend" && comboOffer && <FeaturedComboPanel card={comboOffer} focus={player.focus} learnedCount={player.learnedCombos.length} attempted={player.comboAttemptedTurn} onLearn={() => cycleCombo(true)} onPass={() => cycleCombo(false)} onContinue={() => setDeskView("belt")} onInspect={() => setInspectedId(comboOffer.id)} />}
+            {match.phase === "player-ascend" && comboOffer && <FeaturedComboPanel card={comboOffer} focus={player.focus} discount={qualifiedNextComboLearnDiscount(player.stage3cStatuses).amount} learnedCount={player.learnedCombos.length} attempted={player.comboAttemptedTurn} onLearn={() => cycleCombo(true)} onPass={() => cycleCombo(false)} onContinue={() => setDeskView("belt")} onInspect={() => setInspectedId(comboOffer.id)} />}
             <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = marketFocusAvailable(player, card) >= marketPriceFor(player, card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
           </section>}
           {deskView === "combo" && <section className="ascend-combo combo-panel">
             <p className="combo-digital-note"><b>Learned Combos stay face up beside your fighter.</b> During Yell, the live Combo rack shows the printed requirement and previews whether your selected Attack will complete it. Supported payoffs fire automatically; anything not yet automated is labeled instead of being silently faked.</p>
             <header><div><span className="eyebrow">One face-up offer · one attempt per turn</span><h3>{player.learnedCombos.length ? `${player.learnedCombos.length}/2 learned` : "Reveal. Learn. Regret."}</h3></div><span className="combo-limit">{player.comboAttemptedTurn ? "Attempt filed" : "Ready"}</span></header>
             {comboOffer ? <div className="combo-offer"><NativeCardArt card={comboOffer} /><div><span>{comboOffer.catalogId}</span><h3>{comboOffer.name}</h3><p>{comboOffer.rulesText}</p><div><b>{cardCost(comboOffer)} Focus</b><button onClick={() => setInspectedId(comboOffer.id)}>Inspect full card</button></div></div></div> : <p>The Combo docket has escaped the filing cabinet.</p>}
-            {match.phase === "player-ascend" && comboOffer && !player.comboAttemptedTurn && <div className="combo-actions"><button className="button primary" disabled={player.focus < cardCost(comboOffer) || player.learnedCombos.length >= 2} onClick={() => cycleCombo(true)}>Learn {comboOffer.name}</button><button className="button ghost" onClick={() => cycleCombo(false)}>Pass · bottom deck</button></div>}
+            {match.phase === "player-ascend" && comboOffer && !player.comboAttemptedTurn && <div className="combo-actions"><button className="button primary" disabled={player.focus < Math.max(0, cardCost(comboOffer) - qualifiedNextComboLearnDiscount(player.stage3cStatuses).amount) || player.learnedCombos.length >= 2} onClick={() => cycleCombo(true)}>Learn {comboOffer.name}</button><button className="button ghost" onClick={() => cycleCombo(false)}>Pass · bottom deck</button></div>}
             {match.phase !== "player-ascend" && <p className="combo-spent">Combo actions unlock during Ascend.</p>}
             {player.comboAttemptedTurn && <p className="combo-spent">Combo attempt filed for this turn.</p>}
             {player.learnedCombos.length > 0 && <div className="learned-combos">{player.learnedCombos.map((id) => { const learned = cardFor(id); if (!learned) return null; return <button key={id} onClick={() => setInspectedId(id)}><span>∞</span><b>{learned.name}</b><small>{player.triggeredCombos.includes(id) ? "Triggered this round" : "Face up · watches automatically"}</small><small className="combo-requirement-mini">Requirement: {comboRequirementText(learned)}</small><small className="combo-requirement-mini">Payoff: {comboPayoffText(learned)}</small></button>; })}</div>}
@@ -4028,7 +4043,23 @@ function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string
   return { ...current, player: { ...current.player, attacksReceivedThisRound: (current.player.attacksReceivedThisRound ?? 0) + 1, offTurnConsumablePlayed: false }, ai: nextAi, phase: "defense-window" as const, pendingStrike: { cardId, zone, attackPower, damageModifier: locationModifier.damage + fighterModifier.damage, piercing: piercingModifier.value, blockedFocus: activeEquipment.blockedFocus, armorPenalty, conditionalCycle: conditionalCycle.draw || conditionalCycle.discard ? { draw: conditionalCycle.draw, discard: conditionalCycle.discard } : undefined, previousCardWasItem, targetExhaustedAtDeclaration: Boolean(current.player.exhaustedEquipment?.length), modifierNotes: modifiers, remainingAiAttacks }, log: [`Computer declares ${card.name} to ${zone}. ${tempoBonus ? "Tempo adds +1. " : ""}${flowDraw ? "Flow draws 1 card. " : ""}${modifiers.length ? `${modifiers.join("; ")}. ` : ""}Choose one matching Defense or pass.`, ...current.log].slice(0, 32) };
 }
 
-function finishAiTurn(current: Match, line: string, sceneChanges: boolean, houseRuleIds: readonly string[]) {
+function finishAiTurn(initial: Match, line: string, sceneChanges: boolean, houseRuleIds: readonly string[]) {
+  let current = initial;
+  const ascendKataId = current.ai.hand.find((id) => {
+    const card = cardFor(id);
+    return Boolean(card && kataHasAscendEconomyEffect(card, current.ai));
+  });
+  const ascendKata = ascendKataId ? cardFor(ascendKataId) : null;
+  if (ascendKata) {
+    const kataBoard = stage3cConsumeKata(current.ai);
+    const playedKata = applyCardEffects({
+      ...kataBoard,
+      hand: removeOne(kataBoard.hand, ascendKata.id),
+      playArea: [...kataBoard.playArea, ascendKata.id],
+      lastAttackHit: false,
+    }, ascendKata, "ai", "onPlay", {}, true);
+    current = { ...current, ai: playedKata };
+  }
   const aiPurchase = current.market.filter((id) => marketPriceFor(current.ai, cardFor(id)) <= marketFocusAvailable(current.ai, cardFor(id))).sort((left, right) => aiMarketScore(cardFor(right)!, current.ai) - aiMarketScore(cardFor(left)!, current.ai))[0];
   const purchasedCard = aiPurchase ? cardFor(aiPurchase) : null;
   const aiBasePrice = purchasedCard ? marketBasePriceFor(current.ai, purchasedCard) : Number.POSITIVE_INFINITY;
@@ -4056,7 +4087,7 @@ function finishAiTurn(current: Match, line: string, sceneChanges: boolean, house
   const hostedHide = publishQuickDuelPlaytestLifecycleEvent({ ...current, player: playerAfterPurchase, ai: aiAfterPurchase }, "ai", "onHide", quickDuelHostOperations, cardFor).match;
   const kataHideAi = applyKataHideEffects(hostedHide.ai, "ai");
   const nextAi = playAreaCleanup(kataHideAi);
-  const purchaseLog = purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing.";
+  const purchaseLog = `${ascendKata ? `Computer plays ${ascendKata.name} during Ascend. ` : ""}${purchasedCard ? `Computer buys ${purchasedCard.name}.` : "Computer buys nothing."}`;
   const finished = { ...hostedHide, ai: nextAi, market, marketDeck, marketDiscard, marketPurchasedThisRound: current.marketPurchasedThisRound || Boolean(purchasedCard), winner: nextAi.hp ? current.winner : "player" as const, log: [purchaseLog, ...(promotionLog ? [promotionLog] : []), line, ...hostedHide.log].slice(0, 32) };
   if (!nextAi.hp) return finished;
   if (current.turnIndex === 0) {

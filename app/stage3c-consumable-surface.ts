@@ -2,6 +2,13 @@ import type { RuntimeStatus } from "./family-effect-runtime.ts";
 
 export type PurchaseCardLike = { cardType?: string | null; subtype?: string | null; category?: string | null; fpCost?: string | number | null };
 
+function purchaseDiscountMatches(status: RuntimeStatus, printedCost: number, card?: PurchaseCardLike, purchasedTypes: string[] = []) {
+  if (status.duration !== "nextPurchase" || status.resolver !== "consumable.ascendPurchaseDiscount") return false;
+  if (printedCost < Number(status.qualifier?.minPrintedCost ?? 0)) return false;
+  if (status.qualifier?.firstNovelPurchasedCardType === true && (!card?.cardType || purchasedTypes.includes(String(card.cardType)))) return false;
+  return true;
+}
+
 function spendOnlyOn(status: RuntimeStatus) {
   const value = status.qualifier?.spendOnlyOn;
   return Array.isArray(value) ? value.map(String) : [];
@@ -38,14 +45,25 @@ export function spendFocusForPurchase(totalFocus: number, statuses: RuntimeStatu
   return { focus: nextFocus, statuses: nextStatuses.filter((status) => !(status.effect === "core.gainFocus" && spendOnlyOn(status).length && status.amount <= 0)) };
 }
 
-export function qualifiedNextPurchaseDiscount(statuses: RuntimeStatus[] | undefined, printedCost: number) {
-  const status = (statuses ?? []).find((candidate) => candidate.duration === "nextPurchase" && candidate.resolver === "consumable.ascendPurchaseDiscount" && printedCost >= Number(candidate.qualifier?.minPrintedCost ?? 0));
+export function qualifiedNextPurchaseDiscount(statuses: RuntimeStatus[] | undefined, printedCost: number, card?: PurchaseCardLike, purchasedTypes: string[] = []) {
+  const status = (statuses ?? []).find((candidate) => purchaseDiscountMatches(candidate, printedCost, card, purchasedTypes));
   if (!status) return { amount: 0, minimumFinalCost: 0, sourceEffectId: null as string | null };
   return { amount: status.amount, minimumFinalCost: Number(status.qualifier?.minimumFinalCost ?? 0), sourceEffectId: status.sourceEffectId };
 }
 
-export function consumeQualifiedNextPurchaseStatuses(statuses: RuntimeStatus[] | undefined, printedCost: number) {
-  const discount = qualifiedNextPurchaseDiscount(statuses, printedCost);
+export function consumeQualifiedNextPurchaseStatuses(statuses: RuntimeStatus[] | undefined, printedCost: number, card?: PurchaseCardLike, purchasedTypes: string[] = []) {
+  const discount = qualifiedNextPurchaseDiscount(statuses, printedCost, card, purchasedTypes);
+  if (!discount.sourceEffectId) return [...(statuses ?? [])];
+  return (statuses ?? []).filter((status) => status.sourceEffectId !== discount.sourceEffectId);
+}
+
+export function qualifiedNextComboLearnDiscount(statuses: RuntimeStatus[] | undefined) {
+  const status = (statuses ?? []).find((candidate) => candidate.duration === "nextComboLearn" && candidate.resolver === "kata.comboDiscount");
+  return status ? { amount: Math.max(0, status.amount), sourceEffectId: status.sourceEffectId } : { amount: 0, sourceEffectId: null as string | null };
+}
+
+export function consumeQualifiedNextComboLearnDiscount(statuses: RuntimeStatus[] | undefined) {
+  const discount = qualifiedNextComboLearnDiscount(statuses);
   if (!discount.sourceEffectId) return [...(statuses ?? [])];
   return (statuses ?? []).filter((status) => status.sourceEffectId !== discount.sourceEffectId);
 }

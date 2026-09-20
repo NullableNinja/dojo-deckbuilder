@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { kataRuntimeCommandsForHost } from "../app/kata-playtest-bridge.ts";
 import { resolveNextDamagePreventionStatuses, expirePreventionAtNextInitiate } from "../app/structured-damage-prevention.ts";
+import { consumeQualifiedNextComboLearnDiscount, consumeQualifiedNextPurchaseStatuses, qualifiedNextComboLearnDiscount, qualifiedNextPurchaseDiscount } from "../app/stage3c-consumable-surface.ts";
 
 const cards = JSON.parse(fs.readFileSync(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards;
 const byCatalog = new Map(cards.map((entry) => [entry.catalogId, entry]));
@@ -57,4 +58,31 @@ test("Quick Duel no longer hard-codes Second Wind and uses reusable prevention s
   assert.doesNotMatch(source, /card\.name === "Second Wind Form"/);
   assert.match(source, /resolveNextDamagePreventionStatuses\(board\.stage3cStatuses \?\? \[\], damage, "Attack"\)/);
   assert.match(source, /expirePreventionAtNextInitiate\(next\.stage3cStatuses \?\? \[\]\)/);
+});
+
+test("Ascend purchase-discount Katas become generic next-purchase statuses", () => {
+  const coupon = kataRuntimeCommandsForHost(card("DDB-KAT-CORE-013"), "onPlay", {});
+  assert.deepEqual(coupon.map((command) => [command.effect, command.amount, command.duration, command.resolver]), [["economy.modifyCost", 1, "nextPurchase", "kata.purchaseDiscount"]]);
+  assert.equal(coupon[0].qualifier?.minPrintedCost, 5);
+  assert.equal(coupon[0].qualifier?.minimumFinalCost, 4);
+  const status = { sourceEffectId: coupon[0].sourceEffectId, effect: coupon[0].effect, target: "self", amount: coupon[0].amount, duration: coupon[0].duration, resolver: "consumable.ascendPurchaseDiscount", qualifier: coupon[0].qualifier, appliedImmediately: false };
+  const eligible = { cardType: "Attack", fpCost: 6 };
+  assert.deepEqual(qualifiedNextPurchaseDiscount([status], 6, eligible, []), { amount: 1, minimumFinalCost: 4, sourceEffectId: status.sourceEffectId });
+  assert.equal(consumeQualifiedNextPurchaseStatuses([status], 4, { cardType: "Attack", fpCost: 4 }, []).length, 1);
+  assert.equal(consumeQualifiedNextPurchaseStatuses([status], 6, eligible, []).length, 0);
+});
+
+test("Compliance Shopping List keeps its first-novel-card-type qualifier", () => {
+  const [command] = kataRuntimeCommandsForHost(card("DDB-KAT-CORE-012"), "onPlay", { belt: "Purple" });
+  const status = { sourceEffectId: command.sourceEffectId, effect: command.effect, target: "self", amount: command.amount, duration: command.duration, resolver: "consumable.ascendPurchaseDiscount", qualifier: command.qualifier, appliedImmediately: false };
+  assert.equal(qualifiedNextPurchaseDiscount([status], 2, { cardType: "Attack" }, ["Attack"]).sourceEffectId, null);
+  assert.equal(qualifiedNextPurchaseDiscount([status], 2, { cardType: "Defense" }, ["Attack"]).amount, 1);
+});
+
+test("Seipai arms and consumes a generic next-Combo learn discount", () => {
+  const [command] = kataRuntimeCommandsForHost(card("DDB-KAT-CORE-053"), "onPlay", {});
+  assert.deepEqual([command.effect, command.amount, command.duration, command.resolver], ["economy.modifyCost", 1, "nextComboLearn", "kata.comboDiscount"]);
+  const status = { sourceEffectId: command.sourceEffectId, effect: command.effect, target: "self", amount: command.amount, duration: command.duration, resolver: command.resolver, qualifier: command.qualifier, appliedImmediately: false };
+  assert.deepEqual(qualifiedNextComboLearnDiscount([status]), { amount: 1, sourceEffectId: status.sourceEffectId });
+  assert.equal(consumeQualifiedNextComboLearnDiscount([status]).length, 0);
 });

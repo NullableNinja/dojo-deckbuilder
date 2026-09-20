@@ -214,6 +214,8 @@ const SIMPLE_KATA_RUNTIME_RESOLVERS = new Set([
   "kata.damagePrevention",
   "kata.defenseModifier",
   "kata.deferredConditional",
+  "kata.purchaseDiscount",
+  "kata.comboDiscount",
 ]);
 
 const KATA_RUNTIME_EFFECT_BY_ACTION: Record<string, string> = {
@@ -235,7 +237,7 @@ const KATA_RUNTIME_EFFECT_BY_ACTION: Record<string, string> = {
 
 /**
  * Converts only Kata resolvers that already fit the generic one-shot/status runtime.
- * Complex choices, deferred watchers, equipment actions, discounts, reveals, and
+ * Complex choices, deferred watchers, equipment actions, reveals, and
  * multi-event plans intentionally stay out until their matching host protocol exists.
  */
 export function kataRuntimeCommandsForHost(
@@ -252,30 +254,47 @@ export function kataRuntimeCommandsForHost(
     if (resolver === "kata.damagePrevention" && command.kind !== "armDamagePrevention") return [];
     if (resolver === "kata.defenseModifier" && command.action !== "modifyDefense") return [];
     if (resolver === "kata.deferredConditional" && !(trigger === "onHide" && ["gainFocus", "heal"].includes(String(command.action ?? "")))) return [];
+    if (resolver === "kata.purchaseDiscount" && command.kind !== "armPurchaseDiscount") return [];
+    if (resolver === "kata.comboDiscount" && command.kind !== "armComboDiscount") return [];
+    if ((resolver === "kata.purchaseDiscount" || resolver === "kata.comboDiscount") && command.params?.beltExam !== undefined && String(facts.belt ?? "") !== String(command.params.beltExam)) return [];
 
-    const effect = command.kind === "grantFlow"
+    const effect = resolver === "kata.purchaseDiscount" || resolver === "kata.comboDiscount"
+      ? "economy.modifyCost"
+      : command.kind === "grantFlow"
       ? "combat.grantFlow"
       : resolver === "kata.damagePrevention"
         ? "combat.preventDamage"
         : KATA_RUNTIME_EFFECT_BY_ACTION[String(command.action ?? "")];
     if (!effect) return [];
     const deferredDuration = String(command.params?.duration ?? "");
-    const duration = command.kind === "grantFlow"
+    const duration = resolver === "kata.purchaseDiscount"
+      ? "nextPurchase"
+      : resolver === "kata.comboDiscount"
+        ? "nextComboLearn"
+        : command.kind === "grantFlow"
       ? String(command.params?.grantFlowTo ?? "nextAttack")
       : resolver === "kata.damagePrevention"
         ? "nextDamage"
         : resolver === "kata.defenseModifier" && !command.duration && deferredDuration === "untilStartOfNextTurn"
           ? "nextTurn"
           : String(command.duration ?? "immediate");
-    const qualifier = resolver === "kata.damagePrevention"
-      ? { ...command.params, expires: command.params?.firstDamageEventBefore }
-      : command.params;
+    const qualifier = resolver === "kata.purchaseDiscount"
+      ? {
+          ...command.params,
+          minPrintedCost: Number(command.params?.minimumPrintedCost ?? 0),
+          minimumFinalCost: Number(command.params?.minimumCost ?? 0),
+        }
+      : resolver === "kata.comboDiscount"
+        ? { ...command.params }
+        : resolver === "kata.damagePrevention"
+          ? { ...command.params, expires: command.params?.firstDamageEventBefore }
+          : command.params;
     return [{
       sourceEffectId: String(command.effectId ?? `kata:${resolver}:${trigger}`),
       effect,
       trigger,
       target: "self",
-      amount: Number(command.amount ?? 0),
+      amount: Number(command.amount ?? command.params?.discount ?? 0),
       duration,
       resolver,
       conditions: [],
