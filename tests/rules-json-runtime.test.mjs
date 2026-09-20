@@ -7,7 +7,7 @@ import {
   publishQuickDuelPlaytestLifecycleEvent,
   resolveQuickDuelPlaytestCharacterChoice,
 } from "../app/quick-duel-playtest-host.ts";
-import { chooseAiReactionItem, resolveQuickDuelReactionItem } from "../app/reaction-item-runtime.ts";
+import { chooseAiReactionItem, resolveQuickDuelReactionItem, resolveReactionItemIncomingAttackOutcome } from "../app/reaction-item-runtime.ts";
 import { resolveNextDamagePreventionStatuses } from "../app/structured-damage-prevention.ts";
 
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, import.meta.url), "utf8"));
@@ -128,6 +128,7 @@ test("canonical Reaction Items execute through the Quick Duel declaration host f
   const wetFloor = reactionCard("reaction.reduceDeclaredAttackPower");
   const elbowPad = reactionCard("reaction.preventIncomingDamage");
   const foldingMat = reactionCard("reaction.defenseAgainstIncomingAttack");
+  const witness = reactionCard("reaction.secondNormalAttackPenaltyAndInitiateDraw");
   const xrayCatalogId = Object.entries(reactionEffects)
     .find(([, entry]) => entry.effects?.some((effect) => effect.resolver === "reaction.preventIncomingDamage" && effect.amount === 0))?.[0];
   const xray = byCatalogId.get(xrayCatalogId);
@@ -157,6 +158,19 @@ test("canonical Reaction Items execute through the Quick Duel declaration host f
   });
   assert.equal(playerMat.self.stage3cStatuses[0].effect, "combat.modifyDefense");
   assert.equal(playerMat.self.stage3cStatuses[0].duration, "nextIncomingAttack");
+
+  const witnessStatement = resolveQuickDuelReactionItem({
+    card: witness,
+    self: board({ hand: [witness.id] }),
+    opponent: board({ fighterId: "ai-fighter", attacksThisTurn: 2 }),
+    strike: { attackPower: 8, zone: "Mid" },
+    trigger: "onAttackDeclared",
+    context: { incomingAttackTargetsSelf: true, incomingZones: ["Mid"], attackNumber: 2, currentAttackIsNormal: true },
+  });
+  assert.equal(witnessStatement.strike.attackPower, 6);
+  const witnessHit = resolveReactionItemIncomingAttackOutcome(witnessStatement.self, true);
+  assert.equal(witnessHit.stage3cStatuses[0].qualifier.activateAt, "nextInitiate");
+  assert.equal(resolveReactionItemIncomingAttackOutcome(witnessStatement.self, false).stage3cStatuses.length, 0);
 
   const aiChoice = chooseAiReactionItem([elbowPad, xray], { incomingAttackTargetsSelf: true, incomingZones: ["High"] });
   assert.equal(aiChoice.id, xray.id, "AI picks the strongest legal canonical prevention plan");
