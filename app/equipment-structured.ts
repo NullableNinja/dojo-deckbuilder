@@ -780,6 +780,7 @@ export type EquipmentPurchaseResolution = {
   purchaseDiscount: number;
   minimumFinalCost: number;
   exhaustSourceIds: string[];
+  choiceRequired: boolean;
   matchedEffectIds: string[];
   unsupported: string[];
 };
@@ -795,7 +796,7 @@ const PURCHASE_RUNTIME_CONDITIONS = new Set([
 
 /** Resolves choice-free Equipment effects surrounding a Market purchase. */
 export function structuredEquipmentPurchaseResolution(cards: EquipmentCardLike[], context: EquipmentPurchaseContext): EquipmentPurchaseResolution {
-  const result: EquipmentPurchaseResolution = { handled: false, purchaseDiscount: 0, minimumFinalCost: 0, exhaustSourceIds: [], matchedEffectIds: [], unsupported: [] };
+  const result: EquipmentPurchaseResolution = { handled: false, purchaseDiscount: 0, minimumFinalCost: 0, exhaustSourceIds: [], choiceRequired: false, matchedEffectIds: [], unsupported: [] };
   for (const card of cards) {
     const effects = structuredEquipmentEffects(card);
     if (!effects) continue;
@@ -803,10 +804,6 @@ export function structuredEquipmentPurchaseResolution(cards: EquipmentCardLike[]
     if ((context.exhaustedEquipmentIds ?? []).includes(String(card.id ?? card.catalogId ?? ""))) continue;
     const purchaseEffects = effects.filter((candidate) => candidate.trigger === "onPurchase");
     if (!purchaseEffects.length) continue;
-    if (purchaseEffects.some((effect) => effect.effect === "core.moveCard" || effect.effect === "core.choice")) {
-      result.unsupported.push(...purchaseEffects.map((effect) => String(effect.id ?? "unknown-equipment-purchase-effect")));
-      continue;
-    }
     for (const effect of purchaseEffects) {
       const effectId = String(effect.id ?? "unknown-equipment-purchase-effect");
       if ((effect.conditions ?? []).some((condition) => !PURCHASE_RUNTIME_CONDITIONS.has(String(condition.kind ?? "")))) {
@@ -827,6 +824,8 @@ export function structuredEquipmentPurchaseResolution(cards: EquipmentCardLike[]
         result.minimumFinalCost = Math.max(result.minimumFinalCost, Number(equipmentConditionValue(effect, "minimumFinalCost") ?? 0));
       } else if (effect.effect === "equipment.exhaust" && effect.target === "source" && context.purchaseCompleted) {
         result.exhaustSourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      } else if (effect.effect === "core.moveCard" && effect.target === "chosen-card" && context.purchaseCompleted) {
+        result.choiceRequired = true;
       } else if (effect.effect === "economy.modifyCost") {
         result.unsupported.push(effectId);
         applied = false;
@@ -836,7 +835,7 @@ export function structuredEquipmentPurchaseResolution(cards: EquipmentCardLike[]
         applied = false;
       } else applied = false;
       if (applied) result.matchedEffectIds.push(effectId);
-      else if (effect.effect !== "equipment.exhaust") result.unsupported.push(effectId);
+      else if (effect.effect !== "equipment.exhaust" && effect.effect !== "core.moveCard") result.unsupported.push(effectId);
     }
   }
   return result;

@@ -112,6 +112,7 @@ type Board = {
   pendingReversalBonusOnBlock?: number;
   reversalAttackBonus?: number;
   nextInitiateFocus?: number;
+  nextInitiateDraw?: number;
   readyAtInitiate?: string[];
   readyAtHide?: string[];
   combatDamageEventsThisRound?: number;
@@ -232,6 +233,7 @@ type PendingChoice =
   | { kind: "stage3c-sparring-pick"; sourceCardId: string; revealed: string[] }
   | { kind: "stage3c-sparring-junk"; sourceCardId: string; junkIds: string[]; optional: true }
   | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] }
+  | { kind: "equipment-purchase-card"; sourceCardId: string; handIds: string[]; nextInitiateDraw: number }
   | { kind: "kata-equip-from-hand"; sourceCardId: string; equipmentIds: string[]; family: string; subtype?: string; ready: boolean; nextAttackPower: number; additionalFocus: number }
   | { kind: "character-runtime"; event: CharacterRuntimeEvent; choice: CharacterRuntimeChoice; resume?: "player-attack" | "reversal-attack" };
 
@@ -687,8 +689,9 @@ function applyInitiateCarryover(board: Board) {
   const stage3cBoard = stage3cStartTurn(board);
   const ready = new Set(stage3cBoard.readyAtInitiate ?? []);
   const carryover = stage3cBoard.nextInitiateFocus ?? 0;
-  const reset = { ...stage3cBoard, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, nextInitiateFocus: 0, exhaustedEquipment: (stage3cBoard.exhaustedEquipment ?? []).filter((id) => !ready.has(id)), readyAtInitiate: [] };
-  return gainFocus(reset, carryover);
+  const carryoverDraw = stage3cBoard.nextInitiateDraw ?? 0;
+  const reset = { ...stage3cBoard, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, nextInitiateFocus: 0, nextInitiateDraw: 0, exhaustedEquipment: (stage3cBoard.exhaustedEquipment ?? []).filter((id) => !ready.has(id)), readyAtInitiate: [] };
+  return drawCards(gainFocus(reset, carryover), carryoverDraw);
 }
 
 function equipmentActivationAvailable(board: Board, card: CardEntry, phase: Match["phase"]) {
@@ -930,7 +933,7 @@ function applyStructuredEquipmentPurchase(board: Board, purchasedCard: CardEntry
     exhaustedEquipmentIds: board.exhaustedEquipment,
     usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
   });
-  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length) return { board, notes: [] as string[] };
+  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length) return { board, choiceRequired: false, notes: [] as string[] };
   let next = board;
   for (const sourceId of resolution.exhaustSourceIds) if (next.equipment.includes(sourceId)) next = exhaustEquipment(next, sourceId);
   next = {
@@ -939,6 +942,7 @@ function applyStructuredEquipmentPurchase(board: Board, purchasedCard: CardEntry
   };
   return {
     board: next,
+    choiceRequired: resolution.choiceRequired,
     notes: resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment purchase source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : [],
   };
 }
@@ -1759,7 +1763,7 @@ function destroyResolvedConsumable(board: Board, card: CardEntry) {
 function emptyBoard(fighterId: string): Board {
   return drawCards({
     fighterId, hp: gameDefinition.mode.startingHp, maxHp: gameDefinition.mode.startingHp, xp: 0, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, belt: 0,
-    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, nextInitiateFocus: 0, readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, lastAttackHit: false,
+    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, nextInitiateFocus: 0, nextInitiateDraw: 0, readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, lastAttackHit: false,
     tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false, reactionItemUsedSinceLastTurn: false,
     defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
     damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false, completedBeltExamThisRound: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false, boughtCardThisAscend: false, boughtCardLastAscend: false, targetEquipmentDefPenalties: {}, nextItemCostPenalty: 0, attackLockedThisTurn: false,
@@ -3071,6 +3075,12 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const selected = cardFor(cardId);
     if (!selected) return current;
 
+    if (choice.kind === "equipment-purchase-card") {
+      if (source !== "hand" || !choice.handIds.includes(cardId) || !current.player.hand.includes(cardId)) return current;
+      const player = { ...current.player, hand: removeOne(current.player.hand, cardId), deck: [...current.player.deck, cardId], nextInitiateDraw: (current.player.nextInitiateDraw ?? 0) + choice.nextInitiateDraw };
+      return write(current, `${selected.name} filed at the bottom of your deck. Draw ${choice.nextInitiateDraw} at your next Initiate.`, { player, pendingChoice: null });
+    }
+
     if (choice.kind === "kata-equip-from-hand") {
       if (source !== "hand" || !choice.equipmentIds.includes(cardId) || !current.player.hand.includes(cardId) || !kataEquipCandidate(selected, choice)) return current;
       const characterEquip = publishQuickDuelPlaytestEquip(current, "player", selected);
@@ -3323,6 +3333,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       ) ?? "decline";
       return applyCharacterRuntimeChoice(current, selection);
     }
+    if (current.pendingChoice.kind === "equipment-purchase-card") {
+      return write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Purchase suggestion"}: hand filing declined; no delayed draw is armed.`, { pendingChoice: null });
+    }
     if (current.pendingChoice.kind === "post-block-cycle") return resumeAfterDefense(write(current, `${cardFor(current.pendingChoice.sourceCardId)?.name ?? "Optional Equipment"}: post-Block cycle declined.`, { pendingChoice: null }));
     if (current.pendingChoice.kind === "stage3c-trail-mix") return write(current, "Department-Issue Trail Mix: optional Equipment cycle declined.", { pendingChoice: null });
     if (current.pendingChoice.kind === "stage3c-discard-focus") return write(current, "Last-Call Electrolytes: stop discarding; keep the Focus already earned.", { pendingChoice: null });
@@ -3374,10 +3387,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     nextPlayer = stage3cConsumePurchase(markCompletedTask({ ...nextPlayer, discard: [...nextPlayer.discard, id], purchasedTypes: [...nextPlayer.purchasedTypes, card.cardType], cardsBought: nextPlayer.cardsBought + 1, boughtCardThisAscend: true, nextItemCostPenalty: card.cardType === "Item" ? 0 : nextPlayer.nextItemCostPenalty }), card);
     const equipmentPurchase = applyStructuredEquipmentPurchase(nextPlayer, card, marketEndSlot);
     nextPlayer = equipmentPurchase.board;
+    const equipmentChoice = equipmentPurchase.choiceRequired && nextPlayer.hand.length
+      ? { kind: "equipment-purchase-card" as const, sourceCardId: card.id, handIds: [...nextPlayer.hand], nextInitiateDraw: 1 }
+      : null;
     const refilled = refillPurchasedMarketSlot(current.market, current.marketDeck, current.marketDiscard, slot);
     const purchased = write(current, `Bought ${card.name} for ${characterPurchase.price} Focus (${focusBefore} → ${nextPlayer.focus}). The top Market card immediately fills the slot.`, { player: nextPlayer, ai: characterPurchase.opponent, ...refilled, marketPurchasedThisRound: true });
     const revealedId = refilled.market[slot];
     const lucky = revealedId ? nextPlayer.hand.map(cardFor).find((candidate): candidate is CardEntry => Boolean(candidate && candidate.catalogId === "DDB-CON-CORE-033")) : null;
+    if (equipmentChoice) return write(purchased, `${card.name} purchase follow-up is ready: choose a card to file at the bottom of your deck.`, { pendingChoice: equipmentChoice });
     return lucky && revealedId ? write(purchased, `${cardFor(revealedId)?.name ?? "A Market card"} was revealed. Lucky Dumpling may replace it.`, { pendingChoice: { kind: "stage3c-lucky-reveal", sourceCardId: lucky.id, revealKind: "market", revealedCardId: revealedId, marketSlot: slot } }) : purchased;
   });
 
@@ -3851,6 +3868,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         ...((match.pendingChoice.sources ?? ["hand", "discard"]).includes("hand") ? player.hand.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => isJunk(cardFor(entry.id))) : []),
         ...((match.pendingChoice.sources ?? ["hand", "discard"]).includes("discard") ? player.discard.map((id, index) => ({ id, source: "discard" as const, index })).filter((entry) => isJunk(cardFor(entry.id))) : []),
       ]
+    : match.pendingChoice?.kind === "equipment-purchase-card"
+      ? match.pendingChoice.handIds.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => player.hand.includes(entry.id))
     : match.pendingChoice?.kind === "kata-equip-from-hand"
       ? match.pendingChoice.equipmentIds.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => player.hand.includes(entry.id))
       : match.pendingChoice?.kind === "discard-draw" || match.pendingChoice?.kind === "discard-hand"
@@ -3873,6 +3892,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const characterRuntimePending = characterRuntimePendingChoice(match.pendingChoice);
   const effectChoiceTitle = characterRuntimePending ? "Character ability"
     : match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"
+    : match.pendingChoice?.kind === "equipment-purchase-card" ? "File a purchase suggestion"
     : match.pendingChoice?.kind === "kata-equip-from-hand" ? "Choose Equipment to equip"
     : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? "Use Lucky Dumpling?"
     : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Call a protected zone"
@@ -3898,6 +3918,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                     : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
   const effectChoicePrompt = characterRuntimePending ? characterRuntimePending.choice.prompt
     : match.pendingChoice?.kind === "stage3c-raffle" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} came off the Market deck. Buy it now or put it on the bottom.`
+    : match.pendingChoice?.kind === "equipment-purchase-card" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "Your Equipment"} lets you put one card from your hand on the bottom of your deck. If you do, draw ${match.pendingChoice.nextInitiateDraw} at your next Initiate.`
     : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? `${cardFor(match.pendingChoice.revealedCardId)?.name ?? "The revealed card"} was just revealed. Replace it from the same deck or keep it.`
     : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Choose High, Mid, or Low. The next Attack in that zone targeting you this round gets -2 Attack Power."
     : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Choose one currently active temporary -ATK, -DEF, or -Speed effect to remove."
@@ -3920,7 +3941,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} can exhaust now to reduce ${match.pendingChoice.damage} combat damage by ${match.pendingChoice.reduce}. Declining still consumes this round's first-damage timing window.`
                   : match.pendingChoice?.kind === "post-block-cycle" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} triggered after the Block. Exhaust it to draw ${match.pendingChoice.draw}, then choose ${match.pendingChoice.discard} discard${match.pendingChoice.discard === 1 ? "" : "s"}, or decline and continue combat.`
                     : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
-  const effectChoiceCanSkip = Boolean(characterRuntimePending?.choice.optional) || match.pendingChoice?.kind === "stage3c-trail-mix" || match.pendingChoice?.kind === "stage3c-discard-focus" || match.pendingChoice?.kind === "stage3c-sparring-junk" || (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
+  const effectChoiceCanSkip = Boolean(characterRuntimePending?.choice.optional) || match.pendingChoice?.kind === "equipment-purchase-card" || match.pendingChoice?.kind === "stage3c-trail-mix" || match.pendingChoice?.kind === "stage3c-discard-focus" || match.pendingChoice?.kind === "stage3c-sparring-junk" || (match.pendingChoice?.kind === "destroy-junk" && Boolean(match.pendingChoice.optional)) || match.pendingChoice?.kind === "prevent-combat-damage" || match.pendingChoice?.kind === "post-block-cycle" || match.pendingChoice?.kind === "discard-draw" || (match.pendingChoice?.kind === "deck-pick" && match.pendingChoice.optional) || (match.pendingChoice?.kind === "ready-equipment" && match.pendingChoice.optional);
   const inspectedBoard = inspected
     ? inspected.id === player.fighterId ? player : inspected.id === ai.fighterId ? ai : null
     : null;
@@ -4223,7 +4244,14 @@ function finishAiTurn(initial: Match, line: string, sceneChanges: boolean, house
   const aiBasePrice = purchasedCard && aiPurchase ? marketBasePriceFor(current.ai, purchasedCard, aiPurchase.marketEndSlot) : Number.POSITIVE_INFINITY;
   const characterPurchase = purchasedCard ? commitQuickDuelCharacterPurchase(current.ai, current.player, purchasedCard, aiBasePrice, "ai") : null;
   let aiAfterPurchase = purchasedCard && characterPurchase ? stage3cConsumePurchase(markCompletedTask({ ...spendMarketFocus(characterPurchase.self, purchasedCard, characterPurchase.price), discard: [...characterPurchase.self.discard, purchasedCard.id], purchasedTypes: [...characterPurchase.self.purchasedTypes, purchasedCard.cardType], cardsBought: characterPurchase.self.cardsBought + 1 }), purchasedCard) : current.ai;
-  if (purchasedCard && aiPurchase && characterPurchase) aiAfterPurchase = applyStructuredEquipmentPurchase(aiAfterPurchase, purchasedCard, aiPurchase.marketEndSlot).board;
+  if (purchasedCard && aiPurchase && characterPurchase) {
+    const equipmentPurchase = applyStructuredEquipmentPurchase(aiAfterPurchase, purchasedCard, aiPurchase.marketEndSlot);
+    aiAfterPurchase = equipmentPurchase.board;
+    if (equipmentPurchase.choiceRequired && aiAfterPurchase.hand.length) {
+      const selectedId = [...aiAfterPurchase.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right)))[0];
+      aiAfterPurchase = { ...aiAfterPurchase, hand: removeOne(aiAfterPurchase.hand, selectedId), deck: [...aiAfterPurchase.deck, selectedId], nextInitiateDraw: (aiAfterPurchase.nextInitiateDraw ?? 0) + 1 };
+    }
+  }
   const playerAfterPurchase = characterPurchase?.opponent ?? current.player;
   let market = current.market;
   let marketDeck = current.marketDeck;

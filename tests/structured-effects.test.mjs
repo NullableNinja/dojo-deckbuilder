@@ -273,3 +273,21 @@ test("Equipment purchase timing exposes discounts before payment and exhausts so
   assert.deepEqual(committed.exhaustSourceIds, ["map"]);
   assert.ok(committed.matchedEffectIds.includes("equipment-gea-012-exhaust"));
 });
+
+test("Portable Suggestion Box exposes a post-purchase hand-filing choice", () => {
+  const source = { id: "suggestion-box", catalogId: "DDB-GEA-CORE-018" };
+  const preview = structuredEquipmentPurchaseResolution([source], {
+    purchasedCardCost: 2,
+    purchaseCompleted: false,
+  });
+  assert.equal(preview.choiceRequired, false);
+  assert.deepEqual(preview.exhaustSourceIds, []);
+
+  const committed = structuredEquipmentPurchaseResolution([source], {
+    purchasedCardCost: 2,
+    purchaseCompleted: true,
+  });
+  assert.equal(committed.choiceRequired, true);
+  assert.deepEqual(committed.exhaustSourceIds, ["suggestion-box"]);
+  assert.deepEqual(committed.unsupported, []);
+});
