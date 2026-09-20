@@ -864,7 +864,7 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
     usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
     usedEffectIdsThisRound: board.equipmentEffectIdsThisRound,
   });
-  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length && !resolution.directDamage && !resolution.focus && !resolution.draw && !resolution.nextAttackPower && !resolution.grantFlow) {
+  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length && !resolution.directDamage && !resolution.focus && !resolution.draw && !resolution.nextAttackPower && !resolution.grantFlow && !resolution.delayedStatuses.length && !resolution.targetTempoLoss) {
     return { attacker: board, target, notes: [] as string[] };
   }
   let attacker = board;
@@ -873,6 +873,28 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
   if (resolution.draw) attacker = drawCards(attacker, resolution.draw);
   if (resolution.nextAttackPower) attacker = { ...attacker, nextAttackBonus: attacker.nextAttackBonus + resolution.nextAttackPower };
   if (resolution.grantFlow) attacker = { ...attacker, nextAttackHasFlow: true };
+  for (const delayed of resolution.delayedStatuses) {
+    const status = {
+      sourceEffectId: delayed.sourceEffectId,
+      effect: delayed.effect,
+      target: "self" as const,
+      amount: delayed.amount,
+      duration: delayed.duration,
+      resolver: "equipment.delayedHit",
+      qualifier: { activateAt: delayed.duration },
+      appliedImmediately: delayed.duration === "nextInitiate",
+    };
+    if (delayed.target === "self") {
+      attacker = {
+        ...attacker,
+        ...(delayed.duration === "nextInitiate" ? { stage3cDefenseModifier: (attacker.stage3cDefenseModifier ?? 0) + delayed.amount } : {}),
+        stage3cStatuses: [...(attacker.stage3cStatuses ?? []), status],
+      };
+    } else {
+      defender = { ...defender, stage3cStatuses: [...(defender.stage3cStatuses ?? []), status] };
+    }
+  }
+  if (resolution.targetTempoLoss) defender = { ...defender, tempo: false };
   for (const sourceId of resolution.exhaustSourceIds) {
     if (attacker.equipment.includes(sourceId)) attacker = exhaustEquipment(attacker, sourceId);
   }
@@ -891,6 +913,8 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
     ...(resolution.nextAttackPower ? [`Equipment Hit effect primes next Attack +${resolution.nextAttackPower}`] : []),
     ...(resolution.grantFlow ? ["Equipment Hit effect grants Flow for the next Attack"] : []),
     ...(resolution.directDamage ? [`Equipment Hit effect deals ${resolution.directDamage} direct damage`] : []),
+    ...(resolution.delayedStatuses.map((status) => `Equipment Hit effect schedules ${status.effect === "combat.modifySpeed" ? `${status.amount > 0 ? "+" : ""}${status.amount} Speed` : `${status.amount > 0 ? "+" : ""}${status.amount} DEF`} for ${status.duration}`)),
+    ...(resolution.targetTempoLoss ? ["Equipment Hit effect removes the target's Tempo for this round"] : []),
     ...(resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : []),
   ];
   return { attacker, target: defender, notes };
@@ -1338,7 +1362,7 @@ function applyStage3CCommands(board: Board, commands: RuntimeCommand[], controll
     }
     if (command.duration !== "immediate") {
       const standingSpeed = command.effect === "combat.modifySpeed" && ["endOfTurn", "endOfRound", "nextHonor"].includes(command.duration);
-      const standingDefense = command.effect === "combat.modifyDefense" && ["endOfTurn", "endOfRound", "nextHonor", "nextTurn"].includes(command.duration);
+      const standingDefense = command.effect === "combat.modifyDefense" && ["endOfTurn", "endOfRound", "nextHonor", "nextTurn", "nextInitiate"].includes(command.duration);
       const standingCost = command.effect === "economy.modifyCost" && ["endOfTurn", "nextTurn", "nextPurchase"].includes(command.duration) && command.qualifier?.minPrintedCost === undefined;
       if (standingSpeed) next = { ...next, tempSpeed: next.tempSpeed + command.amount, speedChangedThisRound: next.speedChangedThisRound || command.amount !== 0 };
       if (standingDefense) next = { ...next, stage3cDefenseModifier: (next.stage3cDefenseModifier ?? 0) + command.amount };
@@ -1415,8 +1439,7 @@ function stage3cStartTurn(board: Board) {
     if (status.effect === "core.gainFocus") next = gainFocus(next, status.amount);
     if (status.effect === "core.draw") next = drawCards(next, status.amount);
   }
-  const ids = new Set(initiate.map((status) => status.sourceEffectId));
-  return { ...next, stage3cStatuses: (next.stage3cStatuses ?? []).filter((status) => !ids.has(status.sourceEffectId)) };
+  return expireStage3C(next, "nextInitiate");
 }
 
 function expireStage3CQualified(board: Board, expires: "endOfTurn" | "endOfRound") {

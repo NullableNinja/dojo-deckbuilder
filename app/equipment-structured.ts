@@ -506,6 +506,8 @@ export type EquipmentHitResolution = {
   nextAttackPower: number;
   grantFlow: boolean;
   directDamage: number;
+  delayedStatuses: Array<{ sourceEffectId: string; effect: "combat.modifySpeed" | "combat.modifyDefense"; amount: number; duration: "nextRound" | "nextInitiate"; target: "self" | "opponent" }>;
+  targetTempoLoss: boolean;
   exhaustSourceIds: string[];
   matchedEffectIds: string[];
   unsupported: string[];
@@ -645,12 +647,13 @@ const HIT_RUNTIME_CONDITIONS = new Set([
   "firstCombatDamageWithSourceThisTurn",
   "oncePerTurn",
   "oncePerRound",
+  "scheduledTiming",
 ]);
 
 /**
  * Resolves the non-choice Equipment effects that occur after a successful Hit.
- * Effects requiring a discard, pending source, or delayed watcher remain
- * explicitly unsupported so the host never silently grants a partial payoff.
+ * Delayed combat modifiers are returned as lifecycle statuses for the host;
+ * effects requiring a discard or player choice remain explicitly unsupported.
  */
 export function structuredEquipmentHitResolution(cards: EquipmentCardLike[], context: EquipmentHitContext): EquipmentHitResolution {
   const result: EquipmentHitResolution = {
@@ -660,6 +663,8 @@ export function structuredEquipmentHitResolution(cards: EquipmentCardLike[], con
     nextAttackPower: 0,
     grantFlow: false,
     directDamage: 0,
+    delayedStatuses: [],
+    targetTempoLoss: false,
     exhaustSourceIds: [],
     matchedEffectIds: [],
     unsupported: [],
@@ -706,6 +711,9 @@ export function structuredEquipmentHitResolution(cards: EquipmentCardLike[], con
       else if (effect.effect === "combat.modifyAttackPower" && effect.target === "source" && effect.duration === "nextAttack") result.nextAttackPower += amount;
       else if (effect.effect === "combat.grantFlow" && effect.target === "self" && effect.duration === "nextAttack") result.grantFlow = true;
       else if (effect.effect === "combat.dealDamage" && effect.target === "opponent") result.directDamage += amount;
+      else if (effect.effect === "core.custom" && effect.target === "opponent" && equipmentConditionValue(effect, "scheduledTiming") === "nextRound") result.delayedStatuses.push({ sourceEffectId: effectId, effect: "combat.modifySpeed", amount, duration: "nextRound", target: "opponent" });
+      else if (effect.effect === "core.custom" && effect.target === "self" && equipmentConditionValue(effect, "scheduledTiming") === "nextInitiate") result.delayedStatuses.push({ sourceEffectId: effectId, effect: "combat.modifyDefense", amount, duration: "nextInitiate", target: "self" });
+      else if (effect.effect === "core.custom" && effect.target === "opponent" && effect.duration === "endOfRound") result.targetTempoLoss = true;
       else if (effect.effect === "equipment.exhaust" && effect.target === "source") result.exhaustSourceIds.push(String(card.id ?? card.catalogId ?? ""));
       else applied = false;
       if (applied) result.matchedEffectIds.push(effectId);

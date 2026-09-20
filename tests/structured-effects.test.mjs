@@ -196,6 +196,40 @@ test("Equipment on-Hit modifiers resolve through the shared hit protocol", () =>
   assert.equal(frozenBurritoAgain.focus, 0);
 });
 
+test("Equipment on-Hit delayed combat effects become lifecycle statuses", () => {
+  const delayedSpeed = structuredEquipmentHitResolution([{ id: "mop", catalogId: "DDB-WPN-CORE-014" }], {
+    attackNumber: 1,
+    attackZone: "Low",
+    combatDamageDealt: 1,
+    firstHitThisTurn: true,
+    attackUsesSourceEquipment: true,
+    usedEffectIdsThisRound: [],
+  });
+  assert.deepEqual(delayedSpeed.delayedStatuses, [{ sourceEffectId: "equipment-wpn-014-low-hit-speed-penalty", effect: "combat.modifySpeed", amount: -1, duration: "nextRound", target: "opponent" }]);
+  assert.deepEqual(delayedSpeed.unsupported, []);
+
+  const delayedDefense = structuredEquipmentHitResolution([{ id: "staff", catalogId: "DDB-WPN-CORE-058" }], {
+    attackNumber: 1,
+    attackZone: "Mid",
+    combatDamageDealt: 1,
+    firstHitThisTurn: true,
+    attackUsesSourceEquipment: true,
+    usedEffectIdsThisRound: [],
+  });
+  assert.deepEqual(delayedDefense.delayedStatuses, [{ sourceEffectId: "equipment-wpn-058-hit-defense-until-next-initiate", effect: "combat.modifyDefense", amount: 1, duration: "nextInitiate", target: "self" }]);
+
+  const tempo = structuredEquipmentHitResolution([{ id: "whip", catalogId: "DDB-WPN-CORE-064" }], {
+    attackNumber: 1,
+    attackZone: "High",
+    combatDamageDealt: 1,
+    firstHitThisTurn: true,
+    attackUsesSourceEquipment: true,
+    usedEffectIdsThisRound: [],
+  });
+  assert.equal(tempo.targetTempoLoss, true);
+  assert.deepEqual(tempo.unsupported, []);
+});
+
 test("Equipment on-Block modifiers resolve through one shared lifecycle", () => {
   const block = (catalogId, context = {}) => structuredEquipmentBlockResolution([{ id: catalogId.toLowerCase(), catalogId }], {
     incomingZone: "Low",
