@@ -281,7 +281,13 @@ export function characterCanEquip(board: CharacterRuntimeBoard, card: CharacterR
   return !(restricted && (card.subtype === "Weapon" || hasTag(card, "Weapon")));
 }
 
-export function characterAllowedAttackZones(board: CharacterRuntimeBoard, card: CharacterRuntimeCard, printedZones: string[]) {
+/**
+ * Derives legal Attack declaration zones from the canonical Character effects.
+ * This is a read-only pre-action projection; the actual declaration is still
+ * published through applyCharacterRuntimeEvent so paid choices and modifiers
+ * share one lifecycle.
+ */
+export function characterAttackDeclarationZones(board: CharacterRuntimeBoard, card: CharacterRuntimeCard, printedZones: string[]) {
   const zones = new Set(printedZones);
   const all = ["High", "Mid", "Low"];
   if (board.nextAttackAnyZone) all.forEach((zone) => zones.add(zone));
@@ -299,25 +305,6 @@ export function characterAllowedAttackZones(board: CharacterRuntimeBoard, card: 
 export function characterPurchasePrice(board: CharacterRuntimeBoard, printedPrice: number) {
   const effect = effectsFor(board.fighterId).find((entry) => entry.resolver === "character.marketDiscountFloor" && isAvailable(board, entry, "purchaseAttempt"));
   return effect && printedPrice >= 5 ? Math.max(4, printedPrice - Math.max(1, Number(effect.amount ?? 1))) : printedPrice;
-}
-
-export function characterAttackModifier(board: CharacterRuntimeBoard, opponent: CharacterRuntimeBoard, card: CharacterRuntimeCard, event: Partial<CharacterRuntimeEvent> = {}) {
-  let power = 0;
-  let damage = 0;
-  const notes: string[] = [];
-  const first = event.firstAttackThisTurn ?? board.attacksThisTurn === 0;
-  for (const effect of effectsFor(board.fighterId)) {
-    if (!isAvailable(board, effect, "attackDeclared")) continue;
-    const resolver = String(effect.resolver ?? "");
-    const amount = Number(effect.amount ?? 1);
-    if (resolver === "character.firstAttackAfterConsumable" && first && (event.usedConsumableThisTurn ?? board.usedConsumableThisRound)) { power += amount; notes.push("Character: first Attack after Consumable +1 Attack Power"); }
-    if (resolver === "character.firstKickDifferentZone" && first && hasTag(card, "Kick") && event.differentZoneFromPreviousAttack) { power += amount; notes.push("Character: different-zone Kick +1 Attack Power"); }
-    if (resolver === "character.firstUnarmedAttack" && first && !event.hasWeaponEquipped) { power += amount; notes.push("Character: first unarmed Attack +1 Attack Power"); }
-    if (resolver === "character.conditionalAttackPower" && conditionalPowerSatisfied(effect, board, event)) { power += amount; notes.push("Character: conditional first Attack +1 Attack Power"); }
-    if (resolver === "character.green.linkedZoneChangePower" && event.changedZone) { power += amount; notes.push("Character: changed-zone Attack +1 Attack Power"); }
-    if (resolver === "character.green.linkedRecycleLowAttack" && hasMark(board, "turn:recycledJunk") && event.zone === "Low") { power += amount; notes.push("Character: recycled Junk powers Low Attack +1"); }
-  }
-  return { power, damage, notes };
 }
 
 export function characterDamageReduction(board: CharacterRuntimeBoard, incomingDamage: number) {

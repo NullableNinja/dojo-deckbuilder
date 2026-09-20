@@ -84,6 +84,20 @@ export type QuickDuelPlaytestCharacterEventResult<Match> = {
   notes: string[];
 };
 
+export type QuickDuelAttackDeclarationFacts = {
+  previousAttackZone?: string | null;
+  usedConsumableThisTurn?: boolean;
+  playedKataEarlierThisTurn?: boolean;
+  differentZoneFromPreviousAttack?: boolean;
+  hasWeaponEquipped?: boolean;
+};
+
+export type QuickDuelPlaytestAttackDeclarationResult<Match> = QuickDuelPlaytestCharacterEventResult<Match> & {
+  zone: string;
+  attackPower: number;
+  damage: number;
+};
+
 export type QuickDuelPlaytestLifecycleEventResult<Match> = QuickDuelPlaytestEventResult<Match> & {
   characterEvent: CharacterRuntimeEvent | null;
   characterChoices: CharacterRuntimeChoice[];
@@ -483,6 +497,61 @@ export function publishQuickDuelPlaytestDamageIncoming<
   }
 
   return character;
+}
+
+/**
+ * Publishes the pre-combat Attack declaration through the same Character event
+ * host used by every other Quick Duel lifecycle. The event starts with zero
+ * combat values and returns canonical additive power/damage facts; this keeps
+ * the host free of fighter-specific modifier dispatch while still allowing a
+ * human choice to pause before Combo, Defense, or card consumption begins.
+ */
+export function publishQuickDuelPlaytestAttackDeclared<
+  Board extends QuickDuelComboMatchBoard & CharacterRuntimeBoard,
+  Match extends QuickDuelPlaytestHostMatch<Board>,
+>(
+  match: Match,
+  actor: QuickDuelPlaytestActor,
+  card: ComboRuntimeCard,
+  zone: string,
+  facts: QuickDuelAttackDeclarationFacts = {},
+): QuickDuelPlaytestAttackDeclarationResult<Match> {
+  const oriented = boardsForActor<Board, Match>(match, actor);
+  const printedZone = String(card.zone ?? "").split(",").map((value) => value.trim()).filter(Boolean)[0] ?? null;
+  const previousAttackZone = facts.previousAttackZone ?? oriented.self.zonesPlayed.at(-1) ?? null;
+  const event: CharacterRuntimeEvent = {
+    type: "attackDeclared",
+    card: card as unknown as CharacterRuntimeEvent["card"],
+    zone,
+    printedZone,
+    selectedZone: zone,
+    previousAttackZone,
+    attackPower: 0,
+    damage: 0,
+    firstAttackThisTurn: oriented.self.attacksThisTurn === 0,
+    usedConsumableThisTurn: facts.usedConsumableThisTurn ?? oriented.self.usedConsumableThisRound,
+    playedKataEarlierThisTurn: facts.playedKataEarlierThisTurn,
+    differentZoneFromPreviousAttack: facts.differentZoneFromPreviousAttack ?? Boolean(previousAttackZone && previousAttackZone !== zone),
+    hasWeaponEquipped: Boolean(facts.hasWeaponEquipped),
+  };
+  let character = publishQuickDuelPlaytestCharacterEvent(match, actor, event);
+
+  if (actor === "ai") {
+    for (let guard = 0; guard < 8 && character.event && character.choices.length > 0; guard += 1) {
+      const choice = character.choices[0];
+      const selection = chooseAiCharacterOption(choice);
+      if (selection === null) break;
+      character = resolveQuickDuelPlaytestCharacterChoice(character.match, actor, character.event, choice, selection);
+    }
+  }
+
+  const resolved = character.event ?? event;
+  return {
+    ...character,
+    zone: String(resolved.selectedZone ?? resolved.zone ?? zone),
+    attackPower: Number(resolved.attackPower ?? 0),
+    damage: Number(resolved.damage ?? 0),
+  };
 }
 
 export function publishQuickDuelPlaytestCharacterEvent<

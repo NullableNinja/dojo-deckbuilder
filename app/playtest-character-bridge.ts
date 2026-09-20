@@ -1,7 +1,6 @@
 import {
   applyCharacterRuntimeEvent,
-  characterAllowedAttackZones,
-  characterAttackModifier,
+  characterAttackDeclarationZones,
   characterCanEquip,
   characterDamageReduction,
   resetCharacterRound,
@@ -24,35 +23,8 @@ export type CharacterHostCard = CharacterRuntimeCard & { name: string; catalogId
  * select structured data inside character-runtime; this bridge contains no
  * Character IDs, names, printed-text parsing, or per-character numeric rules.
  */
-export function characterAttackForHost(
-  board: CharacterHostBoard,
-  opponent: CharacterHostBoard,
-  card: CharacterHostCard,
-  context: {
-    zone?: string;
-    firstAttackThisTurn?: boolean;
-    usedConsumableThisTurn?: boolean;
-    differentZoneFromPreviousAttack?: boolean;
-    playedKataEarlierThisTurn?: boolean;
-    changedZone?: boolean;
-    hasWeaponEquipped?: boolean;
-  } = {},
-) {
-  return characterAttackModifier(board, opponent, card, {
-    type: "attackDeclared",
-    card,
-    zone: context.zone,
-    firstAttackThisTurn: context.firstAttackThisTurn ?? board.attacksThisTurn === 0,
-    usedConsumableThisTurn: context.usedConsumableThisTurn ?? board.usedConsumableThisRound,
-    differentZoneFromPreviousAttack: context.differentZoneFromPreviousAttack,
-    playedKataEarlierThisTurn: context.playedKataEarlierThisTurn,
-    changedZone: context.changedZone,
-    hasWeaponEquipped: Boolean(context.hasWeaponEquipped),
-  });
-}
-
 export function characterAttackZonesForHost(board: CharacterHostBoard, card: CharacterHostCard, printedZones: string[]) {
-  return characterAllowedAttackZones(board, card, printedZones);
+  return characterAttackDeclarationZones(board, card, printedZones);
 }
 
 export function characterCanEquipForHost(board: CharacterHostBoard, card: CharacterHostCard) {
@@ -101,9 +73,9 @@ export function characterChoiceForHost(choice: CharacterRuntimeChoice) {
 }
 
 export function resetCharacterHostTurn<T extends CharacterHostBoard>(board: T) {
-  return resetCharacterTurn(board) as T;
+  return resetCharacterTurn(board) as unknown as T;
 }
 
 export function resetCharacterHostRound<T extends CharacterHostBoard>(board: T) {
-  return resetCharacterRound(board) as T;
+  return resetCharacterRound(board) as unknown as T;
 }
