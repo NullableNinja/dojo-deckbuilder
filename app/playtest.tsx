@@ -771,19 +771,20 @@ function applyOptionalCombatDamageReductionAi(board: Board, damage: number) {
   };
 }
 
-function postBlockCyclePlan(board: Board, zone: string) {
+function postBlockCyclePlan(board: Board, zone: string, defenseCard?: CardEntry | null) {
   for (const id of board.equipment) {
     if (isEquipmentExhausted(board, id)) continue;
     const card = cardFor(id);
     const plan = card ? postBlockEquipmentCycle(card) : null;
-    if (!card || !plan || !beltAtLeast(board, plan.minBelt) || plan.zone.toLocaleLowerCase() !== zone.toLocaleLowerCase()) continue;
+    const defenseTag = plan && "defenseTag" in plan ? String(plan.defenseTag ?? "") : "";
+    if (!card || !plan || !beltAtLeast(board, plan.minBelt) || (plan.zone && plan.zone.toLocaleLowerCase() !== zone.toLocaleLowerCase()) || (defenseTag && !(defenseCard?.tags ?? []).some((tag) => tag.toLocaleLowerCase() === defenseTag.toLocaleLowerCase()))) continue;
     return { card, plan };
   }
   return null;
 }
 
-function autoTriggerAiPostBlockEquipment(board: Board, zone: string) {
-  const available = postBlockCyclePlan(board, zone);
+function autoTriggerAiPostBlockEquipment(board: Board, zone: string, defenseCard?: CardEntry | null) {
+  const available = postBlockCyclePlan(board, zone, defenseCard);
   if (!available) return { board, notes: [] as string[] };
   let next = exhaustEquipment(board, available.card.id);
   next = drawCards(next, available.plan.draw);
@@ -2734,7 +2735,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextPlayer = equipmentBlock.opponent;
       equipmentBlockNotes = equipmentBlock.notes;
     }
-    const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
+    const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone, defenseCard) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
     if (damage >= 3 && beltHasReward(nextPlayer, "impact-focus")) nextPlayer = gainFocus(nextPlayer, 1);
     if (!nextAi.hp) nextPlayer.xp += 2;
@@ -3652,7 +3653,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         winner: null,
       });
     }
-    const postBlockCycle = !hit && defenseCard ? postBlockCyclePlan(nextPlayer, pending.zone) : null;
+    const postBlockCycle = !hit && defenseCard ? postBlockCyclePlan(nextPlayer, pending.zone, defenseCard) : null;
     if (postBlockCycle) {
       const reversalEligible = !nextPlayer.reversalUsedRound;
       const paused = write(current, `${postBlockCycle.card.name} may exhaust after this ${pending.zone} Block to draw ${postBlockCycle.plan.draw}, then discard ${postBlockCycle.plan.discard}.`, {
@@ -3777,7 +3778,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       if (!hit) nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onBlock");
       nextAi = applyCardEffects(nextAi, defenseCard, "ai", "afterResolve");
     }
-    const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone) : { board: nextAi, notes: [] as string[] };
+    const aiPostBlock = !hit && defenseCard ? autoTriggerAiPostBlockEquipment(nextAi, zone, defenseCard) : { board: nextAi, notes: [] as string[] };
     nextAi = aiPostBlock.board;
     let hostedComboMatch: Match = { ...current, player: nextPlayer, ai: nextAi };
     if (hit) hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "onHit", quickDuelHostOperations, { isReversal: true, currentAttackHit: true }).match;

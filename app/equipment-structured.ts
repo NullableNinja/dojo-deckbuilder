@@ -389,6 +389,21 @@ export function structuredOptionalDamageReduction(card: EquipmentCardLike) {
 export function structuredPostBlockCycle(card: EquipmentCardLike) {
   const effects = structuredEquipmentEffects(card);
   if (!effects) return undefined;
+  const choice = effects.find((effect) => {
+    if (effect.effect !== "core.choice" || effect.trigger !== "onBlock") return false;
+    const kinds = new Set((effect.conditions ?? []).map((condition) => String(condition.kind ?? "")));
+    return kinds.has("draw") && kinds.has("discard") && kinds.has("defenseHasTag");
+  });
+  if (choice) {
+    const zones = equipmentConditionValue(choice, "incomingZones");
+    return {
+      minBelt: "White",
+      zone: Array.isArray(zones) ? String(zones[0] ?? "") : "",
+      defenseTag: String(equipmentConditionValue(choice, "defenseHasTag") ?? ""),
+      draw: Number(equipmentConditionValue(choice, "draw") ?? 0),
+      discard: Number(equipmentConditionValue(choice, "discard") ?? 0),
+    };
+  }
   const draw = effectById(effects, "equipment-deq-020-blue-high-block-draw");
   const discard = effectById(effects, "equipment-deq-020-blue-high-block-discard");
   if (!draw || !discard) return null;

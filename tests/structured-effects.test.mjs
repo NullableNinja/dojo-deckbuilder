@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentBlockResolution, structuredEquipmentHitResolution, structuredEquipmentPurchaseResolution } from "../app/equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentBlockResolution, structuredEquipmentHitResolution, structuredEquipmentPurchaseResolution, structuredPostBlockCycle } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
@@ -220,6 +220,11 @@ test("Equipment on-Block modifiers resolve through one shared lifecycle", () => 
   const sectional = block("DDB-WPN-CORE-055");
   assert.equal(sectional.nextAttackPower, 1);
   assert.deepEqual(sectional.unsupported, ["equipment-wpn-055-dodge-block-cycle"]);
+});
+
+test("structured draw-discard Block choices use the shared post-Block cycle protocol", () => {
+  const sectional = structuredPostBlockCycle({ id: "staff", catalogId: "DDB-WPN-CORE-055" });
+  assert.deepEqual(sectional, { minBelt: "White", zone: "", defenseTag: "Dodge", draw: 1, discard: 1 });
 });
 
 test("Equipment on-Equip plans expose canonical follow-ups", () => {
