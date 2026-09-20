@@ -5,12 +5,48 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredDefenseEquipmentBonus, structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
+import { structuredDefenseEquipmentBonus, structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
+import { structuredLocationDefenseForHost, structuredLocationKataFocusForHost } from "../app/location-playtest-bridge.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
 const registry = JSON.parse(await readFile(new URL("../app/data/card-effects.json", import.meta.url), "utf8"));
 const cardsByCatalogId = new Map(cards.map((card) => [card.catalogId, card]));
+
+const card = (catalogId) => {
+  const found = cardsByCatalogId.get(catalogId);
+  assert.ok(found, `missing generated canonical card ${catalogId}`);
+  return found;
+};
+
+test("Equipment Flow and Location modifiers resolve from canonical contracts", () => {
+  const escrima = structuredEquipmentCurrentAttackFlow([card("DDB-WPN-CORE-019")], {
+    attackNumber: 2,
+    hasTwoPairedWeapons: true,
+    currentAttackIsNormal: true,
+  });
+  assert.equal(escrima.grant, true);
+  assert.deepEqual(escrima.unsupported, []);
+  assert.equal(structuredEquipmentCurrentAttackFlow([card("DDB-WPN-CORE-019")], {
+    attackNumber: 1,
+    hasTwoPairedWeapons: true,
+    currentAttackIsNormal: true,
+  }).grant, false);
+
+  const bus = structuredLocationDefenseForHost(card("DDB-LOC-CORE-007"), { zone: "High", defenseTags: ["Dodge"] });
+  assert.equal(bus.guard, -1);
+  const library = structuredLocationKataFocusForHost(card("DDB-LOC-CORE-039"), { firstKataThisTurn: true });
+  assert.equal(library.focus, 1);
+});
+
+test("Quick Duel host does not dispatch these mechanics by card identity or printed Flow prose", async () => {
+  const source = await readFile(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /Escrima Sticks/);
+  assert.doesNotMatch(source, /Morning-Shift Meditation/);
+  assert.doesNotMatch(source, /this Attack gains Flow/i);
+  assert.doesNotMatch(source, /location\.name\s*===/);
+  assert.doesNotMatch(source, /includes\(location\.name\)/);
+});
 
 test("every canonical structured-effect entry resolves as structured data, never card prose", () => {
   const failures = [];

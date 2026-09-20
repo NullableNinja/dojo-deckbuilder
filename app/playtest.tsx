@@ -26,7 +26,7 @@ import { isCoreKataCard, kataEquipFromHandPlanForHost, kataRuntimeCommandsForHos
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
@@ -36,6 +36,7 @@ import { normalizePendingDamageChoice } from "./playtest-state-recovery";
 import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";
 import { QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, spendQuickDuelTrainingStripeForHealing } from "./quick-duel-training-stripes.ts";
 import { markQuickDuelBeltCheckAction, quickDuelBeltCheckActionAvailability } from "./quick-duel-belt-check-actions.ts";
+import { structuredLocationDefenseForHost, structuredLocationKataFocusForHost } from "./location-playtest-bridge.ts";
 
 /**
  * QUICK DUEL REACT SHELL
@@ -513,11 +514,6 @@ function refreshMarketRow(market: string[], marketDeck: string[], marketDiscard:
 
 type CombatModifier = { value: number; notes: string[] };
 type AttackModifier = { power: number; damage: number; notes: string[] };
-// -----------------------------------------------------------------------------
-// LEGACY LOCATION COMPATIBILITY — MIGRATION DEBT
-// Any location-name/prose checks below are compatibility fallbacks, not the desired
-// architecture. New Location behavior belongs in canonical structured effects.
-// -----------------------------------------------------------------------------
 
 function locationAttackModifier(location: CardEntry | undefined, card: CardEntry, board: Board, zone: string): AttackModifier {
   if (!location) return { power: 0, damage: 0, notes: [] };
@@ -530,39 +526,24 @@ function locationAttackModifier(location: CardEntry | undefined, card: CardEntry
     hasWeapon: equipped.some(isWeapon),
     equipmentTags: equipped.flatMap((item) => item.tags),
   });
-  if (parsed.matched) return { power: parsed.power, damage: parsed.damage, notes: parsed.notes };
-
-  // Legacy fallback for unusual Quick Duel stages whose printed sentence has not
-  // yet been generalized. Keep this list small and delete entries as parsers land.
-  let power = 0;
-  let damage = 0;
-  const notes: string[] = [];
-  const applyPower = (amount: number, reason: string) => { power += amount; notes.push(`${reason} ${amount > 0 ? "+" : ""}${amount} Attack Power`); };
-  if (location.name === "River Dock" && hasTag(card, "Push")) applyPower(2, "dock edge");
-  if (location.name === "Yoga Studio") applyPower(-1, "indoor voice");
-  return { power, damage, notes };
+  return { power: parsed.power ?? 0, damage: parsed.damage ?? 0, notes: parsed.notes ?? [] };
 }
 
 function locationDefenseModifier(location: CardEntry | undefined, card: CardEntry | null | undefined, board: Board, zone: string): CombatModifier {
   if (!location || !card) return { value: 0, notes: [] };
-  const firstDefense = !board.defendedThisRound;
-  let value = 0;
-  const notes: string[] = [];
-  const apply = (amount: number, reason: string) => { value += amount; notes.push(`${reason} ${amount > 0 ? "+" : ""}${amount}`); };
-  if (location.name === "City Bus in Motion" && (hasTag(card, "Dodge") || hasTag(card, "Movement"))) apply(-1, "moving bus");
-  if (location.name === "Community Ice Rink" && hasTag(card, "Dodge")) apply(1, "ice-rink Dodge");
-  if (location.name === "River Dock" && zone === "Low") apply(1, "dockside Low Guard");
-  if (location.name === "School Gymnasium" && firstDefense) apply(1, "first Defense");
-  if (location.name === "Strip-Mall McDojo") apply(-1, "discount instruction");
-  if (location.name === "Traditional Dojo" && firstDefense) apply(1, "first Defense");
-  return { value, notes };
+  const parsed = structuredLocationDefenseForHost(location, {
+    zone,
+    defenseTags: card.tags,
+    firstDefenseThisRound: !board.defendedThisRound,
+  });
+  return { value: parsed.guard, notes: parsed.notes };
 }
 
 function locationFocusModifier(location: CardEntry | undefined, card: CardEntry, board: Board): CombatModifier {
   const kataAlreadyPlayed = board.cardsThisTurn.some((id) => { const played = cardFor(id); return played ? isKata(played) : false; });
   if (!location || !isKata(card) || kataAlreadyPlayed) return { value: 0, notes: [] };
-  if (["Public Library", "Strip-Mall McDojo", "Traditional Dojo", "Yoga Studio"].includes(location.name)) return { value: 1, notes: [`${location.name} first-Kata Focus +1`] };
-  return { value: 0, notes: [] };
+  const parsed = structuredLocationKataFocusForHost(location, { firstKataThisTurn: true });
+  return { value: parsed.focus, notes: parsed.notes };
 }
 
 function printedAttackRuleModifier(attacker: Board, defender: Board, card: CardEntry, zone: string, isReversal = false): AttackModifier {
@@ -2084,14 +2065,14 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
 function attackHasFlow(board: Board, card: CardEntry, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {
   if (board.nextAttackHasFlow || stage3cAttackFlow(board, card, zone, isReversal)) return true;
   const hasWeaponEquipped = board.equipment.some((id) => { const item = cardFor(id); return item ? isWeapon(item) : false; });
+  const equipped = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
   const structuredFlow = structuredCurrentAttackFlow(card, { hasWeaponEquipped });
-  if (structuredFlow.handled) return structuredFlow.hasFlow;
-  if (/this Attack gains Flow/i.test(card.rulesText ?? "")) {
-    return !/Weapon equipped/i.test(card.rulesText ?? "") || hasWeaponEquipped;
-  }
-  const pairedWeapons = board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item && isWeapon(item) && hasTag(item, "Paired")));
-  if (board.attacksThisTurn === 1 && pairedWeapons.length >= 2 && board.equipment.some((id) => cardFor(id)?.name === "Escrima Sticks")) return true;
-  return false;
+  const equipmentFlow = structuredEquipmentCurrentAttackFlow(equipped, {
+    attackNumber: board.attacksThisTurn + 1,
+    hasTwoPairedWeapons: equipped.filter((item) => isWeapon(item) && hasTag(item, "Paired")).length >= 2,
+    currentAttackIsNormal: !isReversal,
+  });
+  return structuredFlow.hasFlow || equipmentFlow.grant;
 }
 
 function legalDefenseIds(board: Board, zone: string) {
@@ -3233,15 +3214,13 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current?.pendingDiscard || !current.player.hand.includes(id)) return current;
     const discarded = cardFor(id);
     const source = cardFor(current.pendingDiscard.sourceCardId);
-    const gainsFocus = source?.name === "Morning-Shift Meditation" && cardFocus(discarded) === 0;
     const remaining = current.pendingDiscard.remaining - 1;
     const player = {
       ...current.player,
       hand: removeOne(current.player.hand, id),
       discard: [...current.player.discard, id],
-      focus: current.player.focus + (gainsFocus ? 1 : 0),
     };
-    return write(current, `${discarded?.name ?? "The selected card"} discarded for ${source?.name ?? "the pending effect"}.${gainsFocus ? " Its Focus Value is 0, so you gain 1 Focus." : ""}`, { player, pendingDiscard: remaining > 0 && player.hand.length ? { ...current.pendingDiscard, remaining } : null });
+    return write(current, `${discarded?.name ?? "The selected card"} discarded for ${source?.name ?? "the pending effect"}.`, { player, pendingDiscard: remaining > 0 && player.hand.length ? { ...current.pendingDiscard, remaining } : null });
   });
 
   const resolvePendingChoice = (cardId: string, source: "hand" | "discard" | "deck" | "equipment" = "hand") => setMatch((current) => {

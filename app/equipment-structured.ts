@@ -340,6 +340,54 @@ export function structuredEquipmentCanChooseAnyZone(cards: EquipmentCardLike[], 
   return { handled, grant };
 }
 
+export type EquipmentCurrentAttackFlowContext = {
+  attackNumber: number;
+  hasTwoPairedWeapons: boolean;
+  currentAttackIsNormal?: boolean;
+};
+
+export type EquipmentCurrentAttackFlowResolution = {
+  handled: boolean;
+  grant: boolean;
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+/** Resolves structured Equipment effects that grant Flow on the declared Attack. */
+export function structuredEquipmentCurrentAttackFlow(
+  cards: EquipmentCardLike[],
+  context: EquipmentCurrentAttackFlowContext,
+): EquipmentCurrentAttackFlowResolution {
+  const result: EquipmentCurrentAttackFlowResolution = {
+    handled: false,
+    grant: false,
+    matchedEffectIds: [],
+    unsupported: [],
+  };
+  const supportedConditions = new Set(["attackNumber", "hasTwoPairedWeapons", "currentAttackIsNormal"]);
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    for (const effect of effects.filter((candidate) => candidate.effect === "combat.grantFlow" && candidate.trigger === "onAttackDeclared")) {
+      result.handled = true;
+      const effectId = String(effect.id ?? "unknown-equipment-current-attack-flow");
+      const unsupported = (effect.conditions ?? []).some((condition) => !supportedConditions.has(String(condition.kind ?? "")));
+      if (unsupported) {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      if (!equipmentConditionsMatch(effect, {
+        attackNumber: context.attackNumber,
+        hasTwoPairedWeapons: context.hasTwoPairedWeapons,
+        currentAttackIsNormal: context.currentAttackIsNormal ?? true,
+      })) continue;
+      result.grant = true;
+      result.matchedEffectIds.push(effectId);
+    }
+  }
+  return result;
+}
+
 const effectById = (effects: EquipmentRegistryEffect[], id: string) => effects.find((effect) => effect.id === id);
 const amountOf = (effects: EquipmentRegistryEffect[], id: string) => Number(effectById(effects, id)?.amount ?? 0);
 

@@ -90,6 +90,52 @@ export function structuredLocationAttackForHost(
   };
 }
 
+export type LegacyDefenseHostContext = {
+  zone?: string;
+  defenseTags?: readonly string[];
+  firstDefenseThisRound?: boolean;
+};
+
+export function structuredLocationDefenseForHost(
+  card: LocationCardLike,
+  context: LegacyDefenseHostContext,
+) {
+  const resolution = resolveLocationHostEvent(card, {}, "defense", {
+    defenseZone: context.zone,
+    defenseTagAny: [...(context.defenseTags ?? [])],
+    firstDefenseThisRound: Boolean(context.firstDefenseThisRound),
+  });
+  return {
+    matched: isStructuredLocation(card),
+    guard: resolution.delta.guard,
+    notes: resolution.delta.commands.map((command) => {
+      const amount = command.amount ? ` ${command.amount >= 0 ? "+" : ""}${command.amount}` : "";
+      return `${command.effectId}${amount}`;
+    }),
+  };
+}
+
+export type LegacyKataHostContext = {
+  firstKataThisTurn?: boolean;
+};
+
+export function structuredLocationKataFocusForHost(
+  card: LocationCardLike,
+  context: LegacyKataHostContext,
+) {
+  const resolution = resolveLocationHostEvent(card, {}, "kataPlay", {
+    firstKataThisTurn: Boolean(context.firstKataThisTurn),
+  });
+  return {
+    matched: isStructuredLocation(card),
+    focus: resolution.delta.focus,
+    notes: resolution.delta.commands.map((command) => {
+      const amount = command.amount ? ` ${command.amount >= 0 ? "+" : ""}${command.amount}` : "";
+      return `${command.effectId}${amount}`;
+    }),
+  };
+}
+
 export function resetLocationHostTurn<T extends LocationTrackedState>(state: T) {
   return resetLocationTurn(state);
 }
