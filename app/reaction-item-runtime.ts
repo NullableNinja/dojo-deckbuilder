@@ -32,8 +32,11 @@ export type ReactionItemRuntimeCard = RuntimeCardLike & {
 
 export type ReactionItemBoard = {
   hand: string[];
+  deck?: string[];
+  discard?: string[];
   destroyed?: string[];
   stage3cStatuses?: RuntimeStatus[];
+  stage3cRestrictions?: string[];
 };
 
 export type ReactionItemStrike = {
@@ -55,6 +58,13 @@ const REACTION_RESOLVERS = new Set([
   "reaction.preventIncomingDamage",
   "reaction.defenseAgainstIncomingAttack",
   "reaction.secondNormalAttackPenaltyAndInitiateDraw",
+  "reaction.preserveMarketDiscount",
+  "reaction.outOfTurnConsumableShield",
+  "reaction.cancelComboPayoff",
+  "reaction.preventForcedDiscard",
+  "reaction.forceAttackerDrawDiscardBeforeDefense",
+  "reaction.defenseBeltExamCredit",
+  "reaction.reversalOrDefenseFollowup",
 ]);
 
 export function isReactionItemResolverSupported(resolver?: string) {
@@ -74,27 +84,27 @@ function conditionValues(context: ReactionItemRuntimeContext) {
   };
 }
 
-function commandForReactionEffect(effect: StructuredRuntimeEffect): RuntimeCommand | null {
-  if (!isReactionItemResolverSupported(effect.resolver)) return null;
+function commandForReactionEffect(effect: StructuredRuntimeEffect): RuntimeCommand[] {
+  if (!isReactionItemResolverSupported(effect.resolver)) return [];
   const command = runtimeCommand(effect);
   switch (effect.resolver) {
     case "reaction.reduceDeclaredAttackPower":
-      return {
+      return [{
         ...command,
         effect: "combat.modifyAttackPower",
         qualifier: { appliesTo: "declaredIncomingAttack" },
-      };
+      }];
     case "reaction.secondNormalAttackPenaltyAndInitiateDraw":
-      return {
+      return [{
         ...command,
         effect: "combat.modifyAttackPower",
         qualifier: {
           appliesTo: "declaredIncomingAttack",
           drawAtNextInitiateIfIncomingHit: true,
         },
-      };
+      }];
     case "reaction.preventIncomingDamage":
-      return {
+      return [{
         ...command,
         effect: "combat.preventDamage",
         duration: "nextDamage",
@@ -102,16 +112,67 @@ function commandForReactionEffect(effect: StructuredRuntimeEffect): RuntimeComma
           source: "Attack",
           ...(command.amount === 0 ? { setDamageToZero: true } : {}),
         },
-      };
+      }];
     case "reaction.defenseAgainstIncomingAttack":
-      return {
+      return [{
         ...command,
         effect: "combat.modifyDefense",
         duration: "nextIncomingAttack",
         qualifier: { appliesTo: "declaredIncomingAttack" },
-      };
+      }];
+    case "reaction.preserveMarketDiscount":
+      return [{
+        ...command,
+        effect: "core.custom",
+        duration: "nextPurchase",
+        qualifier: { reactionEvent: "preserveMarketDiscount" },
+      }];
+    case "reaction.outOfTurnConsumableShield":
+      return [
+        { ...command, effect: "core.gainFocus", amount: 1, duration: "immediate" },
+        {
+          ...command,
+          sourceEffectId: `${command.sourceEffectId}:damage-prevention`,
+          effect: "combat.preventDamage",
+          amount: 1,
+          duration: "nextDamage",
+          qualifier: { source: "Attack", reactionEvent: "outOfTurnConsumableShield" },
+        },
+      ];
+    case "reaction.cancelComboPayoff":
+      return [{
+        ...command,
+        effect: "core.custom",
+        qualifier: { reactionEvent: "cancelComboPayoff" },
+      }];
+    case "reaction.preventForcedDiscard":
+      return [{
+        ...command,
+        effect: "core.custom",
+        duration: "endOfRound",
+        qualifier: { reactionEvent: "preventForcedDiscard" },
+      }];
+    case "reaction.forceAttackerDrawDiscardBeforeDefense":
+      return [{
+        ...command,
+        effect: "core.custom",
+        qualifier: { reactionEvent: "forceAttackerDrawDiscardBeforeDefense", draw: 1, discard: 1 },
+      }];
+    case "reaction.defenseBeltExamCredit":
+      return [{
+        ...command,
+        effect: "core.custom",
+        qualifier: { reactionEvent: "defenseBeltExamCredit" },
+      }];
+    case "reaction.reversalOrDefenseFollowup":
+      return [{
+        ...command,
+        effect: "core.custom",
+        duration: "nextAttack",
+        qualifier: { reactionEvent: "reversalOrDefenseFollowup" },
+      }];
     default:
-      return null;
+      return [];
   }
 }
 
@@ -124,8 +185,7 @@ export function reactionItemRuntimeCommands(
   const values = conditionValues(context);
   return structuredRuntimeEffects(card)
     .filter((effect) => effect.trigger === trigger && conditionsMatch(effect, values))
-    .map(commandForReactionEffect)
-    .filter((command): command is RuntimeCommand => Boolean(command));
+    .flatMap(commandForReactionEffect);
 }
 
 export function canPlayCoreReactionItem(
@@ -146,7 +206,7 @@ function statusFromCommand(command: RuntimeCommand): RuntimeStatus {
   return {
     sourceEffectId: command.sourceEffectId,
     effect: command.effect,
-    target: "self",
+    target: command.target ?? "self",
     amount: command.amount,
     duration: command.duration,
     resolver: command.resolver,
@@ -163,6 +223,92 @@ function addStatus<Board extends ReactionItemBoard>(board: Board, status: Runtim
       status,
     ],
   };
+}
+
+function addRestriction<Board extends ReactionItemBoard>(board: Board, restriction: string): Board {
+  return {
+    ...board,
+    stage3cRestrictions: [...new Set([...(board.stage3cRestrictions ?? []), restriction])],
+  };
+}
+
+function drawOne<Board extends ReactionItemBoard>(board: Board): Board {
+  if (!board.deck?.length) return board;
+  const cardId = board.deck[board.deck.length - 1];
+  return { ...board, deck: board.deck.slice(0, -1), hand: [...board.hand, cardId] };
+}
+
+function discardOne<Board extends ReactionItemBoard>(board: Board): Board {
+  if (!board.hand.length) return board;
+  const cardId = board.hand[0];
+  return { ...board, hand: board.hand.slice(1), discard: [...(board.discard ?? []), cardId] };
+}
+
+function applyEventCommand<Board extends ReactionItemBoard>(
+  self: Board,
+  opponent: Board,
+  command: RuntimeCommand,
+) {
+  let nextSelf = self;
+  let nextOpponent = opponent;
+  const targetIsOpponent = command.target === "opponent";
+  if (command.effect === "core.gainFocus") {
+    nextSelf = { ...nextSelf, focus: (Number((nextSelf as Board & { focus?: number }).focus ?? 0) + command.amount) };
+  } else if (
+    command.effect === "combat.preventDamage" ||
+    command.duration !== "immediate" ||
+    (command.effect === "core.custom" &&
+      command.qualifier?.reactionEvent !== "forceAttackerDrawDiscardBeforeDefense" &&
+      command.qualifier?.reactionEvent !== "cancelComboPayoff")
+  ) {
+    const status = statusFromCommand(command);
+    if (targetIsOpponent) nextOpponent = addStatus(nextOpponent, status);
+    else nextSelf = addStatus(nextSelf, status);
+  }
+  if (command.qualifier?.reactionEvent === "forceAttackerDrawDiscardBeforeDefense") {
+    nextOpponent = drawOne(nextOpponent);
+    nextOpponent = discardOne(nextOpponent);
+  }
+  if (command.qualifier?.reactionEvent === "cancelComboPayoff") {
+    nextOpponent = addRestriction(nextOpponent, "reaction.cancelComboPayoff");
+  }
+  return { self: nextSelf, opponent: nextOpponent };
+}
+
+export type ReactionItemEventApplication<Board extends ReactionItemBoard> = {
+  self: Board;
+  opponent: Board;
+  commands: RuntimeCommand[];
+  notes: string[];
+  applied: boolean;
+};
+
+/** Applies a structured Reaction Item at any event window, not only an incoming Attack. */
+export function resolveQuickDuelReactionItemEvent<Board extends ReactionItemBoard>(args: {
+  card: ReactionItemRuntimeCard;
+  self: Board;
+  opponent: Board;
+  trigger: RuntimeTrigger | string;
+  context: ReactionItemRuntimeContext;
+}) : ReactionItemEventApplication<Board> {
+  const commands = reactionItemRuntimeCommands(args.card, args.trigger, args.context);
+  if (!commands.length || !args.self.hand.includes(args.card.id)) {
+    return { self: args.self, opponent: args.opponent, commands, notes: [], applied: false };
+  }
+  let self = args.self;
+  let opponent = args.opponent;
+  const notes: string[] = [];
+  for (const command of commands) {
+    const applied = applyEventCommand(self, opponent, command);
+    self = applied.self;
+    opponent = applied.opponent;
+    if (command.qualifier?.reactionEvent === "forceAttackerDrawDiscardBeforeDefense") notes.push("attacker draws 1, then discards 1 before Defense");
+    if (command.qualifier?.reactionEvent === "cancelComboPayoff") notes.push("opponent's Combo Payoff is cancelled");
+    if (command.qualifier?.reactionEvent === "defenseBeltExamCredit") notes.push("this Reaction may satisfy one legal Belt Exam Defense requirement");
+    if (command.qualifier?.reactionEvent === "reversalOrDefenseFollowup") notes.push("Reversal follow-up armed");
+  }
+  self = { ...self, hand: removeOne(self.hand, args.card.id), destroyed: [...(self.destroyed ?? []), args.card.id] };
+  return { self, opponent, commands, notes, applied: true };
 }
 
 /**
@@ -185,6 +331,7 @@ export function resolveQuickDuelReactionItem<Board extends ReactionItemBoard>(ar
 
   let strike = { ...args.strike };
   let self = args.self;
+  let opponent = args.opponent;
   const notes: string[] = [];
   for (const command of commands) {
     if (command.effect === "combat.modifyAttackPower" && command.qualifier?.appliesTo === "declaredIncomingAttack") {
@@ -206,6 +353,13 @@ export function resolveQuickDuelReactionItem<Board extends ReactionItemBoard>(ar
       }
       continue;
     }
+    if (command.qualifier?.reactionEvent === "forceAttackerDrawDiscardBeforeDefense") {
+      const applied = applyEventCommand(self, opponent, command);
+      self = applied.self;
+      opponent = applied.opponent;
+      notes.push("attacker draws 1, then discards 1 before Defense");
+      continue;
+    }
     if (command.effect === "combat.modifyDefense" || command.effect === "combat.preventDamage") {
       const status = statusFromCommand(command);
       self = addStatus(self, status);
@@ -219,7 +373,7 @@ export function resolveQuickDuelReactionItem<Board extends ReactionItemBoard>(ar
     hand: removeOne(self.hand, args.card.id),
     destroyed: [...(self.destroyed ?? []), args.card.id],
   };
-  return { self, opponent: args.opponent, strike, commands, notes, applied: true };
+  return { self, opponent, strike, commands, notes, applied: true };
 }
 
 /** Resolves conditional Reaction Item watchers after the declared Attack ends. */
@@ -238,20 +392,22 @@ export function resolveReactionItemIncomingAttackOutcome<Board extends ReactionI
 }
 
 /** Identity-free defensive policy shared by the computer's reaction window. */
-export function aiReactionItemScore(card: ReactionItemRuntimeCard, context: ReactionItemRuntimeContext = {}) {
-  const commands = reactionItemRuntimeCommands(card, "onAttackDeclared", context);
+export function aiReactionItemScore(card: ReactionItemRuntimeCard, context: ReactionItemRuntimeContext = {}, trigger: RuntimeTrigger | string = "onAttackDeclared") {
+  const commands = reactionItemRuntimeCommands(card, trigger, context);
   if (!commands.length) return Number.NEGATIVE_INFINITY;
   return commands.reduce((score, command) => {
     if (command.effect === "combat.modifyAttackPower") return score + Math.max(0, -command.amount) * 8;
     if (command.effect === "combat.modifyDefense") return score + Math.max(0, command.amount) * 7;
     if (command.effect === "combat.preventDamage") return score + (command.qualifier?.setDamageToZero ? 60 : Math.max(0, command.amount) * 10);
+    if (command.qualifier?.reactionEvent === "forceAttackerDrawDiscardBeforeDefense") return score + 12;
+    if (command.qualifier?.reactionEvent === "defenseBeltExamCredit") return score + 8;
     return score;
   }, 0);
 }
 
-export function chooseAiReactionItem(cards: ReactionItemRuntimeCard[], context: ReactionItemRuntimeContext = {}) {
+export function chooseAiReactionItem(cards: ReactionItemRuntimeCard[], context: ReactionItemRuntimeContext = {}, trigger: RuntimeTrigger | string = "onAttackDeclared") {
   return [...cards]
-    .map((card) => ({ card, score: aiReactionItemScore(card, context) }))
+    .map((card) => ({ card, score: aiReactionItemScore(card, context, trigger) }))
     .filter((entry) => Number.isFinite(entry.score) && entry.score > 0)
     .sort((left, right) => right.score - left.score || String(left.card.catalogId ?? left.card.id).localeCompare(String(right.card.catalogId ?? right.card.id)))[0]?.card ?? null;
 }

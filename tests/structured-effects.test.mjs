@@ -83,16 +83,5 @@ test("effect coverage recognizes all completed Combo and Reaction Item resolver 
     .filter((card) => card.catalogId?.includes("-CMB-") || card.catalogId?.includes("-RIT-"))
     .map((card) => ({ card, plan: effectPlanForCard(card, registry) }));
   assert.equal(plans.length, 67);
-  assert.deepEqual(
-    plans.filter(({ plan }) => plan.unsupported.length).map(({ card }) => card.catalogId),
-    [
-      "DDB-RIT-CORE-004",
-      "DDB-RIT-CORE-005",
-      "DDB-RIT-CORE-006",
-      "DDB-RIT-CORE-007",
-      "DDB-RIT-CORE-008",
-      "DDB-RIT-CORE-009",
-      "DDB-RIT-CORE-010",
-    ],
-  );
+  assert.deepEqual(plans.filter(({ plan }) => plan.unsupported.length).map(({ card }) => card.catalogId), []);
 });

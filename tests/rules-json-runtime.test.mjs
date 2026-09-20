@@ -7,7 +7,7 @@ import {
   publishQuickDuelPlaytestLifecycleEvent,
   resolveQuickDuelPlaytestCharacterChoice,
 } from "../app/quick-duel-playtest-host.ts";
-import { chooseAiReactionItem, resolveQuickDuelReactionItem, resolveReactionItemIncomingAttackOutcome } from "../app/reaction-item-runtime.ts";
+import { chooseAiReactionItem, resolveQuickDuelReactionItem, resolveQuickDuelReactionItemEvent, resolveReactionItemIncomingAttackOutcome } from "../app/reaction-item-runtime.ts";
 import { resolveNextDamagePreventionStatuses } from "../app/structured-damage-prevention.ts";
 
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, import.meta.url), "utf8"));
@@ -185,6 +185,73 @@ test("canonical Reaction Items execute through the Quick Duel declaration host f
   const prevented = resolveNextDamagePreventionStatuses(aiXray.self.stage3cStatuses, 9, "Attack");
   assert.equal(prevented.damage, 0);
   assert.ok(aiXray.self.destroyed.includes(xray.id));
+});
+
+test("the remaining canonical Reaction Item windows execute through the generic event host", () => {
+  const reactionCard = (resolver) => {
+    const catalogId = Object.entries(reactionEffects)
+      .find(([, entry]) => entry.effects?.some((effect) => effect.resolver === resolver))?.[0];
+    assert.ok(catalogId, `canonical Reaction Item registry must expose ${resolver}`);
+    const card = byCatalogId.get(catalogId);
+    assert.ok(card, `canonical catalog must expose ${catalogId}`);
+    return card;
+  };
+  const run = (resolver, trigger, context, overrides = {}) => {
+    const card = reactionCard(resolver);
+    return resolveQuickDuelReactionItemEvent({
+      card,
+      self: board({ hand: [card.id], ...overrides.self }),
+      opponent: board({ fighterId: "ai-fighter", ...overrides.opponent }),
+      trigger,
+      context,
+    });
+  };
+
+  const preserved = run("reaction.preserveMarketDiscount", "passive", {});
+  assert.equal(preserved.applied, true);
+  assert.equal(preserved.self.stage3cStatuses[0].qualifier.reactionEvent, "preserveMarketDiscount");
+
+  const noodle = run("reaction.outOfTurnConsumableShield", "onPlay", { defenseOutsideTurn: true });
+  assert.equal(noodle.self.focus, 1);
+  assert.equal(noodle.self.stage3cStatuses[0].effect, "combat.preventDamage");
+  assert.equal(noodle.self.stage3cStatuses[0].amount, 1);
+
+  const cancelled = run("reaction.cancelComboPayoff", "passive", {});
+  assert.ok(cancelled.opponent.stage3cRestrictions.includes("reaction.cancelComboPayoff"));
+  assert.equal(cancelled.opponent.stage3cStatuses?.length ?? 0, 0);
+
+  const discardShield = run("reaction.preventForcedDiscard", "passive", { forcedDiscardEvent: true });
+  assert.equal(discardShield.self.stage3cStatuses[0].qualifier.reactionEvent, "preventForcedDiscard");
+
+  const pocketSand = run("reaction.forceAttackerDrawDiscardBeforeDefense", "onAttackDeclared", {
+    incomingAttackTargetsSelf: true,
+    incomingZones: ["High"],
+  }, { opponent: { deck: ["drawn"], hand: ["discarded"] } });
+  assert.deepEqual(pocketSand.opponent.deck, []);
+  assert.deepEqual(pocketSand.opponent.hand, ["drawn"]);
+  assert.deepEqual(pocketSand.opponent.discard, ["discarded"]);
+  assert.equal(pocketSand.opponent.stage3cStatuses?.length ?? 0, 0);
+  const pocketCard = reactionCard("reaction.forceAttackerDrawDiscardBeforeDefense");
+  assert.equal(chooseAiReactionItem([pocketCard], { incomingAttackTargetsSelf: true, incomingZones: ["High"] }).id, pocketCard.id);
+  const liveAttackWindow = resolveQuickDuelReactionItem({
+    card: pocketCard,
+    self: board({ hand: [pocketCard.id] }),
+    opponent: board({ fighterId: "ai-fighter", deck: ["drawn"], hand: ["discarded"] }),
+    strike: { attackPower: 8, zone: "High" },
+    trigger: "onAttackDeclared",
+    context: { incomingAttackTargetsSelf: true, incomingZones: ["High"] },
+  });
+  assert.deepEqual(liveAttackWindow.opponent.discard, ["discarded"]);
+  assert.ok(liveAttackWindow.self.destroyed.includes(pocketCard.id));
+
+  const examCredit = run("reaction.defenseBeltExamCredit", "onDefenseDeclared", {});
+  assert.equal(examCredit.self.stage3cStatuses[0].qualifier.reactionEvent, "defenseBeltExamCredit");
+  const examCard = reactionCard("reaction.defenseBeltExamCredit");
+  assert.equal(chooseAiReactionItem([examCard], {}, "onDefenseDeclared").id, examCard.id);
+
+  const tattoo = run("reaction.reversalOrDefenseFollowup", "onBlock", { sameOpponentAsBlockedAttack: true });
+  assert.equal(tattoo.self.stage3cStatuses[0].duration, "nextAttack");
+  assert.equal(tattoo.self.stage3cStatuses[0].qualifier.reactionEvent, "reversalOrDefenseFollowup");
 });
 
 test("structured lifecycle effects mutate the acting board only", () => {
