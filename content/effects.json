@@ -49,6 +49,7 @@
     "lt": "actual is less than expected",
     "lte": "actual is less than or equal to expected",
     "includes": "actual collection/string includes expected",
+    "includesAny": "actual collection includes at least one member of expected",
     "notIncludes": "actual collection/string does not include expected"
   },
   "effects": {
