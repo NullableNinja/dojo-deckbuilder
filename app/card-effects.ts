@@ -4,6 +4,8 @@ import { isSupportedCharacterResolver } from "./character-effect-resolvers.ts";
 import { isSupportedDefenseResolver } from "./defense-effect-resolvers.ts";
 import { isSupportedConsumableResolver } from "./consumable-effect-resolvers.ts";
 import { SUPPORTED_KATA_RESOLVERS } from "./kata-effect-resolvers.ts";
+import { isSupportedComboResolver } from "./combo-runtime.ts";
+import { isReactionItemResolverSupported } from "./reaction-item-runtime.ts";
 
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
 export type EffectKind = "draw" | "discard" | "heal" | "focus" | "speed" | "nextAttackPower";
@@ -228,6 +230,8 @@ function legacyEffectFromStructured(effect: StructuredCardEffect): CardEffect | 
 function isImplementedDedicatedResolver(resolver: string) {
   return IMPLEMENTED_DEDICATED_RESOLVERS.has(resolver)
     || SUPPORTED_KATA_RESOLVERS.has(resolver)
+    || isSupportedComboResolver(resolver)
+    || isReactionItemResolverSupported(resolver)
     || isSupportedCharacterResolver(resolver)
     || isSupportedDefenseResolver(resolver)
     || isSupportedConsumableResolver(resolver);

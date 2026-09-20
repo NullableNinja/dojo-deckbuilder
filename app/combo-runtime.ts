@@ -154,6 +154,10 @@ export const SUPPORTED_COMBO_RESOLVERS = new Set([
   "combo.discardWeaponChoice",
 ]);
 
+export function isSupportedComboResolver(resolver?: string) {
+  return Boolean(resolver && SUPPORTED_COMBO_RESOLVERS.has(resolver));
+}
+
 export const SUPPORTED_COMBO_REQUIREMENTS = new Set([
   "orderedSequence",
   "orderedAttackHits",
