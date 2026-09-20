@@ -6,6 +6,7 @@ import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
 import { structuredEquipmentBlockResolution, structuredEquipmentHitResolution } from "../app/equipment-structured.ts";
+import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
 const registry = JSON.parse(await readFile(new URL("../app/data/card-effects.json", import.meta.url), "utf8"));
@@ -219,4 +220,10 @@ test("Equipment on-Block modifiers resolve through one shared lifecycle", () => 
   const sectional = block("DDB-WPN-CORE-055");
   assert.equal(sectional.nextAttackPower, 1);
   assert.deepEqual(sectional.unsupported, ["equipment-wpn-055-dodge-block-cycle"]);
+});
+
+test("Equipment on-Equip plans expose canonical follow-ups", () => {
+  const plan = equipmentOnEquipPlan({ catalogId: "DDB-WPN-CORE-023", subtype: "Weapon" }, { catalogId: "DDB-WPN-CORE-023", subtype: "Weapon" }, { beltName: "White" });
+  assert.equal(plan.nextAttackPower, 1);
+  assert.deepEqual(plan.unsupported, []);
 });

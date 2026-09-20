@@ -2364,6 +2364,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       if (!plan) continue;
       if (plan.exhaustSource && !isEquipmentExhausted(nextPlayer, sourceId)) nextPlayer = exhaustEquipment(nextPlayer, sourceId);
       if (plan.draw) nextPlayer = drawCards(nextPlayer, plan.draw);
+      if (plan.nextAttackPower) nextPlayer = { ...nextPlayer, nextAttackBonus: nextPlayer.nextAttackBonus + plan.nextAttackPower };
       if (plan.discard) {
         const count = Math.min(plan.discard, nextPlayer.hand.length);
         if (count) return write(equippedMatch, `${card.name} equipped. ${source.name} requires ${count} discard${count === 1 ? "" : "s"}.`, { player: nextPlayer, pendingDiscard: { sourceCardId: source.id, remaining: count, sourceFollowup: false } });
@@ -4278,6 +4279,28 @@ function prepareAiTurn(current: Match) {
       nextAi = characterEquip.match.ai;
     }
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
+    if (isPermanent(card)) {
+      const beltName = belts[nextAi.belt]?.name ?? "White";
+      for (const sourceId of nextAi.equipment) {
+        const source = cardFor(sourceId);
+        if (!source) continue;
+        const plan = equipmentOnEquipPlan(source, card, { beltName });
+        if (!plan) continue;
+        if (plan.exhaustSource && !isEquipmentExhausted(nextAi, sourceId)) nextAi = exhaustEquipment(nextAi, sourceId);
+        if (plan.draw) nextAi = drawCards(nextAi, plan.draw);
+        if (plan.nextAttackPower) nextAi = { ...nextAi, nextAttackBonus: nextAi.nextAttackBonus + plan.nextAttackPower };
+        if (plan.readyOther) {
+          const exhaustedOther = (nextAi.exhaustedEquipment ?? []).find((candidate) => candidate !== sourceId && nextAi.equipment.includes(candidate));
+          if (exhaustedOther) nextAi = readyEquipment(nextAi, exhaustedOther);
+        }
+        if (plan.discard) {
+          const discardIds = [...nextAi.hand]
+            .sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right)))
+            .slice(0, Math.min(plan.discard, nextAi.hand.length));
+          if (discardIds.length) nextAi = { ...nextAi, hand: nextAi.hand.filter((candidate) => !discardIds.includes(candidate)), discard: [...nextAi.discard, ...discardIds] };
+        }
+      }
+    }
     const aiKataEquipPlan = isKata(card) ? kataEquipFromHandPlanForHost(card) : null;
     if (aiKataEquipPlan) {
       const candidateId = nextAi.hand.find((candidate) => kataEquipCandidate(cardFor(candidate), aiKataEquipPlan));

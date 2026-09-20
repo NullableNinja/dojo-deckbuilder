@@ -401,12 +401,14 @@ export function structuredOnEquipPlan(card: EquipmentCardLike, enteringCard?: Eq
     equippedCardIsSource: equipmentCatalogId(card) === equipmentCatalogId(enteringCard ?? card),
     equippedCardIsOtherPermanentEquipment: Boolean(enteringCard && equipmentCatalogId(card) !== equipmentCatalogId(enteringCard)),
     equippedCardSubtype: enteringCard?.subtype ?? "",
+    equippedThisTurn: Boolean(enteringCard),
     sourceActivationArmed: Boolean(context.sourceActivationArmed),
   };
   let readyOther = 0;
   let exhaustSource = false;
   let draw = 0;
   let discard = 0;
+  let nextAttackPower = 0;
   const unsupported: string[] = [];
   for (const effect of effects.filter((candidate) => candidate.trigger === "onEquip")) {
     const minimumBelt = equipmentConditionValue(effect, "minimumBelt");
@@ -416,11 +418,10 @@ export function structuredOnEquipPlan(card: EquipmentCardLike, enteringCard?: Eq
     else if (effect.effect === "equipment.exhaust" && effect.target === "source") exhaustSource = true;
     else if (effect.effect === "core.draw") draw += Number(effect.amount ?? 0);
     else if (effect.effect === "core.discard") discard += Number(effect.amount ?? 0);
-    else if (effect.effect === "combat.modifyAttackPower" && effect.duration === "nextAttack") {
-      // Folding Chair's equip bonus is consumed by the normal next-Attack state path.
-    } else unsupported.push(effect.id ?? "unknown-on-equip-effect");
+    else if (effect.effect === "combat.modifyAttackPower" && effect.duration === "nextAttack") nextAttackPower += Number(effect.amount ?? 0);
+    else unsupported.push(effect.id ?? "unknown-on-equip-effect");
   }
-  return { readyOther, exhaustSource, draw, discard, unsupported };
+  return { readyOther, exhaustSource, draw, discard, nextAttackPower, unsupported };
 }
 
 export type EquipmentRuntimeResolution = {
