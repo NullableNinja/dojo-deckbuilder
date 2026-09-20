@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { kataRuntimeCommandsForHost } from "../app/kata-playtest-bridge.ts";
+import { kataEquipFromHandPlanForHost, kataRuntimeCommandsForHost } from "../app/kata-playtest-bridge.ts";
 import { resolveNextDamagePreventionStatuses, expirePreventionAtNextInitiate } from "../app/structured-damage-prevention.ts";
 import { consumeQualifiedNextComboLearnDiscount, consumeQualifiedNextPurchaseStatuses, qualifiedNextComboLearnDiscount, qualifiedNextPurchaseDiscount } from "../app/stage3c-consumable-surface.ts";
 
@@ -85,4 +85,11 @@ test("Seipai arms and consumes a generic next-Combo learn discount", () => {
   const status = { sourceEffectId: command.sourceEffectId, effect: command.effect, target: "self", amount: command.amount, duration: command.duration, resolver: command.resolver, qualifier: command.qualifier, appliedImmediately: false };
   assert.deepEqual(qualifiedNextComboLearnDiscount([status]), { amount: 1, sourceEffectId: status.sourceEffectId });
   assert.equal(consumeQualifiedNextComboLearnDiscount([status]).length, 0);
+});
+
+test("Equipment-from-hand Katas expose generic equip choices with canonical qualifiers", () => {
+  const provisional = kataEquipFromHandPlanForHost(card("DDB-KAT-CORE-046"));
+  assert.deepEqual(provisional, { family: "Item", subtype: "Gear", ready: true, nextAttackPower: 1, additionalFocus: 0 });
+  const familiarization = kataEquipFromHandPlanForHost(card("DDB-KAT-CORE-061"));
+  assert.deepEqual(familiarization, { family: "Equipment", subtype: undefined, ready: false, nextAttackPower: 0, additionalFocus: 1 });
 });

@@ -22,7 +22,7 @@ import { chooseAiTemporaryStatusRemoval, removableTemporaryStatuses, removeTempo
 import { structuredConsumableTopRevealPlan } from "./stage3c-consumable-reveal.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
 import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
-import { isCoreKataCard, kataRuntimeCommandsForHost, type KataHostFacts } from "./kata-playtest-bridge.ts";
+import { isCoreKataCard, kataEquipFromHandPlanForHost, kataRuntimeCommandsForHost, type KataHostFacts } from "./kata-playtest-bridge.ts";
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
@@ -232,6 +232,7 @@ type PendingChoice =
   | { kind: "stage3c-sparring-pick"; sourceCardId: string; revealed: string[] }
   | { kind: "stage3c-sparring-junk"; sourceCardId: string; junkIds: string[]; optional: true }
   | { kind: "stage3c-reaction-discard"; sourceCardId: string; reactionIds: string[] }
+  | { kind: "kata-equip-from-hand"; sourceCardId: string; equipmentIds: string[]; family: string; subtype?: string; ready: boolean; nextAttackPower: number; additionalFocus: number }
   | { kind: "character-runtime"; event: CharacterRuntimeEvent; choice: CharacterRuntimeChoice; resume?: "player-attack" | "reversal-attack" };
 
 type CharacterRuntimePendingChoice = Extract<PendingChoice, { kind: "character-runtime" }>;
@@ -381,6 +382,12 @@ function isAttack(card: CardEntry) { return cardType(card) === "attack" || card.
 function isDefense(card: CardEntry) { return cardType(card) === "defense" || card.subtype === "Defense" || card.catalogId.includes("-DEF-"); }
 function isKata(card: CardEntry) { return cardType(card) === "kata" || card.subtype === "Kata" || card.catalogId.includes("-KAT-"); }
 function isPermanent(card: CardEntry) { return ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype); }
+function kataEquipCandidate(card: CardEntry | undefined, plan: ReturnType<typeof kataEquipFromHandPlanForHost>) {
+  if (!card || !plan || !isPermanent(card)) return false;
+  if (plan.family.toLocaleLowerCase() === "item" && card.cardType !== "Item") return false;
+  if (plan.family.toLocaleLowerCase() === "equipment" && !isPermanent(card)) return false;
+  return !plan.subtype || card.subtype.toLocaleLowerCase() === plan.subtype.toLocaleLowerCase();
+}
 function hasTag(card: CardEntry, tag: string) { return card.tags.some((entry) => entry.toLocaleLowerCase().includes(tag.toLocaleLowerCase())); }
 function isWeapon(card: CardEntry) { return card.subtype === "Weapon"; }
 function matchesZone(card: CardEntry, zone: string) { return (card.zone ?? "").toLocaleLowerCase().includes("any") || (card.zone ?? "").toLocaleLowerCase().includes(zone.toLocaleLowerCase()); }
@@ -2892,6 +2899,11 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       pendingChoice = deckChoice.pendingChoice;
       deckNote = deckChoice.note;
     }
+    const kataEquipPlan = isKata(card) ? kataEquipFromHandPlanForHost(card) : null;
+    if (!pendingChoice && kataEquipPlan) {
+      const equipmentIds = nextPlayer.hand.filter((candidate) => kataEquipCandidate(cardFor(candidate), kataEquipPlan));
+      if (equipmentIds.length) pendingChoice = { kind: "kata-equip-from-hand", sourceCardId: id, equipmentIds, family: kataEquipPlan.family, subtype: kataEquipPlan.subtype, ready: kataEquipPlan.ready, nextAttackPower: kataEquipPlan.nextAttackPower, additionalFocus: kataEquipPlan.additionalFocus };
+    }
     let nextAi = current.ai;
     let nextMarket = current.market;
     let nextMarketDeck = current.marketDeck;
@@ -2996,6 +3008,17 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || !choice) return current;
     const selected = cardFor(cardId);
     if (!selected) return current;
+
+    if (choice.kind === "kata-equip-from-hand") {
+      if (source !== "hand" || !choice.equipmentIds.includes(cardId) || !current.player.hand.includes(cardId) || !kataEquipCandidate(selected, choice)) return current;
+      const characterEquip = publishQuickDuelPlaytestEquip(current, "player", selected);
+      if (!characterEquip.allowed) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${selected.name}.`);
+      let player = applyCardEffects({ ...characterEquip.match.player, hand: removeOne(characterEquip.match.player.hand, cardId), playArea: [...characterEquip.match.player.playArea, cardId] }, selected, "player");
+      if (choice.ready) player = { ...player, exhaustedEquipment: (player.exhaustedEquipment ?? []).filter((id) => id !== cardId) };
+      if (choice.nextAttackPower) player = { ...player, nextAttackBonus: player.nextAttackBonus + choice.nextAttackPower };
+      if (choice.additionalFocus) player = gainFocus(player, choice.additionalFocus);
+      return write(characterEquip.match, `${selected.name} equipped from hand through the structured Kata choice.${choice.nextAttackPower ? ` Next Attack +${choice.nextAttackPower}.` : ""}${choice.additionalFocus ? ` +${choice.additionalFocus} generated Focus.` : ""}`, { player, pendingChoice: null });
+    }
 
     if (choice.kind === "stage3c-trail-mix") {
       if (source !== "equipment" || !choice.equipmentIds.includes(cardId) || !current.player.equipment.includes(cardId) || isEquipmentExhausted(current.player, cardId)) return current;
@@ -3763,7 +3786,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         ...((match.pendingChoice.sources ?? ["hand", "discard"]).includes("hand") ? player.hand.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => isJunk(cardFor(entry.id))) : []),
         ...((match.pendingChoice.sources ?? ["hand", "discard"]).includes("discard") ? player.discard.map((id, index) => ({ id, source: "discard" as const, index })).filter((entry) => isJunk(cardFor(entry.id))) : []),
       ]
-    : match.pendingChoice?.kind === "discard-draw" || match.pendingChoice?.kind === "discard-hand"
+    : match.pendingChoice?.kind === "kata-equip-from-hand"
+      ? match.pendingChoice.equipmentIds.map((id, index) => ({ id, source: "hand" as const, index })).filter((entry) => player.hand.includes(entry.id))
+      : match.pendingChoice?.kind === "discard-draw" || match.pendingChoice?.kind === "discard-hand"
       ? player.hand.map((id, index) => ({ id, source: "hand" as const, index }))
       : match.pendingChoice?.kind === "deck-pick"
         ? match.pendingChoice.revealed.map((id, index) => ({ id, source: "deck" as const, index })).filter((entry) => cardMatchesDeckFilter(cardFor(entry.id), match.pendingChoice!.kind === "deck-pick" ? match.pendingChoice!.filter : "item"))
@@ -3783,6 +3808,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const characterRuntimePending = characterRuntimePendingChoice(match.pendingChoice);
   const effectChoiceTitle = characterRuntimePending ? "Character ability"
     : match.pendingChoice?.kind === "stage3c-raffle" ? "Buy the raffle reveal?"
+    : match.pendingChoice?.kind === "kata-equip-from-hand" ? "Choose Equipment to equip"
     : match.pendingChoice?.kind === "stage3c-lucky-reveal" ? "Use Lucky Dumpling?"
     : match.pendingChoice?.kind === "stage3c-zone-ward" ? "Call a protected zone"
     : match.pendingChoice?.kind === "stage3c-remove-negative" ? "Remove a temporary penalty"
@@ -4252,6 +4278,20 @@ function prepareAiTurn(current: Match) {
       nextAi = characterEquip.match.ai;
     }
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
+    const aiKataEquipPlan = isKata(card) ? kataEquipFromHandPlanForHost(card) : null;
+    if (aiKataEquipPlan) {
+      const candidateId = nextAi.hand.find((candidate) => kataEquipCandidate(cardFor(candidate), aiKataEquipPlan));
+      const candidate = candidateId ? cardFor(candidateId) : null;
+      if (candidate) {
+        const characterEquip = publishQuickDuelPlaytestEquip({ ...current, player: nextPlayer, ai: nextAi }, "ai", candidate);
+        if (characterEquip.allowed) {
+          nextPlayer = characterEquip.match.player;
+          nextAi = applyCardEffects({ ...characterEquip.match.ai, hand: removeOne(characterEquip.match.ai.hand, candidate.id), playArea: [...characterEquip.match.ai.playArea, candidate.id] }, candidate, "ai");
+          if (aiKataEquipPlan.nextAttackPower) nextAi = { ...nextAi, nextAttackBonus: nextAi.nextAttackBonus + aiKataEquipPlan.nextAttackPower };
+          if (aiKataEquipPlan.additionalFocus) nextAi = gainFocus(nextAi, aiKataEquipPlan.additionalFocus);
+        }
+      }
+    }
     if (isCoreConsumableCard(card)) {
       nextAi = applyCardEffects(nextAi, card, "ai", "afterResolve", stage3cConsumableContext(nextAi));
       nextAi = { ...nextAi, stage3cStatuses: armConsumableHideStatuses(armConsumableAttackFollowupStatuses(nextAi.stage3cStatuses ?? [], card), card) };

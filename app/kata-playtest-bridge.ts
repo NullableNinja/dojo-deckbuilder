@@ -36,6 +36,14 @@ export type KataDestroyPlan = {
   drawAfterHandDestroy: number;
 };
 
+export type KataEquipFromHandPlan = {
+  family: string;
+  subtype?: string;
+  ready: boolean;
+  nextAttackPower: number;
+  additionalFocus: number;
+};
+
 const ACTION_BY_EFFECT: Record<string, string> = {
   "core.draw": "draw",
   "core.discard": "discard",
@@ -133,6 +141,18 @@ export function kataDestroyPlanForHost(card: RuntimeCardLike): KataDestroyPlan |
     drawAfterHandDestroy: String(command.params?.drawIfSourceZone ?? "").toLocaleLowerCase() === "hand"
       ? numberParam(command, "drawAmount")
       : 0,
+  };
+}
+
+export function kataEquipFromHandPlanForHost(card: RuntimeCardLike): KataEquipFromHandPlan | null {
+  const command = kataCommandsForHost(card, "onPlay").find((entry) => entry.kind === "equipFromHand");
+  if (!command) return null;
+  return {
+    family: String(command.params?.cardFamily ?? "Equipment"),
+    subtype: command.params?.ifSubtype ? String(command.params.ifSubtype) : undefined,
+    ready: command.params?.gearEntersReady === true,
+    nextAttackPower: Number(command.params?.gearNextAttackPower ?? 0),
+    additionalFocus: Number(command.params?.additionalFocusGenerated ?? 0),
   };
 }
 
