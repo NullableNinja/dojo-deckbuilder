@@ -467,3 +467,107 @@ export function resolveStructuredEquipmentEvent(card: EquipmentCardLike, trigger
   }
   return { handled: true, matched, unsupported };
 }
+
+export type EquipmentHitContext = {
+  attackNumber: number;
+  attackZone: string;
+  attackTags?: string[];
+  combatDamageDealt: number;
+  firstHitThisTurn: boolean;
+  firstQualifyingHitThisTurn?: boolean;
+  attackUsesSourceEquipment?: boolean;
+  usedEffectIdsThisTurn?: string[];
+  usedEffectIdsThisRound?: string[];
+};
+
+export type EquipmentHitResolution = {
+  handled: boolean;
+  focus: number;
+  draw: number;
+  nextAttackPower: number;
+  grantFlow: boolean;
+  directDamage: number;
+  exhaustSourceIds: string[];
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+const HIT_RUNTIME_CONDITIONS = new Set([
+  "attackNumber",
+  "attackZone",
+  "attackTags",
+  "attackHasTag",
+  "attackHasAnyTag",
+  "attackZones",
+  "attackUsesSourceEquipment",
+  "combatDamageDealt",
+  "firstHitThisTurn",
+  "firstQualifyingHitThisTurn",
+  "firstHitWithSourceThisTurn",
+  "oncePerTurn",
+  "oncePerRound",
+]);
+
+/**
+ * Resolves the non-choice Equipment effects that occur after a successful Hit.
+ * Effects requiring a discard, pending source, or delayed watcher remain
+ * explicitly unsupported so the host never silently grants a partial payoff.
+ */
+export function structuredEquipmentHitResolution(cards: EquipmentCardLike[], context: EquipmentHitContext): EquipmentHitResolution {
+  const result: EquipmentHitResolution = {
+    handled: false,
+    focus: 0,
+    draw: 0,
+    nextAttackPower: 0,
+    grantFlow: false,
+    directDamage: 0,
+    exhaustSourceIds: [],
+    matchedEffectIds: [],
+    unsupported: [],
+  };
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    result.handled = true;
+    const hitEffects = effects.filter((effect) => effect.trigger === "onHit");
+    if (!hitEffects.length) continue;
+    if (hitEffects.some((effect) => effect.effect === "core.discard")) {
+      result.unsupported.push(...hitEffects.map((effect) => String(effect.id ?? "unknown-equipment-hit-effect")));
+      continue;
+    }
+    if (structuredEquipmentActivationPlan(card)) continue;
+    for (const effect of hitEffects) {
+      const effectId = String(effect.id ?? "unknown-equipment-hit-effect");
+      if ((effect.conditions ?? []).some((condition) => !HIT_RUNTIME_CONDITIONS.has(String(condition.kind ?? "")))) {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      const requiredTag = equipmentConditionValue(effect, "attackHasTag");
+      if (requiredTag != null && !includesTag(tagsOf(context.attackTags), requiredTag)) continue;
+      const usedThisTurn = context.usedEffectIdsThisTurn ?? [];
+      const usedThisRound = context.usedEffectIdsThisRound ?? [];
+      const firstSourceHit = !usedThisRound.includes(effectId);
+      const values = {
+        ...context,
+        attackHasTag: context.attackTags ?? [],
+        attackHasAnyTag: context.attackTags ?? [],
+        firstHitWithSourceThisTurn: firstSourceHit,
+        oncePerTurn: !usedThisTurn.includes(effectId),
+        oncePerRound: !usedThisRound.includes(effectId),
+      };
+      if (!equipmentConditionsMatch(effect, values)) continue;
+      const amount = Number(effect.amount ?? 0);
+      let applied = true;
+      if (effect.effect === "core.gainFocus" && effect.target === "self") result.focus += amount;
+      else if (effect.effect === "core.draw" && effect.target === "self") result.draw += amount;
+      else if (effect.effect === "combat.modifyAttackPower" && effect.target === "source" && effect.duration === "nextAttack") result.nextAttackPower += amount;
+      else if (effect.effect === "combat.grantFlow" && effect.target === "self" && effect.duration === "nextAttack") result.grantFlow = true;
+      else if (effect.effect === "combat.dealDamage" && effect.target === "opponent") result.directDamage += amount;
+      else if (effect.effect === "equipment.exhaust" && effect.target === "source") result.exhaustSourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      else applied = false;
+      if (applied) result.matchedEffectIds.push(effectId);
+      else result.unsupported.push(effectId);
+    }
+  }
+  return result;
+}

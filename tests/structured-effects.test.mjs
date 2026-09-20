@@ -5,6 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
+import { structuredEquipmentHitResolution } from "../app/equipment-structured.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
 const registry = JSON.parse(await readFile(new URL("../app/data/card-effects.json", import.meta.url), "utf8"));
@@ -127,4 +128,49 @@ test("the complete Boss cohort resolves through the generic Boss host", () => {
   });
   assert.equal(technique.state.revealedArsenal, 1);
   assert.ok(technique.state.boss.statuses.some((status) => status.amount === 2 && status.duration === "nextAttack"));
+});
+
+test("Equipment on-Hit modifiers resolve through the shared hit protocol", () => {
+  const dragonSword = structuredEquipmentHitResolution([{ id: "weapon", catalogId: "DDB-WPN-CORE-015" }], {
+    attackNumber: 1,
+    attackZone: "High",
+    attackTags: ["Punch"],
+    combatDamageDealt: 3,
+    firstHitThisTurn: true,
+    firstQualifyingHitThisTurn: true,
+    attackUsesSourceEquipment: true,
+  });
+  assert.equal(dragonSword.directDamage, 2);
+  assert.deepEqual(dragonSword.unsupported, []);
+  assert.deepEqual(dragonSword.matchedEffectIds, ["equipment-wpn-015-first-hit-additional-damage"]);
+
+  const repeat = structuredEquipmentHitResolution([{ id: "weapon", catalogId: "DDB-WPN-CORE-015" }], {
+    attackNumber: 2,
+    attackZone: "High",
+    combatDamageDealt: 3,
+    firstHitThisTurn: false,
+    usedEffectIdsThisTurn: ["equipment-wpn-015-first-hit-additional-damage"],
+  });
+  assert.equal(repeat.directDamage, 0);
+  assert.deepEqual(repeat.matchedEffectIds, []);
+
+  const nunchaku = structuredEquipmentHitResolution([{ id: "weapon", catalogId: "DDB-WPN-CORE-045" }], {
+    attackNumber: 1,
+    attackZone: "Mid",
+    attackTags: ["Kick"],
+    combatDamageDealt: 1,
+    firstHitThisTurn: true,
+  });
+  assert.equal(nunchaku.grantFlow, true);
+  assert.deepEqual(nunchaku.unsupported, []);
+
+  const yoYo = structuredEquipmentHitResolution([{ id: "weapon", catalogId: "DDB-WPN-CORE-065" }], {
+    attackNumber: 2,
+    attackZone: "Low",
+    combatDamageDealt: 1,
+    firstHitThisTurn: false,
+    attackUsesSourceEquipment: true,
+  });
+  assert.equal(yoYo.focus, 1);
+  assert.deepEqual(yoYo.unsupported, []);
 });
