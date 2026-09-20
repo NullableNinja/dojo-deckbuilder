@@ -15,7 +15,7 @@ import { armConsumableAttackFollowupStatuses, isConsumableAttackFollowupStatus, 
 import { armConsumableHideStatuses, resolveConsumableHideStatuses } from "./stage3c-consumable-hide-followup.ts";
 import { chooseAiDefensiveConsumable } from "./stage3c-consumable-reaction-ai.ts";
 import { firstEventReactionCard, hasUntargetableStatus } from "./stage3c-consumable-event-reactions.ts";
-import { canPlayCoreReactionItem, chooseAiReactionItem, resolveQuickDuelReactionItem, type ReactionItemRuntimeContext } from "./reaction-item-runtime.ts";
+import { canPlayCoreReactionItem, chooseAiReactionItem, resolveQuickDuelReactionItem, resolveReactionItemIncomingAttackOutcome, type ReactionItemRuntimeContext } from "./reaction-item-runtime.ts";
 import { consumeQualifiedNextPurchaseStatuses, qualifiedNextPurchaseDiscount, spendableFocusForPurchase, spendFocusForPurchase } from "./stage3c-consumable-surface.ts";
 import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "./stage3c-board-command-semantics.ts";
 import { chooseAiTemporaryStatusRemoval, removableTemporaryStatuses, removeTemporaryStatus } from "./stage3c-consumable-status-removal.ts";
@@ -1044,11 +1044,11 @@ function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
 function isCoreReactionItemCard(card: CardEntry) { return card.catalogId.startsWith("DDB-RIT-CORE-"); }
 
-function reactionItemContext(zone: string, attacker: Board, normalAttack = true): ReactionItemRuntimeContext {
+function reactionItemContext(zone: string, attacker: Board, attackAlreadyDeclared = false, normalAttack = true): ReactionItemRuntimeContext {
   return {
     incomingAttackTargetsSelf: true,
     incomingZones: [zone],
-    attackNumber: attacker.attacksThisTurn + 1,
+    attackNumber: attacker.attacksThisTurn + (attackAlreadyDeclared ? 0 : 1),
     currentAttackIsNormal: normalAttack,
   };
 }
@@ -1244,7 +1244,10 @@ function stage3cStartTurn(board: Board) {
   let next = expireStage3C(board, "nextTurn");
   next = { ...next, stage3cStatuses: expirePreventionAtNextInitiate(next.stage3cStatuses ?? []) };
   const initiate = (next.stage3cStatuses ?? []).filter((status) => status.duration === "nextInitiate");
-  for (const status of initiate) if (status.effect === "core.gainFocus") next = gainFocus(next, status.amount);
+  for (const status of initiate) {
+    if (status.effect === "core.gainFocus") next = gainFocus(next, status.amount);
+    if (status.effect === "core.draw") next = drawCards(next, status.amount);
+  }
   const ids = new Set(initiate.map((status) => status.sourceEffectId));
   return { ...next, stage3cStatuses: (next.stage3cStatuses ?? []).filter((status) => !ids.has(status.sourceEffectId)) };
 }
@@ -2465,6 +2468,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
     if (!hit && armedEquipment.blockedFocus) nextPlayer = gainFocus(nextPlayer, armedEquipment.blockedFocus);
     let nextAi: Board = { ...optionalReduced.board, hp: Math.max(0, optionalReduced.board.hp - damage), attacksReceivedThisRound: (optionalReduced.board.attacksReceivedThisRound ?? 0) + 1, combatDamageEventsThisRound: (optionalReduced.board.combatDamageEventsThisRound ?? 0) + (reduced.damage > 0 ? 1 : 0), wasHitSinceLastTurn: optionalReduced.board.wasHitSinceLastTurn || hit, damageTaken: optionalReduced.board.damageTaken + damage };
+    nextAi = resolveReactionItemIncomingAttackOutcome(nextAi, hit);
     nextAi = stage3cConsumeIncomingAttackStatuses(nextAi);
     const targetDebuff = hit ? applyTargetHitDebuffs(nextAi, card, { previousCardIsItem }) : { board: nextAi, notes: [] as string[] };
     nextAi = targetDebuff.board;
@@ -2621,7 +2625,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         ? isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "player-ascend", stage3cConsumableContext(current.player))
         : current.phase === "defense-window" && (
           isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(current.player))
-          || isCoreReactionItemCard(card) && Boolean(current.pendingStrike) && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(current.pendingStrike!.zone, current.ai))
+          || isCoreReactionItemCard(card) && Boolean(current.pendingStrike) && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(current.pendingStrike!.zone, current.ai, true))
         );
     if (!legalSupportPhase) return current;
     if (isCoreConsumableCard(card) && (current.player.stage3cRestrictions ?? []).includes("consumable")) return current;
@@ -2632,7 +2636,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         opponent: current.ai,
         strike: { attackPower: current.pendingStrike.attackPower, zone: current.pendingStrike.zone },
         trigger: "onAttackDeclared",
-        context: reactionItemContext(current.pendingStrike.zone, current.ai),
+        context: reactionItemContext(current.pendingStrike.zone, current.ai, true),
       });
       if (!reaction.applied) return current;
       return write(current, `${card.name} is destroyed as a Reaction: ${reaction.notes.join("; ")}.`, {
@@ -3240,6 +3244,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       preventionNotes.unshift(`${cardFor(prevention.sourceCardId)?.name ?? "Equipment"} reduces combat damage ${damageBeforeOptional} → ${damage}`);
     }
     nextPlayer = { ...reducedBoard, hp: Math.max(0, reducedBoard.hp - damage), combatDamageEventsThisRound: (reducedBoard.combatDamageEventsThisRound ?? 0) + (damageBeforeOptional > 0 ? 1 : 0), wasHitSinceLastTurn: reducedBoard.wasHitSinceLastTurn || hit, damageTaken: reducedBoard.damageTaken + damage };
+    nextPlayer = resolveReactionItemIncomingAttackOutcome(nextPlayer, hit);
     const targetDebuff = hit ? applyTargetHitDebuffs(nextPlayer, aiCard, { previousCardIsItem: Boolean(pending.previousCardWasItem) }) : { board: nextPlayer, notes: [] as string[] };
     nextPlayer = { ...targetDebuff.board, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: (targetDebuff.board.reversalAttackBonus ?? 0) + reversalEquipmentBonus };
     let nextAi = markCompletedTask({ ...current.ai, damageDealt: current.ai.damageDealt + damage, hitThisTurn: current.ai.hitThisTurn || hit, lastAttackHit: hit });
@@ -3458,7 +3463,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     if (match.phase === "defense-window") {
       if (isCoreConsumableCard(card) && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(match.player))) playSupport(id);
-      else if (isCoreReactionItemCard(card) && match.pendingStrike && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(match.pendingStrike.zone, match.ai))) playSupport(id);
+      else if (isCoreReactionItemCard(card) && match.pendingStrike && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(match.pendingStrike.zone, match.ai, true))) playSupport(id);
       else if (match.pendingStrike && legalDefenseIds(match.player, match.pendingStrike.zone).includes(id)) resolveDefense(id);
       return;
     }
@@ -3687,7 +3692,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           const canUse = match.phase === "player-yell" && (attack ? attackAllowed : (defense ? !player.defensePracticeUsed : !permanent && consumableAllowed && reactionAllowed));
           const canDefend = match.phase === "defense-window" && defenseOptions.includes(id);
           const canReactConsumable = match.phase === "defense-window" && isCoreConsumableCard(card) && !stage3cRestrictionBlocks(player.stage3cRestrictions, "consumable") && canPlayCoreConsumableInPhase(card, "defense-window", stage3cConsumableContext(player));
-          const canReactItem = match.phase === "defense-window" && isCoreReactionItemCard(card) && Boolean(match.pendingStrike) && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(match.pendingStrike!.zone, match.ai));
+          const canReactItem = match.phase === "defense-window" && isCoreReactionItemCard(card) && Boolean(match.pendingStrike) && canPlayCoreReactionItem(card, "onAttackDeclared", reactionItemContext(match.pendingStrike!.zone, match.ai, true));
           const canReverse = match.phase === "reversal-window" && attack && attackAllowed;
           return <PlayCard key={`${id}-${index}`} card={card} selected={match.selectedAttackId === id} disabled={choosingEffect ? true : choosingDiscard ? false : match.phase === "defense-window" ? !(canDefend || canReactConsumable || canReactItem) : match.phase === "reversal-window" ? !canReverse : match.phase === "player-initiate" ? !canInitiate : !canUse} onClick={() => useHandCard(id)} onInspect={() => setInspectedId(id)} />;
         })}</div>

@@ -54,6 +54,7 @@ const REACTION_RESOLVERS = new Set([
   "reaction.reduceDeclaredAttackPower",
   "reaction.preventIncomingDamage",
   "reaction.defenseAgainstIncomingAttack",
+  "reaction.secondNormalAttackPenaltyAndInitiateDraw",
 ]);
 
 export function isReactionItemResolverSupported(resolver?: string) {
@@ -82,6 +83,15 @@ function commandForReactionEffect(effect: StructuredRuntimeEffect): RuntimeComma
         ...command,
         effect: "combat.modifyAttackPower",
         qualifier: { appliesTo: "declaredIncomingAttack" },
+      };
+    case "reaction.secondNormalAttackPenaltyAndInitiateDraw":
+      return {
+        ...command,
+        effect: "combat.modifyAttackPower",
+        qualifier: {
+          appliesTo: "declaredIncomingAttack",
+          drawAtNextInitiateIfIncomingHit: true,
+        },
       };
     case "reaction.preventIncomingDamage":
       return {
@@ -145,6 +155,16 @@ function statusFromCommand(command: RuntimeCommand): RuntimeStatus {
   };
 }
 
+function addStatus<Board extends ReactionItemBoard>(board: Board, status: RuntimeStatus): Board {
+  return {
+    ...board,
+    stage3cStatuses: [
+      ...(board.stage3cStatuses ?? []).filter((entry) => entry.sourceEffectId !== status.sourceEffectId),
+      status,
+    ],
+  };
+}
+
 /**
  * Applies an eligible Reaction Item to a declared incoming Attack.  The host
  * deliberately destroys the source generically: individual card records do
@@ -171,17 +191,24 @@ export function resolveQuickDuelReactionItem<Board extends ReactionItemBoard>(ar
       const before = strike.attackPower;
       strike = { ...strike, attackPower: Math.max(0, strike.attackPower + command.amount) };
       notes.push(`declared Attack Power ${before} → ${strike.attackPower}`);
+      if (command.qualifier?.drawAtNextInitiateIfIncomingHit === true) {
+        self = addStatus(self, {
+          sourceEffectId: `${command.sourceEffectId}:incoming-hit-draw`,
+          effect: "core.draw",
+          target: "self",
+          amount: 1,
+          duration: "nextInitiate",
+          resolver: command.resolver,
+          qualifier: { activateAt: "reaction.incomingAttackHit" },
+          appliedImmediately: false,
+        });
+        notes.push("draw 1 at next Initiate if this Attack hits");
+      }
       continue;
     }
     if (command.effect === "combat.modifyDefense" || command.effect === "combat.preventDamage") {
       const status = statusFromCommand(command);
-      self = {
-        ...self,
-        stage3cStatuses: [
-          ...(self.stage3cStatuses ?? []).filter((entry) => entry.sourceEffectId !== status.sourceEffectId),
-          status,
-        ],
-      };
+      self = addStatus(self, status);
       notes.push(command.effect === "combat.modifyDefense"
         ? `+${command.amount} DEF against this Attack`
         : command.qualifier?.setDamageToZero ? "this Attack deals 0 damage" : `prevent ${command.amount} damage from this Attack`);
@@ -193,6 +220,21 @@ export function resolveQuickDuelReactionItem<Board extends ReactionItemBoard>(ar
     destroyed: [...(self.destroyed ?? []), args.card.id],
   };
   return { self, opponent: args.opponent, strike, commands, notes, applied: true };
+}
+
+/** Resolves conditional Reaction Item watchers after the declared Attack ends. */
+export function resolveReactionItemIncomingAttackOutcome<Board extends ReactionItemBoard>(board: Board, hit: boolean): Board {
+  const statuses = board.stage3cStatuses ?? [];
+  const watched = statuses.filter((status) => status.qualifier?.activateAt === "reaction.incomingAttackHit");
+  if (!watched.length) return board;
+  const watchedIds = new Set(watched.map((status) => status.sourceEffectId));
+  const resolved = statuses
+    .filter((status) => !watchedIds.has(status.sourceEffectId))
+    .concat(hit ? watched.map((status) => ({
+      ...status,
+      qualifier: { ...(status.qualifier ?? {}), activateAt: "nextInitiate" },
+    })) : []);
+  return { ...board, stage3cStatuses: resolved };
 }
 
 /** Identity-free defensive policy shared by the computer's reaction window. */
