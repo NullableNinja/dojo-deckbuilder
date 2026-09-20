@@ -78,7 +78,9 @@ function conditionMatches(condition: Condition, context: Record<string, unknown>
   const expected = condition.value;
   const actual = context[kind];
   if (kind === "minimumBelt") return beltAtLeast(context.beltName, expected);
-  if (["choiceKind", "scheduledTiming", "resolvedCardType", "firstAttackWithTagThisTurn", "attackHasTag", "nextAttackHasTag", "minimumFinalCost", "sourceAffectedCountThreshold", "minimumDraw", "nextPurchaseOnly", "draw", "discard", "sameRoundOnly", "sameTurnOnly", "nextAttackDifferentZone"].includes(kind)) return true;
+  if (["choiceKind", "scheduledTiming", "firstAttackWithTagThisTurn", "attackHasTag", "nextAttackHasTag", "minimumFinalCost", "sourceAffectedCountThreshold", "minimumDraw", "nextPurchaseOnly", "draw", "discard", "sameRoundOnly", "sameTurnOnly", "nextAttackDifferentZone"].includes(kind)) return true;
+  if (["resolvedCardType", "defenderPlayedDefense", "goldBeltExamThirdZone", "purchaseCompleted", "marketEndSlot"].includes(kind)) return actual === expected;
+  if (["oncePerTurn", "oncePerRound"].includes(kind)) return Boolean(actual) === Boolean(expected);
   if (kind === "attackHasAnyTag") {
     const tags = tagsOf(context.attackTags);
     return Array.isArray(expected) && expected.some((tag) => includesTag(tags, tag));
@@ -693,6 +695,148 @@ export function structuredEquipmentHitResolution(cards: EquipmentCardLike[], con
       else applied = false;
       if (applied) result.matchedEffectIds.push(effectId);
       else result.unsupported.push(effectId);
+    }
+  }
+  return result;
+}
+
+export type EquipmentAfterResolveContext = {
+  resolvedCardType: string;
+  defenderPlayedDefense?: boolean;
+  goldBeltExamThirdZone?: boolean;
+  usedEffectIdsThisTurn?: string[];
+  usedEffectIdsThisRound?: string[];
+};
+
+export type EquipmentAfterResolveResolution = {
+  handled: boolean;
+  focus: number;
+  draw: number;
+  exhaustSourceIds: string[];
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+const AFTER_RESOLVE_RUNTIME_CONDITIONS = new Set([
+  "resolvedCardType",
+  "defenderPlayedDefense",
+  "goldBeltExamThirdZone",
+  "minimumBelt",
+  "oncePerTurn",
+  "oncePerRound",
+]);
+
+/** Resolves non-choice Equipment watchers after a card has completed. */
+export function structuredEquipmentAfterResolveResolution(cards: EquipmentCardLike[], context: EquipmentAfterResolveContext): EquipmentAfterResolveResolution {
+  const result: EquipmentAfterResolveResolution = { handled: false, focus: 0, draw: 0, exhaustSourceIds: [], matchedEffectIds: [], unsupported: [] };
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    result.handled = true;
+    const afterResolveEffects = effects.filter((candidate) => candidate.trigger === "afterResolve");
+    if (afterResolveEffects.some((effect) => effect.effect === "core.discard")) {
+      result.unsupported.push(...afterResolveEffects.map((effect) => String(effect.id ?? "unknown-equipment-after-resolve-effect")));
+      continue;
+    }
+    for (const effect of afterResolveEffects) {
+      const effectId = String(effect.id ?? "unknown-equipment-after-resolve-effect");
+      if ((effect.conditions ?? []).some((condition) => !AFTER_RESOLVE_RUNTIME_CONDITIONS.has(String(condition.kind ?? "")))) {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      const usedThisTurn = context.usedEffectIdsThisTurn ?? [];
+      const usedThisRound = context.usedEffectIdsThisRound ?? [];
+      const values = {
+        ...context,
+        resolvedCardType: context.resolvedCardType,
+        defenderPlayedDefense: Boolean(context.defenderPlayedDefense),
+        goldBeltExamThirdZone: Boolean(context.goldBeltExamThirdZone),
+        oncePerTurn: !usedThisTurn.includes(effectId),
+        oncePerRound: !usedThisRound.includes(effectId),
+      };
+      if (!equipmentConditionsMatch(effect, values)) continue;
+      let applied = true;
+      if (effect.effect === "core.gainFocus" && effect.target === "self") result.focus += Number(effect.amount ?? 0);
+      else if (effect.effect === "core.draw" && effect.target === "self") result.draw += Number(effect.amount ?? 0);
+      else if (effect.effect === "equipment.exhaust" && effect.target === "source") result.exhaustSourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      else applied = false;
+      if (applied) result.matchedEffectIds.push(effectId);
+      else result.unsupported.push(effectId);
+    }
+  }
+  return result;
+}
+
+export type EquipmentPurchaseContext = {
+  marketEndSlot?: boolean;
+  purchasedCardCost: number;
+  purchaseCompleted: boolean;
+  exhaustedEquipmentIds?: string[];
+  usedEffectIdsThisTurn?: string[];
+};
+
+export type EquipmentPurchaseResolution = {
+  handled: boolean;
+  purchaseDiscount: number;
+  minimumFinalCost: number;
+  exhaustSourceIds: string[];
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+const PURCHASE_RUNTIME_CONDITIONS = new Set([
+  "marketEndSlot",
+  "nextPurchaseOnly",
+  "minimumFinalCost",
+  "purchasedCardCost",
+  "purchaseCompleted",
+  "oncePerTurn",
+]);
+
+/** Resolves choice-free Equipment effects surrounding a Market purchase. */
+export function structuredEquipmentPurchaseResolution(cards: EquipmentCardLike[], context: EquipmentPurchaseContext): EquipmentPurchaseResolution {
+  const result: EquipmentPurchaseResolution = { handled: false, purchaseDiscount: 0, minimumFinalCost: 0, exhaustSourceIds: [], matchedEffectIds: [], unsupported: [] };
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    result.handled = true;
+    if ((context.exhaustedEquipmentIds ?? []).includes(String(card.id ?? card.catalogId ?? ""))) continue;
+    const purchaseEffects = effects.filter((candidate) => candidate.trigger === "onPurchase");
+    if (!purchaseEffects.length) continue;
+    if (purchaseEffects.some((effect) => effect.effect === "core.moveCard" || effect.effect === "core.choice")) {
+      result.unsupported.push(...purchaseEffects.map((effect) => String(effect.id ?? "unknown-equipment-purchase-effect")));
+      continue;
+    }
+    for (const effect of purchaseEffects) {
+      const effectId = String(effect.id ?? "unknown-equipment-purchase-effect");
+      if ((effect.conditions ?? []).some((condition) => !PURCHASE_RUNTIME_CONDITIONS.has(String(condition.kind ?? "")))) {
+        result.unsupported.push(effectId);
+        continue;
+      }
+      const values = {
+        ...context,
+        marketEndSlot: Boolean(context.marketEndSlot),
+        purchasedCardCost: context.purchasedCardCost,
+        purchaseCompleted: Boolean(context.purchaseCompleted),
+        oncePerTurn: !(context.usedEffectIdsThisTurn ?? []).includes(effectId),
+      };
+      if (!equipmentConditionsMatch(effect, values)) continue;
+      let applied = true;
+      if (effect.effect === "economy.modifyCost" && effect.target === "chosen-card") {
+        result.purchaseDiscount += Number(effect.amount ?? 0);
+        result.minimumFinalCost = Math.max(result.minimumFinalCost, Number(equipmentConditionValue(effect, "minimumFinalCost") ?? 0));
+      } else if (effect.effect === "equipment.exhaust" && effect.target === "source" && context.purchaseCompleted) {
+        result.exhaustSourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      } else if (effect.effect === "economy.modifyCost") {
+        result.unsupported.push(effectId);
+        applied = false;
+      } else if (effect.effect === "equipment.exhaust") {
+        // Source exhaustion is a post-purchase lifecycle action. The preflight
+        // pass only exposes discounts and must not mutate the board.
+        applied = false;
+      } else applied = false;
+      if (applied) result.matchedEffectIds.push(effectId);
+      else if (effect.effect !== "equipment.exhaust") result.unsupported.push(effectId);
     }
   }
   return result;

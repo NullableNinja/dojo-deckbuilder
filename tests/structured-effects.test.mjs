@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredEquipmentBlockResolution, structuredEquipmentHitResolution } from "../app/equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentBlockResolution, structuredEquipmentHitResolution, structuredEquipmentPurchaseResolution } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
@@ -226,4 +226,50 @@ test("Equipment on-Equip plans expose canonical follow-ups", () => {
   const plan = equipmentOnEquipPlan({ catalogId: "DDB-WPN-CORE-023", subtype: "Weapon" }, { catalogId: "DDB-WPN-CORE-023", subtype: "Weapon" }, { beltName: "White" });
   assert.equal(plan.nextAttackPower, 1);
   assert.deepEqual(plan.unsupported, []);
+});
+
+test("choice-free Equipment after-Resolve watchers execute once through the shared protocol", () => {
+  const fan = structuredEquipmentAfterResolveResolution([{ id: "fan", catalogId: "DDB-GEA-CORE-001" }], {
+    resolvedCardType: "Kata",
+    usedEffectIdsThisRound: [],
+  });
+  assert.equal(fan.focus, 1);
+  assert.deepEqual(fan.exhaustSourceIds, ["fan"]);
+  assert.deepEqual(fan.unsupported, []);
+
+  const repeat = structuredEquipmentAfterResolveResolution([{ id: "fan", catalogId: "DDB-GEA-CORE-001" }], {
+    resolvedCardType: "Kata",
+    usedEffectIdsThisRound: ["equipment-gea-001-after-kata-focus", "equipment-gea-001-exhaust"],
+  });
+  assert.equal(repeat.focus, 0);
+  assert.deepEqual(repeat.exhaustSourceIds, []);
+});
+
+test("choice-requiring Equipment after-Resolve watchers stay explicit", () => {
+  const kunai = structuredEquipmentAfterResolveResolution([{ id: "kunai", catalogId: "DDB-WPN-CORE-040" }], {
+    resolvedCardType: "Attack",
+    defenderPlayedDefense: false,
+  });
+  assert.equal(kunai.draw, 0);
+  assert.ok(kunai.unsupported.includes("equipment-wpn-040-no-defense-cycle-discard"));
+});
+
+test("Equipment purchase timing exposes discounts before payment and exhausts sources after payment", () => {
+  const source = { id: "map", catalogId: "DDB-GEA-CORE-012" };
+  const preview = structuredEquipmentPurchaseResolution([source], {
+    marketEndSlot: true,
+    purchasedCardCost: 4,
+    purchaseCompleted: false,
+  });
+  assert.equal(preview.purchaseDiscount, -1);
+  assert.equal(preview.minimumFinalCost, 2);
+  assert.deepEqual(preview.exhaustSourceIds, []);
+
+  const committed = structuredEquipmentPurchaseResolution([source], {
+    marketEndSlot: true,
+    purchasedCardCost: 4,
+    purchaseCompleted: true,
+  });
+  assert.deepEqual(committed.exhaustSourceIds, ["map"]);
+  assert.ok(committed.matchedEffectIds.includes("equipment-gea-012-exhaust"));
 });

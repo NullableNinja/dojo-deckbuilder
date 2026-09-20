@@ -26,7 +26,7 @@ import { isCoreKataCard, kataEquipFromHandPlanForHost, kataRuntimeCommandsForHos
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
-import { structuredEquipmentBlockResolution, structuredEquipmentHitResolution } from "./equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentBlockResolution, structuredEquipmentHitResolution, structuredEquipmentPurchaseResolution } from "./equipment-structured.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
@@ -405,17 +405,24 @@ function spendFocus(board: Board, amount: number) {
   if (!spend) return board;
   return { ...board, focus: board.focus - spend, focusSpentThisTurn: (board.focusSpentThisTurn ?? 0) + spend };
 }
-function marketBasePriceFor(board: Board, card: CardEntry | undefined) {
+function marketBasePriceFor(board: Board, card: CardEntry | undefined, marketEndSlot = false) {
   if (!card) return Number.POSITIVE_INFINITY;
   const certificationDiscount = beltHasReward(board, "market-discount") && !board.boughtCardThisAscend ? 1 : 0;
   const printedCost = cardCost(card);
   const qualified = qualifiedNextPurchaseDiscount(board.stage3cStatuses, printedCost, card, board.purchasedTypes);
-  const base = printedCost + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === "Item" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount + qualified.amount;
-  return Math.max(qualified.minimumFinalCost || 0, base, 0);
+  const equipment = structuredEquipmentPurchaseResolution(board.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item)), {
+    marketEndSlot,
+    purchasedCardCost: printedCost,
+    purchaseCompleted: false,
+    exhaustedEquipmentIds: board.exhaustedEquipment,
+    usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
+  });
+  const base = printedCost + (board.stage3cPurchaseCostModifier ?? 0) + (card.cardType === "Item" ? (board.nextItemCostPenalty ?? 0) : 0) - certificationDiscount + qualified.amount + equipment.purchaseDiscount;
+  return Math.max(qualified.minimumFinalCost || 0, equipment.minimumFinalCost || 0, base, 0);
 }
-function marketPriceFor(board: Board, card: CardEntry | undefined) {
+function marketPriceFor(board: Board, card: CardEntry | undefined, marketEndSlot = false) {
   if (!card) return Number.POSITIVE_INFINITY;
-  return previewQuickDuelCharacterPurchasePrice(board, marketBasePriceFor(board, card));
+  return previewQuickDuelCharacterPurchasePrice(board, marketBasePriceFor(board, card, marketEndSlot));
 }
 function marketFocusAvailable(board: Board, card: CardEntry | undefined) {
   return spendableFocusForPurchase(board.focus, board.stage3cStatuses, card);
@@ -883,6 +890,57 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
     ...(resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : []),
   ];
   return { attacker, target: defender, notes };
+}
+
+function applyStructuredEquipmentAfterResolve(board: Board, resolvedCard: CardEntry, context: { defenderPlayedDefense?: boolean; goldBeltExamThirdZone?: boolean } = {}) {
+  const equipment = board.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && isPermanent(card)));
+  const resolution = structuredEquipmentAfterResolveResolution(equipment, {
+    resolvedCardType: resolvedCard.subtype || resolvedCard.cardType,
+    defenderPlayedDefense: context.defenderPlayedDefense,
+    goldBeltExamThirdZone: context.goldBeltExamThirdZone,
+    usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
+    usedEffectIdsThisRound: board.equipmentEffectIdsThisRound,
+  });
+  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length && !resolution.focus && !resolution.draw) return { board, notes: [] as string[] };
+  let next = board;
+  if (resolution.focus) next = gainFocus(next, resolution.focus);
+  if (resolution.draw) next = drawCards(next, resolution.draw);
+  for (const sourceId of resolution.exhaustSourceIds) if (next.equipment.includes(sourceId)) next = exhaustEquipment(next, sourceId);
+  next = {
+    ...next,
+    usedEffectIdsThisTurn: [...new Set([...(next.usedEffectIdsThisTurn ?? []), ...resolution.matchedEffectIds])],
+    equipmentEffectIdsThisRound: [...new Set([...(next.equipmentEffectIdsThisRound ?? []), ...resolution.matchedEffectIds])],
+  };
+  return {
+    board: next,
+    notes: [
+      ...(resolution.focus ? [`Equipment after-Resolve effect gains ${resolution.focus} Focus`] : []),
+      ...(resolution.draw ? [`Equipment after-Resolve effect draws ${resolution.draw}`] : []),
+      ...(resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : []),
+    ],
+  };
+}
+
+function applyStructuredEquipmentPurchase(board: Board, purchasedCard: CardEntry, marketEndSlot: boolean) {
+  const equipment = board.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && isPermanent(card)));
+  const resolution = structuredEquipmentPurchaseResolution(equipment, {
+    marketEndSlot,
+    purchasedCardCost: cardCost(purchasedCard),
+    purchaseCompleted: true,
+    exhaustedEquipmentIds: board.exhaustedEquipment,
+    usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
+  });
+  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length) return { board, notes: [] as string[] };
+  let next = board;
+  for (const sourceId of resolution.exhaustSourceIds) if (next.equipment.includes(sourceId)) next = exhaustEquipment(next, sourceId);
+  next = {
+    ...next,
+    usedEffectIdsThisTurn: [...new Set([...(next.usedEffectIdsThisTurn ?? []), ...resolution.matchedEffectIds])],
+  };
+  return {
+    board: next,
+    notes: resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment purchase source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : [],
+  };
 }
 
 function applyStructuredEquipmentBlock(board: Board, opponent: Board, attackCard: CardEntry, defenseCard: CardEntry | null | undefined, zone: string, sourceArmorHelpedBlock: boolean, firstArmorBlockThisRound: boolean) {
@@ -1784,7 +1842,7 @@ function playerDiscardChoiceCount(card: CardEntry, timing: "onPlay" | "onHit" | 
 // NOT be added here; add them to canonical JSON and a reusable resolver/host.
 // -----------------------------------------------------------------------------
 
-function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai", timing: "onPlay" | "onHit" | "onBlock" | "afterResolve" = "onPlay", familyContext: DefenseRuntimeContext | ConsumableRuntimeContext = {}, grantPrintedFocus = true) {
+function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai", timing: "onPlay" | "onHit" | "onBlock" | "afterResolve" = "onPlay", familyContext: (DefenseRuntimeContext | ConsumableRuntimeContext) & { defenderPlayedDefense?: boolean; goldBeltExamThirdZone?: boolean } = {}, grantPrintedFocus = true) {
   let next = { ...board };
   const migratedFamily = isCoreDefenseCard(card) || isCoreConsumableCard(card);
   if (timing === "onPlay") {
@@ -1817,6 +1875,7 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
       if (effect.kind === "heal") next.hp = Math.min(next.maxHp, next.hp + effect.amount);
     }
   }
+  if (timing === "afterResolve") next = applyStructuredEquipmentAfterResolve(next, card, familyContext).board;
   if (timing === "onPlay" && !isCoreKataCard(card)) {
     const conditionalHeal = conditionalHealAfterHit(card, board.wasHitSinceLastTurn);
     if (conditionalHeal) next.hp = Math.min(next.maxHp, next.hp + conditionalHeal);
@@ -2635,8 +2694,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     if (defenseCard) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), discard: [...nextAi.discard, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, blockedSinceLastTurn: !hit || Boolean(nextAi.blockedSinceLastTurn), blockedThisRound: !hit || Boolean(nextAi.blockedThisRound), nextDefenseCardBonus: 0 };
     if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };
-    nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
-    if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
+    nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve", { defenderPlayedDefense: Boolean(defenseCard) });
+    if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", { defenderPlayedDefense: Boolean(defenseCard) });
     const consumableAttackFollowup = resolveConsumableAttackFollowupStatuses(nextPlayer.stage3cStatuses ?? [], { blocked: !hit, interferencePrevented: false });
     nextPlayer = {
       ...nextPlayer,
@@ -2867,6 +2926,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", stage3cConsumableContext(nextPlayer));
       nextPlayer = { ...nextPlayer, stage3cStatuses: armConsumableHideStatuses(armConsumableAttackFollowupStatuses(nextPlayer.stage3cStatuses ?? [], card), card) };
       if (current.phase === "defense-window") nextPlayer = { ...nextPlayer, offTurnConsumablePlayed: true };
+    } else if (isKata(card)) {
+      nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
     }
     const playerFastestFocus = structuredFocusIfFastest(card, fighterStat(nextPlayer, "Speed"), fighterStat(current.ai, "Speed"));
     if (playerFastestFocus) nextPlayer = { ...nextPlayer, focus: nextPlayer.focus + playerFastestFocus };
@@ -3303,13 +3364,16 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const card = cardFor(id);
     const slot = current.market.indexOf(id);
     if (!card || slot < 0) return current;
-    const basePrice = marketBasePriceFor(current.player, card);
+    const marketEndSlot = slot === current.market.length - 1;
+    const basePrice = marketBasePriceFor(current.player, card, marketEndSlot);
     const price = previewQuickDuelCharacterPurchasePrice(current.player, basePrice);
     if (marketFocusAvailable(current.player, card) < price) return current;
     const focusBefore = current.player.focus;
     const characterPurchase = commitQuickDuelCharacterPurchase(current.player, current.ai, card, basePrice, "player");
     let nextPlayer: Board = spendMarketFocus(characterPurchase.self, card, characterPurchase.price);
     nextPlayer = stage3cConsumePurchase(markCompletedTask({ ...nextPlayer, discard: [...nextPlayer.discard, id], purchasedTypes: [...nextPlayer.purchasedTypes, card.cardType], cardsBought: nextPlayer.cardsBought + 1, boughtCardThisAscend: true, nextItemCostPenalty: card.cardType === "Item" ? 0 : nextPlayer.nextItemCostPenalty }), card);
+    const equipmentPurchase = applyStructuredEquipmentPurchase(nextPlayer, card, marketEndSlot);
+    nextPlayer = equipmentPurchase.board;
     const refilled = refillPurchasedMarketSlot(current.market, current.marketDeck, current.marketDiscard, slot);
     const purchased = write(current, `Bought ${card.name} for ${characterPurchase.price} Focus (${focusBefore} → ${nextPlayer.focus}). The top Market card immediately fills the slot.`, { player: nextPlayer, ai: characterPurchase.opponent, ...refilled, marketPurchasedThisRound: true });
     const revealedId = refilled.market[slot];
@@ -3490,8 +3554,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       : { attacker: nextAi, target: nextPlayer, notes: [] as string[] };
     nextAi = equipmentHit.attacker;
     nextPlayer = equipmentHit.target;
-    nextAi = applyCardEffects(nextAi, aiCard, "ai", hit ? "onHit" : "afterResolve");
-    if (hit) nextAi = applyCardEffects(nextAi, aiCard, "ai", "afterResolve");
+    nextAi = applyCardEffects(nextAi, aiCard, "ai", hit ? "onHit" : "afterResolve", { defenderPlayedDefense: Boolean(defenseCard) });
+    if (hit) nextAi = applyCardEffects(nextAi, aiCard, "ai", "afterResolve", { defenderPlayedDefense: Boolean(defenseCard) });
     const aiConsumableAttackFollowup = resolveConsumableAttackFollowupStatuses(nextAi.stage3cStatuses ?? [], { blocked: !hit, interferencePrevented: false });
     nextAi = {
       ...nextAi,
@@ -3685,8 +3749,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     nextAi = equipmentHit.target;
     if (defenseCard) nextAi = stage3cConsumeDefenseStatuses({ ...nextAi, hand: removeOne(nextAi.hand, defenseCard.id), playArea: [...nextAi.playArea, defenseCard.id], xp: nextAi.xp + 1, defendedThisRound: true, playedDefenseSinceLastTurn: true, blockedSinceLastTurn: !hit || Boolean(nextAi.blockedSinceLastTurn), blockedThisRound: !hit || Boolean(nextAi.blockedThisRound), nextDefenseCardBonus: 0 });
     if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };
-    nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve");
-    if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve");
+    nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve", { defenderPlayedDefense: Boolean(defenseCard) });
+    if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", { defenderPlayedDefense: Boolean(defenseCard) });
     let defenseFollowupNotes: string[] = [];
     if (defenseCard) {
       nextAi = applyCardEffects(nextAi, defenseCard, "ai", "onPlay");
@@ -3876,9 +3940,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }) : null;
     return { combo, evaluation, triggered: player.triggeredCombos.includes(id) };
   }).filter(Boolean) as { combo: CardEntry; evaluation: ReturnType<typeof evaluateCombo> | null; triggered: boolean }[];
-  const affordableNow = match.market.filter((id) => {
+  const affordableNow = match.market.filter((id, index) => {
     const card = cardFor(id);
-    return Boolean(card && marketFocusAvailable(player, card) >= marketPriceFor(player, card));
+    return Boolean(card && marketFocusAvailable(player, card) >= marketPriceFor(player, card, index === match.market.length - 1));
   }).length;
   const ascendStepIndex = deskView === "belt" ? 1 : 0;
   const ascendStepTitle = deskView === "combo" ? "Combo Docket" : deskView === "belt" ? "Belt Check" : "Acquisition Desk";
@@ -4011,7 +4075,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           {deskView === "market" && <section className="ascend-market" aria-label="Seven-card Shared Market">
             <header><div><span className="eyebrow">Seven live records · full cards</span><h3>Choose with the text visible</h3></div><p>{match.phase === "player-ascend" ? "Buy any number you can afford. Each purchase is replaced immediately by the top Market card." : "The row persists between rounds. If nobody buys for a full round, Market Mercy refreshes all seven cards."}</p></header>
             {match.phase === "player-ascend" && comboOffer && <FeaturedComboPanel card={comboOffer} focus={player.focus} discount={qualifiedNextComboLearnDiscount(player.stage3cStatuses).amount} learnedCount={player.learnedCombos.length} attempted={player.comboAttemptedTurn} onLearn={() => cycleCombo(true)} onPass={() => cycleCombo(false)} onContinue={() => setDeskView("belt")} onInspect={() => setInspectedId(comboOffer.id)} />}
-            <div className="ascend-market-grid">{match.market.map((id) => { const card = cardFor(id); if (!card) return null; const affordable = marketFocusAvailable(player, card) >= marketPriceFor(player, card); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
+            <div className="ascend-market-grid">{match.market.map((id, index) => { const card = cardFor(id); if (!card) return null; const affordable = marketFocusAvailable(player, card) >= marketPriceFor(player, card, index === match.market.length - 1); return <PlayCard key={id} card={card} selected={match.phase === "player-ascend" && affordable} disabled={match.phase !== "player-ascend" || !affordable} onClick={() => buyMarket(id)} onInspect={() => setInspectedId(id)} />; })}</div>
           </section>}
           {deskView === "combo" && <section className="ascend-combo combo-panel">
             <p className="combo-digital-note"><b>Learned Combos stay face up beside your fighter.</b> During Yell, the live Combo rack shows the printed requirement and previews whether your selected Attack will complete it. Supported payoffs fire automatically; anything not yet automated is labeled instead of being silently faked.</p>
@@ -4152,13 +4216,14 @@ function finishAiTurn(initial: Match, line: string, sceneChanges: boolean, house
       playArea: [...kataBoard.playArea, ascendKata.id],
       lastAttackHit: false,
     }, ascendKata, "ai", "onPlay", {}, true);
-    current = { ...current, ai: playedKata };
+    current = { ...current, ai: applyCardEffects(playedKata, ascendKata, "ai", "afterResolve") };
   }
-  const aiPurchase = current.market.filter((id) => marketPriceFor(current.ai, cardFor(id)) <= marketFocusAvailable(current.ai, cardFor(id))).sort((left, right) => aiMarketScore(cardFor(right)!, current.ai) - aiMarketScore(cardFor(left)!, current.ai))[0];
-  const purchasedCard = aiPurchase ? cardFor(aiPurchase) : null;
-  const aiBasePrice = purchasedCard ? marketBasePriceFor(current.ai, purchasedCard) : Number.POSITIVE_INFINITY;
+  const aiPurchase = current.market.map((id, index) => ({ id, marketEndSlot: index === current.market.length - 1 })).filter(({ id, marketEndSlot }) => marketPriceFor(current.ai, cardFor(id), marketEndSlot) <= marketFocusAvailable(current.ai, cardFor(id))).sort((left, right) => aiMarketScore(cardFor(right.id)!, current.ai) - aiMarketScore(cardFor(left.id)!, current.ai))[0];
+  const purchasedCard = aiPurchase ? cardFor(aiPurchase.id) : null;
+  const aiBasePrice = purchasedCard && aiPurchase ? marketBasePriceFor(current.ai, purchasedCard, aiPurchase.marketEndSlot) : Number.POSITIVE_INFINITY;
   const characterPurchase = purchasedCard ? commitQuickDuelCharacterPurchase(current.ai, current.player, purchasedCard, aiBasePrice, "ai") : null;
   let aiAfterPurchase = purchasedCard && characterPurchase ? stage3cConsumePurchase(markCompletedTask({ ...spendMarketFocus(characterPurchase.self, purchasedCard, characterPurchase.price), discard: [...characterPurchase.self.discard, purchasedCard.id], purchasedTypes: [...characterPurchase.self.purchasedTypes, purchasedCard.cardType], cardsBought: characterPurchase.self.cardsBought + 1 }), purchasedCard) : current.ai;
+  if (purchasedCard && aiPurchase && characterPurchase) aiAfterPurchase = applyStructuredEquipmentPurchase(aiAfterPurchase, purchasedCard, aiPurchase.marketEndSlot).board;
   const playerAfterPurchase = characterPurchase?.opponent ?? current.player;
   let market = current.market;
   let marketDeck = current.marketDeck;
@@ -4279,6 +4344,7 @@ function prepareAiTurn(current: Match) {
       nextAi = characterEquip.match.ai;
     }
     nextAi = applyCardEffects({ ...nextAi, hand: removeOne(nextAi.hand, id), playArea: [...nextAi.playArea, id], cardsThisTurn: [...nextAi.cardsThisTurn, id], focus: nextAi.focus + locationModifier.value, lastAttackHit: false }, card, "ai", "onPlay", isCoreConsumableCard(card) ? stage3cConsumableContext(nextAi) : {});
+    if (isKata(card)) nextAi = applyCardEffects(nextAi, card, "ai", "afterResolve");
     if (isPermanent(card)) {
       const beltName = belts[nextAi.belt]?.name ?? "White";
       for (const sourceId of nextAi.equipment) {
