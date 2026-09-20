@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentPurchaseResolution, structuredPostBlockCycle } from "../app/equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredPostBlockCycle } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
@@ -308,6 +308,11 @@ test("Equipment declaration and damage prevention share once-per-game destructio
   });
   assert.equal(stuntDoubleAgain.preventAll, false);
   assert.deepEqual(stuntDoubleAgain.matchedEffectIds, []);
+});
+
+test("canonical Equipment minimum-stat actions project through the generic resolver", () => {
+  assert.equal(structuredEquipmentMinimumSpeed({ catalogId: "DDB-WPN-CORE-018" }), 2);
+  assert.equal(structuredEquipmentMinimumSpeed({ catalogId: "DDB-DEQ-CORE-001" }), 0);
 });
 
 test("structured draw-discard Block choices use the shared post-Block cycle protocol", () => {

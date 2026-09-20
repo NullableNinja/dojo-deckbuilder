@@ -26,7 +26,7 @@ import { isCoreKataCard, kataEquipFromHandPlanForHost, kataRuntimeCommandsForHos
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentPurchaseResolution } from "./equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution } from "./equipment-structured.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
@@ -1791,7 +1791,15 @@ function fighterStat(board: Board, stat: "ATK" | "DEF" | "Speed") {
   }, 0);
   const challengeBonus = stat === "ATK" || stat === "DEF" ? board.statBoost ?? 0 : 0;
   if (stat === "Speed" && board.stage3cSpeedOverride !== null && board.stage3cSpeedOverride !== undefined) return board.stage3cSpeedOverride;
-  return base + beltBonus + equipment + challengeBonus + (stat === "Speed" ? board.tempSpeed : 0) + (stat === "ATK" ? (board.stage3cAttackModifier ?? 0) : 0) + (stat === "DEF" ? (board.stage3cDefenseModifier ?? 0) : 0);
+  const value = base + beltBonus + equipment + challengeBonus + (stat === "Speed" ? board.tempSpeed : 0) + (stat === "ATK" ? (board.stage3cAttackModifier ?? 0) : 0) + (stat === "DEF" ? (board.stage3cDefenseModifier ?? 0) : 0);
+  if (stat !== "Speed") return value;
+  const minimumSpeedValues = board.equipment
+    .map(cardFor)
+    .filter((card): card is CardEntry => Boolean(card && isPermanent(card)))
+    .map((card) => structuredEquipmentMinimumSpeed(card))
+    .map((floor) => floor == null ? 0 : floor);
+  const minimumSpeed = Math.max(0, ...minimumSpeedValues);
+  return Math.max(value, minimumSpeed);
 }
 
 function incomingAttackEquipmentModifier(defender: Board): AttackModifier {

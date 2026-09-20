@@ -522,6 +522,28 @@
       ],
       "implementation": "generic-or-resolver-for-conditions"
     },
+    "combat.minimumSpeed": {
+      "category": "combat-stat",
+      "action": "minimumSpeed",
+      "description": "Set a fighter's minimum Speed while the source Equipment remains equipped.",
+      "amount": {
+        "required": true,
+        "minimum": 0
+      },
+      "defaultTarget": "self",
+      "allowedTargets": [
+        "self",
+        "source"
+      ],
+      "allowedTriggers": [
+        "passive",
+        "onEquip"
+      ],
+      "allowedDurations": [
+        "whileEquipped"
+      ],
+      "implementation": "generic"
+    },
     "combat.dealDamage": {
       "category": "damage",
       "action": "dealDamage",

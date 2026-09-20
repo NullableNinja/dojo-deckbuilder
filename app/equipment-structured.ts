@@ -17,8 +17,8 @@ type Condition = { kind?: string; operator?: string; value?: unknown };
 export type EquipmentRegistryEffect = {
   id?: string;
   effect?: string;
-  trigger?: string;
   action?: string;
+  trigger?: string;
   target?: string;
   amount?: number;
   duration?: string;
@@ -439,6 +439,17 @@ export function structuredOnEquipPlan(card: EquipmentCardLike, enteringCard?: Eq
     else unsupported.push(effect.id ?? "unknown-on-equip-effect");
   }
   return { readyOther, exhaustSource, draw, discard, nextAttackPower, unsupported };
+}
+
+/** Returns a canonical lower bound for a stat while the Equipment is equipped. */
+export function structuredEquipmentMinimumSpeed(card: EquipmentCardLike): number | null {
+  const effects = structuredEquipmentEffects(card);
+  if (!effects) return null;
+  const floors = effects
+    .filter((effect) => effect.effect === "combat.minimumSpeed" && effect.action === "minimumSpeed" && effect.trigger === "passive" && effect.target === "self" && effect.duration === "whileEquipped")
+    .map((effect) => Number(effect.amount ?? 0))
+    .filter((amount) => Number.isFinite(amount) && amount > 0);
+  return floors.length ? Math.max(...floors) : 0;
 }
 
 export type EquipmentRuntimeResolution = {

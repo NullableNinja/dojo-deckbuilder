@@ -3494,7 +3494,7 @@
       "effects": [
         {
           "id": "equipment-wpn-018-speed-floor-2",
-          "effect": "core.custom",
+          "effect": "combat.minimumSpeed",
           "trigger": "passive",
           "target": "self",
           "amount": 2,
