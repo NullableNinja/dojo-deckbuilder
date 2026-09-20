@@ -294,7 +294,9 @@ export function kataRuntimeCommandsForHost(
       effect,
       trigger,
       target: "self",
-      amount: Number(command.amount ?? command.params?.discount ?? 0),
+      amount: resolver === "kata.purchaseDiscount" || resolver === "kata.comboDiscount"
+        ? -Math.abs(Number(command.amount ?? command.params?.discount ?? 0))
+        : Number(command.amount ?? 0),
       duration,
       resolver,
       conditions: [],
