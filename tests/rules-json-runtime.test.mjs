@@ -7,11 +7,14 @@ import {
   publishQuickDuelPlaytestLifecycleEvent,
   resolveQuickDuelPlaytestCharacterChoice,
 } from "../app/quick-duel-playtest-host.ts";
+import { chooseAiReactionItem, resolveQuickDuelReactionItem } from "../app/reaction-item-runtime.ts";
+import { resolveNextDamagePreventionStatuses } from "../app/structured-damage-prevention.ts";
 
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, import.meta.url), "utf8"));
 const cards = (await readJson("../content/cards.json")).cards ?? [];
 const comboEffects = (await readJson("../content/card-effects/combos.json")).cards ?? {};
 const characterEffects = (await readJson("../content/card-effects/characters.json")).cards ?? {};
+const reactionEffects = (await readJson("../content/card-effects/reactions.json")).cards ?? {};
 const byCatalogId = new Map(cards.map((card) => [card.catalogId, card]));
 const byId = new Map(cards.map((card) => [card.id, card]));
 const attack = (id, zone = "Mid") => ({ id, name: id, cardType: "Technique", subtype: "Attack", tags: [], zone });
@@ -111,6 +114,63 @@ test("canonical Combo effects execute through the Quick Duel host", () => {
   }
   assert.ok(executed, "a canonical piercing Combo must execute through the host for the representative Kata → Attack sequence");
   assert.equal(executed.prepared.match.ai.triggeredCombos.length, 0);
+});
+
+test("canonical Reaction Items execute through the Quick Duel declaration host for player and AI", () => {
+  const reactionCard = (resolver) => {
+    const catalogId = Object.entries(reactionEffects)
+      .find(([, entry]) => entry.effects?.some((effect) => effect.resolver === resolver))?.[0];
+    assert.ok(catalogId, `canonical Reaction Item registry must expose ${resolver}`);
+    const card = byCatalogId.get(catalogId);
+    assert.ok(card, `canonical catalog must expose ${catalogId}`);
+    return card;
+  };
+  const wetFloor = reactionCard("reaction.reduceDeclaredAttackPower");
+  const elbowPad = reactionCard("reaction.preventIncomingDamage");
+  const foldingMat = reactionCard("reaction.defenseAgainstIncomingAttack");
+  const xrayCatalogId = Object.entries(reactionEffects)
+    .find(([, entry]) => entry.effects?.some((effect) => effect.resolver === "reaction.preventIncomingDamage" && effect.amount === 0))?.[0];
+  const xray = byCatalogId.get(xrayCatalogId);
+  assert.ok(xray, "canonical Reaction Item registry must expose zero-damage prevention");
+
+  const incomingLow = { incomingAttackTargetsSelf: true, incomingZones: ["Low"] };
+  const playerWetFloor = resolveQuickDuelReactionItem({
+    card: wetFloor,
+    self: board({ hand: [wetFloor.id] }),
+    opponent: board({ fighterId: "ai-fighter" }),
+    strike: { attackPower: 8, zone: "Low" },
+    trigger: "onAttackDeclared",
+    context: incomingLow,
+  });
+  assert.equal(playerWetFloor.applied, true);
+  assert.equal(playerWetFloor.strike.attackPower, 5);
+  assert.ok(!playerWetFloor.self.hand.includes(wetFloor.id));
+  assert.ok(playerWetFloor.self.destroyed.includes(wetFloor.id));
+
+  const playerMat = resolveQuickDuelReactionItem({
+    card: foldingMat,
+    self: board({ hand: [foldingMat.id] }),
+    opponent: board({ fighterId: "ai-fighter" }),
+    strike: { attackPower: 8, zone: "Mid" },
+    trigger: "onAttackDeclared",
+    context: { incomingAttackTargetsSelf: true, incomingZones: ["Mid"] },
+  });
+  assert.equal(playerMat.self.stage3cStatuses[0].effect, "combat.modifyDefense");
+  assert.equal(playerMat.self.stage3cStatuses[0].duration, "nextIncomingAttack");
+
+  const aiChoice = chooseAiReactionItem([elbowPad, xray], { incomingAttackTargetsSelf: true, incomingZones: ["High"] });
+  assert.equal(aiChoice.id, xray.id, "AI picks the strongest legal canonical prevention plan");
+  const aiXray = resolveQuickDuelReactionItem({
+    card: aiChoice,
+    self: board({ fighterId: "ai-fighter", hand: [aiChoice.id] }),
+    opponent: board(),
+    strike: { attackPower: 9, zone: "High" },
+    trigger: "onAttackDeclared",
+    context: { incomingAttackTargetsSelf: true, incomingZones: ["High"] },
+  });
+  const prevented = resolveNextDamagePreventionStatuses(aiXray.self.stage3cStatuses, 9, "Attack");
+  assert.equal(prevented.damage, 0);
+  assert.ok(aiXray.self.destroyed.includes(xray.id));
 });
 
 test("structured lifecycle effects mutate the acting board only", () => {
