@@ -444,15 +444,15 @@ function equipmentSuppressionForZone(attacker: Board, defender: Board, zone: str
     if (!defender.equipment.includes(id)) continue;
     const equipment = cardFor(id);
     if (!equipment) continue;
-    const contribution = defenseEquipmentBonus(equipment, zone) || passiveEquipmentGuard(equipment);
+    const contribution = defenseEquipmentBonus(equipment, zone, { selfIsLowestXp: defender.xp <= attacker.xp }) || passiveEquipmentGuard(equipment);
     amount += Math.min(Math.max(0, Number(penalty) || 0), Math.max(0, contribution));
   }
   return amount;
 }
-function suppressionCandidates(defender: Board, zone: string) {
+function suppressionCandidates(defender: Board, zone: string, attacker?: Board) {
   return defender.equipment.filter((id) => {
     const equipment = cardFor(id);
-    return Boolean(equipment && (defenseEquipmentBonus(equipment, zone) > 0 || passiveEquipmentGuard(equipment) > 0));
+    return Boolean(equipment && (defenseEquipmentBonus(equipment, zone, { selfIsLowestXp: attacker ? defender.xp <= attacker.xp : false }) > 0 || passiveEquipmentGuard(equipment) > 0));
   });
 }
 
@@ -577,7 +577,7 @@ function printedAttackRuleModifier(attacker: Board, defender: Board, card: CardE
   const printed = conditionalAttackPowerBonus(card, {
     playedKata,
     firstAttack: attacker.attacksThisTurn === 0,
-    matchingArmor: Math.max(0, equipmentDefenseModifier(defender, zone).value - equipmentSuppressionForZone(attacker, defender, zone)) > 0,
+    matchingArmor: Math.max(0, equipmentDefenseModifier(defender, zone, { opponentXp: attacker.xp }).value - equipmentSuppressionForZone(attacker, defender, zone)) > 0,
     targetEquipmentCount: defender.equipment.length,
     attackNumber: attacker.attacksThisTurn + 1,
     hasTempo: attacker.tempo,
@@ -645,7 +645,7 @@ function structuredAttackCyclePlan(board: Board, card: CardEntry, zone: string, 
 }
 
 function attackPiercingModifier(attacker: Board, defender: Board, card: CardEntry, zone: string, comboPiercing = 0) {
-  const matchingArmor = Math.max(0, equipmentDefenseModifier(defender, zone).value - equipmentSuppressionForZone(attacker, defender, zone)) > 0;
+  const matchingArmor = Math.max(0, equipmentDefenseModifier(defender, zone, { opponentXp: attacker.xp }).value - equipmentSuppressionForZone(attacker, defender, zone)) > 0;
   const direct = attackPiercing(card, { matchingArmor, targetEquipmentCount: defender.equipment.length, targetHasExhaustedEquipment: Boolean(defender.exhaustedEquipment?.length), speedChangedThisRound: Boolean(attacker.speedChangedThisRound) });
   const equipped = attacker.equipment.map(cardFor).filter((item): item is CardEntry => Boolean(item));
   const equipment = equipmentPiercing(equipped, { firstAttack: attacker.attacksThisTurn === 0, zone, matchingArmor, attackTags: card.tags });
@@ -1397,7 +1397,7 @@ function applyKataHideEffects(board: Board, controller: "player" | "ai") {
 }
 
 function stage3cDefenseContext(defender: Board, attacker: Board, _defense: CardEntry, incomingAttack: CardEntry, zone: string, attackPower?: number, incomingDamage?: number, blockSucceeded?: boolean): DefenseRuntimeContext & { weaponAttack: boolean; defenderAttackedThisRound: boolean } {
-  const matchingArmor = equipmentDefenseModifier(defender, zone).value > 0;
+  const matchingArmor = equipmentDefenseModifier(defender, zone, { opponentXp: attacker.xp }).value > 0;
   return {
     hasTempo: defender.tempo,
     weaponAttack: hasTag(incomingAttack, "Weapon") || attacker.equipment.some((id) => { const item = cardFor(id); return Boolean(item && isWeapon(item)); }),
@@ -1859,13 +1859,16 @@ function incomingAttackEquipmentModifier(defender: Board): AttackModifier {
   };
 }
 
-function equipmentDefenseModifier(board: Board, zone: string, context: { weaponAttack?: boolean; firstIncomingAttack?: boolean; hasTempo?: boolean; selfIsLowestXp?: boolean; consumableUsedThisRound?: boolean } = {}): CombatModifier {
+function equipmentDefenseModifier(board: Board, zone: string, context: { weaponAttack?: boolean; firstIncomingAttack?: boolean; hasTempo?: boolean; selfIsLowestXp?: boolean; opponentXp?: number; consumableUsedThisRound?: boolean } = {}): CombatModifier {
   let value = 0;
   const notes: string[] = [];
   for (const id of board.equipment) {
     const card = cardFor(id);
     if (!card) continue;
-    const bonus = defenseEquipmentBonus(card, zone, context);
+    const bonus = defenseEquipmentBonus(card, zone, {
+      ...context,
+      selfIsLowestXp: context.selfIsLowestXp ?? (context.opponentXp !== undefined && board.xp <= context.opponentXp),
+    });
     if (!bonus) continue;
     value += bonus;
     notes.push(`${card.name} +${bonus} DEF vs ${zone}`);
@@ -2123,7 +2126,7 @@ function bestDefense(board: Board, zone: string, attackPower = Number.POSITIVE_I
     const modifier = locationDefenseModifier(location, card, board, zone).value;
     const printed = incomingAttack && attacker ? defenseCardRuleModifier(board, attacker, card, incomingAttack).value : 0;
     const suppression = attacker ? equipmentSuppressionForZone(attacker, board, zone) : 0;
-    return { id, total: fighterStat(board, "DEF") + piercedArmorModifier(applyNextAttackArmorPenalty(equipmentDefenseModifier(board, zone), armorPenalty + suppression), piercing).value + stage3cIncomingAttackDefenseBonus(board) + cardPower(card) + (board.nextDefenseCardBonus ?? 0) + stage3cNextDefenseGuardBonus(board) + printed + modifier };
+    return { id, total: fighterStat(board, "DEF") + piercedArmorModifier(applyNextAttackArmorPenalty(equipmentDefenseModifier(board, zone, { opponentXp: attacker?.xp }), armorPenalty + suppression), piercing).value + stage3cIncomingAttackDefenseBonus(board) + cardPower(card) + (board.nextDefenseCardBonus ?? 0) + stage3cNextDefenseGuardBonus(board) + printed + modifier };
   }).sort((left, right) => left.total - right.total);
   const efficientBlock = ranked.find((entry) => entry.total >= attackPower);
   if (efficientBlock) return efficientBlock.id;
@@ -2746,7 +2749,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const incomingModifier = incomingAttackEquipmentModifier(current.ai);
     const armedEquipment = armedEquipmentAttackModifier(current.player, zone);
     const aiIncomingReaction = autoActivateAiIncomingEquipment(current.ai, zone);
-    const rawArmorModifier = equipmentDefenseModifier(aiIncomingReaction.board, zone);
+    const rawArmorModifier = equipmentDefenseModifier(aiIncomingReaction.board, zone, { opponentXp: current.player.xp });
     const persistentSuppression = equipmentSuppressionForZone(current.player, aiIncomingReaction.board, zone);
     const armorPenalty = current.player.nextAttackArmorPenalty ?? 0;
     const penalizedArmorModifier = applyNextAttackArmorPenalty(rawArmorModifier, armorPenalty + persistentSuppression);
@@ -2887,7 +2890,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       nextPlayer = applyStage3CTiming(nextPlayer, defenseCard, "afterResolve", "player", familyDefenseContext, "opponent");
     }
     if (!hit) {
-      const equipmentBlock = applyStructuredEquipmentBlock(nextAi, nextPlayer, card, defenseCard, zone, equipmentDefenseModifier(nextAi, zone).value > 0, !current.ai.blockedThisRound);
+      const equipmentBlock = applyStructuredEquipmentBlock(nextAi, nextPlayer, card, defenseCard, zone, equipmentDefenseModifier(nextAi, zone, { opponentXp: nextPlayer.xp }).value > 0, !current.ai.blockedThisRound);
       nextAi = equipmentBlock.board;
       nextPlayer = equipmentBlock.opponent;
       equipmentBlockNotes = equipmentBlock.notes;
@@ -2905,7 +2908,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const readyOnHit = hit ? readyEquipmentOnHit(card) : 0;
     const optionalCycle = !nextAi.hp ? null : optionalDiscardDrawChoice(card);
     const suppression = hit ? finalAttackEquipmentSuppression(card) : 0;
-    const suppressionTargets = suppression ? suppressionCandidates(nextAi, zone) : [];
+    const suppressionTargets = suppression ? suppressionCandidates(nextAi, zone, nextPlayer) : [];
     const hitChoice = hit ? finalAttackHitChoice(card) : null;
     const pendingChoice: PendingChoice | null = suppressionTargets.length
       ? { kind: "attack-equipment-target", sourceCardId: card.id, candidates: suppressionTargets, amount: suppression }
@@ -3656,14 +3659,14 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       }
     }
     let nextPlayer = { ...current.player };
-    const matchingArmor = equipmentDefenseModifier(nextPlayer, pending.zone).value > 0;
+    const matchingArmor = equipmentDefenseModifier(nextPlayer, pending.zone, { opponentXp: current.ai.xp }).value > 0;
     const exhaustedPiercingBonus = !pending.targetExhaustedAtDeclaration && (nextPlayer.exhaustedEquipment ?? []).length
       ? Math.max(0,
           attackPiercing(aiCard, { matchingArmor, targetEquipmentCount: nextPlayer.equipment.length, targetHasExhaustedEquipment: true, speedChangedThisRound: Boolean(current.ai.speedChangedThisRound) }).amount
           - attackPiercing(aiCard, { matchingArmor, targetEquipmentCount: nextPlayer.equipment.length, targetHasExhaustedEquipment: false, speedChangedThisRound: Boolean(current.ai.speedChangedThisRound) }).amount)
       : 0;
     const effectivePiercing = (pending.piercing ?? 0) + exhaustedPiercingBonus;
-    const armorModifier = piercedArmorModifier(applyNextAttackArmorPenalty(equipmentDefenseModifier(nextPlayer, pending.zone), pending.armorPenalty ?? 0), effectivePiercing);
+    const armorModifier = piercedArmorModifier(applyNextAttackArmorPenalty(equipmentDefenseModifier(nextPlayer, pending.zone, { opponentXp: current.ai.xp }), pending.armorPenalty ?? 0), effectivePiercing);
     const defenseCardModifier = defenseCard ? defenseCardRuleModifier(nextPlayer, current.ai, defenseCard, aiCard) : { value: 0, notes: [] as string[] };
     const reactionDefense = defenseCard && isCoreReactionItemCard(defenseCard)
       ? resolveQuickDuelReactionItemEvent({
@@ -3902,7 +3905,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const fighterModifier = characterAttackModifierFromDeclaration(declaration);
     const printedModifier = printedAttackRuleModifier(current.player, current.ai, card, zone, true);
     const incomingModifier = incomingAttackEquipmentModifier(current.ai);
-    const rawArmorModifier = equipmentDefenseModifier(current.ai, zone);
+    const rawArmorModifier = equipmentDefenseModifier(current.ai, zone, { opponentXp: current.player.xp });
     const piercingModifier = attackPiercingModifier(current.player, current.ai, card, zone, preparedComboAttack.attackFacts.piercing);
     const armorModifier = piercedArmorModifier(rawArmorModifier, piercingModifier.value);
     const stage3cReversalBonus = stage3cAttackPowerBonus(current.player, card, zone, true);

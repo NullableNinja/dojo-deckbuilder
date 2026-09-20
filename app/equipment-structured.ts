@@ -126,6 +126,7 @@ export type EquipmentDefenseContext = {
   firstIncomingAttack?: boolean;
   hasTempo?: boolean;
   selfIsLowestXp?: boolean;
+  opponentXp?: number;
   consumableUsedThisRound?: boolean;
 };
 
@@ -133,6 +134,7 @@ export function structuredDefenseEquipmentBonus(card: EquipmentCardLike, zone: s
   const effects = structuredEquipmentEffects(card);
   if (!effects) return null;
   const relevant = effects.filter((effect) => effect.effect === "equipment.modifyDefenseContribution" && effect.trigger === "passive" && effect.target === "self");
+  const conditionalCustom = effects.filter((effect) => effect.effect === "core.custom" && effect.trigger === "passive" && effect.target === "self" && (effect.conditions ?? []).some((condition) => String(condition.kind) === "selfIsLowestXp"));
   const hasUnconditionalStatic = relevant.some((effect) => {
     const conditionalKinds = new Set(["incomingAttackUsesWeapon", "firstIncomingAttackThisRound", "hasTempo", "selfIsLowestXp", "consumableUsedThisRound"]);
     return !(effect.conditions ?? []).some((condition) => conditionalKinds.has(String(condition.kind)));
@@ -150,6 +152,9 @@ export function structuredDefenseEquipmentBonus(card: EquipmentCardLike, zone: s
   for (const effect of relevant) {
     if (!equipmentConditionsMatch(effect, runtime)) continue;
     amount += Number(effect.amount ?? 0);
+  }
+  for (const effect of conditionalCustom) {
+    if (equipmentConditionsMatch(effect, runtime)) amount += Number(effect.amount ?? 0);
   }
   return amount;
 }

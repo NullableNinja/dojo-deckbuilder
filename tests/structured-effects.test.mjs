@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
+import { structuredDefenseEquipmentBonus, structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
@@ -330,6 +330,13 @@ test("Equipment declaration and damage prevention share once-per-game destructio
 test("canonical Equipment minimum-stat actions project through the generic resolver", () => {
   assert.equal(structuredEquipmentMinimumSpeed({ catalogId: "DDB-WPN-CORE-018" }), 2);
   assert.equal(structuredEquipmentMinimumSpeed({ catalogId: "DDB-DEQ-CORE-001" }), 0);
+});
+
+test("conditional Equipment defense uses the canonical lowest-XP fact", () => {
+  const shield = cardsByCatalogId.get("DDB-DEQ-CORE-032");
+  assert.ok(shield);
+  assert.equal(structuredDefenseEquipmentBonus(shield, "High", { selfIsLowestXp: false }), 1);
+  assert.equal(structuredDefenseEquipmentBonus(shield, "High", { selfIsLowestXp: true }), 2);
 });
 
 test("threshold Equipment protection destroys its source and creates an expiring target lock", () => {
