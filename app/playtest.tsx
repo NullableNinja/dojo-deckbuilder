@@ -26,7 +26,7 @@ import { isCoreKataCard, kataEquipFromHandPlanForHost, kataRuntimeCommandsForHos
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution } from "./equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
@@ -1225,6 +1225,36 @@ function applyStructuredEquipmentDamagePrevention(board: Board, damage: number) 
     damage: resolution.preventAll ? 0 : damage,
     notes: resolution.preventAll ? ["Equipment prevents all incoming damage and is destroyed"] : [],
   };
+}
+
+function applyStructuredEquipmentThresholdProtection(board: Board, damageTaken: number) {
+  const equipment = board.equipment.map(cardFor).filter((card): card is CardEntry => Boolean(card && isPermanent(card)));
+  const resolution = structuredEquipmentThresholdProtection(equipment, {
+    hp: board.hp,
+    damageTaken,
+    usedEffectIdsThisGame: board.equipmentEffectIdsThisGame,
+  });
+  if (!resolution.matchedEffectIds.length) return { board, notes: [] as string[] };
+  let next = board;
+  for (const sourceId of resolution.destroySourceIds) next = destroyEquipment(next, sourceId);
+  next = {
+    ...next,
+    equipmentEffectIdsThisGame: [...new Set([...(next.equipmentEffectIdsThisGame ?? []), ...resolution.matchedEffectIds])],
+    stage3cStatuses: [
+      ...(next.stage3cStatuses ?? []),
+      ...resolution.statuses.map((status) => ({
+        sourceEffectId: status.sourceEffectId,
+        effect: "combat.untargetable",
+        target: "self" as const,
+        amount: 0,
+        duration: status.duration,
+        resolver: "equipment.thresholdProtection",
+        qualifier: { untargetable: true, expiresOnAttack: status.expiresOnAttack },
+        appliedImmediately: false,
+      })),
+    ],
+  };
+  return { board: next, notes: ["Emergency protection activates at 5 HP or less; the source Equipment is destroyed"] };
 }
 
 function reduceNonCharacterDamageForFighter(board: Board, damage: number): { board: Board; damage: number; note: string | null } {
@@ -2784,6 +2814,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (current.player.flowAfterFirstAttack && current.player.attacksThisTurn === 0) nextPlayer = { ...nextPlayer, flowAfterFirstAttack: false, nextAttackHasFlow: true };
     if (!hit && armedEquipment.blockedFocus) nextPlayer = gainFocus(nextPlayer, armedEquipment.blockedFocus);
     let nextAi: Board = { ...optionalReduced.board, hp: Math.max(0, optionalReduced.board.hp - damage), attacksReceivedThisRound: (optionalReduced.board.attacksReceivedThisRound ?? 0) + 1, combatDamageEventsThisRound: (optionalReduced.board.combatDamageEventsThisRound ?? 0) + (reduced.damage > 0 ? 1 : 0), wasHitSinceLastTurn: optionalReduced.board.wasHitSinceLastTurn || hit, damageTaken: optionalReduced.board.damageTaken + damage };
+    const thresholdProtection = applyStructuredEquipmentThresholdProtection(nextAi, damage);
+    nextAi = thresholdProtection.board;
     nextAi = resolveReactionItemIncomingAttackOutcome(nextAi, hit);
     nextAi = stage3cConsumeIncomingAttackStatuses(nextAi);
     const targetDebuff = hit ? applyTargetHitDebuffs(nextAi, card, { previousCardIsItem }) : { board: nextAi, notes: [] as string[] };
@@ -2870,7 +2902,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "player", card, zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...incomingEquipmentResponse.notes, ...aiIncomingReaction.notes, ...(aiReactionCard && aiDeclaredReaction ? [`${aiReactionCard.name}: ${aiDeclaredReaction.notes.join(", ")}`] : []), ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...equipmentBlockNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...armedEquipment.notes, ...incomingEquipmentResponse.notes, ...thresholdProtection.notes, ...aiIncomingReaction.notes, ...(aiReactionCard && aiDeclaredReaction ? [`${aiReactionCard.name}: ${aiDeclaredReaction.notes.join(", ")}`] : []), ...aiConsumableReaction.notes, ...aiDefenseReaction.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...targetDiscardNotes, ...defenseFollowupNotes, ...equipmentBlockNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...consumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = { id: exchangeId(current, "player", card.id), actor: "player", target: "ai", attackCardId: card.id, defenseCardId: defenseCard?.id ?? null, zone, attackPower, defensePower, damage, outcome: hit ? "hit" : "block", notes: modifiers };
     return write(current, `${tempoBonus ? "Tempo +1. " : ""}${result} Attack ${attackPower} vs Defense ${defensePower}.${flowDraw ? " Flow draws 1 card." : ""}${conditionalCycle.draw ? ` Printed effect draws ${conditionalCycle.draw}.` : ""}${cycleDiscardCount ? ` Choose ${cycleDiscardCount} discard${cycleDiscardCount === 1 ? "" : "s"}.` : ""}${pendingChoice && !cycleDiscardCount ? " Optional discard/draw decision is waiting." : ""}${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, pendingChoice, airHornPassedReactionIds: [], airHornAiConsumableSpentThisStrike: false, airHornAiDefenseSpentThisStrike: false, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: !nextPlayer.hp ? "ai" : nextAi.hp ? null : "player" });
   };
@@ -3670,6 +3702,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       preventionNotes.unshift(`${cardFor(prevention.sourceCardId)?.name ?? "Equipment"} reduces combat damage ${damageBeforeOptional} → ${damage}`);
     }
     nextPlayer = { ...reducedBoard, hp: Math.max(0, reducedBoard.hp - damage), combatDamageEventsThisRound: (reducedBoard.combatDamageEventsThisRound ?? 0) + (damageBeforeOptional > 0 ? 1 : 0), wasHitSinceLastTurn: reducedBoard.wasHitSinceLastTurn || hit, damageTaken: reducedBoard.damageTaken + damage };
+    const thresholdProtection = applyStructuredEquipmentThresholdProtection(nextPlayer, damage);
+    nextPlayer = thresholdProtection.board;
     nextPlayer = resolveReactionItemIncomingAttackOutcome(nextPlayer, hit);
     const targetDebuff = hit ? applyTargetHitDebuffs(nextPlayer, aiCard, { previousCardIsItem: Boolean(pending.previousCardWasItem) }) : { board: nextPlayer, notes: [] as string[] };
     nextPlayer = { ...targetDebuff.board, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: (targetDebuff.board.reversalAttackBonus ?? 0) + reversalEquipmentBonus };
@@ -3732,7 +3766,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     hostedComboMatch = hostQuickDuelPlaytestCardEvent(hostedComboMatch, "ai", aiCard, pending.zone, cardFor, "afterResolve", quickDuelHostOperations, { currentAttackHit: hit, currentDefense: defenseCard, currentDefenseBlocked: Boolean(defenseCard && !hit) }).match;
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
-    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...armorModifier.notes, ...defenseCardModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...equipmentBlockNotes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...aiConsumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
+    const modifiers = [...(pending.modifierNotes ?? []), ...(defenseCard ? [`${defenseCard.name} +${cardPower(defenseCard)} Guard`] : []), ...(exhaustedPiercingBonus ? [`Exhausted Equipment adds Piercing ${exhaustedPiercingBonus}`] : []), ...((current.player.equipmentDefenseGuard ?? 0) ? [`Equipment reaction +${current.player.equipmentDefenseGuard} Guard`] : []), ...(reversalEquipmentBonus ? [`Block primes Reversal +${reversalEquipmentBonus} Attack Power`] : []), ...thresholdProtection.notes, ...armorModifier.notes, ...defenseCardModifier.notes, ...postDefensePower.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...equipmentBlockNotes, ...aiCycleNotes, ...aiTriggeredEquipment.notes, ...aiConsumableAttackFollowup.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : []), ...preventionNotes];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "ai", aiCard.id),
       actor: "ai",
@@ -3866,6 +3900,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     let nextPlayer = applyCardEffects({ ...stage3cConsumeAttackStatuses(current.player, card, zone, true), hand: removeOne(current.player.hand, card.id), playArea: [...current.player.playArea, card.id], xp: current.player.xp + 1, attackedThisRound: true, zonesPlayed: [...current.player.zonesPlayed, zone], cardsThisTurn: [...current.player.cardsThisTurn, card.id], nextAttackAnyZone: false, reversalUsedRound: true, reversalAttackBonus: 0, triggeredCombos: current.player.triggeredCombos, comboTriggered: current.player.comboTriggered, damageDealt: current.player.damageDealt + damage }, card, "player");
     nextPlayer.focus = Math.max(0, nextPlayer.focus - cardFocus(card));
     let nextAi: Board = { ...optionalReduced.board, hp: Math.max(0, optionalReduced.board.hp - damage), attacksReceivedThisRound: (optionalReduced.board.attacksReceivedThisRound ?? 0) + 1, combatDamageEventsThisRound: (optionalReduced.board.combatDamageEventsThisRound ?? 0) + (reduced.damage > 0 ? 1 : 0), damageTaken: optionalReduced.board.damageTaken + damage, wasHitSinceLastTurn: optionalReduced.board.wasHitSinceLastTurn || hit };
+    const thresholdProtection = applyStructuredEquipmentThresholdProtection(nextAi, damage);
+    nextAi = thresholdProtection.board;
     nextAi = stage3cConsumeIncomingAttackStatuses(nextAi);
     const targetDebuff = hit ? applyTargetHitDebuffs(nextAi, card, { previousCardIsItem }) : { board: nextAi, notes: [] as string[] };
     nextAi = targetDebuff.board;
@@ -3895,7 +3931,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     nextPlayer = hostedComboMatch.player;
     nextAi = hostedComboMatch.ai;
     nextPlayer = markCompletedTask(nextPlayer);
-    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...incomingEquipmentResponse.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
+    const modifiers = [...locationModifier.notes, ...fighterModifier.notes, ...printedModifier.notes, ...incomingModifier.notes, ...incomingEquipmentResponse.notes, ...thresholdProtection.notes, ...piercingModifier.notes, ...armorModifier.notes, ...postDefensePower.notes, ...defenseCardModifier.notes, ...defenseModifier.notes, ...targetDebuff.notes, ...equipmentHit.notes, ...defenseFollowupNotes, ...optionalReduced.notes, ...aiPostBlock.notes, ...characterDamage.notes, ...(reduced.note ? [reduced.note] : [])];
     const lastExchange: PlaytestCombatExchange = {
       id: exchangeId(current, "player", card.id),
       actor: "player",

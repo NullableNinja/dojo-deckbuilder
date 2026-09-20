@@ -79,6 +79,7 @@ function conditionMatches(condition: Condition, context: Record<string, unknown>
   const actual = context[kind];
   if (kind === "minimumBelt") return beltAtLeast(context.beltName, expected);
   if (["choiceKind", "scheduledTiming", "firstAttackWithTagThisTurn", "attackHasTag", "nextAttackHasTag", "minimumFinalCost", "sourceAffectedCountThreshold", "minimumDraw", "nextPurchaseOnly", "draw", "discard", "sameRoundOnly", "sameTurnOnly", "nextAttackDifferentZone"].includes(kind)) return true;
+  if (kind === "targetHpAtMost") return Number(context.hp) <= Number(expected);
   if (["resolvedCardType", "defenderPlayedDefense", "goldBeltExamThirdZone", "purchaseCompleted", "marketEndSlot"].includes(kind)) return actual === expected;
   if (["oncePerTurn", "oncePerRound"].includes(kind)) return Boolean(actual) === Boolean(expected);
   if (kind === "attackHasAnyTag") {
@@ -608,6 +609,56 @@ export function structuredEquipmentDamagePrevention(
       if (usedThisGame.has(effectId)) continue;
       result.preventAll = true;
       result.destroySourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      result.matchedEffectIds.push(effectId);
+    }
+  }
+  return result;
+}
+
+export type EquipmentThresholdProtectionContext = {
+  hp: number;
+  damageTaken: number;
+  usedEffectIdsThisGame?: string[];
+};
+
+export type EquipmentThresholdProtectionResolution = {
+  handled: boolean;
+  destroySourceIds: string[];
+  statuses: Array<{ sourceEffectId: string; duration: "nextTurn"; expiresOnAttack: boolean }>;
+  matchedEffectIds: string[];
+  unsupported: string[];
+};
+
+/** Resolves threshold-triggered protection after damage has actually landed. */
+export function structuredEquipmentThresholdProtection(
+  cards: EquipmentCardLike[],
+  context: EquipmentThresholdProtectionContext,
+): EquipmentThresholdProtectionResolution {
+  const result: EquipmentThresholdProtectionResolution = {
+    handled: false,
+    destroySourceIds: [],
+    statuses: [],
+    matchedEffectIds: [],
+    unsupported: [],
+  };
+  if (context.damageTaken <= 0) return result;
+  const usedThisGame = new Set(context.usedEffectIdsThisGame ?? []);
+  for (const card of cards) {
+    const effects = structuredEquipmentEffects(card);
+    if (!effects) continue;
+    result.handled = true;
+    for (const effect of effects.filter((candidate) => candidate.trigger === "passive")) {
+      const effectId = String(effect.id ?? "unknown-equipment-threshold-effect");
+      if (effect.effect !== "combat.untargetable" || effect.target !== "self" || effect.duration !== "nextTurn") continue;
+      const values = {
+        hp: context.hp,
+        targetHpAtMost: context.hp,
+        damageTaken: context.damageTaken,
+        oncePerGame: !usedThisGame.has(effectId),
+      };
+      if (!equipmentConditionsMatch(effect, values)) continue;
+      result.destroySourceIds.push(String(card.id ?? card.catalogId ?? ""));
+      result.statuses.push({ sourceEffectId: effectId, duration: "nextTurn", expiresOnAttack: true });
       result.matchedEffectIds.push(effectId);
     }
   }

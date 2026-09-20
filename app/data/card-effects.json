@@ -7519,9 +7519,10 @@
       "effects": [
         {
           "id": "equipment-deq-012-low-hp-untargetable",
-          "effect": "core.custom",
+          "effect": "combat.untargetable",
           "trigger": "passive",
           "target": "self",
+          "duration": "nextTurn",
           "resolver": "equipment.structured",
           "conditions": [
             {
@@ -7539,7 +7540,7 @@
               "value": "startNextTurnOrUntilAttack"
             }
           ],
-          "action": "custom"
+          "action": "untargetable"
         }
       ]
     },

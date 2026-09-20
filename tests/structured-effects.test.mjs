@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredPostBlockCycle } from "../app/equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 
 const cards = JSON.parse(await readFile(new URL("../app/data/cards.json", import.meta.url), "utf8")).cards ?? [];
@@ -313,6 +313,23 @@ test("Equipment declaration and damage prevention share once-per-game destructio
 test("canonical Equipment minimum-stat actions project through the generic resolver", () => {
   assert.equal(structuredEquipmentMinimumSpeed({ catalogId: "DDB-WPN-CORE-018" }), 2);
   assert.equal(structuredEquipmentMinimumSpeed({ catalogId: "DDB-DEQ-CORE-001" }), 0);
+});
+
+test("threshold Equipment protection destroys its source and creates an expiring target lock", () => {
+  const protection = structuredEquipmentThresholdProtection([{ id: "exit", catalogId: "DDB-DEQ-CORE-012" }], {
+    hp: 5,
+    damageTaken: 2,
+  });
+  assert.deepEqual(protection.destroySourceIds, ["exit"]);
+  assert.deepEqual(protection.statuses, [{ sourceEffectId: "equipment-deq-012-low-hp-untargetable", duration: "nextTurn", expiresOnAttack: true }]);
+  assert.deepEqual(protection.unsupported, []);
+
+  const safe = structuredEquipmentThresholdProtection([{ id: "exit", catalogId: "DDB-DEQ-CORE-012" }], {
+    hp: 5,
+    damageTaken: 2,
+    usedEffectIdsThisGame: ["equipment-deq-012-low-hp-untargetable"],
+  });
+  assert.deepEqual(safe.matchedEffectIds, []);
 });
 
 test("structured draw-discard Block choices use the shared post-Block cycle protocol", () => {

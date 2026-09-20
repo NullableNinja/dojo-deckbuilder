@@ -522,6 +522,30 @@
       ],
       "implementation": "generic-or-resolver-for-conditions"
     },
+    "combat.untargetable": {
+      "category": "combat-state",
+      "action": "untargetable",
+      "description": "Prevent the affected fighter from being selected as an Attack target for the declared duration or qualifier window.",
+      "amount": {
+        "required": false
+      },
+      "defaultTarget": "self",
+      "allowedTargets": [
+        "self",
+        "opponent"
+      ],
+      "allowedTriggers": [
+        "passive",
+        "onPlay",
+        "afterResolve"
+      ],
+      "allowedDurations": [
+        "nextTurn",
+        "endOfTurn",
+        "endOfRound"
+      ],
+      "implementation": "generic"
+    },
     "combat.minimumSpeed": {
       "category": "combat-stat",
       "action": "minimumSpeed",
