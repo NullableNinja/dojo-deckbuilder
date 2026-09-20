@@ -913,7 +913,7 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
     ...(resolution.nextAttackPower ? [`Equipment Hit effect primes next Attack +${resolution.nextAttackPower}`] : []),
     ...(resolution.grantFlow ? ["Equipment Hit effect grants Flow for the next Attack"] : []),
     ...(resolution.directDamage ? [`Equipment Hit effect deals ${resolution.directDamage} direct damage`] : []),
-    ...(resolution.delayedStatuses.map((status) => `Equipment Hit effect schedules ${status.effect === "combat.modifySpeed" ? `${status.amount > 0 ? "+" : ""}${status.amount} Speed` : `${status.amount > 0 ? "+" : ""}${status.amount} DEF`} for ${status.duration}`)),
+    ...(resolution.delayedStatuses.map((status) => `Equipment Hit effect schedules ${status.effect === "combat.modifySpeed" ? `${status.amount > 0 ? "+" : ""}${status.amount} Speed` : status.effect === "combat.modifyDefense" ? `${status.amount > 0 ? "+" : ""}${status.amount} DEF` : `${status.amount} direct damage`} for ${status.duration}`)),
     ...(resolution.targetTempoLoss ? ["Equipment Hit effect removes the target's Tempo for this round"] : []),
     ...(resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : []),
   ];
@@ -1449,7 +1449,17 @@ function expireStage3CQualified(board: Board, expires: "endOfTurn" | "endOfRound
 }
 
 function stage3cEndTurn(board: Board) {
-  return expireStage3CQualified(expireStage3C(board, "endOfTurn"), "endOfTurn");
+  const next = expireStage3CQualified(expireStage3C(board, "endOfTurn"), "endOfTurn");
+  const delayedDamage = (next.stage3cStatuses ?? []).filter((status) => status.duration === "endOfTargetNextTurn" && status.effect === "combat.dealDamage");
+  if (!delayedDamage.length) return next;
+  const damage = delayedDamage.reduce((total, status) => total + Math.max(0, status.amount), 0);
+  const delayedIds = new Set(delayedDamage.map((status) => status.sourceEffectId));
+  return {
+    ...next,
+    hp: Math.max(0, next.hp - damage),
+    damageTaken: next.damageTaken + damage,
+    stage3cStatuses: (next.stage3cStatuses ?? []).filter((status) => !delayedIds.has(status.sourceEffectId)),
+  };
 }
 
 function stage3cAdvanceRound(board: Board) {

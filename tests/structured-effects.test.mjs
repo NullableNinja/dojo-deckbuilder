@@ -208,6 +208,16 @@ test("Equipment on-Hit delayed combat effects become lifecycle statuses", () => 
   assert.deepEqual(delayedSpeed.delayedStatuses, [{ sourceEffectId: "equipment-wpn-014-low-hit-speed-penalty", effect: "combat.modifySpeed", amount: -1, duration: "nextRound", target: "opponent" }]);
   assert.deepEqual(delayedSpeed.unsupported, []);
 
+  const delayedDamage = structuredEquipmentHitResolution([{ id: "bottle", catalogId: "DDB-WPN-CORE-006" }], {
+    attackNumber: 1,
+    attackZone: "High",
+    combatDamageDealt: 1,
+    firstHitThisTurn: true,
+    attackUsesSourceEquipment: true,
+    usedEffectIdsThisRound: [],
+  });
+  assert.deepEqual(delayedDamage.delayedStatuses, [{ sourceEffectId: "equipment-wpn-006-delayed-direct-damage", effect: "combat.dealDamage", amount: 1, duration: "endOfTargetNextTurn", target: "opponent" }]);
+
   const delayedDefense = structuredEquipmentHitResolution([{ id: "staff", catalogId: "DDB-WPN-CORE-058" }], {
     attackNumber: 1,
     attackZone: "Mid",

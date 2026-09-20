@@ -506,7 +506,7 @@ export type EquipmentHitResolution = {
   nextAttackPower: number;
   grantFlow: boolean;
   directDamage: number;
-  delayedStatuses: Array<{ sourceEffectId: string; effect: "combat.modifySpeed" | "combat.modifyDefense"; amount: number; duration: "nextRound" | "nextInitiate"; target: "self" | "opponent" }>;
+  delayedStatuses: Array<{ sourceEffectId: string; effect: "combat.modifySpeed" | "combat.modifyDefense" | "combat.dealDamage"; amount: number; duration: "nextRound" | "nextInitiate" | "endOfTargetNextTurn"; target: "self" | "opponent" }>;
   targetTempoLoss: boolean;
   exhaustSourceIds: string[];
   matchedEffectIds: string[];
@@ -711,6 +711,7 @@ export function structuredEquipmentHitResolution(cards: EquipmentCardLike[], con
       else if (effect.effect === "combat.modifyAttackPower" && effect.target === "source" && effect.duration === "nextAttack") result.nextAttackPower += amount;
       else if (effect.effect === "combat.grantFlow" && effect.target === "self" && effect.duration === "nextAttack") result.grantFlow = true;
       else if (effect.effect === "combat.dealDamage" && effect.target === "opponent") result.directDamage += amount;
+      else if (effect.effect === "core.custom" && effect.target === "opponent" && equipmentConditionValue(effect, "scheduledTiming") === "endOfTargetNextTurn") result.delayedStatuses.push({ sourceEffectId: effectId, effect: "combat.dealDamage", amount, duration: "endOfTargetNextTurn", target: "opponent" });
       else if (effect.effect === "core.custom" && effect.target === "opponent" && equipmentConditionValue(effect, "scheduledTiming") === "nextRound") result.delayedStatuses.push({ sourceEffectId: effectId, effect: "combat.modifySpeed", amount, duration: "nextRound", target: "opponent" });
       else if (effect.effect === "core.custom" && effect.target === "self" && equipmentConditionValue(effect, "scheduledTiming") === "nextInitiate") result.delayedStatuses.push({ sourceEffectId: effectId, effect: "combat.modifyDefense", amount, duration: "nextInitiate", target: "self" });
       else if (effect.effect === "core.custom" && effect.target === "opponent" && effect.duration === "endOfRound") result.targetTempoLoss = true;
