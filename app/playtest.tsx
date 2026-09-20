@@ -113,6 +113,7 @@ type Board = {
   reversalAttackBonus?: number;
   nextInitiateFocus?: number;
   nextInitiateDraw?: number;
+  nextHealingReduction?: number;
   readyAtInitiate?: string[];
   readyAtHide?: string[];
   combatDamageEventsThisRound?: number;
@@ -887,11 +888,15 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
     if (delayed.target === "self") {
       attacker = {
         ...attacker,
-        ...(delayed.duration === "nextInitiate" ? { stage3cDefenseModifier: (attacker.stage3cDefenseModifier ?? 0) + delayed.amount } : {}),
+        ...(delayed.duration === "nextInitiate" && delayed.effect === "combat.modifyDefense" ? { stage3cDefenseModifier: (attacker.stage3cDefenseModifier ?? 0) + delayed.amount } : {}),
         stage3cStatuses: [...(attacker.stage3cStatuses ?? []), status],
       };
     } else {
-      defender = { ...defender, stage3cStatuses: [...(defender.stage3cStatuses ?? []), status] };
+      defender = {
+        ...defender,
+        ...(delayed.effect === "combat.modifyHealing" ? { nextHealingReduction: (defender.nextHealingReduction ?? 0) + delayed.amount } : {}),
+        stage3cStatuses: [...(defender.stage3cStatuses ?? []), status],
+      };
     }
   }
   if (resolution.targetTempoLoss) defender = { ...defender, tempo: false };
@@ -913,7 +918,7 @@ function applyStructuredEquipmentHit(board: Board, target: Board, attackCard: Ca
     ...(resolution.nextAttackPower ? [`Equipment Hit effect primes next Attack +${resolution.nextAttackPower}`] : []),
     ...(resolution.grantFlow ? ["Equipment Hit effect grants Flow for the next Attack"] : []),
     ...(resolution.directDamage ? [`Equipment Hit effect deals ${resolution.directDamage} direct damage`] : []),
-    ...(resolution.delayedStatuses.map((status) => `Equipment Hit effect schedules ${status.effect === "combat.modifySpeed" ? `${status.amount > 0 ? "+" : ""}${status.amount} Speed` : status.effect === "combat.modifyDefense" ? `${status.amount > 0 ? "+" : ""}${status.amount} DEF` : `${status.amount} direct damage`} for ${status.duration}`)),
+    ...(resolution.delayedStatuses.map((status) => `Equipment Hit effect schedules ${status.effect === "combat.modifySpeed" ? `${status.amount > 0 ? "+" : ""}${status.amount} Speed` : status.effect === "combat.modifyDefense" ? `${status.amount > 0 ? "+" : ""}${status.amount} DEF` : status.effect === "combat.modifyHealing" ? `${status.amount} healing suppression` : `${status.amount} direct damage`} for ${status.duration}`)),
     ...(resolution.targetTempoLoss ? ["Equipment Hit effect removes the target's Tempo for this round"] : []),
     ...(resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : []),
   ];
@@ -1350,6 +1355,14 @@ function addStage3CChoice(board: Board, command: RuntimeCommand) {
   return { ...board, stage3cChoices: [...(board.stage3cChoices ?? []).filter((entry) => entry.sourceEffectId !== choice.sourceEffectId), choice] };
 }
 
+function applyHealing(board: Board, amount: number) {
+  const reduction = Math.max(0, board.nextHealingReduction ?? 0);
+  const healing = Math.max(0, amount - reduction);
+  if (!reduction) return { ...board, hp: Math.min(board.maxHp, board.hp + healing) };
+  const remainingStatuses = (board.stage3cStatuses ?? []).filter((status) => status.effect !== "combat.modifyHealing");
+  return { ...board, hp: Math.min(board.maxHp, board.hp + healing), nextHealingReduction: 0, stage3cStatuses: remainingStatuses };
+}
+
 function applyStage3CCommands(board: Board, commands: RuntimeCommand[], controller: "player" | "ai") {
   let next = board;
   for (const command of commands) {
@@ -1382,7 +1395,7 @@ function applyStage3CCommands(board: Board, commands: RuntimeCommand[], controll
         next = { ...next, hand: next.hand.filter((id) => !discarded.includes(id)), discard: [...next.discard, ...discarded] };
       }
     }
-    else if (command.effect === "core.heal") next = { ...next, hp: Math.min(next.maxHp, next.hp + Math.max(0, command.amount)) };
+    else if (command.effect === "core.heal") next = applyHealing(next, command.amount);
     else if (command.effect === "core.gainFocus") next = gainFocus(next, command.amount);
     else if (command.effect === "core.gainXP") next = { ...next, xp: Math.max(0, next.xp + command.amount) };
     else if (command.effect === "combat.modifySpeed") next = { ...next, tempSpeed: next.tempSpeed + command.amount, speedChangedThisRound: next.speedChangedThisRound || command.amount !== 0 };
@@ -1418,6 +1431,7 @@ function expireStage3C(board: Board, duration: string) {
     if (!status.appliedImmediately) continue;
     if (status.effect === "combat.modifySpeed") next = { ...next, tempSpeed: next.tempSpeed - status.amount };
     if (status.effect === "combat.modifyDefense") next = { ...next, stage3cDefenseModifier: (next.stage3cDefenseModifier ?? 0) - status.amount };
+    if (status.effect === "combat.modifyHealing") next = { ...next, nextHealingReduction: Math.max(0, (next.nextHealingReduction ?? 0) - status.amount) };
     if (status.effect === "economy.modifyCost") next = { ...next, stage3cPurchaseCostModifier: (next.stage3cPurchaseCostModifier ?? 0) - status.amount };
     if (status.effect === "core.custom") {
       const reverted = revertStage3CBoardCustomStatus({ attackModifier: next.stage3cAttackModifier ?? 0, defenseModifier: next.stage3cDefenseModifier ?? 0, speedOverride: next.stage3cSpeedOverride ?? null }, status);
@@ -1797,7 +1811,7 @@ function destroyResolvedConsumable(board: Board, card: CardEntry) {
 function emptyBoard(fighterId: string): Board {
   return drawCards({
     fighterId, hp: gameDefinition.mode.startingHp, maxHp: gameDefinition.mode.startingHp, xp: 0, focus: 0, focusGeneratedThisTurn: 0, focusSpentThisTurn: 0, belt: 0,
-    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, nextInitiateFocus: 0, nextInitiateDraw: 0, readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, lastAttackHit: false,
+    deck: shuffle(starterIds), hand: [], discard: [], playArea: [], equipment: [], exhaustedEquipment: [], equipmentAttackPlan: null, equipmentDefenseGuard: 0, pendingReversalBonusOnBlock: 0, reversalAttackBonus: 0, nextInitiateFocus: 0, nextInitiateDraw: 0, nextHealingReduction: 0, readyAtInitiate: [], readyAtHide: [], combatDamageEventsThisRound: 0, lastAttackHit: false,
     tempSpeed: 0, speedChangedThisRound: false, nextAttackBonus: 0, attacksThisTurn: 0, attacksReceivedThisRound: 0, nextDefenseCardBonus: 0, defensePracticeUsed: false, badHabitFocusUsed: false, flowUsedThisTurn: false, nextAttackHasFlow: false, nextAttackAnyZone: false, flowAfterFirstAttack: false, hitThisTurn: false, cardsThisTurn: [], tempo: true, attackedThisRound: false, reactionItemUsedSinceLastTurn: false,
     defendedThisRound: false, zonesPlayed: [], purchasedTypes: [], comboTriggered: false, completedTasks: [], statBoost: 0,
     damageReductionUsed: false, wasHitSinceLastTurn: false, borrowedEquipmentId: null, abilityUsedRound: false, completedBeltExamThisRound: false, completesActiveBeltExamThisAttack: false, currentAttackIsReversal: false, boughtCardThisAscend: false, boughtCardLastAscend: false, targetEquipmentDefPenalties: {}, nextItemCostPenalty: 0, attackLockedThisTurn: false,
@@ -1910,13 +1924,13 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
       if (effect.kind === "nextAttackPower") next.nextAttackBonus += effect.amount;
       if (effect.kind === "speed") { next.tempSpeed += effect.amount; if (effect.amount) next.speedChangedThisRound = true; }
       if (effect.kind === "focus") next = gainFocus(next, effect.amount);
-      if (effect.kind === "heal") next.hp = Math.min(next.maxHp, next.hp + effect.amount);
+      if (effect.kind === "heal") next = applyHealing(next, effect.amount);
     }
   }
   if (timing === "afterResolve") next = applyStructuredEquipmentAfterResolve(next, card, familyContext).board;
   if (timing === "onPlay" && !isCoreKataCard(card)) {
     const conditionalHeal = conditionalHealAfterHit(card, board.wasHitSinceLastTurn);
-    if (conditionalHeal) next.hp = Math.min(next.maxHp, next.hp + conditionalHeal);
+    if (conditionalHeal) next = applyHealing(next, conditionalHeal);
   }
   if (migratedFamily) return next;
   const structuredFocus = structuredConditionalFocus(card, { timing, attackNumber: board.attacksThisTurn, usedEffectIds: board.usedEffectIdsThisTurn ?? [] });

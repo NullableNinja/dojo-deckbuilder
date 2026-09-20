@@ -218,6 +218,16 @@ test("Equipment on-Hit delayed combat effects become lifecycle statuses", () => 
   });
   assert.deepEqual(delayedDamage.delayedStatuses, [{ sourceEffectId: "equipment-wpn-006-delayed-direct-damage", effect: "combat.dealDamage", amount: 1, duration: "endOfTargetNextTurn", target: "opponent" }]);
 
+  const healingSuppression = structuredEquipmentHitResolution([{ id: "kris", catalogId: "DDB-WPN-CORE-038" }], {
+    attackNumber: 1,
+    attackZone: "High",
+    combatDamageDealt: 1,
+    firstHitThisTurn: true,
+    attackUsesSourceEquipment: true,
+    usedEffectIdsThisRound: [],
+  });
+  assert.deepEqual(healingSuppression.delayedStatuses, [{ sourceEffectId: "equipment-wpn-038-healing-suppression", effect: "combat.modifyHealing", amount: 2, duration: "nextInitiate", target: "opponent" }]);
+
   const delayedDefense = structuredEquipmentHitResolution([{ id: "staff", catalogId: "DDB-WPN-CORE-058" }], {
     attackNumber: 1,
     attackZone: "Mid",
