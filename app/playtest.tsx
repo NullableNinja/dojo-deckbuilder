@@ -4062,3 +4062,5 @@ function prepareAiTurn(current: Match) {
     ...(badHabitId ? [`Bad Habit discarded for +${gameDefinition.economy.badHabitFocus.focusGain} Focus`] : []),
     ...played,
   ];
+  return { ...current, player: nextPlayer, ai: nextAi, pendingChoice, log: [`Computer prepares with ${preparations.join(", ")}. The strategy is now technically documented.`, ...current.log].slice(0, 32) };
+}
