@@ -10,6 +10,7 @@ function cardFamily(card) {
   if (catalogId.includes("-DEF-")) return "Defense";
   if (catalogId.includes("-KAT-")) return "Kata";
   if (catalogId.includes("-CON-")) return "Consumable";
+  if (catalogId.includes("-RIT-")) return "Reaction Item";
   if (catalogId.includes("-CMB-")) return "Combo";
   if (catalogId.includes("-LOC-")) return "Location";
   if (catalogId.includes("-CHR-")) return "Character";
