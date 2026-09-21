@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expectedCardEffectAggregate } from "./card-effect-registry.mjs";
+import { buildRulesProjection, rulesProjectionMarkdown } from "./rules-projection.mjs";
 
 const root = new URL("../", import.meta.url);
 const readText = (path) => readFile(new URL(path, root), "utf8");
@@ -17,7 +18,7 @@ try {
   fail(error instanceof Error ? error.message : String(error));
 }
 
-const [source, generated, canonicalRules, generatedRules, canonicalCards, generatedCards, canonicalVocabulary, generatedVocabulary, canonicalCardEffects, generatedCardEffects] = await Promise.all([
+const [source, generated, canonicalRules, generatedRules, canonicalCards, generatedCards, canonicalVocabulary, generatedVocabulary, canonicalCardEffects, generatedCardEffects, generatedProjection] = await Promise.all([
   readJson("content/dojo-game.json"),
   readJson("app/data/game-definition.json"),
   readJson("content/rules.json"),
@@ -28,7 +29,9 @@ const [source, generated, canonicalRules, generatedRules, canonicalCards, genera
   readJson("app/data/effects.json"),
   readJson("content/card-effects.json"),
   readJson("app/data/card-effects.json"),
+  readJson("app/data/rules-projection.json"),
 ]);
+const expectedProjection = buildRulesProjection(source, canonicalRules, canonicalCards);
 
 // Canonical/generated boundaries. These are architecture checks, not game-rule assertions.
 if (!source?.definition) fail("content/dojo-game.json is missing definition");
@@ -41,6 +44,7 @@ if (!sameJson(generatedCards, canonicalCards)) fail("app/data/cards.json has dri
 if (!sameJson(generatedVocabulary, canonicalVocabulary)) fail("app/data/effects.json has drifted from content/effects.json; run npm run game:generate");
 if (effectArchitecture && !sameJson(canonicalCardEffects, effectArchitecture.aggregate)) fail("content/card-effects.json has drifted from the card-effect family sources; run npm run game:generate");
 if (!sameJson(generatedCardEffects, canonicalCardEffects)) fail("app/data/card-effects.json has drifted from content/card-effects.json; run npm run game:generate");
+if (!sameJson(generatedProjection, expectedProjection)) fail("app/data/rules-projection.json has drifted from canonical game/rules data; run npm run game:generate");
 
 // Cross-file metadata must agree, but the validator does not dictate the current version/revision.
 if (!String(canonicalRules.version ?? "").startsWith(String(source.rulesVersion ?? ""))) fail("content/rules.json version does not match the canonical rulesVersion");
@@ -88,10 +92,14 @@ const expectedGenerated = [
   "app/data/cards.json",
   "app/data/effects.json",
   "app/data/card-effects.json",
+  "app/data/rules-projection.json",
+  "public/downloads/Dojo_Deckbuilder_v2.3_Canonical_Rules.md",
 ];
 for (const path of expectedGenerated) {
   if (!source.sourcePolicy?.generatedFiles?.includes(path)) fail(`${path} is generated but missing from sourcePolicy.generatedFiles`);
 }
+const generatedMarkdown = await readFile(new URL("public/downloads/Dojo_Deckbuilder_v2.3_Canonical_Rules.md", root), "utf8");
+if (generatedMarkdown !== rulesProjectionMarkdown(expectedProjection)) fail("public/downloads/Dojo_Deckbuilder_v2.3_Canonical_Rules.md has drifted; run npm run game:generate");
 
 // Catalog identity/integrity. Inventory size and individual mechanics belong to JSON, not this validator.
 const catalogIds = new Set();

@@ -192,6 +192,7 @@ const ruleChapters = rulesData.chapters.filter((chapter) => chapter.number >= 1 
 const GLOSSARY_ENTRIES = ALL_GLOSSARY_ENTRIES;
 const DOWNLOADS = {
   fullRules: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Full_Rules.docx`,
+  canonicalRules: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Canonical_Rules.md`,
   quickStart: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Quick_Start.docx`,
   glossary: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Glossary.docx`,
   cardCatalog: `${import.meta.env.BASE_URL}downloads/Dojo_Deckbuilder_v2.3_Card_Catalog.xlsx`,

@@ -1,6 +1,7 @@
 import cardsJson from "./data/cards.json";
 import rulesJson from "./data/rules.json";
 import gameDefinitionJson from "./data/game-definition.json";
+import rulesProjectionJson from "./data/rules-projection.json";
 
 type RuleBlock =
   | { kind: "paragraph"; text: string }
@@ -125,6 +126,7 @@ export const PHASE_RULES = (gameDefinition.turn.phaseRules ?? []).map((phase) =>
   actions: phase.actions ?? [],
   automatic: phase.automatic ?? [],
 }));
+export const CANONICAL_RULES_PROJECTION = rulesProjectionJson;
 
 export const PHASE_DETAILS = PHASES.map((phase) => {
   const current = phaseSection(phase.name);

@@ -22,7 +22,9 @@
       "app/data/rules.json",
       "app/data/cards.json",
       "app/data/effects.json",
-      "app/data/card-effects.json"
+      "app/data/card-effects.json",
+      "app/data/rules-projection.json",
+      "public/downloads/Dojo_Deckbuilder_v2.3_Canonical_Rules.md"
     ],
     "legacySourcesPendingMigration": [],
     "generatedFileRule": "Do not hand-edit generated game data. Change the canonical source under content/ and regenerate instead.",

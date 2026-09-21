@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { expectedCardEffectAggregate } from "./card-effect-registry.mjs";
+import { buildRulesProjection, rulesProjectionMarkdown } from "./rules-projection.mjs";
 
 const root = new URL("../", import.meta.url);
 const readText = (path) => readFile(new URL(path, root), "utf8");
@@ -15,6 +16,7 @@ const [source, rules, cards, effectsText, effectArchitecture] = await Promise.al
 ]);
 const effects = JSON.parse(effectsText);
 const { aggregate: cardEffects, families } = effectArchitecture;
+const rulesProjection = buildRulesProjection(source, rules, cards);
 
 if (!source?.definition) throw new Error("content/dojo-game.json is missing definition");
 if (source.rulesVersion !== source.definition.rulesVersion) throw new Error("Canonical rulesVersion does not match definition.rulesVersion");
@@ -34,6 +36,8 @@ await Promise.all([
   writeJson("app/data/cards.json", cards),
   writeFile(new URL("app/data/effects.json", root), effectsText.endsWith("\n") ? effectsText : `${effectsText}\n`, "utf8"),
   writeJson("app/data/card-effects.json", cardEffects),
+  writeJson("app/data/rules-projection.json", rulesProjection),
+  writeFile(new URL("public/downloads/Dojo_Deckbuilder_v2.3_Canonical_Rules.md", root), rulesProjectionMarkdown(rulesProjection), "utf8"),
 ]);
 
 console.log(`Generated content/card-effects.json from ${families.length} active family source file${families.length === 1 ? "" : "s"}.`);
@@ -42,3 +46,4 @@ console.log(`Generated app/data/game-definition.json from content/dojo-game.json
 console.log("Generated app/data/rules.json from content/rules.json.");
 console.log(`Generated app/data/cards.json from content/cards.json (${cards.total} cards).`);
 console.log(`Generated app/data/card-effects.json from the unified registry (${Object.keys(cardEffects.cards ?? {}).length} migrated cards).`);
+console.log("Generated app/data/rules-projection.json and the canonical Markdown rules download.");
