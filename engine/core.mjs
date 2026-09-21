@@ -134,6 +134,8 @@ export class Game {
       else if (action === "modifyDefense") effectContext.defenseModifier = (effectContext.defenseModifier ?? 0) + amount;
       else if (action === "preventDamage") effectContext.damagePrevention = (effectContext.damagePrevention ?? 0) + amount;
       else if (action === "heal") player.hp = Math.min(player.maxHp, player.hp + amount);
+      else if (action === "dealDamage") effectContext.opponent.hp -= Math.max(0, amount);
+      else if (action === "minimumSpeed") player.speed = Math.max(player.speed, amount);
       else if (action === "piercing") effectContext.piercing = (effectContext.piercing ?? 0) + amount;
       else if (action === "custom" && effect.resolver === "starter.gainFocusIfFastest") { if (player.speed + player.tempSpeed > effectContext.opponent.speed + effectContext.opponent.tempSpeed) { player.focus += amount; this.telemetry.focusGenerated += amount; } }
       else if (action === "chooseZone" && effectContext.allowChoice) effectContext.choice = { kind: "attack-zone", options: zones };

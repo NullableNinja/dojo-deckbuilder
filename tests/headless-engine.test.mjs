@@ -3,6 +3,7 @@ import test from "node:test";
 import { loadGameData } from "../engine/rules-loader.mjs";
 import { Game } from "../engine/core.mjs";
 import { simulateBatch } from "../engine/simulate.mjs";
+import { analyzeEffectCoverage } from "../engine/coverage.mjs";
 
 test("headless engine exposes canonical phases, legal actions, and serializable state", async () => {
   const data = await loadGameData();
@@ -56,4 +57,14 @@ test("batch simulation reports reproducible seeds and invariant results", async 
   assert.equal(first.invariantFailures.length, 0);
   assert.deepEqual(first.telemetry, second.telemetry);
   assert.equal(first.unsupportedEffects, second.unsupportedEffects);
+});
+
+test("headless effect coverage is explicit and machine-reportable", async () => {
+  const data = await loadGameData();
+  const coverage = analyzeEffectCoverage(data.cardEffects);
+  assert.equal(coverage.cardsWithEffects, 589);
+  assert.ok(coverage.totalEffects > 0);
+  assert.equal(coverage.totalEffects, coverage.supportedEffects + coverage.unsupportedEffects);
+  assert.ok(coverage.unsupportedEffects > 0, "remaining unsupported classes must remain visible");
+  assert.ok(Object.keys(coverage.unsupportedActions).length > 0 || Object.keys(coverage.unsupportedResolvers).length > 0);
 });
