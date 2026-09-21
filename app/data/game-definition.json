@@ -18,6 +18,67 @@
       "Ascend",
       "Hide"
     ],
+    "phaseRules": [
+      {
+        "id": "Honor",
+        "timing": "once-per-round",
+        "actor": "all",
+        "automatic": [
+          "scene-change",
+          "on-reveal",
+          "survival-xp",
+          "refresh-tempo",
+          "determine-initiative"
+        ]
+      },
+      {
+        "id": "Initiate",
+        "timing": "start-of-turn",
+        "actor": "active-player",
+        "actions": [
+          "pass",
+          "equip",
+          "resolve-start-effects"
+        ]
+      },
+      {
+        "id": "Yell",
+        "timing": "main-phase",
+        "actor": "active-player",
+        "actions": [
+          "play-card",
+          "attack",
+          "defense-practice",
+          "combo",
+          "pass"
+        ]
+      },
+      {
+        "id": "Ascend",
+        "timing": "buy-and-belt-up",
+        "actor": "active-player",
+        "actions": [
+          "purchase",
+          "combo-attempt",
+          "promote",
+          "pass"
+        ]
+      },
+      {
+        "id": "Hide",
+        "timing": "cleanup",
+        "actor": "active-player",
+        "automatic": [
+          "resolve-end-effects",
+          "discard",
+          "draw-new-hand",
+          "clear-focus"
+        ],
+        "actions": [
+          "hide"
+        ]
+      }
+    ],
     "handSize": 7,
     "tempoAttackPower": 1,
     "tempoUsesPerRound": 1,

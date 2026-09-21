@@ -35,7 +35,7 @@ type BeltDefinition = {
 };
 type GameDefinition = {
   mode: { startingHp: number; blackBeltVictory?: boolean };
-  turn: { handSize: number };
+  turn: { handSize: number; phaseRules?: { id: string; timing: string; actor: string; actions?: string[]; automatic?: string[] }[] };
   progression: { belts: BeltDefinition[] };
 };
 
@@ -119,6 +119,12 @@ export const PHASES = phaseTable.slice(1).map((row) => {
     text: what,
   };
 });
+
+export const PHASE_RULES = (gameDefinition.turn.phaseRules ?? []).map((phase) => ({
+  ...phase,
+  actions: phase.actions ?? [],
+  automatic: phase.automatic ?? [],
+}));
 
 export const PHASE_DETAILS = PHASES.map((phase) => {
   const current = phaseSection(phase.name);

@@ -1,9 +1,9 @@
 const number = (value) => Number.parseInt(String(value ?? 0), 10) || 0;
 export const STRATEGIES = ["balanced", "aggression", "economy", "fortress"];
-export const attackPower = (card) => number(card.stats?.["Attack Power"]);
-export const guard = (card) => number(card.stats?.Guard);
-export const focus = (card) => number(card.focusValue);
-export const cost = (card) => number(card.fpCost);
+export const attackPower = (card) => number(card?.stats?.["Attack Power"]);
+export const guard = (card) => number(card?.stats?.Guard);
+export const focus = (card) => number(card?.focusValue);
+export const cost = (card) => number(card?.fpCost);
 export function cardScore(card, strategy="balanced") {
   const weights = strategy === "aggression" ? [4,1,1] : strategy === "economy" ? [1,1,5] : strategy === "fortress" ? [1,4,2] : [3,2,3];
   return attackPower(card)*weights[0] + guard(card)*weights[1] + focus(card)*weights[2] - cost(card)*.25 + (card.rulesText?.match(/draw 1/i)?2:0);

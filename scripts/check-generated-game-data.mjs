@@ -52,6 +52,20 @@ if (canonicalCardEffects.rulesRevision !== source.rulesRevision) fail("content/c
 if (canonicalCards.total !== canonicalCards.cards?.length) fail("content/cards.json total does not match cards.length");
 if (generatedCards.total !== generatedCards.cards?.length) fail("app/data/cards.json total does not match cards.length");
 
+// The phase sequence is executable authority, not only presentation text.
+const phaseIds = source.definition?.turn?.phases ?? [];
+const phaseRules = source.definition?.turn?.phaseRules ?? [];
+if (phaseRules.length !== phaseIds.length) fail("definition.turn.phaseRules must describe every canonical phase exactly once");
+const phaseRuleIds = new Set();
+for (const phase of phaseRules) {
+  if (!phase?.id || phaseRuleIds.has(phase.id)) fail(`Duplicate or missing phase rule '${phase?.id ?? "unknown"}'`);
+  phaseRuleIds.add(phase?.id);
+  if (!phaseIds.includes(phase?.id)) fail(`Phase rule '${phase?.id}' is not present in definition.turn.phases`);
+  if (!String(phase?.timing ?? "").trim()) fail(`Phase rule '${phase?.id}' has no timing`);
+  if (!String(phase?.actor ?? "").trim()) fail(`Phase rule '${phase?.id}' has no actor`);
+  if (!Array.isArray(phase?.actions) && !Array.isArray(phase?.automatic)) fail(`Phase rule '${phase?.id}' has no executable actions or automatic events`);
+}
+
 const expectedAuthoritative = [
   "content/dojo-game.json",
   "content/rules.json",
