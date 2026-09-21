@@ -80,12 +80,39 @@ export class Game {
   cardEffects(card, trigger) { return (this.effects.get(card.catalogId)?.effects ?? []).filter((effect) => effect.trigger === trigger); }
 
   evaluateConditions(effect, context) {
-    for (const condition of effect.conditions ?? []) {
-      const kind = typeof condition === "string" ? condition.match(/kind=([^;}]*)/)?.[1] : condition.kind;
-      if (kind === "isFastest") {
-        const value = context.player.speed + context.player.tempSpeed > context.opponent.speed + context.opponent.tempSpeed;
-        if (Boolean(condition.value) !== value) return { known: true, pass: false };
-      } else if (kind !== "always") return { known: false, pass: false };
+    const values = {
+      isFastest: context.player.speed + context.player.tempSpeed > context.opponent.speed + context.opponent.tempSpeed,
+      firstAttackThisTurn: context.player.attackCount === 1,
+      attackNumber: context.player.attackCount,
+      defenderPlayedDefense: Boolean(context.defensePlayed),
+      targetHpAtMost: context.opponent.hp,
+      hasTempo: Boolean(context.player.tempo),
+      targetPermanentEquipmentCount: context.opponent.equipment.length,
+      hasFewerCardsThanTarget: context.player.hand.length < context.opponent.hand.length,
+      alternateZone: context.zone,
+    };
+    const parse = (condition) => {
+      if (typeof condition !== "string") return condition;
+      const fields = Object.fromEntries([...condition.matchAll(/([a-zA-Z]+)=([^;}]*)/g)].map((match) => [match[1], match[2]]));
+      const value = fields.value === "True" || fields.value === "true" ? true : fields.value === "False" || fields.value === "false" ? false : Number.isNaN(Number(fields.value)) ? fields.value : Number(fields.value);
+      return { kind: fields.kind, operator: fields.operator ?? "eq", value };
+    };
+    const compare = (actual, operator, expected) => {
+      if (operator === "includesAny") return Array.isArray(expected) && expected.some((value) => Array.isArray(actual) && actual.includes(value));
+      if (operator === "includes") return Array.isArray(actual) ? actual.includes(expected) : String(actual ?? "").includes(String(expected ?? ""));
+      if (operator === "notIncludes") return Array.isArray(actual) ? !actual.includes(expected) : !String(actual ?? "").includes(String(expected ?? ""));
+      if (operator === "gt") return Number(actual) > Number(expected);
+      if (operator === "gte") return Number(actual) >= Number(expected);
+      if (operator === "lt") return Number(actual) < Number(expected);
+      if (operator === "lte") return Number(actual) <= Number(expected);
+      if (operator === "neq") return actual !== expected;
+      return actual === expected;
+    };
+    for (const raw of effect.conditions ?? []) {
+      const condition = parse(raw); const kind = String(condition?.kind ?? "");
+      if (kind === "always") continue;
+      if (!(kind in values)) return { known: false, pass: false };
+      if (!compare(values[kind], condition.operator ?? "eq", condition.value)) return { known: true, pass: false };
     }
     return { known: true, pass: true };
   }
@@ -103,6 +130,10 @@ export class Game {
       else if (action === "draw") this.draw(player, Math.max(0, amount));
       else if (action === "modifyAttackPower") { if (effect.duration === "nextAttack") player.nextAttackPower += amount; else effectContext.attackPowerModifier = (effectContext.attackPowerModifier ?? 0) + amount; }
       else if (action === "modifySpeed") player.tempSpeed += amount;
+      else if (action === "modifyGuard") effectContext.guardModifier = (effectContext.guardModifier ?? 0) + amount;
+      else if (action === "modifyDefense") effectContext.defenseModifier = (effectContext.defenseModifier ?? 0) + amount;
+      else if (action === "preventDamage") effectContext.damagePrevention = (effectContext.damagePrevention ?? 0) + amount;
+      else if (action === "heal") player.hp = Math.min(player.maxHp, player.hp + amount);
       else if (action === "piercing") effectContext.piercing = (effectContext.piercing ?? 0) + amount;
       else if (action === "custom" && effect.resolver === "starter.gainFocusIfFastest") { if (player.speed + player.tempSpeed > effectContext.opponent.speed + effectContext.opponent.tempSpeed) { player.focus += amount; this.telemetry.focusGenerated += amount; } }
       else if (action === "chooseZone" && effectContext.allowChoice) effectContext.choice = { kind: "attack-zone", options: zones };
@@ -115,12 +146,15 @@ export class Game {
     if (!card || !attacker.hand.includes(card)) return null;
     remove(attacker.hand, card); attacker.played.push(card); attacker.focus += focus(card); this.telemetry.focusGenerated += focus(card); attacker.plays += 1; attacker.attackCount += 1; attacker.turnStats.attacked = true; attacker.turnStats.zones.add(zone ?? (card.zone === "Any" ? "Mid" : card.zone)); this.track(card, "played", attacker);
     const context = this.applyCardEffects(attacker, card, "onAttackDeclared", { opponent: defender, attackPowerModifier: 0, piercing: 0, allowChoice: false });
-    if (defenseCard) { remove(defender.hand, defenseCard); defender.discard.push(defenseCard); defender.focus += focus(defenseCard); this.telemetry.focusGenerated += focus(defenseCard); this.track(defenseCard, "played", defender); this.applyCardEffects(defender, defenseCard, "onDefenseDeclared", { opponent: attacker, defensePlayed: true }); }
+    if (defenseCard) { remove(defender.hand, defenseCard); defender.discard.push(defenseCard); defender.focus += focus(defenseCard); this.telemetry.focusGenerated += focus(defenseCard); this.track(defenseCard, "played", defender); }
+    const defenseContext = defenseCard ? this.applyCardEffects(defender, defenseCard, "onDefenseDeclared", { opponent: attacker, defensePlayed: true, zone }) : {};
     const tempo = useTempo && attacker.tempo ? this.definition.turn.tempoAttackPower : 0; if (tempo) attacker.tempo = false;
     const attack = attackPower(card) + attacker.atk + tempo + attacker.nextAttackPower + (context.attackPowerModifier ?? 0); attacker.nextAttackPower = 0;
-    const block = Math.max(0, defender.def + (defenseCard ? guard(defenseCard) : 0) - (context.piercing ?? 0)); const damage = Math.max(this.definition.combat.damageFloor, attack - block); defender.hp -= damage;
+    const block = Math.max(0, defender.def + (defenseCard ? guard(defenseCard) : 0) + (defenseContext.guardModifier ?? 0) + (defenseContext.defenseModifier ?? 0) - (context.piercing ?? 0)); const damage = Math.max(this.definition.combat.damageFloor, attack - block - (defenseContext.damagePrevention ?? 0)); defender.hp -= damage;
     if (damage > 0) { attacker.xp += this.definition.progression.attackXpOnHit; attacker.turnStats.hit = true; } else if (defenseCard) { defender.xp += this.definition.progression.defenseXpOnBlock; defender.turnStats.blocked = true; }
-    this.applyCardEffects(attacker, card, damage > 0 ? "onHit" : "afterResolve", { opponent: defender, damage, attack, block });
+    if (damage > 0) this.applyCardEffects(attacker, card, "onHit", { opponent: defender, damage, attack, block, zone });
+    else if (defenseCard) this.applyCardEffects(defender, defenseCard, "onBlock", { opponent: attacker, damage, attack, block, zone, defensePlayed: true });
+    this.applyCardEffects(attacker, card, "afterResolve", { opponent: defender, damage, attack, block, zone });
     this.emit({ type: "attack", attacker: attacker.id, defender: defender.id, card: card.catalogId, defense: defenseCard?.catalogId ?? null, attack, block, damage, defenseFocus: focus(defenseCard) }); this.checkWinner();
     return { attack, block, damage, defense: defenseCard };
   }
