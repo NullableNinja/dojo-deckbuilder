@@ -173,12 +173,12 @@ export class Game {
 
   playCard(player, card) {
     if (!card || !player.hand.includes(card) || isAttack(card) || isDefense(card)) return false;
-    remove(player.hand, card); player.played.push(card); player.focus += focus(card); this.telemetry.focusGenerated += focus(card); player.plays += 1; if (["Weapon", "Gear", "Defense Equipment"].includes(card.subtype)) player.equipment.push(card); this.track(card, "played", player); this.applyCardEffects(player, card, "onPlay", { opponent: this.players[1 - player.id] }); return true;
+    remove(player.hand, card); player.played.push(card); player.focus += focus(card); this.telemetry.focusGenerated += focus(card); player.plays += 1; const equipment = ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype); if (equipment) player.equipment.push(card); this.track(card, "played", player); this.applyCardEffects(player, card, "onPlay", { opponent: this.players[1 - player.id] }); if (equipment) this.applyCardEffects(player, card, "onEquip", { opponent: this.players[1 - player.id] }); return true;
   }
 
   buy(player, card) {
     if (!card || !this.market.includes(card) || cost(card) > player.focus) return false;
-    player.focus -= cost(card); this.telemetry.focusSpent += cost(card); remove(this.market, card); player.discard.push(card); player.purchases += 1; this.marketPurchasedThisRound = true; if (this.round === 1) player.openingPurchase = true; this.track(card, "purchased", player); this.refillMarket(false); this.emit({ type: "purchase", player: player.id, card: card.catalogId, cost: cost(card), focusRemaining: player.focus }); return true;
+    player.focus -= cost(card); this.telemetry.focusSpent += cost(card); remove(this.market, card); player.discard.push(card); player.purchases += 1; this.marketPurchasedThisRound = true; if (this.round === 1) player.openingPurchase = true; this.track(card, "purchased", player); this.applyCardEffects(player, card, "onPurchase", { opponent: this.players[1 - player.id] }); this.refillMarket(false); this.emit({ type: "purchase", player: player.id, card: card.catalogId, cost: cost(card), focusRemaining: player.focus }); return true;
   }
 
   getPendingChoice() { return this.pendingChoice ? structuredClone(this.pendingChoice) : null; }
@@ -217,7 +217,7 @@ export class Game {
     if (this.pendingChoice) return action.type === "resolve-choice" && this.resolveChoice(action.choice ?? action.optionId);
     if (action.playerId !== undefined && action.playerId !== this.activePlayer) return false;
     const player = this.players[this.activePlayer];
-    if (action.type === "pass") { if (this.phase === "Honor") this.phase = "Initiate"; else if (this.phase === "Initiate") this.phase = "Yell"; else if (this.phase === "Yell") this.phase = "Ascend"; else if (this.phase === "Ascend") this.phase = "Hide"; else if (this.phase === "Hide") { this.hide(player); this.finishTurn(); } return true; }
+    if (action.type === "pass") { if (this.phase === "Honor") this.phase = "Initiate"; else if (this.phase === "Initiate") { for (const card of player.equipment) this.applyCardEffects(player, card, "onInitiate", { opponent: this.players[1 - player.id] }); this.phase = "Yell"; } else if (this.phase === "Yell") this.phase = "Ascend"; else if (this.phase === "Ascend") this.phase = "Hide"; else if (this.phase === "Hide") { this.hide(player); this.finishTurn(); } return true; }
     if (action.type === "hide" && this.phase === "Hide") { this.hide(player); this.finishTurn(); return true; }
     if (action.type === "practice" && this.phase === "Yell") return this.practice(player, player.hand.find((card) => card.instanceId === action.cardId));
     if (action.type === "play-card" && (this.phase === "Yell" || this.phase === "Initiate")) return this.playCard(player, player.hand.find((card) => card.instanceId === action.cardId));
@@ -234,7 +234,7 @@ export class Game {
 
   finishTurn() { this.turns += 1; const next = this.activePlayer === 0 ? 1 : 0; if (next === 0) { this.round += 1; if (!this.marketPurchasedThisRound) this.refillMarket(true); this.marketPurchasedThisRound = false; this.phase = "Honor"; } else this.phase = "Initiate"; this.activePlayer = next; this.checkWinner(); }
 
-  hide(player) { player.discard.push(...player.hand, ...player.played.filter((card) => !player.equipment.includes(card))); player.hand = []; player.played = player.equipment.slice(); player.focus = 0; player.badHabitFocusUsed = false; player.practiceUsed = false; player.nextAttackPower = 0; player.tempSpeed = 0; this.draw(player, this.definition.turn.handSize + (player.xp >= 28 ? 1 : 0)); this.emit({ type: "hide", player: player.id, handSize: player.hand.length }); }
+  hide(player) { for (const card of new Set([...player.played, ...player.equipment])) this.applyCardEffects(player, card, "onHide", { opponent: this.players[1 - player.id] }); player.discard.push(...player.hand, ...player.played.filter((card) => !player.equipment.includes(card))); player.hand = []; player.played = player.equipment.slice(); player.focus = 0; player.badHabitFocusUsed = false; player.practiceUsed = false; player.nextAttackPower = 0; player.tempSpeed = 0; this.draw(player, this.definition.turn.handSize + (player.xp >= 28 ? 1 : 0)); this.emit({ type: "hide", player: player.id, handSize: player.hand.length }); }
 
   checkWinner() { const alive = this.players.filter((player) => player.hp > 0); if (alive.length === 1) { this.winner = alive[0].id; this.reason = "knockout"; } else if (this.round > this.definition.mode.maxRounds) { this.winner = this.players[0].hp === this.players[1].hp ? this.rng.pick([0, 1]) : this.players[0].hp > this.players[1].hp ? 0 : 1; this.reason = "round-limit"; } if (this.winner !== null) this.status = "complete"; return this.winner !== null; }
 
