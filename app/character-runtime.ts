@@ -20,7 +20,6 @@ export type CharacterRuntimeCard = {
   subtype?: string;
   zone?: string | null;
   tags?: string[];
-  rulesText?: string | null;
 };
 
 export type CharacterRuntimeBoard = {

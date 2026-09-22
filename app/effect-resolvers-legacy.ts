@@ -6,8 +6,8 @@ export type EffectCardLike = {
   name?: string;
   cardType?: string;
   subtype?: string;
+  category?: string | null;
   focusValue?: string | number | null;
-  rulesText?: string | null;
   zone?: string | null;
   tags?: string[];
   stats?: Record<string, string | number | null | undefined>;
@@ -54,10 +54,6 @@ function numberValue(value: unknown) {
   return match ? Number(match[0]) : 0;
 }
 
-function normalizedMinus(text: string) {
-  return text.replace(/[−–—]/g, "-");
-}
-
 function structuredConditionsMatch(effect: RegistryEffect, values: Record<string, unknown>) {
   return (effect.conditions ?? []).every((condition) => {
     const actual = values[String(condition.kind ?? "")];
@@ -89,46 +85,10 @@ function legacyPassiveEquipmentGuard(card: EffectCardLike) {
   return numberValue(card.stats?.Guard);
 }
 
-function legacyDefenseEquipmentBonus(card: EffectCardLike, zone: string) {
-  if (!isDefenseEquipment(card)) return 0;
-  const text = normalizedMinus(String(card.rulesText ?? ""));
-  const explicit = text.match(/\+(\d+)\s+DEF\s+against\s+([^.]+?)(?:\s+Attacks?|\s+zones?)\b/i);
-  if (explicit) {
-    const amount = Number(explicit[1]);
-    const scope = explicit[2].toLocaleLowerCase();
-    if (/all|any|universal/.test(scope)) return amount;
-    const target = zone.toLocaleLowerCase();
-    const zones = ["high", "mid", "low"].filter((candidate) => new RegExp(`\\b${candidate}\\b`, "i").test(scope));
-    return zones.includes(target) ? amount : 0;
-  }
-
-  const universal = text.match(/\+(\d+)\s+DEF\s+against\s+all\s+zones/i);
-  if (universal) return Number(universal[1]);
-
-  const guard = numberValue(card.stats?.Guard);
-  if (!guard) return 0;
-  const scope = `${card.zone ?? ""} ${card.details?.Zone ?? ""} ${card.details?.["Default Zone"] ?? ""} ${text}`.toLocaleLowerCase();
-  if (/\b(?:all|any|universal)\b/.test(scope)) return guard;
-  return new RegExp(`\\b${zone.toLocaleLowerCase()}\\b`, "i").test(scope) ? guard : 0;
-}
-
-function legacyAfterDefenseNextAttackBonus(cards: EffectCardLike[]) {
-  let amount = 0;
-  const sources: string[] = [];
-  for (const card of cards) {
-    const text = String(card.rulesText ?? "");
-    const match = text.match(/After you play a Defense(?: card| Technique)?[^.]*next Attack(?: this turn)? gets \+(\d+) Attack Power/i);
-    if (!match) continue;
-    amount += Number(match[1]);
-    sources.push(card.name ?? "Equipment");
-  }
-  return { amount, sources };
-}
-
 export function targetDiscardOnHitCount(card: EffectCardLike) {
-  const text = String(card.rulesText ?? "").replace(/\s+/g, " ").trim();
-  const match = text.match(/(?:If (?:this Attack|it|that Attack) Hits?|On Hit), (?:the )?(?:target|opponent) discards? (\d+) cards?/i);
-  return match ? Number(match[1]) : 0;
+  return structuredEffects(card)
+    .filter((effect) => effect.trigger === "onHit" && effect.target === "opponent" && ["discard", "core.discard"].includes(String(effect.action ?? effect.effect ?? "")))
+    .reduce((total, effect) => total + Number(effect.amount ?? 0), 0);
 }
 
 export function targetNextAttackPenalty(card: EffectCardLike) {
@@ -137,9 +97,7 @@ export function targetNextAttackPenalty(card: EffectCardLike) {
     return structuredResolvers(card, "attack.targetNextAttackPenalty")
       .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
   }
-  const text = normalizedMinus(String(card.rulesText ?? ""));
-  const match = text.match(/(?:target|opponent)[’']s next Attack(?: this round)? (?:gets|has) -(\d+) Attack Power/i);
-  return match ? Number(match[1]) : 0;
+  return 0;
 }
 
 export function targetSpeedPenaltyUntilHonor(card: EffectCardLike, context: { previousCardIsItem?: boolean } = {}) {
@@ -150,29 +108,22 @@ export function targetSpeedPenaltyUntilHonor(card: EffectCardLike, context: { pr
       .filter((effect) => structuredConditionsMatch(effect, values))
       .reduce((total, effect) => total + Math.abs(Number(effect.amount ?? 0)), 0);
   }
-  const text = normalizedMinus(String(card.rulesText ?? ""));
-  const match = text.match(/(?:target(?:[’']s active Character)?|opponent) gets? -(\d+) Speed until (?:the )?next Honor Phase/i);
-  return match ? Number(match[1]) : 0;
+  return 0;
 }
 
 export function destroysAfterUse(card: EffectCardLike) {
-  return /Destroy this after use\.?/i.test(String(card.rulesText ?? ""));
+  return structuredEffects(card).some((effect) => effect.action === "destroy" || effect.effect === "core.destroy");
 }
 
+function legacyDefenseEquipmentBonus(_card: EffectCardLike, _zone: string) { return 0; }
+function legacyAfterDefenseNextAttackBonus(_cards: EffectCardLike[]) { return { amount: 0, sources: [] as string[] }; }
+
 function legacyEquipmentSpeedModifier(card: EffectCardLike) {
-  const text = normalizedMinus(String(card.rulesText ?? ""));
-  const match = text.match(/(?:and\s+)?-(\d+)\s+Speed\b/i);
-  return match ? -Number(match[1]) : 0;
+  return 0;
 }
 
 function legacyAttackCanChooseAnyZone(card: EffectCardLike, firstAttack: boolean, equipment: EffectCardLike[] = []) {
   if (structuredResolver(card, "attack.chooseAnyZone")) return true;
-  if (!structuredEntry(card)) {
-    const text = String(card.rulesText ?? "");
-    if (/Choose High, Mid, or Low when declared/i.test(text)) return true;
-    if (/may be declared as Any zone/i.test(text)) return true;
-  }
-  if (firstAttack && equipment.some((item) => /Your first Attack each turn may be declared as Any zone/i.test(String(item.rulesText ?? "")))) return true;
   return false;
 }
 
@@ -354,97 +305,31 @@ export function conditionalAttackPowerBonus(card: EffectCardLike, context: {
     }
     return { amount, notes };
   }
-  const text = normalizedMinus(String(card.rulesText ?? ""));
-  const kata = text.match(/If you played a Kata this turn, this Attack gets \+(\d+) Attack Power/i);
-  if (kata && context.playedKata) { amount += Number(kata[1]); notes.push(`Kata setup +${kata[1]} Attack Power`); }
-  const armor = text.match(/If the target has matching Armor, this Attack gets \+(\d+) Attack Power/i);
-  if (armor && context.matchingArmor) { amount += Number(armor[1]); notes.push(`matching Armor +${armor[1]} Attack Power`); }
-  const equipment = text.match(/If the target has two or more permanent Equipment cards equipped, this Attack gets \+(\d+) Attack Power/i);
-  if (equipment && (context.targetEquipmentCount ?? 0) >= 2) { amount += Number(equipment[1]); notes.push(`loaded target +${equipment[1]} Attack Power`); }
-  const unconditional = text.match(/(?:^|[.!?]\s+)(?:This|The) Attack gets \+(\d+) Attack Power/i);
-  if (unconditional && !/Payoff:/i.test(text)) { amount += Number(unconditional[1]); notes.push(`printed Attack bonus +${unconditional[1]}`); }
   return { amount, notes };
 }
 
 function legacyEquipmentConditionalAttackPowerBonus(cards: EffectCardLike[], context: { firstAttack: boolean; attackerSpeed: number; defenderSpeed: number }) {
-  if (!context.firstAttack || context.attackerSpeed >= context.defenderSpeed) return { amount: 0, sources: [] as string[] };
-  let amount = 0;
-  const sources: string[] = [];
-  for (const card of cards) {
-    const match = String(card.rulesText ?? "").match(/Your first Attack against a fighter with higher Speed gets \+(\d+) Attack Power/i);
-    if (!match) continue;
-    amount += Number(match[1]);
-    sources.push(card.name ?? "Equipment");
-  }
-  return { amount, sources };
+  return { amount: 0, sources: [] as string[] };
 }
 
 export function conditionalDefenseGuardBonus(defense: EffectCardLike, context: { weaponAttack: boolean; defenderAttackedThisRound: boolean }) {
-  const text = normalizedMinus(String(defense.rulesText ?? ""));
-  let amount = 0;
-  const notes: string[] = [];
-  const weapon = text.match(/Against a Weapon Attack, this Defense gets \+(\d+) Guard/i);
-  if (weapon && context.weaponAttack) { amount += Number(weapon[1]); notes.push(`Weapon defense +${weapon[1]} Guard`); }
-  const attacked = text.match(/If you played an Attack this round, this Defense gets \+(\d+) Guard/i);
-  if (attacked && context.defenderAttackedThisRound) { amount += Number(attacked[1]); notes.push(`attack-and-defend +${attacked[1]} Guard`); }
-  return { amount, notes };
+  const values = { weaponAttack: Boolean(context.weaponAttack), defenderAttackedThisRound: Boolean(context.defenderAttackedThisRound) };
+  const matched = structuredEffects(defense).filter((effect) => effect.resolver === "defense.conditionalGuard" && structuredConditionsMatch(effect, values));
+  return { amount: matched.reduce((total, effect) => total + Number(effect.amount ?? 0), 0), notes: matched.map((effect) => `structured condition +${Number(effect.amount ?? 0)} Guard`) };
 }
 
 export function conditionalHealAfterHit(card: EffectCardLike, wasHitSinceLastTurn: boolean) {
-  if (!wasHitSinceLastTurn) return 0;
-  const match = String(card.rulesText ?? "").match(/If you were Hit since your last turn, heal (\d+) HP/i);
-  return match ? Number(match[1]) : 0;
+  return wasHitSinceLastTurn ? structuredEffects(card).filter((effect) => effect.action === "heal" && structuredConditionsMatch(effect, { wasHitSinceLastTurn: true })).reduce((total, effect) => total + Number(effect.amount ?? 0), 0) : 0;
 }
 
 export function locationAttackRuleModifiers(location: EffectCardLike, context: { zone: string; firstAttack: boolean; attackTags: string[]; hasWeapon: boolean; equipmentTags: string[] }) {
-  const text = normalizedMinus(String(location.rulesText ?? ""));
-  const tags = context.attackTags.map((tag) => tag.toLocaleLowerCase());
-  const equipmentTags = context.equipmentTags.map((tag) => tag.toLocaleLowerCase());
-  let power = 0;
-  let damage = 0;
-  let matched = 0;
-  const notes: string[] = [];
-
-  const conditionMatches = (sentence: string) => {
-    if (/\bfirst Attack\b/i.test(sentence) && !context.firstAttack) return false;
-    if (/\bfirst Low Attack\b/i.test(sentence) && (!context.firstAttack || context.zone.toLocaleLowerCase() !== "low")) return false;
-    const zoneMatch = sentence.match(/\b(High|Mid|Low) Attacks?\b/i);
-    if (zoneMatch && zoneMatch[1].toLocaleLowerCase() !== context.zone.toLocaleLowerCase()) return false;
-    const tagged = sentence.match(/\b(Jump|Spin|Push)-tag Attacks?\b/i);
-    if (tagged && !tags.some((tag) => tag.includes(tagged[1].toLocaleLowerCase()))) return false;
-    if (/\bUnarmed Attacks?\b/i.test(sentence) && context.hasWeapon) return false;
-    if (/\bWeapon Attacks?\b/i.test(sentence) && !context.hasWeapon && !tags.some((tag) => tag.includes("weapon"))) return false;
-    if (/\bImprovised Weapons?\b/i.test(sentence) && !equipmentTags.some((tag) => tag.includes("improvised"))) return false;
-    if (/\bStaff and Polearm Weapons?\b/i.test(sentence) && !equipmentTags.some((tag) => tag.includes("staff") || tag.includes("polearm"))) return false;
-    if (/their first Attack that turn/i.test(sentence) && !context.firstAttack) return false;
-    return true;
-  };
-
-  for (const raw of text.split(/(?<=[.!?])\s+/)) {
-    const sentence = raw.trim();
-    if (!sentence || /next Attack|target|opponent/i.test(sentence)) continue;
-    if (!conditionMatches(sentence)) continue;
-    const ap = sentence.match(/(?:get|gets|gain|gains)\s*([+-]\d+)\s+Attack (?:Power|Bonus)/i);
-    const dmg = sentence.match(/(?:deal|deals|get|gets|gain|gains)\s*([+-]\d+)\s+(?:additional )?damage/i);
-    if (ap) {
-      const value = Number(ap[1]);
-      power += value;
-      matched += 1;
-      notes.push(`${location.name ?? "Stage"} ${value >= 0 ? "+" : ""}${value} Attack Power`);
-    }
-    if (dmg) {
-      const value = Number(dmg[1]);
-      damage += value;
-      matched += 1;
-      notes.push(`${location.name ?? "Stage"} ${value >= 0 ? "+" : ""}${value} damage`);
-    }
-  }
-  return { power, damage, notes, matched };
+  const values = { attackZone: context.zone, firstAttackThisTurn: context.firstAttack, attackHasAnyTag: context.attackTags, hasWeapon: context.hasWeapon, equipmentTagAny: context.equipmentTags };
+  const matched = structuredEffects(location).filter((effect) => effect.resolver === "location.structured" && structuredConditionsMatch(effect, values));
+  return { power: matched.filter((effect) => String(effect.action ?? effect.effect).includes("AttackPower")).reduce((total, effect) => total + Number(effect.amount ?? 0), 0), damage: matched.filter((effect) => String(effect.action ?? effect.effect).includes("Damage")).reduce((total, effect) => total + Number(effect.amount ?? 0), 0), notes: matched.map((effect) => `structured location ${effect.id ?? "effect"}`), matched: matched.length };
 }
 
 export function destroyJunkChoiceCount(card: EffectCardLike) {
-  const match = String(card.rulesText ?? "").match(/Destroy (\d+) Junk cards? from your hand or discard pile/i);
-  return match ? Number(match[1]) : 0;
+  return structuredEffects(card).filter((effect) => effect.action === "destroy" && (effect.conditions ?? []).some((condition) => ["cardType", "cardFamily", "eligibleSubtypes"].includes(String(condition.kind)))).reduce((total, effect) => total + Number(effect.amount ?? 0), 0);
 }
 
 export function optionalDiscardDrawChoice(card: EffectCardLike) {
@@ -457,29 +342,15 @@ export function optionalDiscardDrawChoice(card: EffectCardLike) {
       draw: Number(structuredConditionValue(effect, "drawAfterCost") ?? 0),
     };
   }
-  const text = String(card.rulesText ?? "");
-  const match = text.match(/After (?:this Attack|this|it|that Attack) resolves, you may discard (\d+) cards? to draw (\d+) cards?/i);
-  return match ? { discard: Number(match[1]), draw: Number(match[2]) } : null;
+  return null;
 }
 
 function legacyFirstIncomingAttackPowerPenalty(cards: EffectCardLike[], isFirstIncomingAttack: boolean) {
-  if (!isFirstIncomingAttack) return { amount: 0, sources: [] as string[] };
-  let amount = 0;
-  const sources: string[] = [];
-  for (const card of cards) {
-    const text = normalizedMinus(String(card.rulesText ?? ""));
-    const match = text.match(/The first Attack targeting you each round gets -(\d+) Attack Power/i);
-    if (!match) continue;
-    amount -= Number(match[1]);
-    sources.push(card.name ?? "Equipment");
-  }
-  return { amount, sources };
+  return { amount: 0, sources: [] as string[] };
 }
 
 export function targetNextDefensePenalty(card: EffectCardLike) {
-  const text = normalizedMinus(String(card.rulesText ?? ""));
-  const match = text.match(/(?:Their|target[’']s|opponent[’']s) next Defense card(?: this round)? (?:gets|has|provides) -(\d+) (?:Guard|Defense)/i);
-  return match ? Number(match[1]) : 0;
+  return structuredEffects(card).filter((effect) => effect.trigger === "onPlay" && effect.target === "opponent" && ["modifyGuard", "modifyDefense"].includes(String(effect.action ?? ""))).reduce((total, effect) => total + Number(effect.amount ?? 0), 0);
 }
 
 export function attackPiercing(card: EffectCardLike, context: {
@@ -507,19 +378,6 @@ export function attackPiercing(card: EffectCardLike, context: {
     return { amount, notes };
   }
 
-  const text = normalizedMinus(String(card.rulesText ?? ""));
-  const armor = text.match(/If the target has matching Armor, this Attack(?: gets \+\d+ Attack Power and)? gains Piercing (\d+)/i);
-  if (armor && context.matchingArmor) add(Number(armor[1]), `matching Armor grants Piercing ${armor[1]}`);
-
-  const equipment = text.match(/If the target has two or more permanent Equipment cards equipped, this Attack(?: gets \+\d+ Attack Power and)? gains Piercing (\d+)/i);
-  if (equipment && context.targetEquipmentCount >= 2) add(Number(equipment[1]), `loaded target grants Piercing ${equipment[1]}`);
-
-  const exhausted = text.match(/If the target has exhausted Equipment, this Attack gains Piercing (\d+)/i);
-  if (exhausted && context.targetHasExhaustedEquipment) add(Number(exhausted[1]), `exhausted Equipment grants Piercing ${exhausted[1]}`);
-
-  const speed = text.match(/If your Speed changed this round, this Attack gets Piercing (\d+)/i);
-  if (speed && context.speedChangedThisRound) add(Number(speed[1]), `Speed change grants Piercing ${speed[1]}`);
-
   return { amount, notes };
 }
 
@@ -528,59 +386,26 @@ function legacyEquipmentPiercing(cards: EffectCardLike[], context: {
   zone: string;
   matchingArmor: boolean;
 }) {
-  let amount = 0;
-  const sources: string[] = [];
-  const zone = context.zone.toLocaleLowerCase();
-
-  for (const card of cards) {
-    const text = normalizedMinus(String(card.rulesText ?? ""));
-    let value = 0;
-    const firstLowMid = text.match(/Your first Low or Mid Attack each turn gains Piercing (\d+)/i);
-    if (firstLowMid && context.firstAttack && (zone === "low" || zone === "mid")) value += Number(firstLowMid[1]);
-    const high = text.match(/Your High Attacks with this gain Piercing (\d+)/i);
-    if (high && zone === "high") value += Number(high[1]);
-    const armor = text.match(/Your Attacks with this gain Piercing (\d+) against Armor/i);
-    if (armor && context.matchingArmor) value += Number(armor[1]);
-    if (!value) continue;
-    amount += value;
-    sources.push(`${card.name ?? "Equipment"} Piercing ${value}`);
-  }
-  return { amount, sources };
+  return { amount: 0, sources: [] as string[] };
 }
 
 export function mandatoryDiscardChoiceCount(card: EffectCardLike) {
-  const text = String(card.rulesText ?? "");
-  if (/\bmay\s+discard\b/i.test(text)) return 0;
-  const match = text.match(/Draw\s+\d+\s+cards?,\s*then\s+discard\s+(\d+)\s+cards?/i);
-  return match ? Number(match[1]) : 0;
+  return structuredEffects(card).filter((effect) => effect.action === "discard" && effect.trigger !== "onPlay").reduce((total, effect) => total + Number(effect.amount ?? 0), 0);
 }
 
 export function discardChoiceFollowup(source: EffectCardLike, discarded: EffectCardLike) {
-  const text = String(source.rulesText ?? "");
   let focus = 0;
   let nextAttackPower = 0;
   let nextDefenseGuard = 0;
   const notes: string[] = [];
-
-  const zeroFocus = text.match(/If you discarded a card with Focus Value 0, gain (\d+) Focus/i);
-  if (zeroFocus && Number(discarded.focusValue ?? 0) === 0) {
-    focus += Number(zeroFocus[1]);
-    notes.push(`Focus Value 0: +${zeroFocus[1]} Focus`);
-  }
-  const technique = text.match(/If you discarded a Technique, your next Attack this turn gets \+(\d+) Attack Power/i);
-  if (technique && String(discarded.cardType ?? '').toLocaleLowerCase() === 'technique') {
-    nextAttackPower += Number(technique[1]);
-    notes.push(`Technique discarded: next Attack +${technique[1]} Attack Power`);
-  }
-  const item = text.match(/If you discarded an Item, your next Defense this round gets \+(\d+) Guard/i);
-  if (item && String(discarded.cardType ?? '').toLocaleLowerCase() === 'item') {
-    nextDefenseGuard += Number(item[1]);
-    notes.push(`Item discarded: next Defense +${item[1]} Guard`);
-  }
-  const discardForFocus = text.match(/discard \d+ cards? to gain (\d+) Focus/i);
-  if (discardForFocus) {
-    focus += Number(discardForFocus[1]);
-    notes.push(`Discard cost paid: +${discardForFocus[1]} Focus`);
+  const values = { discardedFocusValue: Number(discarded.focusValue ?? 0), discardedCardType: discarded.cardType ?? discarded.subtype ?? discarded.category };
+  for (const effect of structuredResolvers(source, "kata.discardBranch")) {
+    if (!structuredConditionsMatch(effect, values)) continue;
+    const action = String(effect.action ?? effect.effect ?? "");
+    if (action === "gainFocus") focus += Number(effect.amount ?? 0);
+    if (action === "modifyAttackPower") nextAttackPower += Number(effect.amount ?? 0);
+    if (action === "modifyGuard") nextDefenseGuard += Number(effect.amount ?? 0);
+    notes.push(`structured discard branch ${effect.id ?? "effect"}`);
   }
   return { focus, nextAttackPower, nextDefenseGuard, notes };
 }
@@ -592,21 +417,15 @@ export type DeckLookPlan =
   | { kind: 'pick-shuffle'; count: number; filter: 'item'; optional: true };
 
 export function deckLookPlan(card: EffectCardLike): DeckLookPlan | null {
-  const text = String(card.rulesText ?? '').replace(/\s+/g, ' ').trim();
-  let match = text.match(/Look at the top (\d+) cards? of your deck\. Put one Defense or Kata into your hand and discard the rest\. If you found neither, gain (\d+) Focus/i);
-  if (match) return { kind: 'pick-discard', count: Number(match[1]), filter: 'defense-or-kata', optional: false, noMatchFocus: Number(match[2]) };
-
-  match = text.match(/Look at the top (\d+) cards? of your deck and put them back in any order\. If they contain three different card types, gain (\d+) Focus/i);
-  if (match) return { kind: 'reorder', count: Number(match[1]), distinctTypeFocus: Number(match[2]) };
-
-  match = text.match(/Look at the top (\d+) cards? of your deck\. Put 1 Technique into your hand; return the rest in any order/i);
-  if (match) return { kind: 'pick-reorder', count: Number(match[1]), filter: 'technique', optional: false };
-
-  match = text.match(/Look at the top (\d+) cards? of your deck\. You may reveal an Item and put it into your hand\. Shuffle the rest/i);
-  if (match) return { kind: 'pick-shuffle', count: Number(match[1]), filter: 'item', optional: true };
-
-  match = text.match(/Look at the top (\d+) cards? of your deck\. Put them back in either order\. If they have different card types, gain (\d+) Focus/i);
-  if (match) return { kind: 'reorder', count: Number(match[1]), distinctTypeFocus: Number(match[2]) };
+  const effects = structuredEffects(card);
+  const deckLook = effects.find((effect) => ["kata.deckLook", "defense.deckLookChoice", "consumable.topThreeAttackSelection", "consumable.reorderTopThree"].includes(String(effect.resolver)));
+  if (!deckLook) return null;
+  const value = (kind: string, fallback = 0) => Number(structuredConditionValue(deckLook, kind) ?? fallback);
+  const eligible = structuredConditionValue(deckLook, "eligibleTypes");
+  if (String(deckLook.resolver) === "consumable.reorderTopThree") return { kind: "reorder", count: value("lookCount", 3), distinctTypeFocus: value("differentCardTypesFocus", value("bonusFocus", 0)) };
+  if (Array.isArray(eligible) && eligible.includes("Technique")) return { kind: "pick-reorder", count: value("lookCount", 1), filter: "technique", optional: false };
+  if (Array.isArray(eligible) && eligible.includes("Item")) return { kind: "pick-shuffle", count: value("lookCount", 1), filter: "item", optional: true };
+  if (String(deckLook.resolver) === "defense.deckLookChoice" || Array.isArray(eligible) && eligible.includes("Defense")) return { kind: "pick-discard", count: value("lookCount", 2), filter: "defense-or-kata", optional: false, noMatchFocus: value("noMatchFocus", 0) };
   return null;
 }
 
@@ -624,47 +443,6 @@ export type EquipmentActivationPlan =
   | { kind: "numbered-attack-power"; attackNumber: number; power: number; minBelt: string };
 
 function legacyEquipmentActivationPlan(card: EffectCardLike): EquipmentActivationPlan | null {
-  const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
-
-  let match = text.match(/^Exhaust:\s*Gain \+(\d+) Speed until (?:the )?next Honor Phase\. If you have Tempo after doing so, draw (\d+) cards?, then discard (\d+) cards?/i);
-  if (match) return { kind: "speed-cycle", speed: Number(match[1]), draw: Number(match[2]), discard: Number(match[3]) };
-
-  match = text.match(/^Exhaust:\s*Your next Attack using this Weapon gets \+(\d+) Attack Power/i);
-  if (match) return { kind: "next-attack-power", power: Number(match[1]) };
-
-  match = text.match(/^Exhaust:\s*Before you play an Attack, choose High, Mid, or Low\. If your next Attack this turn uses that zone, it gains Piercing (\d+)\. If it is Blocked, gain (\d+) Focus/i);
-  if (match) return { kind: "zone-attack", power: 0, piercing: Number(match[1]), blockedFocus: Number(match[2]), requireDifferentPreviousZone: false };
-
-  match = text.match(/^Exhaust:\s*Before you play an Attack, choose High, Mid, or Low\. If that Attack uses the chosen zone and differs from your previous Attack zone this turn, it gets \+(\d+) Attack Power/i);
-  if (match) return { kind: "zone-attack", power: Number(match[1]), piercing: 0, blockedFocus: 0, requireDifferentPreviousZone: true };
-
-  match = text.match(/^Exhaust:\s*After an opponent declares an Attack targeting you, choose High, Mid, or Low\. If that Attack uses the chosen zone, it gets -(\d+) Attack Power/i);
-  if (match) return { kind: "incoming-zone-penalty", attackPowerPenalty: Number(match[1]) };
-
-  match = text.match(/^Exhaust:\s*When you play a Defense outside your turn, it gets \+(\d+) Guard\. At Green Belt or higher, if it Blocks, your Reversal this round gets \+(\d+) Attack Power/i);
-  if (match) return { kind: "defense-guard", guard: Number(match[1]), reversalPower: Number(match[2]) };
-
-  match = text.match(/^Exhaust at Initiate\. If you have Tempo after Speed is set, gain (\d+) Focus/i);
-  if (match) return { kind: "initiate-tempo-focus", focus: Number(match[1]) };
-
-  match = text.match(/^Exhaust after you play a Kata:\s*Gain (\d+) Focus/i);
-  if (match) return { kind: "after-kata-focus", focus: Number(match[1]) };
-
-  match = text.match(/^Exhaust:\s*After your first Attack Hits this turn, discard (\d+) cards? to gain (\d+) Focus/i);
-  if (match) return { kind: "first-hit-discard-focus", discard: Number(match[1]), focus: Number(match[2]) };
-
-  match = text.match(/^Exhaust after one of your Attacks Hits:\s*deal (\d+) direct damage to the same target/i);
-  if (match) return { kind: "hit-direct-damage", damage: Number(match[1]) };
-
-  match = text.match(/^Exhaust after your Attack Hits:\s*Generate (\d+) Focus during your next Initiate/i);
-  if (match) return { kind: "hit-next-initiate-focus", focus: Number(match[1]) };
-
-  match = text.match(/^At ([A-Za-z]+) Belt or higher, exhaust:\s*Your (second|third|fourth) normal Attack this turn gets \+(\d+) Attack Power/i);
-  if (match) {
-    const attackNumber = match[2].toLocaleLowerCase() === "second" ? 2 : match[2].toLocaleLowerCase() === "third" ? 3 : 4;
-    return { kind: "numbered-attack-power", attackNumber, power: Number(match[3]), minBelt: match[1] };
-  }
-
   return null;
 }
 
@@ -674,35 +452,25 @@ export function readyEquipmentOnHit(card: EffectCardLike) {
     return structuredResolvers(card, "attack.readyEquipmentOnHit")
       .reduce((total, effect) => total + Number(effect.amount ?? 0), 0);
   }
-  const text = String(card.rulesText ?? "");
-  const match = text.match(/If (?:it|this Attack) Hits, you may ready one Equipment card you control/i);
-  return match ? 1 : 0;
+  return 0;
 }
 
 function legacyMandatoryDamageReductionEquipment(card: EffectCardLike) {
-  const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
-  const match = text.match(/The first time you take damage each round, reduce that damage by (\d+); then exhaust this card\. Ready it during your next Initiate Phase/i);
-  return match ? { reduce: Number(match[1]), readyAtInitiate: true } : null;
+  return null;
 }
 
 function legacyOptionalCombatDamageReductionEquipment(card: EffectCardLike) {
-  const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
-  const match = text.match(/The first time you take combat damage each round, you may exhaust this to reduce that damage by (\d+)\. At ([A-Za-z]+) Belt or higher, ready it at Hide if that damage was (\d+) or more/i);
-  if (!match) return null;
-  return { reduce: Number(match[1]), readyAtHideMinBelt: match[2], readyAtHideMinDamage: Number(match[3]) };
+  return null;
 }
 
 function legacyPostBlockEquipmentCycle(card: EffectCardLike) {
-  const text = normalizedMinus(String(card.rulesText ?? "")).replace(/\s+/g, " ").trim();
-  const match = text.match(/At ([A-Za-z]+) Belt or higher, after you Block a (High|Mid|Low) Attack, you may exhaust this to draw (\d+) cards?, then discard (\d+) cards?/i);
-  if (!match) return null;
-  return { minBelt: match[1], zone: match[2], draw: Number(match[3]), discard: Number(match[4]) };
+  return null;
 }
 
 
-// Stage 3B Equipment structured wrappers. Migrated Equipment is resolved from
-// generated structured data first; prose parsing is only retained for cards with
-// no structured Equipment entry (legacy/unmigrated fixtures and content).
+// Compatibility wrapper names are retained for the existing Playtest call sites.
+// Canonical catalog cards are resolved from generated structured data; missing
+// structured fixtures return neutral values and never parse printed card text.
 export function passiveEquipmentGuard(card: EffectCardLike) {
   const value = structuredPassiveEquipmentGuard(card as EquipmentCardLike);
   return value == null ? legacyPassiveEquipmentGuard(card) : value;

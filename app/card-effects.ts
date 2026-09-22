@@ -1,4 +1,3 @@
-import cardsJson from "./data/cards.json" with { type: "json" };
 import cardEffectsJson from "./data/card-effects.json" with { type: "json" };
 import { isSupportedCharacterResolver } from "./character-effect-resolvers.ts";
 import { isSupportedDefenseResolver } from "./defense-effect-resolvers.ts";
@@ -11,7 +10,7 @@ import { isSupportedBossResolver } from "./boss-runtime.ts";
 export type EffectTiming = "onPlay" | "onHit" | "onBlock" | "afterResolve";
 export type EffectKind = "draw" | "discard" | "heal" | "focus" | "speed" | "nextAttackPower";
 export type CardEffect = { timing: EffectTiming; kind: EffectKind; amount: number };
-export type CardEffectPlan = { effects: CardEffect[]; dedicated: string[]; unsupported: string[]; source?: "structured" | "legacy-parser" };
+export type CardEffectPlan = { effects: CardEffect[]; dedicated: string[]; unsupported: string[]; source?: "structured" | "unstructured" };
 
 export type StructuredEffectTrigger =
   | EffectTiming
@@ -74,16 +73,11 @@ export type StructuredCardEffect = {
 
 export type StructuredCardLike = {
   catalogId?: string | null;
-  rulesText?: string | null;
   effects?: StructuredCardEffect[] | null;
 };
 
 export type StructuredEffectRegistry = {
   cards?: Record<string, { name?: string; effects: StructuredCardEffect[] }>;
-};
-
-type RuntimeCardCatalog = {
-  cards?: { catalogId?: string | null; rulesText?: string | null }[];
 };
 
 const TIMING_LABELS: Record<EffectTiming, string> = {
@@ -146,59 +140,6 @@ const GENERIC_CANONICAL_EFFECTS = new Set([
 ]);
 
 const runtimeRegistry = cardEffectsJson as unknown as StructuredEffectRegistry;
-const runtimeCards = cardsJson as unknown as RuntimeCardCatalog;
-const structuredEffectsByRulesText = new Map<string, StructuredCardEffect[]>();
-const ambiguousStructuredRulesText = new Set<string>();
-
-function normalizedRulesText(text: unknown) {
-  return String(text ?? "").normalize("NFKC").replace(/\s+/g, " ").trim();
-}
-
-for (const card of runtimeCards.cards ?? []) {
-  const catalogId = String(card.catalogId ?? "").trim();
-  const text = normalizedRulesText(card.rulesText);
-  const effects = catalogId ? runtimeRegistry.cards?.[catalogId]?.effects : null;
-  if (!text || !Array.isArray(effects)) continue;
-  const existing = structuredEffectsByRulesText.get(text);
-  if (existing && JSON.stringify(existing) !== JSON.stringify(effects)) {
-    ambiguousStructuredRulesText.add(text);
-    structuredEffectsByRulesText.delete(text);
-    continue;
-  }
-  if (!ambiguousStructuredRulesText.has(text)) structuredEffectsByRulesText.set(text, effects);
-}
-
-function amount(pattern: RegExp, text: string) {
-  const match = text.match(pattern);
-  return match ? Number(match[1]) : 0;
-}
-
-function sentenceTiming(sentence: string): EffectTiming | null {
-  if (/^(?:if (?:this|it|that (?:Attack|Defense)) Blocks?|when (?:this|that) Blocks?)/i.test(sentence)) return "onBlock";
-  if (/^(?:on Hit|if (?:this Attack|it|that Attack) Hits?|when (?:this|that) Hits?)/i.test(sentence)) return "onHit";
-  if (/^after (?:this|it|that (?:card|Attack|Defense)) resolves/i.test(sentence)) return "afterResolve";
-  if (/^(?:Draw|Discard|Gain|Heal|Lose|Your next|The next|Use\s*[:—-])/i.test(sentence)) return "onPlay";
-  return null;
-}
-
-function operationsForSentence(sentence: string, timing: EffectTiming): CardEffect[] {
-  const effects: CardEffect[] = [];
-  const draw = amount(/draw (\d+) cards?/i, sentence);
-  const discard = amount(/discard (\d+) cards?/i, sentence);
-  const heal = amount(/heal (\d+) HP?/i, sentence);
-  const focus = amount(/gain \+?(\d+) Focus/i, sentence);
-  const gainSpeed = amount(/gain \+?(\d+) Speed/i, sentence);
-  const loseSpeed = amount(/lose (\d+) Speed/i, sentence);
-  const nextAttackPower = amount(/next (?:unarmed )?Attack[^.]*?(?:gets|gains?) \+(\d+) (?:Attack Power|damage)/i, sentence);
-  if (draw) effects.push({ timing, kind: "draw", amount: draw });
-  if (discard) effects.push({ timing, kind: "discard", amount: discard });
-  if (heal) effects.push({ timing, kind: "heal", amount: heal });
-  if (focus) effects.push({ timing, kind: "focus", amount: focus });
-  if (gainSpeed) effects.push({ timing, kind: "speed", amount: gainSpeed });
-  if (loseSpeed) effects.push({ timing, kind: "speed", amount: -loseSpeed });
-  if (nextAttackPower) effects.push({ timing, kind: "nextAttackPower", amount: nextAttackPower });
-  return effects;
-}
 
 function canonicalEffectName(effect: StructuredCardEffect) {
   if (effect.effect) return effect.effect;
@@ -264,21 +205,13 @@ function planFromStructuredEffects(structuredEffects: StructuredCardEffect[]): C
 }
 
 export function compileCardEffects(text = ""): CardEffectPlan {
-  const normalized = normalizedRulesText(text);
-  const structuredEffects = structuredEffectsByRulesText.get(normalized);
-  if (structuredEffects) return planFromStructuredEffects(structuredEffects);
-  if (!normalized || /^(?:No (?:additional )?effect|—|-)[.]?$/i.test(normalized)) return { effects: [], dedicated: [], unsupported: [], source: "legacy-parser" };
-  const effects: CardEffect[] = [];
-  const unsupported: string[] = [];
-  for (const sentence of normalized.split(/(?<=[.!?])\s+/)) {
-    if (/\b(?:may|choose|up to|either|one of|optionally)\b/i.test(sentence)) { unsupported.push(sentence); continue; }
-    const timing = sentenceTiming(sentence);
-    if (!timing) { unsupported.push(sentence); continue; }
-    const parsed = operationsForSentence(sentence, timing);
-    if (parsed.length) effects.push(...parsed);
-    else unsupported.push(sentence);
-  }
-  return { effects, dedicated: [], unsupported, source: "legacy-parser" };
+  const normalized = String(text ?? "").trim();
+  return {
+    effects: [],
+    dedicated: [],
+    unsupported: normalized ? ["missing-canonical-structured-entry"] : [],
+    source: "unstructured",
+  };
 }
 
 export function structuredEffectsForCard(card: StructuredCardLike, registry?: StructuredEffectRegistry): StructuredCardEffect[] | null {
@@ -293,7 +226,7 @@ export function structuredEffectsForCard(card: StructuredCardLike, registry?: St
 export function effectPlanForCard(card: StructuredCardLike, registry?: StructuredEffectRegistry): CardEffectPlan {
   const structuredEffects = structuredEffectsForCard(card, registry);
   if (structuredEffects) return planFromStructuredEffects(structuredEffects);
-  return compileCardEffects(card.rulesText ?? "");
+  return compileCardEffects(String(card.catalogId ?? ""));
 }
 
 export function describeEffectPlan(plan: CardEffectPlan) {
@@ -310,10 +243,7 @@ export function describeEffectPlan(plan: CardEffectPlan) {
 
 export function effectCoverage(cards: StructuredCardLike[], registry?: StructuredEffectRegistry) {
   const structured = cards.filter((card) => structuredEffectsForCard(card, registry) !== null);
-  const relevant = cards.filter((card) => {
-    const effects = structuredEffectsForCard(card, registry);
-    return Boolean((effects && effects.length) || (card.rulesText && !/no (additional )?effect/i.test(card.rulesText)));
-  });
+  const relevant = structured;
   const full = relevant.filter((card) => {
     const plan = effectPlanForCard(card, registry);
     const resolved = plan.effects.length + (plan.dedicated?.length ?? 0);

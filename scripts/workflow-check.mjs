@@ -7,6 +7,7 @@ import { Game } from "../engine/core.mjs";
 import { replayGame, replayMatches, replayDiff } from "../engine/replay.mjs";
 import { applyScenario, loadScenario } from "../engine/scenarios.mjs";
 import { baselinePolicy } from "../engine/policies.mjs";
+import { certifyPlaytest } from "./playtest-certification.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const readJson = async (path) => JSON.parse(await readFile(resolve(root, path), "utf8"));
@@ -21,6 +22,7 @@ const [source, definition, cards, effects, cardEffects] = await Promise.all([
 ]);
 const data = await loadGameData();
 const coverage = analyzeEffectCoverage(cardEffects, { catalog: cards.cards, definition });
+const playtest = await certifyPlaytest(root);
 
 // Canonical source boundaries and browser/headless generated boundaries.
 if (!same(source.definition, definition)) fail("generated game definition differs from content/dojo-game.json");
@@ -47,6 +49,7 @@ for (const phase of definition.turn.phaseRules) if (!phaseIds.has(phase.id)) fai
 // Structured vocabulary is only certified when the coverage analyzer sees the
 // same action/condition as executable; unknown conditions are never permissive.
 if (coverage.unsupportedEffects) fail(`${coverage.unsupportedEffects} structured effects are not executable by the headless vocabulary`);
+if (!playtest.pass) for (const failure of playtest.failures) fail(`Playtest certification: ${failure}`);
 for (const [kind, count] of Object.entries(coverage.conditionCounts)) if (!HEADLESS_SUPPORTED_CONDITIONS.has(kind) && count) fail(`condition kind ${kind} is not certified`);
 const triggers = Object.fromEntries(Object.entries(coverage.triggerCounts));
 const executableTriggers = new Set(["passive", "onPlay", "onHit", "onBlock", "onAttackDeclared", "onDefenseDeclared", "afterResolve", "onPurchase", "onEquip", "onInitiate", "onHide"]);
@@ -67,18 +70,12 @@ if (data.definition.economy.defensePractice.usesPerTurn === 0) fail("scenario ov
 const scenarioResult = new Game(scenarioData, { seed: 9127 }).run({ policy: baselinePolicy });
 if (scenarioResult.invariantFailures.length) fail(`scenario runtime invariants failed: ${scenarioResult.invariantFailures.join("; ")}`);
 
-// Prose fallback is retained only as migration code for non-certified legacy
-// paths. It is surfaced explicitly so this check cannot be mistaken for proof
-// that every browser branch has converged to the headless engine.
-const legacy = await readFile(resolve(root, "app/effect-resolvers-legacy.ts"), "utf8");
-const proseFallbackCount = (legacy.match(/rulesText/g) ?? []).length;
-if (proseFallbackCount) warnings.push(`${proseFallbackCount} legacy prose references remain outside the canonical headless path`);
-
 const report = {
   rulesVersion: definition.rulesVersion,
   rulesRevision: definition.rulesRevision,
   canonical: { source: "content/", generated: "app/data/", generatedBoundary: same(source.definition, definition) },
   coverage: { total: coverage.totalEffects, supported: coverage.supportedEffects, unsupported: coverage.unsupportedEffects, scopes: coverage.scopeCounts },
+  playtest,
   runtime: { replayChecked: true, replayMatches: replayMatches(original, replayed), invariantFailures: original.invariantFailures, scenarioId: scenario.id, scenarioInvariantFailures: scenarioResult.invariantFailures },
   triggers,
   telemetry: original.telemetry,

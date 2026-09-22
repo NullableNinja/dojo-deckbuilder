@@ -1991,10 +1991,9 @@ function playerDiscardChoiceCount(card: CardEntry, timing: "onPlay" | "onHit" | 
 }
 
 // -----------------------------------------------------------------------------
-// LEGACY EFFECT COMPATIBILITY — MIGRATION DEBT
-// Structured JSON/resolvers are authoritative. The prose/name fallbacks in this
-// section exist only so not-yet-migrated behavior keeps working. New mechanics must
-// NOT be added here; add them to canonical JSON and a reusable resolver/host.
+// CANONICAL STRUCTURED EFFECT HOST
+// Every catalog card reaches this host through generated structured JSON and a
+// reusable resolver. Printed rules text is presentation-only.
 // -----------------------------------------------------------------------------
 
 function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai", timing: "onPlay" | "onHit" | "onBlock" | "afterResolve" = "onPlay", familyContext: (DefenseRuntimeContext | ConsumableRuntimeContext) & { defenderPlayedDefense?: boolean; goldBeltExamThirdZone?: boolean } = {}, grantPrintedFocus = true) {
