@@ -2,7 +2,7 @@ export const HEADLESS_SUPPORTED_ACTIONS = new Set([
   "gainFocus", "draw", "modifyAttackPower", "modifySpeed", "modifyGuard", "modifyDefense",
   "preventDamage", "heal", "dealDamage", "minimumSpeed", "piercing", "chooseZone",
   "discard", "destroy", "ready", "exhaust",
-  "reveal", "gainXP", "spendFocus", "modifyDefenseContribution", "grantFlow", "modifyCost", "cycleDiscardDraw", "deckLook",
+  "reveal", "gainXP", "spendFocus", "modifyDefenseContribution", "grantFlow", "modifyCost", "cycleDiscardDraw", "deckLook", "structured",
   "removeTemporaryNegativeStatModifier", "removeTemporaryStatus", "recoverThenDiscard", "recycle", "equipFromHand", "equipFromDiscard", "setSpeed", "modifyDefenseUntilNextTurn", "restrictAttack", "restrictReaction", "restrictConsumable", "restrictWeapon", "untargetable", "reactionDefense", "grantKataFocus", "hitChoice", "equipmentToggle", "discardOrDestroy", "incomingAttackChoice",
 ]);
 
@@ -42,6 +42,33 @@ export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
   "nextAttackHasTag", "nextQualifyingAttackOnly", "sourceActivationArmed", "equippedCardSubtypeIn", "equippedCardIsSource", "minimumDraw", "incomingDamageAtLeast",
   "xpFromLegalAttackOrDefense",
   "attackTiming", "appliesTo", "afterOpponentCommitsDefense", "itemCostPenalty", "defenseGuardPenalty",
+  // Structured parameters and lifecycle facts are consumed by resolver hosts,
+  // rather than treated as unknown predicates.
+  "incomingZones", "discardCost", "nonHonorSceneChangedThisRound", "choiceKind", "sourceAffectedCountThreshold",
+  "scheduledTiming", "firstSwapThisGame", "discardedByEffect", "selfIsLowestXp", "speedPenaltyEvent",
+  "forcedDiscardEvent", "resolvedCardType", "sceneChangeOccurred", "eventCardType", "nextMatchingEvent",
+  "boughtCardThisTurn", "event", "grantFlowTo", "beltExam", "firstNovelPurchasedCardType", "requiresCondition",
+  "attackSpeedBonus", "attackPowerBonus", "optional", "onPaidGainFocus", "readyTiming", "maxAttacksAfterSource",
+  "optionalExhaust", "mustDifferFromFirstAttackZone", "matchingZonePowerBonus", "ifHitSinceLastTurn", "otherwise",
+  "revealUntilType", "keepRevealedMatch", "sourceAttackMatchesArmedEffect", "firstAttackInChosenZone",
+  "afterResolveFocus", "source", "firstDamageEventBefore", "gainFocusIfDamageAfterReduction", "focusAmount",
+  "copySource", "copyPrintedEffect", "preventRecursiveLoop", "learnedComboTriggeredThisTurn", "firstMatchingAttack",
+  "minimumDamage", "gainFocus", "redBeltOrHigherCycle", "hpAtOrBelowHalfMax", "nextComboLearn", "discardUpTo",
+  "drawEqualDiscarded", "differentCardTypesPlayedThisTurn", "triggerOnFirstThresholdCrossing", "chosenZoneFirstAttackPower",
+  "otherZonesRequired", "otherZonesBefore", "completionFocus", "equipmentSubtype", "equippedOnly", "attackBonusDelta",
+  "sameRoundOnly", "reactionPlayedAgainstSelf", "attackHasTag", "attackUsesSourceEquipment", "attackZones",
+  "firstHitWithSourceThisRound", "defenseOutsideTurn", "currentAttackIsNormal",
+  "discardedPrintedFocusValue", "firstNegativeCombatModifierThisRound", "nextPlayOfChosenCardFocus", "firstMatchingEventBefore", "attackIsReversal",
+  "locationEvent", "locationOperation",
+  "minimumFinalValue", "attackUsesEquipmentTagAny", "equipmentReadiedOutsideInitiate", "firstLowAttackThisTurn", "fixedValue",
+  "hpLoss", "itemPlayedBeforeFirstAttack", "reveal",
+  "ownTurn", "firstMatchingPerRound", "firstMatchingPerTurn", "equipmentTagAny", "xpSourceAny", "isKoXp",
+  "kataGrantedFlowThisAttack", "firstKataFlowThisTurn", "cardTypeAny", "attackedThisTurn", "printedCostAtLeast",
+  "isComboFinisher", "healingSourceAny", "usesSceneChosenCounterZone", "attackHit", "sameRoundAsSceneChoice",
+  "reductionSourceAny", "firstConsumableThisTurn", "firstItemPurchaseThisAscend", "cardSubtypeOrTagAny", "destroyCount",
+  "comboIsLearned", "drawCount", "discardCount", "maximumLoss", "printedFocusAtLeast", "selfSpeedAtLeast",
+  "defenseZone", "attackTagAny", "appliesNextRound", "isSlowest", "firstAcrossPlayersPerRound", "hasWeaponEquipped",
+  "equipmentExhaustedEarlierThisRound", "firstEquipmentExhaustThisRound", "equippedCardTagAny", "firstMatchingPerSceneStay",
 ]);
 
 const increment = (map, key) => { const normalized = String(key ?? "(none)"); map[normalized] = (map[normalized] ?? 0) + 1; };
@@ -84,6 +111,10 @@ export const canonicalAction = (effect) => {
   if (String(effect.resolver) === "character.revealConsumableCycle") return "cycleDiscardDraw";
   if (String(effect.resolver) === "character.exhaustReadyEquipmentLock") return "equipmentToggle";
   if (["character.discardJunkDestroyChoice", "character.forcedJunkDiscardDestroyChoice"].includes(String(effect.resolver))) return "discardOrDestroy";
+  if (String(effect.resolver) === "attack.final.cycle") return action;
+  if (["attack.final.defensiveReaction", "attack.final.comboMultiplicity", "attack.final.fireDrillFeint"].includes(String(effect.resolver))) return "structured";
+  if (String(effect.resolver) === "equipment.structured" || String(effect.resolver) === "location.structured") return action === "custom" ? "structured" : action;
+  if (["character", "consumable", "defense", "kata", "reaction", "combo", "boss"].some((prefix) => String(effect.resolver).startsWith(`${prefix}.`))) return "structured";
   return {
     "equipment.modifyDefenseContribution": "modifyDefenseContribution",
     "combat.modifyDefense": "modifyDefense",
