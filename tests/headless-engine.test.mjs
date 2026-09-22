@@ -83,6 +83,29 @@ test("generic equipment ready and exhaust actions mutate persistent equipment st
   assert.equal(game.telemetry.unsupportedEffects, 0);
 });
 
+test("status identifiers remain unique after a status is removed", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 107 });
+  const player = game.players[0];
+  game.addStatus(player, { action: "modifyDefense", amount: 1, duration: "nextHonor" });
+  const firstId = player.statuses[0].id;
+  assert.equal(game.removeStatus(player, "modifyDefense"), true);
+  game.addStatus(player, { action: "modifyDefense", amount: 1, duration: "nextHonor" });
+  game.addStatus(player, { action: "modifyDefense", amount: 1, duration: "nextHonor" });
+  assert.equal(new Set(player.statuses.map((status) => status.id)).size, 2);
+  assert.notEqual(player.statuses[0].id, firstId);
+  assert.equal(game.checkInvariants().length, 0);
+});
+
+test("terminal games do not retain an unresolved choice", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 9, strategies: ["balanced", "balanced"] });
+  const result = game.run();
+  assert.equal(result.reason, "knockout");
+  assert.equal(result.state.pendingChoice, null);
+  assert.equal(result.invariantFailures.length, 0);
+});
+
 test("Character Initiate Consumable cycling is a resumable headless choice", async () => {
   const data = await loadGameData();
   const bento = data.cards.find((card) => card.catalogId === "DDB-CHR-CORE-023");

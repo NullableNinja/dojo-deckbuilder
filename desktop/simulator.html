@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dojo Deckbuilder Simulation Control</title>
+    <style>
+      :root { color-scheme: dark; font-family: Segoe UI, system-ui, sans-serif; background: #0b0e15; color: #eef0f7; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 85% 10%, #29315b 0, transparent 35%), #0b0e15; }
+      main { max-width: 1120px; margin: auto; padding: 32px; }
+      h1 { margin: 0 0 6px; font-size: 32px; }
+      .subtle { color: #aeb4ca; margin: 0 0 26px; }
+      .layout { display: grid; grid-template-columns: 360px 1fr; gap: 22px; }
+      section { border: 1px solid #39415e; border-radius: 14px; background: #161a25e8; padding: 20px; box-shadow: 0 18px 45px #0007; }
+      label { display: block; color: #c7cad7; font-size: 13px; margin: 12px 0 5px; }
+      input, select { width: 100%; border: 1px solid #4b5574; border-radius: 7px; padding: 10px; color: #eef0f7; background: #0f1320; }
+      button { width: 100%; margin-top: 18px; border: 0; border-radius: 8px; padding: 12px; color: #17110d; background: #f0c568; font-weight: 800; cursor: pointer; }
+      button:disabled { opacity: .5; cursor: wait; }
+      pre { min-height: 500px; max-height: 650px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; padding: 16px; border-radius: 8px; background: #070910; color: #d7dcef; font: 12px/1.5 Consolas, monospace; }
+      .status { margin-top: 14px; color: #aeb4ca; }
+      .warning { color: #f0c568; font-size: 12px; line-height: 1.5; }
+      @media (max-width: 850px) { main { padding: 18px; } .layout { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Simulation Control</h1>
+      <p class="subtle">Run deterministic games locally and collect machine-readable telemetry.</p>
+      <div class="layout">
+        <section>
+          <label for="games">Games</label><input id="games" type="number" min="1" value="1000" />
+          <label for="workers">Parallel workers</label><input id="workers" type="number" min="1" value="8" />
+          <label for="seed">Starting seed</label><input id="seed" type="number" min="1" value="1" />
+          <label for="mode">Mode ID</label><input id="mode" value="quick-duel" />
+          <p class="warning">Only modes with executable canonical definitions are accepted. The simulator will reject modes whose rules exist only as prose.</p>
+          <label for="policy">Policy</label><select id="policy"><option>baseline</option><option>random</option></select>
+          <label for="telemetry">Telemetry detail</label><select id="telemetry"><option value="games">games — full per-game records</option><option value="full">full — decisions and lifecycle events</option><option value="summary">summary — aggregate only</option></select>
+          <label for="replay">Replay check every N games</label><input id="replay" type="number" min="0" value="100" />
+          <label for="output">Summary JSON path</label><input id="output" value="reports/offline-simulation.json" />
+          <button id="start">Run simulation</button>
+          <div class="status" id="status">Ready.</div>
+        </section>
+        <section><pre id="log">Output will appear here.\n</pre></section>
+      </div>
+    </main>
+    <script>
+      const ids = ["games", "workers", "seed", "mode", "policy", "telemetry", "replay", "output"];
+      const value = (id) => document.getElementById(id).value;
+      const log = document.getElementById("log");
+      const status = document.getElementById("status");
+      const start = document.getElementById("start");
+      window.simulation.onOutput((text) => { log.textContent += text; log.scrollTop = log.scrollHeight; });
+      window.simulation.onDone(({ code }) => { start.disabled = false; status.textContent = code === 0 ? "Complete. Reports were written to the selected path." : `Failed with exit code ${code}.`; });
+      start.addEventListener("click", async () => {
+        start.disabled = true; log.textContent = ""; status.textContent = "Running...";
+        try { await window.simulation.start({ games: value("games"), workers: value("workers"), seed: value("seed"), mode: value("mode"), policy: value("policy"), telemetry: value("telemetry"), replayEvery: value("replay"), output: value("output") }); }
+        catch (error) { start.disabled = false; status.textContent = error.message; log.textContent += `${error.message}\n`; }
+      });
+    </script>
+  </body>
+</html>

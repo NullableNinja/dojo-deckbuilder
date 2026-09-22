@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/verify-card-inspector-bundle.mjs",
+    "build:offline": "tsc --noEmit && vite build --mode offline && node scripts/verify-card-inspector-bundle.mjs",
+    "package:offline": "npm run build:offline && node scripts/package-offline.mjs",
     "preview": "vite preview",
     "game:generate": "node scripts/generate-game-data.mjs",
     "game:check": "node scripts/check-generated-game-data.mjs",
@@ -20,6 +22,7 @@
     "playtest:runtime": "node scripts/playtest-runtime-certification.mjs",
     "workflow:check": "node --experimental-strip-types scripts/workflow-check.mjs",
     "simulate": "node engine/simulate.mjs",
+    "simulate:parallel": "node engine/parallel-simulate.mjs",
     "test": "node --experimental-strip-types --test tests/engine.test.mjs tests/headless-engine.test.mjs tests/semantic-coverage.test.mjs tests/structured-effects.test.mjs tests/rules-json-runtime.test.mjs tests/workflow-engine.test.mjs tests/playtest-certification.test.mjs tests/quick-duel-character-coach-modification-host.test.mjs tests/quick-duel-character-damage-incoming-host.test.mjs tests/quick-duel-character-equip-host.test.mjs tests/quick-duel-character-attack-declared-host.test.mjs tests/quick-duel-kata-consumable-runtime.test.mjs tests/quick-duel-kata-combat-runtime.test.mjs tests/quick-duel-kata-stateful-runtime.test.mjs tests/quick-duel-kata-defense-hide-runtime.test.mjs tests/quick-duel-consumable-host-coverage.test.mjs",
     "verify": "npm run game:generate && npm run game:check && git diff --exit-code -- content/card-effects.json app/data && npm test && npm run workflow:check && npm run playtest:runtime && npm run build"
   },
@@ -28,9 +31,11 @@
     "react-dom": "19.2.6"
   },
   "devDependencies": {
+    "@electron/packager": "^20.3.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
+    "electron": "^44.4.3",
     "typescript": "5.9.3",
     "vite": "8.0.13"
   }

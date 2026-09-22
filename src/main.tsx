@@ -10,7 +10,7 @@ import "../app/playtest.css";
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;
 
-if (currentBuild && currentBuild !== "__DDB_BUILD__") {
+if (import.meta.env.MODE !== "offline" && currentBuild && currentBuild !== "__DDB_BUILD__") {
   fetch(`${import.meta.env.BASE_URL}build.json?ts=${Date.now()}`, { cache: "no-store" })
     .then((response) => response.ok ? response.json() as Promise<{ build?: string }> : null)
     .then((payload) => {
@@ -26,7 +26,7 @@ if (currentBuild && currentBuild !== "__DDB_BUILD__") {
     .catch(() => undefined);
 }
 
-if ("serviceWorker" in navigator) {
+if (import.meta.env.MODE !== "offline" && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     let refreshingForWorker = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {

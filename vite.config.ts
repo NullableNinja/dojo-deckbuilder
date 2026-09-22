@@ -1,8 +1,8 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-export default defineConfig({
-  base: "/dojo-deckbuilder/",
+export default defineConfig(({ mode }) => ({
+  base: mode === "offline" ? "./" : "/dojo-deckbuilder/",
   plugins: [react()],
   build: {
     outDir: "dist",
@@ -26,4 +26,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

@@ -44,3 +44,6 @@ next-env.d.ts
 # generated analysis reports
 /reports/*.json
 /reports/*.md
+/reports/*.jsonl
+/reports/*
+/offline-package/
