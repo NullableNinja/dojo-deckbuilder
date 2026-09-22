@@ -3,6 +3,8 @@ import fs from "node:fs";
 import test from "node:test";
 import { publishQuickDuelPlaytestEquip } from "../app/quick-duel-playtest-host.ts";
 import { quickDuelCharacterEventHasCompatibilityConflict } from "../app/quick-duel-character-migration.ts";
+import { equipmentHandLimit, repairEquipmentHandLimit } from "../app/equipment-hand-limit.ts";
+import { runtimeCardFor } from "../app/runtime-card-catalog.ts";
 
 function board(overrides = {}) {
   return { fighterId:"DDB-CHR-CORE-001", belt:3, hp:10, maxHp:10, xp:0, focus:0, tempSpeed:0,
@@ -44,6 +46,46 @@ test("AI uses the same equip event contract", () => {
   const hosted = publishQuickDuelPlaytestEquip(current, "ai", weapon);
   assert.equal(hosted.allowed, false);
   assert.equal(hosted.choices.length, 0);
+});
+
+test("Weapon equip obeys the canonical two-Hand capacity", () => {
+  const rolledRulebook = "items-weapons-56-rolled-up-rulebook";
+  const poolNoodle = "items-weapons-50-pool-noodle-of-shame";
+  const foldingChair = { id:"candidate-chair", name:"Candidate Chair", cardType:"Item", subtype:"Weapon", tags:["Weapon"], stats:{ Hands:"2" } };
+  const extraOneHand = { id:"candidate-club", name:"Candidate Club", cardType:"Item", subtype:"Weapon", tags:["Weapon"], stats:{ Hands:"1" } };
+
+  const oneHandOccupied = match(board({ equipment:[rolledRulebook] }), board());
+  assert.equal(publishQuickDuelPlaytestEquip(oneHandOccupied, "player", extraOneHand).allowed, true);
+  const blockedTwoHand = publishQuickDuelPlaytestEquip(oneHandOccupied, "player", foldingChair);
+  assert.equal(blockedTwoHand.allowed, false);
+  assert.equal(blockedTwoHand.event?.allowed, false);
+  assert.match(blockedTwoHand.reason, /1\/2 Hands occupied/);
+
+  const bothHandsOccupied = match(board({ equipment:[rolledRulebook, poolNoodle] }), board());
+  const blockedThirdWeapon = publishQuickDuelPlaytestEquip(bothHandsOccupied, "player", extraOneHand);
+  assert.equal(blockedThirdWeapon.allowed, false);
+  assert.match(blockedThirdWeapon.reason, /2\/2 Hands occupied/);
+
+  const emptyHands = match(board(), board());
+  assert.equal(publishQuickDuelPlaytestEquip(emptyHands, "player", foldingChair).allowed, true);
+});
+
+test("Weapon Hand-limit repair preserves legal Equipment and discards overflow deterministically", () => {
+  const rolledRulebook = "items-weapons-56-rolled-up-rulebook";
+  const poolNoodle = "items-weapons-50-pool-noodle-of-shame";
+  const foldingChair = "items-weapons-53-folding-chair-of-destiny";
+  const club = "items-weapons-7-club";
+  const equipped = [rolledRulebook, poolNoodle, foldingChair, club];
+
+  const limit = equipmentHandLimit([rolledRulebook, poolNoodle], runtimeCardFor(club), runtimeCardFor);
+  assert.equal(limit.allowed, false);
+  assert.equal(limit.occupied, 2);
+  assert.equal(limit.required, 1);
+
+  const repaired = repairEquipmentHandLimit(equipped, runtimeCardFor);
+  assert.deepEqual(repaired.equipment, [rolledRulebook, poolNoodle]);
+  assert.deepEqual(repaired.removed, [foldingChair, club]);
+  assert.equal(repaired.occupied, 2);
 });
 
 test("equip is no longer compatibility-blocked", () => {
