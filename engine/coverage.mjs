@@ -98,7 +98,7 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
   const catalogById = new Map(catalog.map((card) => [card.catalogId, card]));
   const actionCounts = {}; const resolverCounts = {}; const conditionCounts = {}; const triggerCounts = {}; const targetCounts = {}; const durationCounts = {};
   const unsupportedActions = {}; const unsupportedResolvers = {}; const unsupportedConditions = {};
-  const scopeCounts = {}; const unsupportedByScope = {}; const unsupportedGroups = {}; const supportedByFamily = {}; const unsupportedByFamily = {};
+  const scopeCounts = {}; const unsupportedByScope = {}; const unsupportedGroups = {}; const unsupportedGroupsByScope = { "baseline-core": {}, "out-of-mode": {} }; const supportedByFamily = {}; const unsupportedByFamily = {};
   const cardStatus = {}; let totalEffects = 0; let supportedEffects = 0; let fullySupportedCards = 0; let cardsWithEffects = 0;
   for (const [catalogId, card] of Object.entries(cardEffects.cards ?? {})) {
     const effects = card.effects ?? []; if (!effects.length) continue; cardsWithEffects += 1;
@@ -116,7 +116,7 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
       const group = supportGroup(effect);
       if (!supported) {
         cardSupported = false; increment(unsupportedActions, semanticAction); if (action === "custom" && resolver !== "starter.gainFocusIfFastest") increment(unsupportedResolvers, resolver);
-        increment(unsupportedGroups, group); increment(unsupportedByScope, scope); increment(unsupportedByFamily, family);
+        increment(unsupportedGroups, group); increment(unsupportedGroupsByScope[scope], group); increment(unsupportedByScope, scope); increment(unsupportedByFamily, family);
       } else { supportedEffects += 1; cardSupportedCount += 1; increment(supportedByFamily, family); }
     }
     if (cardSupported) fullySupportedCards += 1;
@@ -132,7 +132,7 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
     triggerCounts: sorted(triggerCounts), targetCounts: sorted(targetCounts), durationCounts: sorted(durationCounts),
     unsupportedActions: sorted(unsupportedActions), unsupportedResolvers: sorted(unsupportedResolvers), unsupportedConditions: sorted(unsupportedConditions),
     scopeCounts: sorted(scopeCounts), unsupportedByScope: sorted(unsupportedByScope), supportedByFamily: sorted(supportedByFamily), unsupportedByFamily: sorted(unsupportedByFamily),
-    topUnsupportedGroups: sorted(unsupportedGroups), cardStatus,
+    topUnsupportedGroups: sorted(unsupportedGroups), topUnsupportedGroupsByScope: Object.fromEntries(Object.entries(unsupportedGroupsByScope).map(([scope, groups]) => [scope, sorted(groups)])), cardStatus,
     cardsFullySupported, cardsPartiallySupported, cardsWithZeroSupportedEffects,
   };
 }

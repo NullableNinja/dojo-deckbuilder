@@ -30,5 +30,6 @@ if (json) {
   console.log("\nBY DURATION"); console.log(top(report.durationCounts, 20));
   console.log("\nBY CONDITION KIND (unsupported)"); console.log(top(report.unsupportedConditions, 30));
   console.log("\nTOP UNSUPPORTED BEHAVIOR GROUPS"); console.log(top(report.topUnsupportedGroups, 30));
+  console.log("\nTOP BASELINE-CORE UNSUPPORTED GROUPS"); console.log(top(report.topUnsupportedGroupsByScope["baseline-core"], 30));
   console.log("\nMACHINE-READABLE: npm run engine:coverage -- --json");
 }
