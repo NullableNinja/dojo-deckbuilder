@@ -32,8 +32,8 @@
           <label for="games">Games</label><input id="games" type="number" min="1" value="1000" />
           <label for="workers">Parallel workers</label><input id="workers" type="number" min="1" value="8" />
           <label for="seed">Starting seed</label><input id="seed" type="number" min="1" value="1" />
-          <label for="mode">Mode</label><select id="mode"><option value="quick-duel">Quick Duel</option><option value="boss-blitz">Boss Blitz — Solo</option></select>
-          <p class="warning">Boss Blitz currently ships as the executable solo ruleset. Cooperative Boss Blitz remains described in the canonical rules but is not yet exposed as an executable mode.</p>
+          <label for="mode">Mode ID</label><input id="mode" value="quick-duel" />
+          <p class="warning">Only modes with executable canonical definitions are accepted. The simulator will reject modes whose rules exist only as prose.</p>
           <label for="policy">Policy</label><select id="policy"><option>baseline</option><option>random</option></select>
           <label for="telemetry">Telemetry detail</label><select id="telemetry"><option value="games">games — full per-game records</option><option value="full">full — decisions and lifecycle events</option><option value="summary">summary — aggregate only</option></select>
           <label for="replay">Replay check every N games</label><input id="replay" type="number" min="0" value="100" />

@@ -7,9 +7,9 @@
  * not infer missing mode rules from prose.
  */
 export function executableModes(data) {
-  const defaultMode = data?.baseDefinition?.mode ?? data?.definition?.mode;
-  const definitions = [defaultMode, ...Object.values(data?.baseDefinition?.modeDefinitions ?? data?.modeDefinitions ?? {})].filter(Boolean);
-  return definitions.map((mode) => ({ ...structuredClone(mode), executable: mode.id === "quick-duel" || mode.id === "boss-blitz" }));
+  const mode = data?.definition?.mode;
+  if (!mode?.id) return [];
+  return [{ ...structuredClone(mode), executable: true }];
 }
 
 export function modeSummary(data) {
@@ -29,6 +29,5 @@ export function requireExecutableMode(data, requestedMode = null) {
     const available = executableModes(data).map((candidate) => candidate.id).join(", ") || "none";
     throw new Error(`Mode ${requested ?? "(missing)"} is not executable in canonical rules ${data?.definition?.rulesVersion ?? "unknown"}. Executable modes: ${available}. Add the mode definition canonically before simulating it.`);
   }
-  if (!mode.executable) throw new Error(`Mode ${requested} is described but not executable in canonical rules ${data?.definition?.rulesVersion ?? "unknown"}.`);
   return mode;
 }

@@ -1,4 +1,4 @@
-import { createGame } from "./games.mjs";
+import { Game } from "./core.mjs";
 
 /**
  * A replay policy feeds the exact action/choice decisions recorded by Game.run
@@ -35,7 +35,7 @@ const comparable = (result) => ({
 
 export function replayGame(data, original, { maxSteps = 100000 } = {}) {
   const strategies = (original.players ?? []).map((player) => player.strategy ?? "balanced");
-  const game = createGame(data, { seed: original.seed, strategies });
+  const game = new Game(data, { seed: original.seed, strategies });
   return game.run({ policy: replayPolicy(original.decisions ?? []), maxSteps });
 }
 

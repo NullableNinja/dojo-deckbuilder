@@ -2,8 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { loadGameData } from "./rules-loader.mjs";
-import { CARD_FAMILIES } from "./core.mjs";
-import { createGame } from "./games.mjs";
+import { CARD_FAMILIES, Game } from "./core.mjs";
 import { baselinePolicy } from "./policies.mjs";
 import { STRATEGIES } from "./bots.mjs";
 import { applyScenario, loadScenario, scenarioSummary } from "./scenarios.mjs";
@@ -22,9 +21,9 @@ const emptyFamily = () => Object.fromEntries(CARD_KEYS.map((key) => [key, 0]));
 const familyMetrics = () => Object.fromEntries(CARD_FAMILIES.map((family) => [family, emptyFamily()]));
 const addNumbers = (target, source) => { for (const [key, value] of Object.entries(source ?? {})) if (typeof value === "number") target[key] = (target[key] ?? 0) + value; };
 
-export async function simulateBatch({ games = 1000, seedStart = 1, output = null, data = null, modeId = null, policy = baselinePolicy, scenario = null, replayCheck = true, replayCheckEvery = 100 } = {}) {
+export async function simulateBatch({ games = 1000, seedStart = 1, output = null, data = null, policy = baselinePolicy, scenario = null, replayCheck = true, replayCheckEvery = 100 } = {}) {
   const count = integer(games, 1000);
-  const loadedData = data ?? await loadGameData({ modeId });
+  const loadedData = data ?? await loadGameData();
   const gameData = scenario ? applyScenario(loadedData, scenario) : loadedData;
   const summary = {
     reportVersion: 2, rulesVersion: gameData.definition.rulesVersion, seedStart, games: count, gamesAttempted: count, successfulGames: 0, completedGames: 0, failedGames: 0,
@@ -46,7 +45,7 @@ export async function simulateBatch({ games = 1000, seedStart = 1, output = null
     const strategies = [firstStrategy, secondStrategy];
     let result; let game;
     try {
-      game = createGame(gameData, { seed, strategies });
+      game = new Game(gameData, { seed, strategies });
       result = game.run({ policy });
     } catch (error) {
       summary.failedGames += 1;
@@ -70,7 +69,7 @@ export async function simulateBatch({ games = 1000, seedStart = 1, output = null
     const matchupKey = `${firstStrategy} vs ${secondStrategy}`;
     const matchup = (summary.matchups[matchupKey] ??= { games: 0, wins: {} }); matchup.games += 1;
     if (result.winner !== null) { const winningStrategy = result.players[result.winner].strategy; matchup.wins[winningStrategy] = (matchup.wins[winningStrategy] ?? 0) + 1; }
-    for (const player of result.players.filter((candidate) => !candidate.isBoss)) {
+    for (const player of result.players) {
       const strategy = (summary.strategies[player.strategy] ??= { games: 0, wins: 0, winRate: 0 }); strategy.games += 1;
       if (player.id === result.winner) strategy.wins += 1;
       summary.economy.totalPurchases += player.purchases;
@@ -95,8 +94,7 @@ export async function simulateBatch({ games = 1000, seedStart = 1, output = null
   for (const strategy of Object.values(summary.strategies)) strategy.winRate = +(strategy.wins / strategy.games).toFixed(4);
   summary.rounds.average = +(summary.rounds.sum / successful).toFixed(2); summary.turns.average = +(summary.turns.sum / successful).toFixed(2);
   summary.rounds.percentiles = { p50: percentile(roundValues, 0.5), p90: percentile(roundValues, 0.9), p95: percentile(roundValues, 0.95), p99: percentile(roundValues, 0.99) }; summary.turns.percentiles = { p50: percentile(turnValues, 0.5), p90: percentile(turnValues, 0.9), p95: percentile(turnValues, 0.95), p99: percentile(turnValues, 0.99) };
-  const playerCount = gameData.definition.mode.players ?? 2;
-  summary.economy.openingPurchaseRate = +(summary.economy.openingPurchasePlayers / (successful * playerCount)).toFixed(4); summary.economy.averagePurchases = +(summary.economy.totalPurchases / (successful * playerCount)).toFixed(2); summary.progression.averageXpPerPlayer = +(summary.progression.averageXpPerPlayer / (successful * playerCount)).toFixed(2); summary.reliability.unsupportedEffectEvents = summary.unsupportedEffects;
+  summary.economy.openingPurchaseRate = +(summary.economy.openingPurchasePlayers / (successful * 2)).toFixed(4); summary.economy.averagePurchases = +(summary.economy.totalPurchases / (successful * 2)).toFixed(2); summary.progression.averageXpPerPlayer = +(summary.progression.averageXpPerPlayer / (successful * 2)).toFixed(2); summary.reliability.unsupportedEffectEvents = summary.unsupportedEffects;
   for (const [family, raw] of Object.entries(summary.telemetry.families)) { summary.families[family] = { ...raw, offeredPerGame: +(raw.offered / successful).toFixed(3), purchasedPerGame: +(raw.purchased / successful).toFixed(3), purchaseRateWhenOffered: raw.offered ? +(raw.purchased / raw.offered).toFixed(4) : 0, drawnPerGame: +(raw.drawn / successful).toFixed(3), playedPerGame: +(raw.played / successful).toFixed(3), effectApplicationsPerPlay: raw.played ? +(raw.effectApplications / raw.played).toFixed(4) : 0, unusedDiscardRate: raw.drawn ? +(raw.discarded / raw.drawn).toFixed(4) : 0, averageDamage: +(raw.damageDealt / successful).toFixed(3), averagePrevention: +(raw.damagePrevented / successful).toFixed(3), winnerGameAssociation: +(raw.winnerGames / successful).toFixed(4) }; }
   for (const card of Object.values(summary.cards)) { card.offeredPerGame = +(card.offered / successful).toFixed(4); card.purchasedPerGame = +(card.purchased / successful).toFixed(4); card.purchaseRateWhenOffered = card.offered ? +(card.purchased / card.offered).toFixed(4) : 0; card.drawnPerGame = +(card.drawn / successful).toFixed(4); card.playedPerGame = +(card.played / successful).toFixed(4); card.effectApplicationsPerPlay = card.played ? +(card.effectApplications / card.played).toFixed(4) : 0; card.unusedDiscardRate = card.drawn ? +(card.discarded / card.drawn).toFixed(4) : 0; card.winCorrelation = card.purchased ? +(card.winnerGames / card.purchased).toFixed(4) : 0; }
   const cards = Object.values(summary.cards); const sampled = cards.filter((card) => card.offered >= 100); summary.outliers = { sampleMinimumOffered: 100, highestPurchaseRateWhenOffered: [...sampled].sort((a, b) => b.purchaseRateWhenOffered - a.purchaseRateWhenOffered).slice(0, 10), lowestPurchaseRateWhenOffered: [...sampled].sort((a, b) => a.purchaseRateWhenOffered - b.purchaseRateWhenOffered).slice(0, 10), highestUnusedDiscardRate: [...sampled].sort((a, b) => b.unusedDiscardRate - a.unusedDiscardRate).slice(0, 10), highestWinCorrelation: [...cards].filter((card) => card.purchased >= 25).sort((a, b) => b.winCorrelation - a.winCorrelation).slice(0, 10), neverActivatedWithPlays: cards.filter((card) => card.played >= 25 && card.effectApplications === 0).sort((a, b) => b.played - a.played).slice(0, 20) };
@@ -119,7 +117,7 @@ export async function writeSimulationReport(summary, output) {
 export function parseArgs(args) {
   const positional = args.filter((arg) => !arg.startsWith("--"));
   const option = (name, fallback) => args.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
-  return { games: integer(positional[0], 1000), output: positional[1] ?? option("out", "reports/simulation-current.json"), seedStart: integer(option("seed", 1), 1), modeId: option("mode", null), scenarioPath: option("scenario", null), replayCheck: option("replay", "true") !== "false", replayCheckEvery: integer(option("replay-every", 100), 100) };
+  return { games: integer(positional[0], 1000), output: positional[1] ?? option("out", "reports/simulation-current.json"), seedStart: integer(option("seed", 1), 1), scenarioPath: option("scenario", null), replayCheck: option("replay", "true") !== "false", replayCheckEvery: integer(option("replay-every", 100), 100) };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

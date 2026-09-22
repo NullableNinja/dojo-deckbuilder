@@ -104,7 +104,7 @@ const readme = [
   "- `--telemetry=games`: summary plus one JSON object per game in `reports\\baseline.games.jsonl`.",
   "- `--telemetry=full`: per-game objects also include complete decisions and lifecycle events.",
   "",
-  "Executable modes currently include `--mode=quick-duel` and `--mode=boss-blitz` (solo). Cooperative Boss Blitz remains described in the canonical rules but is not yet executable; the runner rejects modes whose rules are prose-only rather than guessing.",
+  "Use `--mode=quick-duel` explicitly. The mode manifest lists described modes that are not executable yet; the runner rejects those modes rather than guessing their rules.",
   "",
   "Each game is deterministic from its seed. Use `--seed=100000`, `--policy=baseline` or `--policy=random`, and `--replay-every=100` as needed.",
   "",

@@ -1,10 +1,10 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { loadGameData } from "./rules-loader.mjs";
-import { createGame } from "./games.mjs";
+import { Game } from "./core.mjs";
 import { attackPower, chooseDefense, cost, focus, guard } from "./bots.mjs";
 
-const mode=process.argv[2]??"ai",data=await loadGameData(),game=createGame(data,{seed:Date.now(),strategies:["human",mode==="local"?"human":"balanced"]}),rl=createInterface({input,output});
+const mode=process.argv[2]??"ai",data=await loadGameData(),game=new Game(data,{seed:Date.now(),strategies:["human",mode==="local"?"human":"balanced"]}),rl=createInterface({input,output});
 const list=(cards)=>cards.map((c,i)=>`${i+1}. ${c.name} [${c.subtype}; AP ${attackPower(c)}; Guard ${guard(c)}; Focus ${focus(c)}; Cost ${cost(c)}]`).join("\n");
 async function choose(prompt,cards,legal=()=>true){console.log(list(cards));const raw=await rl.question(`${prompt} (number, or Enter to pass): `);const i=Number(raw)-1;return Number.isInteger(i)&&cards[i]&&legal(cards[i])?cards[i]:null;}
 async function humanTurn(i){const p=game.players[i],d=game.players[1-i];p.tempo=true;console.log(`\nRound ${game.round} · ${p.name} (${p.character.name}) · ${p.hp} HP · opponent ${d.hp} HP`);console.log("Hand:\n"+list(p.hand));const practice=await choose("Defense Practice",p.hand,c=>guard(c)>0);if(practice)game.practice(p,practice);let attackNumber=0;while(d.hp>0){const attack=await choose(`Attack ${attackNumber+1}`,p.hand,c=>attackPower(c)>0);if(!attack)break;let defense=null;if(mode==="local"){console.log(`\nPass to ${d.name} for the Defense Window.`);defense=await choose("Play one Defense",d.hand,c=>guard(c)>0);}else defense=chooseDefense(d.hand);const r=game.resolveAttack(p,d,attack,{useTempo:attackNumber===0,defenseCard:defense});attackNumber++;console.log(`Attack ${r.attack} vs Defense ${r.block}: ${r.damage} damage.`);}for(const card of [...p.hand])if(["Kata","Consumable","Gear","Weapon","Defense Equipment"].includes(card.subtype)){p.focus+=focus(card);p.played.push(card);p.hand.splice(p.hand.indexOf(card),1);game.track(card,"played",p);}console.log(`Focus available: ${p.focus}\nMarket:\n${list(game.market)}`);while(true){const buy=await choose(`Buy with ${p.focus} Focus`,game.market,c=>cost(c)<=p.focus);if(!buy||!game.buy(p,buy))break;}game.hide(p);game.turns++;game.checkWinner();}
