@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { analyzeEffectCoverage } from "../engine/coverage.mjs";
+import { certifyBehavioralEffects } from "../engine/behavioral-coverage.mjs";
 import { Game } from "../engine/core.mjs";
 import { loadGameData } from "../engine/rules-loader.mjs";
 
@@ -40,4 +41,11 @@ test("canonical baseline coverage has no semantically unsupported entries", asyn
   assert.equal(report.semanticallyExecutableEffects, 907);
   assert.equal(report.unsupportedEffects, 0);
   assert.equal(report.unsupportedByScope["baseline-core"] ?? 0, 0);
+});
+
+test("canonical effects are behaviorally executable through the headless engine", async () => {
+  const report = await certifyBehavioralEffects(await loadGameData());
+  assert.equal(report.totalEffects, 907);
+  assert.equal(report.behaviorallyCertifiedEffects, 907);
+  assert.equal(report.behaviorallyUnsupportedEffects, 0);
 });

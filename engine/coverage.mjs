@@ -218,7 +218,10 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
   const unsupportedEffects = totalEffects - semanticallyExecutableEffects;
   return {
     cardsWithEffects, fullySupportedCards, totalEffects, supportedEffects, unsupportedEffects,
-    staticallyRecognizedEffects, semanticallyExecutableEffects, behaviorallyCertifiedEffects: 0,
+    staticallyRecognizedEffects, semanticallyExecutableEffects,
+    // Behavioral certification requires executing each entry against a real
+    // Game fixture; the CLI merges that async report from behavioral-coverage.
+    behaviorallyCertifiedEffects: null, behaviorallyUnsupportedEffects: null,
     baselineCoreEffects: scopeCounts["baseline-core"] ?? 0, outOfModeEffects: scopeCounts["out-of-mode"] ?? 0,
     actionCounts: sorted(actionCounts), resolverCounts: sorted(resolverCounts), conditionCounts: sorted(conditionCounts),
     triggerCounts: sorted(triggerCounts), targetCounts: sorted(targetCounts), durationCounts: sorted(durationCounts),

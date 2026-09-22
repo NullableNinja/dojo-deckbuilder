@@ -74,8 +74,8 @@ const structuredParameterKinds = new Set([
   "completionFocus", "equipmentSubtype", "equippedOnly", "attackBonusDelta", "sameRoundOnly", "reactionPlayedAgainstSelf",
   "attackHasTag", "attackUsesSourceEquipment", "attackZones", "firstHitWithSourceThisRound", "defenseOutsideTurn",
   "currentAttackIsNormal", "discardedPrintedFocusValue", "firstNegativeCombatModifierThisRound", "nextPlayOfChosenCardFocus", "equipmentRestriction",
-  "firstMatchingEventBefore", "attackIsReversal",
-  "locationEvent", "locationOperation", "minimumFinalValue", "maximumFinalValue", "fixedValue", "choiceOptions",
+  "firstMatchingEventBefore", "attackIsReversal", "nextQualifyingAttackOnly", "nextAttackHasTag", "draw", "discard",
+  "locationEvent", "locationOperation", "minimumFinalValue", "maximumFinalValue", "fixedValue", "choiceOptions", "cardType", "zones", "window", "nextPurchase", "minimumCost", "minimumPrintedCost",
   "destroyCount", "drawCount", "discardCount", "focusGain", "hpLoss", "maximumLoss", "appliesNextRound",
   "equipmentTagAny", "xpSourceAny", "isKoXp", "kataGrantedFlowThisAttack", "firstKataFlowThisTurn", "cardTypeAny",
   "attackedThisTurn", "printedCostAtLeast", "isComboFinisher", "healingSourceAny", "usesSceneChosenCounterZone",
@@ -321,6 +321,7 @@ export class Game {
       firstCardPlayedThisTurn: (context.player.turnStats.playsThisTurn ?? 0) === 1,
       attackNumber: context.player.attackCount,
       defenderPlayedDefense: Boolean(context.defensePlayed),
+      afterOpponentCommitsDefense: Boolean(context.defensePlayed),
       targetHpAtMost: context.opponent.hp,
       hasTempo: Boolean(context.player.tempo),
       targetPermanentEquipmentCount: context.opponent.equipment.length,
@@ -449,14 +450,14 @@ export class Game {
       incomingAttackIsUnarmed: !context.opponent.equipment.some((card) => card.subtype === "Weapon"),
       firstCombatDamageThisRound: context.damage > 0 ? context.player.turnStats.damageTaken === context.damage : context.player.turnStats.damageTaken === 0,
       firstDamagingAttackThisRound: context.damage > 0 ? context.player.turnStats.damageTaken === context.damage : context.player.turnStats.damageTaken === 0,
-      combatDamageDealt: Boolean(context.damage > 0),
+      combatDamageDealt: Number(context.damage ?? 0),
       firstHitWithSourceThisTurn: context.damage > 0 && context.player.turnStats.hitCount === 1,
       firstCombatDamageWithSourceThisTurn: context.damage > 0 && context.player.turnStats.hitCount === 1,
       attackHasAnyTag: context.attackCard?.tags ?? [],
       damageSourceIsWeapon: Boolean(context.attackCard?.tags?.includes("Weapon") || context.attackCard?.subtype === "Weapon"),
       attackedThisTurn: Boolean(context.player.turnStats.attacked),
       firstDifferentZoneSequenceThisTurn: context.player.turnStats.zones.size === 1,
-      focusGeneratedBySingleCard: Boolean(context.player.turnStats.focusGenerated > 0),
+      focusGeneratedBySingleCard: context.player.turnStats.focusGenerated ?? 0,
       firstQualifyingHitThisTurn: context.damage > 0 && context.player.turnStats.hitCount === 1,
       playedAttackThisTurn: Boolean(context.player.turnStats.attacked),
       discardedFocusValue: context.player.turnStats.discardedFocusValue ?? 0,
@@ -493,7 +494,7 @@ export class Game {
     };
     const compare = (actual, operator, expected) => {
       if (Array.isArray(expected) && (operator === "eq" || operator === "includes" || operator === "includesAny")) return expected.includes(actual);
-      if (operator === "includesAny") return Array.isArray(expected) && expected.some((value) => Array.isArray(actual) && actual.includes(value));
+      if (operator === "includesAny") return Array.isArray(expected) && (Array.isArray(actual) ? expected.some((value) => actual.includes(value)) : expected.includes(actual));
       if (operator === "includes") return Array.isArray(actual) ? actual.includes(expected) : String(actual ?? "").includes(String(expected ?? ""));
       if (operator === "notIncludes") return Array.isArray(actual) ? !actual.includes(expected) : !String(actual ?? "").includes(String(expected ?? ""));
       if (operator === "gt") return Number(actual) > Number(expected);
@@ -511,11 +512,19 @@ export class Game {
       if (["choiceKind", "choiceOptions", "sourceZone", "cardFamily", "permanentOnly", "equipNow", "ifSubtype", "gearEntersReady", "gearNextAttackPower", "additionalFocusGenerated", "destination", "thenDiscard", "eligibleSubtypes", "gearBonus", "zones", "drawIfSourceZone", "drawAmount", "lookCount", "eligibleTypes", "keepCount", "restAction", "optionalKeep", "differentCardTypesFocus", "noMatchFocus", "piercingScope", "scope", "duration", "focusGain", "allowedZones", "chooseZone", "discardCount", "drawCount", "maximumLoss", "nextItemOnly", "afterThatConsumable", "attackTiming", "appliesTo", "itemCostPenalty", "defenseGuardPenalty", "minimumDraw", "sourceActivationArmed", "equippedCardSubtypeIn"].includes(kind) || structuredParameterKinds.has(kind)) continue;
       if (!(kind in values)) return { known: false, pass: false };
       if (kind === "nextPurchaseOnly") continue;
+      // Boolean condition shorthands such as { kind: "oncePerRound" }
+      // mean that the derived fact must be true.  Canonical data uses this
+      // form for several lifecycle predicates, so an omitted value is not a
+      // comparison against undefined.
+      if (condition.value === undefined) {
+        if (!values[kind]) return { known: true, pass: false };
+        continue;
+      }
       if (["minimumCost", "minimumPrintedCost", "discount"].includes(kind) && context.purchaseCost === undefined) continue;
       if (kind === "minimumFinalCost" && context.purchaseCost === undefined) continue;
       if (kind === "minimumBelt") { if (beltRank(values[kind]) < beltRank(condition.value)) return { known: true, pass: false }; continue; }
       if (kind === "beltAtLeast") { if (beltRank(values[kind]) < beltRank(condition.value)) return { known: true, pass: false }; continue; }
-      if (["attackTagAny", "attackHasTag", "attackHasAnyTag"].includes(kind)) { const tags = values[kind]; const expected = Array.isArray(condition.value) ? condition.value : [condition.value]; if (!expected.some((tag) => tags.includes(tag))) return { known: true, pass: false }; continue; }
+      if (["attackTagAny", "attackHasTag", "attackHasAnyTag", "defenseTagAny"].includes(kind)) { const tags = values[kind]; const expected = Array.isArray(condition.value) ? condition.value : [condition.value]; if (!expected.some((tag) => tags.includes(tag))) return { known: true, pass: false }; continue; }
       if (["firstAttackWithTagThisTurn", "defenseHasTag"].includes(kind)) { const expected = Array.isArray(condition.value) ? condition.value : [condition.value]; if (!expected.some((tag) => values[kind].includes(tag))) return { known: true, pass: false }; continue; }
       if (!compare(values[kind], condition.operator ?? "eq", condition.value)) return { known: true, pass: false };
     }
@@ -597,6 +606,7 @@ export class Game {
     if (!card) return false;
     if (pending.movement === "discard") this.discardCard(targetPlayer, card);
     else if (pending.movement === "destroy") this.destroyCard(targetPlayer, card);
+    else if (pending.movement === "bottom-deck") { this.removeFromPlayerZones(targetPlayer, card); targetPlayer.deck.unshift(card); }
     else return false;
     if (pending.drawIfSourceZone === sourceZone && pending.drawAmount > 0) this.draw(targetPlayer, pending.drawAmount);
     const remaining = Number(pending.amount ?? 1) - 1;
@@ -811,14 +821,23 @@ export class Game {
 
     if (resolver === "equipment.structured") {
       if (effect.action !== "custom") return false;
+      if (effect.effect === "equipment.modifyDefenseContribution" || effect.effect === "combat.modifyDefense") { add("modifyDefense", amount); return true; }
+      if (effect.effect === "combat.modifyAttackPower") { add("modifyAttackPower", amount); return true; }
+      if (effect.effect === "combat.grantFlow") { player.nextAttackFlow = true; return true; }
+      if (effect.effect === "core.gainXP") { player.xp += amount; this.telemetry.xpGenerated += amount; return true; }
+      if (effect.effect === "core.reveal") { this.reveal(effect.target === "opponent" ? opponent : player, amount || 1); return true; }
+      if (effect.effect === "economy.spendFocus") { const subject = effect.target === "opponent" ? opponent : player; subject.focus = Math.max(0, subject.focus - Math.max(0, amount)); return true; }
+      if (effect.effect === "economy.modifyCost") { this.addStatus(effect.target === "opponent" ? opponent : player, { action: "modifyCost", amount, duration: "nextPurchase", sourceId: card.instanceId }); return true; }
+      if (effect.effect === "core.moveCard") { this.queueCardChoice(player, effect.target === "opponent" ? opponent : player, { ...effect, sourceCardId: card.instanceId }, "bottom-deck", 1); return true; }
       if (params.incomingZones !== undefined) { if (!context.zone || (Array.isArray(params.incomingZones) && params.incomingZones.includes(context.zone))) add("modifyDefense", amount); return true; }
       if (params.equipmentRestriction) { this.addStatus(player, { action: "equipmentRestriction", value: String(params.equipmentRestriction), duration: effect.duration ?? "whileEquipped", sourceId: card.instanceId }); return true; }
       if (params.choiceKind) {
         const options = params.choiceKind === "incoming-zone" || params.choiceKind === "next-attack-zone" ? zones : ["accept", "skip"];
-        context.choice = { kind: "structured", effectId: effect.id, options };
-        this.addStatus(player, { action: params.choiceKind, value: options[0], duration: effect.duration ?? "endOfRound", sourceId: card.instanceId });
+        this.pendingChoice = { kind: "structured", playerId: player.id, effectId: effect.id ?? null, resolver, choiceKind: params.choiceKind, options: options.map((option) => ({ id: option, label: option })) };
         return true;
       }
+      if (params.firstSwapThisGame) { this.addStatus(player, { action: "firstSwapDiscard", amount: Math.max(1, amount || 1), duration: "game", sourceId: card.instanceId }); return true; }
+      if (params.discardedPrintedFocusValue !== undefined) { const printed = Number(context.discardedPrintedFocusValue ?? context.player.turnStats.discardedFocusValue ?? 0); if (printed === 0) { player.focus += amount || 1; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + (amount || 1); this.telemetry.focusGenerated += amount || 1; } return true; }
       if (params.sourceAffectedCountThreshold !== undefined) {
         const count = Number(card.affectedCount ?? context.sourceAffectedCount ?? 0);
         if (count >= Number(params.sourceAffectedCountThreshold)) this.destroyCard(player, card);
@@ -854,6 +873,7 @@ export class Game {
         if (context.reactionPlayedAgainstSelf && params.scheduledTiming === "exchangeEnd") context.defenseModifier = (context.defenseModifier ?? 0) + amount;
         return true;
       }
+      if (params.nextQualifyingAttackOnly) { add("modifyAttackPower", amount); return true; }
       // A structured Equipment effect is supported only when one of the
       // explicit semantic branches above consumed its parameters.  Never
       // convert an unknown Equipment operation into a generic attack bonus.
@@ -870,6 +890,7 @@ export class Game {
       else if (operation === "modifyComboPrintedNumericEffect") context.comboNumericModifier = (context.comboNumericModifier ?? 0) + amount;
       else if (operation === "increaseDamageReduction") this.addStatus(player, { action: "preventDamage", amount, duration: "round", sourceId: card.instanceId });
       else if (operation === "setKataFocusGeneration") this.addStatus(player, { action: "kataFocusBonus", amount: Number(params.fixedValue ?? amount), duration: "turn", sourceId: card.instanceId });
+      else if (operation === "keepUnboughtMarketCards") this.addStatus(player, { action: "keepUnboughtMarketCards", duration: "round", sourceId: card.instanceId });
       else if (operation === "drawThenDiscard" || operation === "discardJunkDrawGainFocus") this.queueDiscardDrawChoice(player, { ...effect, drawAmount: Number(params.drawCount ?? 1) });
       else if (operation === "loseFocusIfAble") target.focus = Math.max(0, target.focus - Math.max(0, amount || 1));
       else if (operation === "destroyJunkGainFocusLoseHp") { const junk = player.hand.find((candidate) => candidate.subtype === "Junk" || candidate.category === "Junk"); if (junk) { this.destroyCard(player, junk); player.focus += Number(params.focusGain ?? 1); player.hp = Math.max(1, player.hp - Number(params.hpLoss ?? 1)); } }
@@ -886,12 +907,15 @@ export class Game {
       return true;
     }
 
-    if (resolver === "character.noWeaponOffenseDefenseChoice") { if (!player.equipment.some((entry) => entry.subtype === "Weapon")) player.nextAttackPower += amount || 1; return true; }
+    if (resolver === "character.noWeaponOffenseDefenseChoice") {
+      if (!player.equipment.some((entry) => entry.subtype === "Weapon")) this.pendingChoice = { kind: "structured", playerId: player.id, effectId: effect.id ?? null, resolver, options: [{ id: "attack", label: "Next Attack +1" }, { id: "defense", label: "Next Defense +1 Guard" }] };
+      return true;
+    }
     if (resolver === "character.ignoreTemporaryAttackBonusesOnceGame") { context.opponentAttackPowerModifier = (context.opponentAttackPowerModifier ?? 0) - Math.max(0, context.attackPowerModifier ?? 0); return true; }
     if (resolver === "character.reduceLargeAttackModifier") { if (Math.abs(context.opponentAttackPowerModifier ?? 0) >= 2) context.opponentAttackPowerModifier -= amount || 1; return true; }
-    if (resolver === "character.discardToChangeDeclaredZone") { context.choice = { kind: "attack-zone", options: zones }; return true; }
-    if (resolver === "character.revealReplacementOnceGame") { this.addStatus(player, { action: "revealReplacement", duration: "game", sourceId: card.instanceId }); return true; }
-    if (resolver === "character.comboRevealChoice") { this.addStatus(player, { action: "comboRevealChoice", duration: "turn", sourceId: card.instanceId }); return true; }
+    if (resolver === "character.discardToChangeDeclaredZone") { this.pendingChoice = { kind: "structured", playerId: player.id, effectId: effect.id ?? null, resolver, options: zones.map((zone) => ({ id: zone, label: zone })) }; return true; }
+    if (resolver === "character.revealReplacementOnceGame") { this.addStatus(player, { action: "revealReplacement", duration: "game", sourceId: card.instanceId }); this.pendingChoice = { kind: "structured", playerId: player.id, effectId: effect.id ?? null, resolver, options: [{ id: "accept", label: "Replace the revealed card" }, { id: "skip", label: "Keep the revealed card" }] }; return true; }
+    if (resolver === "character.comboRevealChoice") { const options = this.data.cards.filter((candidate) => candidate.subtype === "Combo").slice(0, 3).map((candidate) => ({ id: candidate.catalogId, label: candidate.name })); this.pendingChoice = { kind: "structured", playerId: player.id, effectId: effect.id ?? null, resolver, options: options.length ? options : [{ id: "skip", label: "Skip" }] }; return true; }
     if (resolver === "character.junkDiscardToBottomCycle") { if (context.discardedCard) { this.moveCard(player, context.discardedCard, "deck"); player.deck.unshift(context.discardedCard); this.draw(player, 1); } return true; }
     if (resolver === "character.green.repeatModifiedCardTypeBonus") { if (context.modifiedCardType) add(context.modifiedCardType === "Defense" ? "modifyGuard" : "modifyAttackPower", amount || 1, "nextAttack"); return true; }
 
@@ -904,8 +928,8 @@ export class Game {
 
     if (resolver === "defense.playRestriction") { this.addStatus(player, { action: "restrictAttack", duration: "endOfRound", sourceId: card.instanceId }); return true; }
     if (resolver === "defense.beltExam") { player.turnStats.completedBeltExamThisRound = true; player.xp += 1; this.telemetry.xpGenerated += 1; return true; }
-    if (resolver === "defense.forceNextAttackZone") { this.addStatus(opponent, { action: "nextAttackZone", value: zones[0], duration: "endOfRound", sourceId: card.instanceId }); return true; }
-    if (resolver === "defense.blockChoice") { player.focus += 1; this.telemetry.focusGenerated += 1; return true; }
+    if (resolver === "defense.forceNextAttackZone") { this.pendingChoice = { kind: "structured", playerId: player.id, targetPlayerId: opponent.id, effectId: effect.id ?? null, resolver, options: zones.map((zone) => ({ id: zone, label: zone })) }; return true; }
+    if (resolver === "defense.blockChoice") { this.pendingChoice = { kind: "structured", playerId: player.id, effectId: effect.id ?? null, resolver, options: [{ id: "counter", label: "Prepare a counterattack" }, { id: "discount", label: "Discount your next purchase" }] }; return true; }
     if (resolver === "defense.reversalTargetProtection") { this.addStatus(player, { action: "preventDamage", amount: 1, duration: "nextAttack", sourceId: card.instanceId }); return true; }
 
     if (resolver.startsWith("kata.")) {
@@ -986,7 +1010,7 @@ export class Game {
       const unsupportedBefore = this.telemetry.unsupportedEffects;
       const amount = num(effect.amount); const rawAction = effect.action ?? effect.effect; const semanticAction = rawAction === "custom" ? effect.effect : rawAction;
       let action = ({ "equipment.modifyDefenseContribution": "modifyDefenseContribution", "combat.modifyDefense": "modifyDefense", "combat.grantFlow": "grantFlow", "core.gainXP": "gainXP", "core.reveal": "reveal", "economy.modifyCost": "modifyCost", "economy.spendFocus": "spendFocus", "core.moveCard": "moveCard" })[semanticAction] ?? HEADLESS_RESOLVER_ACTIONS[effect.resolver] ?? semanticAction;
-      if ([undefined, "custom", "core.custom"].includes(action) && HEADLESS_STRUCTURED_RESOLVERS.has(String(effect.resolver ?? ""))) action = "structured";
+      if ((rawAction === "custom" || [undefined, "custom", "core.custom", "core.choice"].includes(action)) && HEADLESS_STRUCTURED_RESOLVERS.has(String(effect.resolver ?? ""))) action = "structured";
       if (effect.resolver === "attack.final.hitChoice") action = "hitChoice";
       if (String(effect.id).endsWith("dodge-block-cycle")) this.queueDiscardDrawChoice(player, { ...effect, drawAmount: 1 });
       else if (action === "gainFocus") { const gained = effect.resolver === "consumable.revealTopFocusValue" ? Math.max(1, Number(effectContext.revealedFocusValue ?? amount)) : amount; player.focus += gained; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + gained; this.telemetry.focusGenerated += gained; }
@@ -1175,7 +1199,29 @@ export class Game {
       const player = this.players[pending.playerId];
       if (selected === "nextAttackPower:+1") player.nextAttackPower += 1;
       else if (selected === "nextDefenseGuard:+1") this.addStatus(player, { action: "modifyGuard", amount: 1, duration: "nextDefense", sourceId: pending.effectId });
-      else return false;
+      else if (pending.resolver === "character.noWeaponOffenseDefenseChoice") {
+        if (selected === "attack") player.nextAttackPower += 1;
+        else if (selected === "defense") this.addStatus(player, { action: "modifyGuard", amount: 1, duration: "nextDefense", sourceId: pending.effectId });
+        else return false;
+      } else if (["character.discardToChangeDeclaredZone", "kata.zoneOverride"].includes(pending.resolver)) {
+        if (!zones.includes(selected)) return false;
+        this.addStatus(player, { action: "nextAttackZone", value: selected, duration: "endOfTurn", sourceId: pending.effectId });
+      } else if (pending.resolver === "defense.forceNextAttackZone") {
+        if (!zones.includes(selected)) return false;
+        this.addStatus(this.players[pending.targetPlayerId], { action: "nextAttackZone", value: selected, duration: "endOfRound", sourceId: pending.effectId });
+      } else if (pending.resolver === "defense.blockChoice") {
+        if (selected === "counter") player.nextAttackPower += 1;
+        else if (selected === "discount") this.addStatus(player, { action: "modifyCost", amount: -1, duration: "nextPurchase", sourceId: pending.effectId });
+        else return false;
+      } else if (pending.resolver === "character.revealReplacementOnceGame") {
+        if (!(selected === "accept" || selected === "skip")) return false;
+        if (selected === "accept") this.addStatus(player, { action: "replacementAccepted", duration: "game", sourceId: pending.effectId });
+      } else if (pending.resolver === "character.comboRevealChoice") {
+        if (selected !== "skip") this.addStatus(player, { action: "comboRevealChoice", value: selected, duration: "turn", sourceId: pending.effectId });
+      } else if (pending.choiceKind === "incoming-zone" || pending.choiceKind === "next-attack-zone") {
+        if (!zones.includes(selected)) return false;
+        this.addStatus(player, { action: pending.choiceKind, value: selected, duration: "endOfRound", sourceId: pending.effectId });
+      } else return false;
       this.pendingChoice = null;
       return true;
     }

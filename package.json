@@ -15,6 +15,7 @@
     "engine:local": "node engine/cli.mjs local",
     "engine:ai": "node engine/cli.mjs ai",
     "engine:coverage": "node scripts/engine-coverage.mjs",
+    "engine:behavior": "node engine/behavioral-coverage.mjs",
     "playtest:certify": "node --experimental-strip-types scripts/playtest-certification.mjs",
     "workflow:check": "node --experimental-strip-types scripts/workflow-check.mjs",
     "simulate": "node engine/simulate.mjs",

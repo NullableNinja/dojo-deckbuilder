@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { analyzeEffectCoverage } from "../engine/coverage.mjs";
+import { certifyBehavioralEffects } from "../engine/behavioral-coverage.mjs";
+import { loadGameData } from "../engine/rules-loader.mjs";
 
 const root = new URL("../", import.meta.url);
 const [registry, catalog, definition] = await Promise.all([
@@ -7,7 +9,16 @@ const [registry, catalog, definition] = await Promise.all([
   readFile(new URL("app/data/cards.json", root), "utf8").then(JSON.parse),
   readFile(new URL("app/data/game-definition.json", root), "utf8").then(JSON.parse),
 ]);
-const report = { rulesVersion: registry.rulesVersion, ...analyzeEffectCoverage(registry, { catalog: catalog.cards, definition }) };
+const behavior = await certifyBehavioralEffects(await loadGameData());
+const behavioralUnsupportedByResolver = Object.fromEntries(Object.entries(Object.groupBy(behavior.entries.filter((entry) => !entry.certified), (entry) => entry.resolver ?? "(none)")).map(([key, entries]) => [key, entries.length]));
+const report = {
+  rulesVersion: registry.rulesVersion,
+  ...analyzeEffectCoverage(registry, { catalog: catalog.cards, definition }),
+  behaviorallyCertifiedEffects: behavior.behaviorallyCertifiedEffects,
+  behaviorallyUnsupportedEffects: behavior.behaviorallyUnsupportedEffects,
+  behaviorallyUnsupportedByResolver: behavioralUnsupportedByResolver,
+  behaviorallyUnsupportedEntries: behavior.entries.filter((entry) => !entry.certified),
+};
 const json = process.argv.includes("--json");
 if (json) {
   console.log(JSON.stringify(report, null, 2));
@@ -18,6 +29,7 @@ if (json) {
   console.log(`STATICALLY RECOGNIZED ${report.staticallyRecognizedEffects}`);
   console.log(`SEMANTICALLY EXECUTABLE ${report.semanticallyExecutableEffects}`);
   console.log(`BEHAVIORALLY CERTIFIED ${report.behaviorallyCertifiedEffects}`);
+  console.log(`BEHAVIORALLY UNSUPPORTED ${report.behaviorallyUnsupportedEffects}`);
   console.log(`SUPPORTED ${report.supportedEffects}`);
   console.log(`UNSUPPORTED ${report.unsupportedEffects}`);
   console.log(`OUT-OF-MODE ${report.outOfModeEffects}`);
@@ -33,6 +45,7 @@ if (json) {
   console.log("\nBY DURATION"); console.log(top(report.durationCounts, 20));
   console.log("\nBY CONDITION KIND (unsupported)"); console.log(top(report.unsupportedConditions, 30));
   console.log("\nTOP UNSUPPORTED BEHAVIOR GROUPS"); console.log(top(report.topUnsupportedGroups, 30));
+  console.log("\nBEHAVIORALLY UNSUPPORTED BY RESOLVER"); console.log(top(report.behaviorallyUnsupportedByResolver, 30));
   console.log("\nTOP BASELINE-CORE UNSUPPORTED GROUPS"); console.log(top(report.topUnsupportedGroupsByScope["baseline-core"], 30));
   console.log("\nMACHINE-READABLE: npm run engine:coverage -- --json");
 }
