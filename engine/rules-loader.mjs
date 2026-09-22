@@ -16,5 +16,7 @@ export async function loadGameData() {
   const byId = new Map(catalog.cards.map((card) => [card.catalogId, card]));
   for (const entry of definition.starterDeck) if (!byId.has(entry.catalogId)) throw new Error(`Missing starter card ${entry.catalogId}`);
   const cardEffectById = new Map(Object.entries(cardEffects.cards ?? {}));
-  return { definition, cards: catalog.cards, rules, cardEffects, cardEffectById, byId };
+  const comboRequirements = await readJson("app/data/combo-requirements.json");
+  if (comboRequirements.rulesVersion !== definition.rulesVersion || comboRequirements.rulesRevision !== definition.rulesRevision) throw new Error("Combo requirement registry version does not match engine definition");
+  return { definition, cards: catalog.cards, rules, cardEffects, cardEffectById, comboRequirements, byId };
 }

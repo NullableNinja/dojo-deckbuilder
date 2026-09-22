@@ -16,6 +16,79 @@ test("headless engine exposes canonical phases, legal actions, and serializable 
   assert.doesNotThrow(() => JSON.stringify(game.getState()));
 });
 
+test("belt promotion requires the canonical XP and completed exam", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 1201 });
+  const player = game.players[0];
+  game.phase = "Ascend";
+  game.activePlayer = player.id;
+  player.xp = data.definition.progression.belts[1].xp;
+  assert.equal(game.canPromote(player), false);
+  assert.equal(game.applyAction({ type: "promote", playerId: player.id }), false);
+
+  player.completedTasks.push(1);
+  assert.ok(game.getLegalActions(player.id).some((action) => action.type === "promote"));
+  assert.equal(game.applyAction({ type: "promote", playerId: player.id }), true);
+  assert.equal(player.beltIndex, 1);
+  assert.equal(player.promotionHistory[0].from, 0);
+  assert.equal(player.promotionHistory[0].to, 1);
+  assert.equal(game.telemetry.promotions, 1);
+});
+
+test("training stripe recovery obeys the canonical once-per-turn action limit", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 1202 });
+  const player = game.players[0];
+  game.phase = "Ascend";
+  game.activePlayer = player.id;
+  player.hp = player.maxHp - 5;
+  player.trainingStripes = { held: 3, awarded: 3, provisional: false, spentTurnKey: null, spendsThisTurn: 0 };
+  assert.equal(game.applyAction({ type: "recover-training-stripe", playerId: player.id }), true);
+  assert.equal(game.applyAction({ type: "recover-training-stripe", playerId: player.id }), false);
+  assert.equal(player.trainingStripes.held, 2);
+});
+
+test("round-limit results report the completed canonical round", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 12025 });
+  game.definition.mode.maxRounds = 1;
+  for (const player of game.players) {
+    player.hp = 1000;
+    player.maxHp = 1000;
+    player.atk = 0;
+    player.def = 1000;
+  }
+  const result = game.run();
+  assert.equal(result.reason, "round-limit");
+  assert.equal(result.rounds, 1);
+});
+
+test("AI-facing Combo acquisition and execution use canonical definitions", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 1203 });
+  const player = game.players[0];
+  game.phase = "Ascend";
+  game.activePlayer = player.id;
+  player.focus = 10;
+  player.comboOffered = game.cardInstance(data.byId.get("DDB-CMB-CORE-001"));
+  assert.ok(game.getLegalActions(player.id).some((action) => action.type === "learn-combo"));
+  assert.equal(game.applyAction({ type: "learn-combo", playerId: player.id, cardId: player.comboOffered.instanceId }), true);
+  assert.deepEqual(player.learnedCombos.map((card) => card.catalogId), ["DDB-CMB-CORE-001"]);
+  assert.equal(game.telemetry.comboAcquisitions, 1);
+
+  const kata = data.cards.find((card) => card.subtype === "Kata");
+  const attack = data.cards.find((card) => card.subtype === "Attack");
+  const previousAttack = data.cards.find((card) => card.subtype === "Attack" && card.catalogId !== attack.catalogId);
+  player.comboFacts.turnPlayed = [{ cardId: kata.catalogId, zone: "High" }];
+  player.comboFacts.turnAttacks = [{ cardId: previousAttack.catalogId, zone: "High", hit: true }];
+  const currentAttack = game.cardInstance(attack);
+  const activated = game.activateCombos(player, "onAttackDeclared", currentAttack, "Mid", { currentAttackHit: false });
+  assert.deepEqual(activated, ["DDB-CMB-CORE-001"]);
+  assert.equal(game.telemetry.comboActivations, 1);
+  assert.equal(player.comboTriggeredThisGame, true);
+  assert.equal(game.telemetry.unsupportedEffects, 0);
+});
+
 test("locked initiative order gives both living players a turn before the next Honor", async () => {
   const data = await loadGameData();
   const game = new Game(data, { seed: 42, strategies: ["economy", "aggression"] });

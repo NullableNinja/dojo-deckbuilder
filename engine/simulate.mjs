@@ -16,7 +16,8 @@ const percentile = (values, p) => {
   const lower = Math.floor(index); const upper = Math.ceil(index);
   return +(sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower)).toFixed(2);
 };
-const emptyFamily = () => Object.fromEntries(["offered", "drawn", "purchased", "played", "discarded", "destroyed", "hits", "blocks", "damageDealt", "damagePrevented", "effectApplications", "equipmentReadied", "equipmentExhausted"].map((key) => [key, 0]));
+const CARD_KEYS = ["offered", "drawn", "purchased", "played", "discarded", "destroyed", "hits", "blocks", "damageDealt", "damagePrevented", "effectApplications", "equipmentReadied", "equipmentExhausted", "learned", "activated"];
+const emptyFamily = () => Object.fromEntries(CARD_KEYS.map((key) => [key, 0]));
 const familyMetrics = () => Object.fromEntries(CARD_FAMILIES.map((family) => [family, emptyFamily()]));
 const addNumbers = (target, source) => { for (const [key, value] of Object.entries(source ?? {})) if (typeof value === "number") target[key] = (target[key] ?? 0) + value; };
 
@@ -28,9 +29,9 @@ export async function simulateBatch({ games = 1000, seedStart = 1, output = null
     reportVersion: 2, rulesVersion: gameData.definition.rulesVersion, seedStart, games: count, gamesAttempted: count, successfulGames: 0, completedGames: 0, failedGames: 0,
     seeds: [], failures: [], invariantFailures: [], unsupportedEffects: 0, strategies: {}, matchups: {},
     rounds: { sum: 0, average: 0, min: Infinity, max: 0, roundLimitGames: 0 }, turns: { sum: 0, average: 0 },
-    telemetry: { attacks: 0, hits: 0, blocks: 0, totalDamage: 0, damagePrevented: 0, cardsPlayed: 0, cardsAcquired: 0, cardsDrawn: 0, cardsDiscarded: 0, cardsDestroyed: 0, cardsRevealed: 0, equipmentReadied: 0, equipmentExhausted: 0, focusGenerated: 0, focusSpent: 0, xpGenerated: 0, defensePractice: 0, promotions: 0, effectApplications: 0, choicesPresented: 0, choicesResolved: 0, lifecycleEvents: 0, unsupportedEffects: 0, families: familyMetrics() },
+    telemetry: { attacks: 0, hits: 0, blocks: 0, totalDamage: 0, damagePrevented: 0, cardsPlayed: 0, cardsAcquired: 0, cardsDrawn: 0, cardsDiscarded: 0, cardsDestroyed: 0, cardsRevealed: 0, equipmentReadied: 0, equipmentExhausted: 0, focusGenerated: 0, focusSpent: 0, xpGenerated: 0, defensePractice: 0, promotions: 0, comboOpportunities: 0, comboAcquisitions: 0, comboActivations: 0, comboEffectsResolved: 0, effectApplications: 0, choicesPresented: 0, choicesResolved: 0, lifecycleEvents: 0, unsupportedEffects: 0, families: familyMetrics() },
     economy: { openingPurchasePlayers: 0, openingPurchaseRate: 0, turnOneParalysisPlayers: 0, averagePurchases: 0, totalPurchases: 0 },
-    progression: { averageXpPerPlayer: 0, promotions: 0, beltDistribution: {}, maxXp: 0 },
+    progression: { averageXpPerPlayer: 0, promotions: 0, comboOwners: 0, comboUsers: 0, comboUses: 0, promotionByTransition: {}, beltDistribution: {}, maxXp: 0 },
     cards: {}, families: {}, outliers: {}, pathological: {}, gameLengths: [], scenario: scenario ? scenarioSummary(scenario) : null,
     replay: { checked: 0, mismatches: 0, differences: [], sampledSeeds: [] },
     reliability: { unsupportedEffectEvents: 0, unresolvedChoices: 0, illegalActions: 0, stalls: 0, invariantFailures: 0, replayMismatches: 0 },
@@ -73,11 +74,18 @@ export async function simulateBatch({ games = 1000, seedStart = 1, output = null
       if (player.id === result.winner) strategy.wins += 1;
       summary.economy.totalPurchases += player.purchases;
       if (player.openingPurchase) summary.economy.openingPurchasePlayers += 1; else summary.economy.turnOneParalysisPlayers += 1;
+      if (player.learnedCombos?.length) summary.progression.comboOwners += 1;
+      if (player.comboTriggered) summary.progression.comboUsers += 1;
+      for (const promotion of player.promotionHistory ?? []) {
+        const transition = `${gameData.definition.progression.belts[promotion.from]?.name ?? promotion.from}->${gameData.definition.progression.belts[promotion.to]?.name ?? promotion.to}`;
+        summary.progression.promotionByTransition[transition] = (summary.progression.promotionByTransition[transition] ?? 0) + 1;
+      }
     }
     summary.rounds.sum += result.rounds; summary.rounds.min = Math.min(summary.rounds.min, result.rounds); summary.rounds.max = Math.max(summary.rounds.max, result.rounds); if (result.reason === "round-limit") summary.rounds.roundLimitGames += 1;
     summary.turns.sum += result.turns; roundValues.push(result.rounds); turnValues.push(result.turns);
     for (const [key, value] of Object.entries(result.telemetry)) { if (key === "families") { for (const [family, familyStats] of Object.entries(value)) addNumbers(summary.telemetry.families[family] ??= {}, familyStats); } else if (key in summary.telemetry && typeof value === "number") summary.telemetry[key] += value; }
-    for (const card of result.cards) { const cardSummary = (summary.cards[card.id] ??= { id: card.id, name: card.name, family: card.family ?? "Other", offered: 0, drawn: 0, purchased: 0, played: 0, discarded: 0, destroyed: 0, hits: 0, blocks: 0, damageDealt: 0, damagePrevented: 0, effectApplications: 0, equipmentReadied: 0, equipmentExhausted: 0, winnerGames: 0 }); for (const key of ["offered", "drawn", "purchased", "played", "discarded", "destroyed", "hits", "blocks", "damageDealt", "damagePrevented", "effectApplications", "equipmentReadied", "equipmentExhausted", "winnerOwned"]) cardSummary[key === "winnerOwned" ? "winnerGames" : key] += card[key] ?? 0; }
+    summary.progression.comboUses += result.telemetry.comboActivations ?? 0;
+    for (const card of result.cards) { const cardSummary = (summary.cards[card.id] ??= { id: card.id, name: card.name, family: card.family ?? "Other", ...Object.fromEntries([...CARD_KEYS, "winnerGames"].map((key) => [key, 0])) }); for (const key of [...CARD_KEYS, "winnerOwned"]) cardSummary[key === "winnerOwned" ? "winnerGames" : key] += card[key] ?? 0; }
     const playerXp = result.players.map((player) => player.xp); summary.progression.maxXp = Math.max(summary.progression.maxXp, ...playerXp); summary.progression.averageXpPerPlayer += playerXp.reduce((sum, value) => sum + value, 0); for (const player of result.players) { const belt = gameData.definition.progression.belts[player.beltIndex]?.name ?? `index-${player.beltIndex}`; summary.progression.beltDistribution[belt] = (summary.progression.beltDistribution[belt] ?? 0) + 1; }
     gameSummaries.push({ seed, winner: result.winner, reason: result.reason, rounds: result.rounds, turns: result.turns, finalHp: result.players.map((player) => player.hp), strategies });
   }
