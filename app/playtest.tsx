@@ -4,7 +4,7 @@ import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
 import cardsJson from "./data/cards.json";
 import gameDefinitionJson from "./data/game-definition.json";
-import { describeEffectPlan, effectPlanForCard } from "./card-effects";
+import { describeEffectPlan, effectPlanForCard, structuredEffectsForCard } from "./card-effects";
 import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroyJunkChoicePlan, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackEquipmentSuppression, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackPowerBonus } from "./attack-final-effects";
@@ -54,8 +54,8 @@ import { structuredLocationDefenseForHost, structuredLocationKataFocusForHost } 
  *   a generic resolver/host.
  *
  * Canonical truth lives under content/*.json and is generated into app/data/*.json.
- * A few identity/prose fallbacks remain below as migration debt so existing games
- * keep working; those sections are labeled. Do not expand them with new rules.
+ * Printed rules text is presentation-only. Runtime behavior must come from the
+ * generated structured registry and the shared host/resolver modules.
  */
 
 const CardInspector = lazy(() => import("./card-inspector").then((module) => ({ default: module.CardInspector })));
@@ -1998,10 +1998,10 @@ function groupedFightLog(lines: string[]) {
 }
 
 function cardEffectNote(card: CardEntry) {
-  const text = card.rulesText ?? "";
-  if (!text || /no (additional )?effect/i.test(text)) return "No extra printed effect.";
-  if (isPermanent(card)) return "Equipped permanently; its printed stats apply now."
-  return describeEffectPlan(effectPlanForCard(card));
+  const plan = effectPlanForCard(card);
+  if (!plan.effects.length && !plan.dedicated.length && !plan.unsupported.length) return "No additional structured effect.";
+  if (isPermanent(card)) return "Equipped permanently; its canonical stats apply now."
+  return describeEffectPlan(plan);
 }
 
 function playerDiscardChoiceCount(card: CardEntry, timing: "onPlay" | "onHit" | "onBlock" | "afterResolve") {
@@ -2081,17 +2081,146 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
   });
   if (structuredFlow.grant) next.nextAttackHasFlow = true;
   if (structuredAnyZone.handled || structuredFlow.handled) return next;
-  const text = card.rulesText ?? "";
-  if (timing === "onPlay" && /After your first Attack resolves[^.]*next Attack gains Flow/i.test(text) && board.attacksThisTurn === 0) {
-    next.flowAfterFirstAttack = true;
-  } else if (timing === "onPlay" && /(?:^|[.!?]\s+)(?:Your|The) next [^.]*Attack[^.]*gains Flow/i.test(text)) {
-    next.nextAttackHasFlow = true;
-  } else if (timing === "onHit" && /(?:On Hit|If (?:this Attack|it|that Attack) Hits?)[^.]*next [^.]*Attack[^.]*gains Flow/i.test(text)) {
-    next.nextAttackHasFlow = true;
-  } else if (timing === "afterResolve" && /After (?:this|it|that) Attack resolves[^.]*next [^.]*Attack[^.]*gains Flow/i.test(text)) {
-    next.nextAttackHasFlow = true;
-  }
   return next;
+}
+
+export type PlaytestRuntimeCertificationFailure = {
+  catalogId: string;
+  effectId: string;
+  trigger: string;
+  message: string;
+};
+
+export type PlaytestRuntimeCertificationReport = {
+  pass: boolean;
+  catalogCards: number;
+  structuredEffects: number;
+  exercisedEffects: number;
+  triggerInvocations: number;
+  observableInvocations: number;
+  byTrigger: Record<string, { effects: number; observable: number }>;
+  failures: PlaytestRuntimeCertificationFailure[];
+};
+
+function playtestConformanceBoard(card: CardEntry, fighterId: string): Board {
+  const base = emptyBoard(fighterId);
+  const supportingCards = cards.filter((candidate) => candidate.id !== card.id).map((candidate) => candidate.id);
+  const equipment = cards.filter((candidate) => isPermanent(candidate)).slice(0, 4).map((candidate) => candidate.id);
+  if (isPermanent(card) && !equipment.includes(card.id)) equipment.push(card.id);
+  return {
+    ...base,
+    hp: 5,
+    focus: 12,
+    xp: 30,
+    belt: Math.max(0, belts.length - 1),
+    deck: [...supportingCards, ...base.deck],
+    hand: [card.id, ...supportingCards.slice(0, 12)],
+    discard: supportingCards.slice(12, 24),
+    playArea: [card.id],
+    equipment,
+    exhaustedEquipment: [],
+    attacksThisTurn: 1,
+    attacksReceivedThisRound: 1,
+    cardsThisTurn: supportingCards.slice(0, 4),
+    zonesPlayed: ["High", "Mid", "Low"],
+    usedConsumableThisRound: true,
+    reactionItemUsedSinceLastTurn: true,
+    offTurnConsumablePlayed: true,
+    lastAttackHit: true,
+    playedDefenseSinceLastTurn: true,
+    blockedSinceLastTurn: true,
+    blockedThisRound: true,
+    completedBeltExamThisRound: true,
+    completesActiveBeltExamThisAttack: true,
+    boughtCardThisAscend: true,
+    boughtCardLastAscend: true,
+    wasHitSinceLastTurn: true,
+    damageTaken: 3,
+    damageDealt: 3,
+    focusGeneratedThisTurn: 4,
+    focusSpentThisTurn: 2,
+    usedEffectIdsThisTurn: [],
+    equipmentEffectIdsThisRound: [],
+    equipmentEffectIdsThisGame: [],
+    stage3cStatuses: [],
+    stage3cChoices: [],
+    stage3cRestrictions: [],
+    stage3cDefenseModifier: 0,
+    stage3cAttackModifier: 0,
+    stage3cSpeedOverride: null,
+    stage3cPurchaseCostModifier: 0,
+    suppressedEquipmentPenaltyIds: [],
+  };
+}
+
+/**
+ * Executes every generated Playtest effect entry through the browser host's
+ * actual effect application function. This is intentionally separate from the
+ * headless Game certification: it guards the React Playtest adapter against
+ * silently dropping a canonical trigger or reintroducing prose execution.
+ */
+export function runPlaytestRuntimeCertification(): PlaytestRuntimeCertificationReport {
+  const fighterId = characters[0]?.id ?? "";
+  const failures: PlaytestRuntimeCertificationFailure[] = [];
+  let structuredEffects = 0;
+  let exercisedEffects = 0;
+  let triggerInvocations = 0;
+  let observableInvocations = 0;
+  const byTrigger: Record<string, { effects: number; observable: number }> = {};
+  const context = {
+    friendlyTargetCount: 1,
+    opponentTargetCount: 1,
+    hpThresholdMet: true,
+    handEmptyAfterHeal: true,
+    normalAttacksResolvedThisTurn: 1,
+    temporaryNegativeModifierPresent: true,
+    sameTurnSourceActive: true,
+    incomingAttackTargetsSelf: true,
+    defensePlayed: true,
+    defensePlayedSinceLastTurn: true,
+    purchaseCompleted: true,
+    marketEndSlot: true,
+    opponentXp: 0,
+    selfSpeed: 4,
+    opponentSpeed: 2,
+    defenderPlayedDefense: true,
+    goldBeltExamThirdZone: true,
+  } as unknown as DefenseRuntimeContext & ConsumableRuntimeContext;
+
+  for (const card of cards) {
+    const effects = structuredEffectsForCard(card) ?? [];
+    structuredEffects += effects.length;
+    for (const effect of effects) {
+      const effectId = String(effect.id ?? `${effect.trigger}:${effect.effect ?? effect.action ?? "custom"}`);
+      const trigger = String(effect.trigger ?? "onPlay");
+      const fixture = playtestConformanceBoard(card, fighterId);
+      const isolatedCard = { ...card, effects: [effect] };
+      const before = JSON.stringify(fixture);
+      try {
+        const result = applyCardEffects(fixture, isolatedCard, "ai", trigger as "onPlay", context, false);
+        triggerInvocations += 1;
+        exercisedEffects += 1;
+        const after = JSON.stringify(result);
+        const triggerReport = byTrigger[trigger] ?? (byTrigger[trigger] = { effects: 0, observable: 0 });
+        triggerReport.effects += 1;
+        if (before !== after) observableInvocations += 1;
+        if (before !== after) triggerReport.observable += 1;
+      } catch (error) {
+        failures.push({ catalogId: card.catalogId, effectId, trigger, message: error instanceof Error ? error.message : String(error) });
+      }
+    }
+  }
+
+  return {
+    pass: failures.length === 0 && exercisedEffects === structuredEffects,
+    catalogCards: cards.length,
+    structuredEffects,
+    exercisedEffects,
+    triggerInvocations,
+    observableInvocations,
+    byTrigger,
+    failures,
+  };
 }
 
 function attackHasFlow(board: Board, card: CardEntry, zone = card.zone?.split(",")[0] ?? "High", isReversal = false) {

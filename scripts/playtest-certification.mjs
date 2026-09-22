@@ -71,6 +71,8 @@ export async function certifyPlaytest(root = defaultRoot) {
   const cardEffectsSource = await readFile(resolve(root, "app/card-effects.ts"), "utf8");
   if (!cardEffectsSource.includes("./data/card-effects.json")) failures.push("card-effect planning is missing the generated canonical effect registry");
   if (!playtestSource.includes("evaluateCombo")) failures.push("Playtest is missing the canonical Combo runtime adapter");
+  if (/const\s+text\s*=\s*card\.rulesText/.test(playtestSource)) failures.push("Playtest runtime still reads card.rulesText into an executable effect path");
+  if (/gains Flow[^\n]*rulesText|rulesText[^\n]*gains Flow/i.test(playtestSource)) failures.push("Playtest runtime still parses printed Flow prose");
 
   const comboCards = catalog.filter((card) => card.cardType === "Combo");
   const comboEvaluations = comboCards.map((combo) => evaluateCombo(combo, {
