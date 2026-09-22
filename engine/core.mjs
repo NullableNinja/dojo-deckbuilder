@@ -652,7 +652,10 @@ export class Game {
     const target = effect.target === "opponent" ? opponent : player;
     const add = (action, value, duration = effect.duration ?? "immediate", subject = target) => {
       if (duration && duration !== "immediate") this.addStatus(subject, { action, amount: value, duration, sourceId: card.instanceId });
-      else context[`${action}Modifier`] = (context[`${action}Modifier`] ?? 0) + value;
+      else {
+        const key = action === "modifyAttackPower" ? "attackPowerModifier" : action === "modifyGuard" ? "guardModifier" : action === "modifyDefense" ? "defenseModifier" : action === "preventDamage" ? "damagePrevention" : `${action}Modifier`;
+        context[key] = (context[key] ?? 0) + value;
+      }
     };
 
     // Final attack semantics are shared by card, AI, and simulator. Passive
@@ -715,6 +718,9 @@ export class Game {
       if (operation === "modifyPurchaseCost") this.addStatus(player, { action: "modifyCost", amount, duration: "nextPurchase", sourceId: card.instanceId });
       else if (operation === "modifyHealing") this.addStatus(player, { action: "modifyHealing", amount, duration: "scene", sourceId: card.instanceId });
       else if (operation === "modifyXpGain" || operation === "modifyKoXp") this.addStatus(player, { action: operation, amount, duration: "round", sourceId: card.instanceId });
+      else if (operation === "modifyStandingAttack" || operation === "modifyWeaponAttackBonus") add("modifyAttackPower", amount);
+      else if (operation === "modifyStandingDefense" || operation === "modifyWeaponArmorPrintedBonus" || operation === "modifyReadiedEquipmentPrintedBonus" || operation === "modifyDefensiveEquipmentContribution") add("modifyDefense", amount);
+      else if (operation === "modifyComboPrintedNumericEffect") context.comboNumericModifier = (context.comboNumericModifier ?? 0) + amount;
       else if (operation === "increaseDamageReduction") this.addStatus(player, { action: "preventDamage", amount, duration: "round", sourceId: card.instanceId });
       else if (operation === "setKataFocusGeneration") this.addStatus(player, { action: "kataFocusBonus", amount: Number(params.fixedValue ?? amount), duration: "turn", sourceId: card.instanceId });
       else if (operation === "drawThenDiscard" || operation === "discardJunkDrawGainFocus") this.queueDiscardDrawChoice(player, { ...effect, drawAmount: Number(params.drawCount ?? 1) });
@@ -723,6 +729,7 @@ export class Game {
       else if (operation === "readyEquipmentOrSpeedChoice") { const ready = player.equipment.find((candidate) => this.equipmentIsExhausted(player, candidate)); if (ready) this.setEquipmentReady(player, ready, true); else player.tempSpeed += amount || 1; }
       else if (operation === "discardForReadyOrDefenseChoice") { const candidate = player.hand[0]; if (candidate) { this.discardCard(player, candidate); const ready = player.equipment.find((entry) => this.equipmentIsExhausted(player, entry)); if (ready) this.setEquipmentReady(player, ready, true); else add("modifyDefense", amount || 1, "nextHonor"); } }
       else if (operation === "beltExamSpeedOrCycleChoice") player.tempSpeed += amount || 1;
+      else if (operation === "nextCounterAttackChosenZone") player.nextAttackAnyZone = true;
       else if (operation === "stateActiveBeltExam") player.turnStats.completedBeltExamThisRound = true;
       else if (effect.action === "gainFocus") { player.focus += amount; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + amount; this.telemetry.focusGenerated += amount; }
       else if (effect.action === "modifyAttackPower") add("modifyAttackPower", amount);
