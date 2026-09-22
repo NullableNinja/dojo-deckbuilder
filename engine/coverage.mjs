@@ -52,6 +52,7 @@ export const canonicalAction = (effect) => {
   const action = String(effect.action ?? effect.effect ?? "(none)");
   if (action !== "custom") return action;
   if (["attack.optionalDiscardDraw", "defense.optionalDiscardDraw", "defense.stepBackCycle"].includes(String(effect.resolver))) return "cycleDiscardDraw";
+  if (String(effect.id).endsWith("dodge-block-cycle")) return "cycleDiscardDraw";
   if (String(effect.resolver) === "kata.flowGrant") return "grantFlow";
   if (String(effect.resolver) === "kata.purchaseDiscount") return "modifyCost";
   if (String(effect.resolver) === "kata.deckLook") return "deckLook";
