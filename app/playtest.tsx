@@ -28,6 +28,7 @@ import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } f
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
 import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentEffects, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentRestrictions, structuredEquipmentSpeedModifier, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
+import { equipmentHandLimit, repairEquipmentHandLimit } from "./equipment-hand-limit.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestCharacterEvent, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestDamageIncoming as publishCharacterDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
@@ -408,6 +409,31 @@ function equipmentHasRestriction(board: Board, restriction: string) {
 }
 function weaponUsesTwoHands(card: CardEntry) {
   return isWeapon(card) && numberValue(card.stats.Hands ?? card.details?.Hands) >= 2;
+}
+
+function weaponHandLimitMessage(board: Board, card: CardEntry) {
+  const limit = equipmentHandLimit(board.equipment, card, cardFor);
+  if (limit.allowed) return null;
+  const occupied = limit.occupied === 1 ? "1 Hand is" : `${limit.occupied} Hands are`;
+  const required = limit.required === 1 ? "1 Hand" : `${limit.required} Hands`;
+  return `${card.name} requires ${required}, but ${occupied} already occupied. Fighters only have ${limit.capacity} Hands.`;
+}
+
+function repairBoardWeaponHandLimit(board: Board) {
+  const repaired = repairEquipmentHandLimit(board.equipment, cardFor);
+  if (!repaired.removed.length) return { board, removed: repaired.removed };
+  const removed = new Set(repaired.removed);
+  return {
+    board: {
+      ...board,
+      equipment: repaired.equipment,
+      exhaustedEquipment: (board.exhaustedEquipment ?? []).filter((id) => !removed.has(id)),
+      playArea: board.playArea.filter((id) => !removed.has(id)),
+      discard: [...board.discard, ...repaired.removed.filter((id) => !board.discard.includes(id))],
+      borrowedEquipmentId: board.borrowedEquipmentId && removed.has(board.borrowedEquipmentId) ? null : board.borrowedEquipmentId,
+    },
+    removed: repaired.removed,
+  };
 }
 function weaponAttackBlocked(board: Board, card: CardEntry) {
   return isWeapon(card) && equipmentHasRestriction(board, "noWeaponAttacks");
@@ -2897,7 +2923,19 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     try {
       const saved = JSON.parse(window.localStorage.getItem("ddb-field-match") ?? "null") as Match | null;
       const validSavedMatch = saved?.schema === 8 && saved?.player?.fighterId && saved?.ai?.fighterId && saved.turnOrder?.length === 2 && cardFor(saved.player.fighterId) && cardFor(saved.ai.fighterId) ? saved : null;
-      return validSavedMatch ? normalizePendingDamageChoice(validSavedMatch) : null;
+      if (!validSavedMatch) return null;
+      const normalized = normalizePendingDamageChoice(validSavedMatch);
+      const repairedPlayer = repairBoardWeaponHandLimit(normalized.player);
+      const repairedAi = repairBoardWeaponHandLimit(normalized.ai);
+      const repairedNames = [...repairedPlayer.removed, ...repairedAi.removed].map((id) => cardFor(id)?.name ?? id);
+      return {
+        ...normalized,
+        player: repairedPlayer.board,
+        ai: repairedAi.board,
+        log: repairedNames.length
+          ? [`Loadout audit: moved excess Weapon${repairedNames.length === 1 ? "" : "s"} to discard to restore the two-Hand limit (${repairedNames.join(", ")}).`, ...normalized.log].slice(0, 32)
+          : normalized.log,
+      };
     } catch { return null; }
   });
   const setMatch = (update: SetStateAction<Match | null>) => setRawMatch((previous) => {
@@ -3022,6 +3060,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (weaponUsesTwoHands(card) && equipmentHasRestriction(current.player, "noTwoHandedWeapon")) {
       return write(current, `${card.name} cannot be equipped while a no-two-handed-Weapon restriction is active.`);
     }
+    const handLimitMessage = weaponHandLimitMessage(current.player, card);
+    if (handLimitMessage) return write(current, handLimitMessage);
     const characterEquip = publishQuickDuelPlaytestEquip(current, "player", card);
     if (!characterEquip.allowed) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);
     const equippedMatch = characterEquip.match;
@@ -3585,7 +3625,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     }
     const kataEquipPlan = isKata(card) ? kataEquipFromHandPlanForHost(card) : null;
     if (!pendingChoice && kataEquipPlan) {
-      const equipmentIds = nextPlayer.hand.filter((candidate) => kataEquipCandidate(cardFor(candidate), kataEquipPlan));
+      const equipmentIds = nextPlayer.hand.filter((candidate) => {
+        const equipment = cardFor(candidate);
+        return kataEquipCandidate(equipment, kataEquipPlan) && equipmentHandLimit(nextPlayer.equipment, equipment, cardFor).allowed;
+      });
       if (equipmentIds.length) pendingChoice = { kind: "kata-equip-from-hand", sourceCardId: id, equipmentIds, family: kataEquipPlan.family, subtype: kataEquipPlan.subtype, ready: kataEquipPlan.ready, nextAttackPower: kataEquipPlan.nextAttackPower, additionalFocus: kataEquipPlan.additionalFocus };
     }
     let nextAi = current.ai;
@@ -3705,6 +3748,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
 
     if (choice.kind === "kata-equip-from-hand") {
       if (source !== "hand" || !choice.equipmentIds.includes(cardId) || !current.player.hand.includes(cardId) || !kataEquipCandidate(selected, choice)) return current;
+      const handLimitMessage = weaponHandLimitMessage(current.player, selected);
+      if (handLimitMessage) return write(current, handLimitMessage, { pendingChoice: null });
       const characterEquip = publishQuickDuelPlaytestEquip(current, "player", selected);
       if (!characterEquip.allowed) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${selected.name}.`);
       let player = applyCardEffects({ ...characterEquip.match.player, hand: removeOne(characterEquip.match.player.hand, cardId), playArea: [...characterEquip.match.player.playArea, cardId] }, selected, "player");
@@ -4609,7 +4654,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const turnCoach = match.winner
     ? (match.winner === "player" ? "The opponent is folded. Enjoy the extremely temporary paperwork-based glory." : "This test is over, but the Department has approved an immediate and emotionally reckless rematch.")
     : match.phase === "player-initiate"
-      ? (player.hand.some((id) => isPermanent(cardFor(id)!)) ? "Equip any permanent Equipment you want before Yell. Each legal Equip generates its printed Focus." : "No permanent Equipment is waiting in hand. Finish Initiate and proceed directly to the yelling.")
+      ? (player.hand.some((id) => { const card = cardFor(id); return Boolean(card && isPermanent(card) && equipmentHandLimit(player.equipment, card, cardFor).allowed); }) ? "Equip any legal permanent Equipment you want before Yell. Weapons must fit your two available Hands. Each legal Equip generates its printed Focus." : "No legal permanent Equipment is waiting in hand. Finish Initiate and proceed directly to the yelling.")
     : match.phase === "player-yell"
       ? (pendingAttack ? `You selected ${pendingAttack.name}. Confirm its zone, then declare the Attack.` : !player.badHabitFocusUsed && player.hand.some((id) => cardFor(id)?.catalogId === gameDefinition.economy.badHabitFocus.catalogId) ? "Discard one Bad Habit this turn for +1 Focus. It goes straight to your discard pile." : !player.defensePracticeUsed && player.hand.some((id) => isDefense(cardFor(id)!)) ? "Use one Defense for Defense Practice to gain its printed Focus without playing its Guard or rules text." : player.hand.some((id) => isAttack(cardFor(id)!)) ? "Play support cards for Focus or select any legal Attack remaining in your hand." : "Your useful cards are spent. Move to Ascend and turn that Focus into a better deck.")
       : match.phase === "player-ascend"
@@ -5046,7 +5091,10 @@ function prepareAiTurn(current: Match) {
     }
     const aiKataEquipPlan = isKata(card) ? kataEquipFromHandPlanForHost(card) : null;
     if (aiKataEquipPlan) {
-      const candidateId = nextAi.hand.find((candidate) => kataEquipCandidate(cardFor(candidate), aiKataEquipPlan));
+      const candidateId = nextAi.hand.find((candidate) => {
+        const equipment = cardFor(candidate);
+        return kataEquipCandidate(equipment, aiKataEquipPlan) && equipmentHandLimit(nextAi.equipment, equipment, cardFor).allowed;
+      });
       const candidate = candidateId ? cardFor(candidateId) : null;
       if (candidate) {
         const characterEquip = publishQuickDuelPlaytestEquip({ ...current, player: nextPlayer, ai: nextAi }, "ai", candidate);
