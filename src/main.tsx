@@ -6,7 +6,6 @@ import PlaytestCardRouteLifecycle from "../app/playtest-card-route-lifecycle";
 import { installBeltCheckTrainingStripes } from "../app/belt-check-training-stripes";
 import "../app/card-inspector.css";
 import "../app/playtest.css";
-import "../app/ascend-combo-popout";
 
 const buildMeta = document.querySelector<HTMLMetaElement>('meta[name="ddb-build"]');
 const currentBuild = buildMeta?.content;

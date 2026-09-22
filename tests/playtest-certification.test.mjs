@@ -5,6 +5,7 @@ import { certifyPlaytest } from "../scripts/playtest-certification.mjs";
 
 const playtestCss = readFileSync(new URL("../app/playtest.css", import.meta.url), "utf8");
 const playtestSource = readFileSync(new URL("../app/playtest.tsx", import.meta.url), "utf8");
+const mainSource = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8");
 
 test("Playtest certifies every catalog card through canonical structured execution", async () => {
   const report = await certifyPlaytest();
@@ -30,4 +31,5 @@ test("featured Combo launcher has a real accessible toggle", () => {
   assert.match(playtestSource, /onClick=\{toggleComboPanel\}/);
   assert.match(playtestSource, /onKeyDown=\{handleComboHeaderKeyDown\}/);
   assert.match(playtestCss, /@media \(min-width: 761px\) \{[\s\S]*?ascend-market:has\(\.ascend-featured-combo\[data-combo-popout="ready"\]\) \{ display: grid;/);
+  assert.doesNotMatch(mainSource, /ascend-combo-popout/);
 });
