@@ -3,6 +3,7 @@ export const HEADLESS_SUPPORTED_ACTIONS = new Set([
   "preventDamage", "heal", "dealDamage", "minimumSpeed", "piercing", "chooseZone",
   "discard", "destroy", "ready", "exhaust",
   "reveal", "gainXP", "spendFocus", "modifyDefenseContribution", "grantFlow", "modifyCost", "cycleDiscardDraw", "deckLook",
+  "removeTemporaryNegativeStatModifier", "removeTemporaryStatus", "recoverThenDiscard", "recycle", "equipFromHand", "equipFromDiscard", "setSpeed", "modifyDefenseUntilNextTurn", "restrictAttack", "restrictReaction", "restrictConsumable", "restrictWeapon", "untargetable", "reactionDefense", "grantKataFocus", "hitChoice",
 ]);
 
 export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
@@ -25,6 +26,16 @@ export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
   "manualActivation", "pendingFromSource", "defenseOutsideTurn", "equippedCardIsOtherPermanentEquipment",
   "drawAfterCost", "discardCost", "draw", "discard", "grantFlowTo", "window", "nextPurchase", "discount", "minimumCost", "minimumPrintedCost", "attackZones",
   "lookCount", "eligibleTypes", "keepCount", "restAction", "optionalKeep", "differentCardTypesFocus", "noMatchFocus",
+  "choiceKind", "choiceOptions", "sourceZone", "cardFamily", "permanentOnly", "equipNow", "ifSubtype", "gearEntersReady",
+  "gearNextAttackPower", "additionalFocusGenerated", "destination", "thenDiscard", "eligibleSubtypes", "gearBonus", "zones", "drawIfSourceZone", "drawAmount",
+  "differentCardTypesFocus", "nextPurchaseOnly", "minimumFinalCost", "minimumPrintedCost",
+  "firstNormalAttackThisTurn", "focusSpentEarlierThisTurn", "usedConsumableThisTurn", "firstCardPlayedThisTurn", "beltAtLeast", "marketCardsRemaining",
+  "playedAttackThisTurn", "discardedFocusValue", "discardedCardType", "priorJumpOrSpinAttack", "targetHasExhaustedEquipment", "selfSpeedChangedThisRound",
+  "piercingScope", "scope", "defenseTagAny", "sourceArmorHelpedBlock", "firstArmorBlockThisRound", "armedEquipmentZoneMatched",
+  "examRequirementCompleted", "completesActiveBeltExam", "goldBeltExamThirdZone", "duration",
+  "focusGain", "allowedZones", "chooseZone", "discardCount", "drawCount", "maximumLoss", "nextItemOnly", "afterThatConsumable",
+  "attackBlocked", "firstComboThisTurn", "firstConsumableThisTurn", "firstConsumableUsedThisTurn", "firstHighAttackThisTurn", "firstHitWithSourceThisRound",
+  "hasTwoPairedWeapons", "incomingAttackZone", "marketEndSlot",
 ]);
 
 const increment = (map, key) => { const normalized = String(key ?? "(none)"); map[normalized] = (map[normalized] ?? 0) + 1; };
@@ -39,6 +50,27 @@ const canonicalAction = (effect) => {
   if (String(effect.resolver) === "kata.purchaseDiscount") return "modifyCost";
   if (String(effect.resolver) === "kata.deckLook") return "deckLook";
   if (String(effect.resolver) === "reaction.preventIncomingDamage") return "preventDamage";
+  if (String(effect.resolver) === "consumable.modifyAttackStat") return "modifyAttackPower";
+  if (String(effect.resolver) === "consumable.removeTemporaryNegativeStatModifier") return "removeTemporaryNegativeStatModifier";
+  if (String(effect.resolver) === "kata.recoverThenDiscard") return "recoverThenDiscard";
+  if (String(effect.resolver) === "kata.recycle") return "recycle";
+  if (String(effect.resolver) === "kata.equipFromHand") return "equipFromHand";
+  if (String(effect.resolver) === "defense.deckLookChoice") return "deckLook";
+  if (["consumable.topThreeAttackSelection", "consumable.reorderTopThree"].includes(String(effect.resolver))) return "deckLook";
+  if (String(effect.resolver) === "consumable.setSpeedToValue") return "setSpeed";
+  if (String(effect.resolver) === "consumable.modifyDefenseUntilNextTurn") return "modifyDefenseUntilNextTurn";
+  if (String(effect.resolver) === "consumable.preventAttackUntilNextTurn") return "restrictAttack";
+  if (String(effect.resolver) === "reaction.reduceDeclaredAttackPower") return "modifyAttackPower";
+  if (String(effect.resolver) === "reaction.defenseAgainstIncomingAttack") return "reactionDefense";
+  if (String(effect.resolver) === "attack.final.onlyAttackLock") return "restrictAttack";
+  if (String(effect.resolver) === "consumable.healAndRemoveStatus") return "removeTemporaryStatus";
+  if (String(effect.resolver) === "consumable.nextKataFocusBonus") return "grantKataFocus";
+  if (String(effect.resolver) === "consumable.preventInterfereOnNextAttack") return "restrictReaction";
+  if (String(effect.resolver) === "consumable.untargetableUntilTurnOrAttack") return "untargetable";
+  if (String(effect.resolver) === "consumable.warrantyIcePop") return "restrictConsumable";
+  if (String(effect.resolver) === "attack.final.hitChoice") return "hitChoice";
+  if (String(effect.resolver) === "character.cannotEquipWeapons") return "restrictWeapon";
+  if (String(effect.resolver) === "character.equipDiscardPermanentUntilHide") return "equipFromDiscard";
   return {
     "equipment.modifyDefenseContribution": "modifyDefenseContribution",
     "combat.modifyDefense": "modifyDefense",
