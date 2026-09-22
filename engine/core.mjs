@@ -50,9 +50,17 @@ export class Game {
     this.rng = new Rng(this.seed);
     this.cardSerial = 0;
     this.round = 1; this.turns = 0; this.winner = null; this.reason = "";
-    this.events = []; this.cardStats = new Map(); this.marketPurchasedThisRound = false;
+    this.events = []; this.decisions = []; this.lastPresentedChoice = null; this.cardStats = new Map(); this.marketPurchasedThisRound = false;
     this.phase = this.definition.turn.phases[0]; this.activePlayer = 0; this.pendingChoice = null; this.status = "active";
-    this.telemetry = { attacks: 0, hits: 0, blocks: 0, totalDamage: 0, damagePrevented: 0, cardsPlayed: 0, cardsAcquired: 0, cardsRevealed: 0, focusGenerated: 0, focusSpent: 0, xpGenerated: 0, defensePractice: 0, promotions: 0, unsupportedEffects: 0 };
+    this.telemetry = {
+      attacks: 0, hits: 0, blocks: 0, totalDamage: 0, damagePrevented: 0,
+      cardsPlayed: 0, cardsAcquired: 0, cardsDrawn: 0, cardsDiscarded: 0,
+      cardsDestroyed: 0, cardsRevealed: 0, equipmentReadied: 0,
+      equipmentExhausted: 0, focusGenerated: 0, focusSpent: 0, xpGenerated: 0,
+      defensePractice: 0, promotions: 0, effectApplications: 0,
+      choicesPresented: 0, choicesResolved: 0, lifecycleEvents: 0,
+      unsupportedEffects: 0,
+    };
     const charactersCatalog = data.cards.filter((card) => card.cardType === "Character");
     this.players = [0, 1].map((id) => this.makePlayer(id, characters[id] ?? charactersCatalog[id], strategies[id] ?? "balanced"));
     for (const player of this.players) {
@@ -81,6 +89,7 @@ export class Game {
 
   emit(event) {
     this.events.push({ ...event, round: event.round ?? this.round });
+    this.telemetry.lifecycleEvents += 1;
     if (event.type === "attack") {
       this.telemetry.attacks += 1; this.telemetry.totalDamage += event.damage;
       if (event.damage > 0) this.telemetry.hits += 1;
@@ -118,6 +127,7 @@ export class Game {
   discardCard(player, card) {
     const moved = this.moveCard(player, card, "discard");
     if (moved) {
+      this.track(card, "discarded", player);
       player.turnStats.discardedCardType = cardType(card); player.turnStats.discardedFocusValue = focus(card);
       if ([card.cardType, card.subtype, card.category].includes("Junk")) {
         const effects = this.cardEffects(player.character, "passive").filter((effect) => ["character.discardJunkDestroyChoice", "character.forcedJunkDiscardDestroyChoice"].includes(effect.resolver));
@@ -129,6 +139,7 @@ export class Game {
 
   destroyCard(player, card) {
     if (!this.moveCard(player, card, "destroyed")) return false;
+    this.track(card, "destroyed", player);
     this.emit({ type: "card-destroyed", player: player.id, card: card.catalogId });
     return true;
   }
@@ -139,6 +150,7 @@ export class Game {
     if (!card || !player.equipment.includes(card)) return false;
     if (ready) remove(player.exhaustedEquipment, card.instanceId);
     else if (!this.equipmentIsExhausted(player, card)) player.exhaustedEquipment.push(card.instanceId);
+    this.track(card, ready ? "equipmentReadied" : "equipmentExhausted", player);
     this.emit({ type: ready ? "equipment-ready" : "equipment-exhaust", player: player.id, card: card.catalogId });
     return true;
   }
@@ -214,10 +226,22 @@ export class Game {
     }
   }
 
-  track(card, key, player) {
-    const stats = this.cardStats.get(card.catalogId) ?? { id: card.catalogId, name: card.name, offered: 0, drawn: 0, purchased: 0, played: 0, winnerOwned: 0 };
-    stats[key] = (stats[key] ?? 0) + 1; if (player) (player._used ??= new Set()).add(card.catalogId); this.cardStats.set(card.catalogId, stats);
-    if (key === "played") this.telemetry.cardsPlayed += 1; if (key === "purchased") this.telemetry.cardsAcquired += 1;
+  track(card, key, player, amount = 1) {
+    const stats = this.cardStats.get(card.catalogId) ?? {
+      id: card.catalogId, name: card.name, offered: 0, drawn: 0, purchased: 0,
+      played: 0, discarded: 0, destroyed: 0, hits: 0, blocks: 0,
+      damageDealt: 0, damagePrevented: 0, effectApplications: 0,
+      equipmentReadied: 0, equipmentExhausted: 0, winnerOwned: 0,
+    };
+    stats[key] = (stats[key] ?? 0) + amount;
+    if (player) (player._used ??= new Set()).add(card.catalogId);
+    this.cardStats.set(card.catalogId, stats);
+    const telemetryKey = {
+      played: "cardsPlayed", purchased: "cardsAcquired", drawn: "cardsDrawn",
+      discarded: "cardsDiscarded", destroyed: "cardsDestroyed",
+      equipmentReadied: "equipmentReadied", equipmentExhausted: "equipmentExhausted",
+    }[key];
+    if (telemetryKey) this.telemetry[telemetryKey] += amount;
   }
 
   cardEffects(card, trigger) { return (this.effects.get(card.catalogId)?.effects ?? []).filter((effect) => effect.trigger === trigger); }
@@ -897,7 +921,11 @@ export class Game {
         else this.unsupportedEffect(card, effect);
       }
       else this.unsupportedEffect(card, effect);
-      if (this.telemetry.unsupportedEffects === unsupportedBefore) this.markUsedEffect(player, effect);
+      if (this.telemetry.unsupportedEffects === unsupportedBefore) {
+        this.track(card, "effectApplications", player);
+        this.telemetry.effectApplications += 1;
+        this.markUsedEffect(player, effect);
+      }
     }
     return effectContext;
   }
@@ -913,7 +941,7 @@ export class Game {
     const defenseContext = defenseCard ? this.applyCardEffects(defender, defenseCard, "onDefenseDeclared", defenseBase) : defenseBase;
     const tempo = useTempo && attacker.tempo ? this.definition.turn.tempoAttackPower : 0; if (tempo) attacker.tempo = false;
     const attack = attackPower(card) + attacker.atk + tempo + attacker.nextAttackPower + this.statusValue(attacker, "modifyAttackPower") + (context.attackPowerModifier ?? 0) + reactionAttackModifier; attacker.nextAttackPower = 0;
-    const block = Math.max(0, defender.def + (defenseCard ? guard(defenseCard) : 0) + this.statusValue(defender, "modifyGuard") + this.statusValue(defender, "modifyDefense") + (defenseContext.guardModifier ?? 0) + (defenseContext.defenseModifier ?? 0) - (context.piercing ?? 0) - this.statusValue(attacker, "piercing")); const damage = Math.max(this.definition.combat.damageFloor, attack - block - (defenseContext.damagePrevention ?? 0) - this.statusValue(defender, "preventDamage") - reactionPrevention); defender.hp -= damage;
+    const block = Math.max(0, defender.def + (defenseCard ? guard(defenseCard) : 0) + this.statusValue(defender, "modifyGuard") + this.statusValue(defender, "modifyDefense") + (defenseContext.guardModifier ?? 0) + (defenseContext.defenseModifier ?? 0) - (context.piercing ?? 0) - this.statusValue(attacker, "piercing")); const damage = Math.max(this.definition.combat.damageFloor, attack - block - (defenseContext.damagePrevention ?? 0) - this.statusValue(defender, "preventDamage") - reactionPrevention); defender.hp = Math.max(0, defender.hp - damage);
     if (damage > 0) { attacker.xp += this.definition.progression.attackXpOnHit; this.applyEquipmentWatchers(attacker, "equipment.structured", { attackCard: card, damage, xpFromLegalAttackOrDefense: true, watchCondition: "xpFromLegalAttackOrDefense" }); attacker.turnStats.hit = true; attacker.turnStats.hitCount = (attacker.turnStats.hitCount ?? 0) + 1; defender.turnStats.damageTaken = (defender.turnStats.damageTaken ?? 0) + damage; } else if (defenseCard) { defender.xp += this.definition.progression.defenseXpOnBlock; this.applyEquipmentWatchers(defender, "equipment.structured", { attackCard: card, defenseCard, damage, xpFromLegalAttackOrDefense: true, watchCondition: "xpFromLegalAttackOrDefense" }); defender.turnStats.blocked = true; }
     attacker.turnStats.previousAttackHit = damage > 0; attacker.turnStats.previousAttackBlocked = damage === 0; attacker.turnStats.previousZone = zone; attacker.turnStats.previousAttackTags = card.tags ?? []; attacker.turnStats.previousCardType = card.subtype; attacker.turnStats.previousOpponentId = defender.id;
     if (defenseCard) defender.turnStats.playedDefenseSinceLastTurn = true;
@@ -921,6 +949,8 @@ export class Game {
     else if (defenseCard) { this.applyEquipmentTrigger(defender, "onBlock", { opponent: attacker, attackCard: card, defenseCard, damage, attack, block, zone, defensePlayed: true }); this.applyCharacterEffects(defender, "onBlock", { opponent: attacker, attackCard: card, defenseCard, damage, attack, block, zone, defensePlayed: true }); this.applyCardEffects(defender, defenseCard, "onBlock", { opponent: attacker, attackCard: card, defenseCard, damage, attack, block, zone, defensePlayed: true }); }
     this.applyCardEffects(attacker, card, "afterResolve", { opponent: defender, attackCard: card, damage, attack, block, zone });
     if (flow && !attacker.turnStats.flowDrawUsed) { this.draw(attacker, 1); attacker.turnStats.flowDrawUsed = true; }
+    if (damage > 0) { this.track(card, "damageDealt", attacker, damage); this.track(card, "hits", attacker); }
+    if (defenseCard) this.track(defenseCard, damage === 0 ? "blocks" : "damagePrevented", defender, damage === 0 ? 1 : Math.max(0, block - attack + damage));
     this.emit({ type: "attack", attacker: attacker.id, defender: defender.id, card: card.catalogId, defense: defenseCard?.catalogId ?? null, attack, block, damage, defenseFocus: focus(defenseCard) }); this.checkWinner();
     return { attack, block, damage, defense: defenseCard };
   }
@@ -996,6 +1026,7 @@ export class Game {
   resolveChoice(choice) {
     if (!this.pendingChoice) return false;
     const pending = this.pendingChoice; const selected = choice?.optionId ?? choice?.id ?? choice; if (!pending.options.some((option) => option.id === selected)) return false;
+    this.telemetry.choicesResolved += 1; this.lastPresentedChoice = null;
     if (pending.kind === "card-movement") return this.resolveCardMovementChoice(pending, selected);
     if (pending.kind === "zone-choice") return this.resolveZoneChoice(pending, selected);
     if (pending.kind === "hit-choice") return this.resolveHitChoice(pending, selected);
@@ -1103,7 +1134,7 @@ export class Game {
 
   run({ policy = null, maxSteps = 100000 } = {}) {
     const controller = policy ?? { chooseAction: (game, legal) => game.defaultAction(legal), chooseChoice: (game) => game.defaultChoice() }; let steps = 0;
-    while (this.winner === null && steps < maxSteps) { steps += 1; this.advanceAutomaticEvents(); if (this.pendingChoice) { const choice = controller.chooseChoice ? controller.chooseChoice(this, this.getPendingChoice()) : this.defaultChoice(); if (!this.resolveChoice(choice)) throw new Error(`Policy selected illegal choice at seed ${this.seed}`); continue; } const legal = this.getLegalActions(); if (!legal.length) throw new Error(`No legal actions in ${this.phase} for player ${this.activePlayer} at seed ${this.seed}`); const action = controller.chooseAction ? controller.chooseAction(this, legal) : this.defaultAction(legal); if (!this.applyAction(action)) throw new Error(`Policy selected illegal action at seed ${this.seed}: ${JSON.stringify(action)}`); }
+    while (this.winner === null && steps < maxSteps) { steps += 1; this.advanceAutomaticEvents(); if (this.pendingChoice) { const pending = this.getPendingChoice(); if (this.lastPresentedChoice !== this.pendingChoice) { this.telemetry.choicesPresented += 1; this.lastPresentedChoice = this.pendingChoice; } const choice = controller.chooseChoice ? controller.chooseChoice(this, pending) : this.defaultChoice(); this.decisions.push({ step: steps, kind: "choice", pendingKind: pending.kind, choice: structuredClone(choice) }); if (!this.resolveChoice(choice)) throw new Error(`Policy selected illegal choice at seed ${this.seed}`); continue; } const legal = this.getLegalActions(); if (!legal.length) throw new Error(`No legal actions in ${this.phase} for player ${this.activePlayer}`); const action = controller.chooseAction ? controller.chooseAction(this, legal) : this.defaultAction(legal); this.decisions.push({ step: steps, kind: "action", phase: this.phase, action: structuredClone(action) }); if (!this.applyAction(action)) throw new Error(`Policy selected illegal action at seed ${this.seed}: ${JSON.stringify(action)}`); }
     if (this.winner === null) throw new Error(`Game exceeded ${maxSteps} steps at seed ${this.seed}`);
     for (const player of this.players) for (const id of player._used ?? []) if (player.id === this.winner) this.cardStats.get(id).winnerOwned += 1; return this.result();
   }
@@ -1118,7 +1149,12 @@ export class Game {
 
   checkInvariants() {
     const failures = []; if (!Number.isInteger(this.round) || this.round < 1) failures.push("round must be a positive integer"); if (!Number.isInteger(this.activePlayer) || !this.players[this.activePlayer]) failures.push("activePlayer must identify a player");
-    for (const player of this.players) { if (player.hp > player.maxHp) failures.push(`${player.name} exceeds max HP`); if (player.focus < 0) failures.push(`${player.name} has negative Focus`); const seen = new Set(); for (const zone of ["deck", "hand", "discard", "destroyed", "played"]) for (const card of player[zone]) { if (!card.instanceId) failures.push(`${player.name} contains a card without instanceId`); else if (seen.has(card.instanceId)) failures.push(`${player.name} contains ${card.instanceId} in multiple zones`); else seen.add(card.instanceId); } for (const card of player.equipment) if (!player.played.includes(card)) failures.push(`${player.name} equipment ${card.catalogId} is not in play`); for (const instanceId of player.exhaustedEquipment) if (!player.equipment.some((card) => card.instanceId === instanceId)) failures.push(`${player.name} has exhausted equipment outside equipment`); }
+    const seen = new Map();
+    const visit = (location, cards) => { for (const card of cards ?? []) { if (!card?.instanceId) failures.push(`${location} contains a card without instanceId`); else if (seen.has(card.instanceId)) failures.push(`${location} duplicates ${card.instanceId}; already in ${seen.get(card.instanceId)}`); else seen.set(card.instanceId, location); } };
+    visit("market", this.market); visit("marketDeck", this.marketDeck); visit("marketDiscard", this.marketDiscard); visit("locationDeck", this.locationDeck); visit("locationDiscard", this.locationDiscard); visit("currentLocation", this.currentLocation ? [this.currentLocation] : []);
+    for (const player of this.players) { if (player.hp < 0) failures.push(`${player.name} has negative HP`); if (player.hp > player.maxHp) failures.push(`${player.name} exceeds max HP`); if (player.focus < 0) failures.push(`${player.name} has negative Focus`); if (player.beltIndex < 0 || player.beltIndex >= this.definition.progression.belts.length) failures.push(`${player.name} has invalid belt index`); for (const zone of ["deck", "hand", "discard", "destroyed", "played"]) visit(`${player.name}.${zone}`, player[zone]); for (const card of player.equipment) if (!player.played.includes(card)) failures.push(`${player.name} equipment ${card.catalogId} is not in play`); for (const instanceId of player.exhaustedEquipment) if (!player.equipment.some((card) => card.instanceId === instanceId)) failures.push(`${player.name} has exhausted equipment outside equipment`); }
+    if (this.pendingChoice && (!Array.isArray(this.pendingChoice.options) || !this.pendingChoice.options.length)) failures.push(`pending choice ${this.pendingChoice.kind} has no legal options`);
+    if (this.winner !== null && this.status !== "complete") failures.push("winner exists while game is not complete");
     return failures;
   }
 
@@ -1127,7 +1163,7 @@ export class Game {
     return { schemaVersion: 2, rulesVersion: this.definition.rulesVersion, seed: this.seed, round: this.round, turns: this.turns, phase: this.phase, activePlayer: this.activePlayer, winner: this.winner, reason: this.reason, pendingChoice: this.getPendingChoice(), market: cardIds(this.market), marketDeck: cardIds(this.marketDeck), marketDiscard: cardIds(this.marketDiscard), location: this.currentLocation?.catalogId ?? null, locationDeck: cardIds(this.locationDeck ?? []), locationDiscard: cardIds(this.locationDiscard ?? []), players: this.players.map((player) => ({ id: player.id, hp: player.hp, maxHp: player.maxHp, atk: player.atk, def: player.def, speed: player.speed, focus: player.focus, xp: player.xp, beltIndex: player.beltIndex, tempo: player.tempo, exhaustedEquipment: [...player.exhaustedEquipment], statuses: structuredClone(player.statuses), cardZones: { deck: cardIds(player.deck), hand: cardIds(player.hand), discard: cardIds(player.discard), destroyed: cardIds(player.destroyed), played: cardIds(player.played), equipment: cardIds(player.equipment) } })) };
   }
 
-  result() { return { seed: this.seed, winner: this.winner, reason: this.reason, rounds: this.round, turns: this.turns, phase: this.phase, players: this.players.map((player) => ({ id: player.id, strategy: player.strategy, hp: player.hp, xp: player.xp, beltIndex: player.beltIndex, purchases: player.purchases, plays: player.plays, openingPurchase: player.openingPurchase })), cards: [...this.cardStats.values()], telemetry: { ...this.telemetry }, invariantFailures: this.checkInvariants(), unsupportedEffects: this.telemetry.unsupportedEffects, events: this.events, state: this.getState() }; }
+  result() { return { seed: this.seed, winner: this.winner, reason: this.reason, rounds: this.round, turns: this.turns, phase: this.phase, players: this.players.map((player) => ({ id: player.id, strategy: player.strategy, hp: player.hp, xp: player.xp, beltIndex: player.beltIndex, purchases: player.purchases, plays: player.plays, openingPurchase: player.openingPurchase })), cards: [...this.cardStats.values()], telemetry: { ...this.telemetry }, invariantFailures: this.checkInvariants(), unsupportedEffects: this.telemetry.unsupportedEffects, decisions: this.decisions, events: this.events, state: this.getState() }; }
 }
 
 export const createGame = (data, config = {}) => new Game(data, config);

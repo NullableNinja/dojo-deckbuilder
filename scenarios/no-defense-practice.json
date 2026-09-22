@@ -1,0 +1,12 @@
+{
+  "id": "no-defense-practice",
+  "description": "Balance experiment that disables the optional Defense Practice economy rule without changing canonical rules data.",
+  "baseRulesVersion": "v2.3",
+  "definitionPatch": {
+    "economy": {
+      "defensePractice": {
+        "usesPerTurn": 0
+      }
+    }
+  }
+}
