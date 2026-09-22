@@ -13,7 +13,7 @@ try {
     console.error(`Playtest runtime certification FAILED (${report.failures.length} failures)`);
     process.exitCode = 1;
   } else {
-    console.error(`Playtest runtime certification PASS — ${report.exercisedEffects}/${report.structuredEffects} generated effects invoked through the browser host.`);
+    console.error(`Playtest runtime certification PASS — ${report.behaviorallyCertifiedEffects}/${report.structuredEffects} effects behaviorally certified through Playtest/module routes; ${report.outOfModeEffects} out-of-mode; 0 route failures.`);
   }
 } finally {
   await server.close();

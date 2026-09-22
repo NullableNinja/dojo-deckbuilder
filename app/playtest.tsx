@@ -7,6 +7,7 @@ import gameDefinitionJson from "./data/game-definition.json";
 import { describeEffectPlan, effectPlanForCard, structuredEffectsForCard } from "./card-effects";
 import { afterDefenseNextAttackBonus, attackCanChooseAnyZone, attackPiercing, conditionalAttackPowerBonus, conditionalDefenseGuardBonus, conditionalHealAfterHit, deckLookPlan, defenseEquipmentBonus, destroyJunkChoiceCount, destroyJunkChoicePlan, destroysAfterUse, discardChoiceFollowup, equipmentActivationPlan, equipmentConditionalAttackPowerBonus, equipmentOnEquipPlan, equipmentPiercing, equipmentSpeedModifier, firstIncomingAttackPowerPenalty, locationAttackRuleModifiers, mandatoryDamageReductionEquipment, mandatoryDiscardChoiceCount, optionalCombatDamageReductionEquipment, optionalDiscardDrawChoice, passiveEquipmentGuard, postBlockEquipmentCycle, readyEquipmentOnHit, returnsToSupplyAfterUse, targetDiscardOnHitCount, targetNextAttackPenalty, targetNextDefensePenalty, targetSpeedPenaltyUntilHonor, afterDefenseAttackPowerBonus, nextAttackArmorPenalty, structuredConditionalCycle, structuredConditionalFocus, structuredCurrentAttackFlow, structuredFocusIfFastest, structuredNextAttackAnyZone, structuredNextAttackFlow, type DeckLookPlan } from "./effect-resolvers";
 import { comboPayoffText, comboRequirementText, evaluateCombo } from "./combo-engine";
+import { comboChoiceOnAttack, comboCommandsForTrigger, comboDeferredCommandsOnCompletion } from "./combo-runtime";
 import { finalAttackAllowedZones, finalAttackCycle, finalAttackEquipmentSuppression, finalAttackFocusReward, finalAttackHitChoice, finalAttackOnlyAttackLock, finalAttackPowerBonus } from "./attack-final-effects";
 import { defenseRuntimeCommands, type DefenseRuntimeContext } from "./defense-effect-resolvers";
 import { consumableRuntimeCommands, structuredConsumableMandatoryDiscard, type ConsumableRuntimeContext } from "./consumable-effect-resolvers";
@@ -21,22 +22,23 @@ import { applyStage3CBoardCustomCommand, revertStage3CBoardCustomStatus } from "
 import { chooseAiTemporaryStatusRemoval, removableTemporaryStatuses, removeTemporaryStatus } from "./stage3c-consumable-status-removal.ts";
 import { structuredConsumableTopRevealPlan } from "./stage3c-consumable-reveal.ts";
 import { consumeNextDefenseStatuses, consumeNextIncomingAttackStatuses, nextDefenseGuardBonus, nextIncomingAttackDefenseBonus } from "./stage3c-defense-status-semantics.ts";
-import { structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
+import { structuredRuntimeEffects, structuredRuntimeResolvers, type RuntimeChoice, type RuntimeCommand, type RuntimeStatus, type RuntimeTrigger } from "./family-effect-runtime";
 import { isCoreKataCard, kataEquipFromHandPlanForHost, kataRuntimeCommandsForHost, type KataHostFacts } from "./kata-playtest-bridge.ts";
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentRestrictions, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentEffects, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentRestrictions, structuredEquipmentSpeedModifier, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
-import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
+import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestCharacterEvent, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestDamageIncoming as publishCharacterDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
 import type { PlaytestCombatExchange } from "../src/playtest-events";
 import { fetchRulesManifest, rulesSyncState, type RulesSyncState } from "./rules-client";
 import { normalizePendingDamageChoice } from "./playtest-state-recovery";
 import { QUICK_DUEL_HOUSE_RULES, effectiveBeltThresholds, hasQuickDuelHouseRule, sanitizeQuickDuelHouseRuleIds, shouldRefreshMarketAtRoundEnd } from "./playtest-house-rules";
 import { QUICK_DUEL_TRAINING_STRIPE_HEAL_REQUEST_EVENT, spendQuickDuelTrainingStripeForHealing } from "./quick-duel-training-stripes.ts";
 import { markQuickDuelBeltCheckAction, quickDuelBeltCheckActionAvailability } from "./quick-duel-belt-check-actions.ts";
-import { structuredLocationDefenseForHost, structuredLocationKataFocusForHost } from "./location-playtest-bridge.ts";
+import { resolveLocationHostEvent, structuredLocationDefenseForHost, structuredLocationKataFocusForHost } from "./location-playtest-bridge.ts";
+import { createBossRuntimeState, resolveBossCardEvent } from "./boss-runtime.ts";
 
 /**
  * QUICK DUEL REACT SHELL
@@ -2098,6 +2100,8 @@ export type PlaytestRuntimeCertificationReport = {
   exercisedEffects: number;
   triggerInvocations: number;
   observableInvocations: number;
+  behaviorallyCertifiedEffects: number;
+  outOfModeEffects: number;
   byTrigger: Record<string, { effects: number; observable: number }>;
   failures: PlaytestRuntimeCertificationFailure[];
 };
@@ -2153,11 +2157,291 @@ function playtestConformanceBoard(card: CardEntry, fighterId: string): Board {
   };
 }
 
+type PlaytestRouteEvidence = {
+  changed: boolean;
+  signals: string[];
+  effectIds: string[];
+};
+
+function conformanceMatch(player: Board, ai: Board): Match {
+  const ids = cards.map((card) => card.id);
+  return {
+    schema: 8,
+    rulesVersion: gameDefinition.rulesVersion,
+    player,
+    ai,
+    market: ids.slice(0, 7),
+    marketDeck: ids.slice(7, 30),
+    marketDiscard: [],
+    marketPurchasedThisRound: false,
+    comboDeck: ids.filter((id) => cardFor(id)?.cardType === "Combo").slice(0, 8),
+    comboOfferId: null,
+    locations: ids.filter((id) => cardFor(id)?.cardType === "Location").slice(0, 4),
+    locationId: ids.find((id) => cardFor(id)?.cardType === "Location") ?? "",
+    round: 2,
+    phase: "defense-window",
+    turnOrder: ["player", "ai"],
+    turnIndex: 0,
+    selectedAttackId: null,
+    selectedZone: "High",
+    pendingStrike: null,
+    pendingDiscard: null,
+    pendingChoice: null,
+    pendingCombatContinuation: null,
+    reversalRemainingAiAttacks: [],
+    reversalReason: null,
+    reversalIncomingZone: null,
+    attackCostDecisionCardId: null,
+    exchangeSequence: 1,
+    lastExchange: null,
+    log: [],
+    winner: null,
+  };
+}
+
+function addRouteSignal(evidence: PlaytestRouteEvidence, label: string, value: unknown) {
+  if (value === null || value === undefined || value === false) return;
+  if (typeof value === "number" && value === 0) return;
+  if (typeof value === "string" && !value) return;
+  if (Array.isArray(value) && value.length === 0) return;
+  if (Array.isArray(value)) {
+    evidence.signals.push(label);
+    for (const entry of value) {
+      if (typeof entry === "string") evidence.effectIds.push(entry);
+      else if (entry && typeof entry === "object" && typeof (entry as { sourceEffectId?: unknown }).sourceEffectId === "string") evidence.effectIds.push(String((entry as { sourceEffectId: string }).sourceEffectId));
+    }
+    return;
+  }
+  let meaningful = false;
+  if (typeof value === "object") {
+    const object = value as Record<string, unknown>;
+    if (typeof object.sourceEffectId === "string" && object.sourceEffectId) {
+      meaningful = true;
+      evidence.signals.push(`${label}.sourceEffectId`);
+      evidence.effectIds.push(object.sourceEffectId);
+    }
+    for (const key of ["matchedEffectIds", "sourceEffectIds", "destroySourceIds", "exhaustSourceIds", "delayedStatuses", "statuses", "commands", "choices", "characterChoices", "notes", "activatedComboIds"]) {
+      const candidate = object[key];
+      if (Array.isArray(candidate) && candidate.length) {
+        meaningful = true;
+        evidence.signals.push(`${label}.${key}`);
+        for (const entry of candidate) {
+          if (typeof entry === "string") evidence.effectIds.push(entry);
+          else if (entry && typeof entry === "object" && typeof (entry as { sourceEffectId?: unknown }).sourceEffectId === "string") evidence.effectIds.push(String((entry as { sourceEffectId: string }).sourceEffectId));
+        }
+      }
+    }
+    for (const key of ["handled", "grant", "choiceRequired", "preventAll", "preventAttackDamage", "allowed", "published", "resolved", "focus", "power", "damage", "guard", "amount", "speed", "nextAttackPower", "directDamage", "purchaseDiscount"]) {
+      const candidate = object[key];
+      if (candidate === true || (typeof candidate === "number" && candidate !== 0)) {
+        meaningful = true;
+        evidence.signals.push(`${label}.${key}`);
+      }
+    }
+  }
+  if (typeof value !== "object" || meaningful) evidence.signals.push(label);
+}
+
+function playtestCardRouteEvidence(card: CardEntry, effectId: string, trigger: string, before: Board, after: Board, context: DefenseRuntimeContext & ConsumableRuntimeContext): PlaytestRouteEvidence {
+  const evidence: PlaytestRouteEvidence = { changed: JSON.stringify(before) !== JSON.stringify(after), signals: [], effectIds: [] };
+  const mark = (label: string, value: unknown) => addRouteSignal(evidence, label, value);
+  const opponent = playtestConformanceBoard(card, characters[1]?.id ?? characters[0]?.id ?? "");
+  const match = conformanceMatch(after, opponent);
+  const attack = cards.find((candidate) => isAttack(candidate)) ?? card;
+  const defense = cards.find((candidate) => isDefense(candidate)) ?? card;
+  const equipment = [card, ...cards.filter((candidate) => candidate !== card && isPermanent(candidate)).slice(0, 3)];
+  const commonEquipmentContext = {
+    attackNumber: 1,
+    attackZone: "High",
+    incomingZone: "High",
+    attackTags: ["Punch", "Kick", "Weapon", "Spin", "Jump"],
+    defenseTags: ["Dodge", "Counter", "Redirect", "Guard"],
+    combatDamageDealt: 3,
+    damage: 3,
+    firstAttackThisTurn: true,
+    firstAttackThisRound: true,
+    firstIncomingAttackThisRound: true,
+    firstHitThisTurn: true,
+    firstQualifyingHitThisTurn: true,
+    incomingAttackTargetsSelf: true,
+    attackUsesSourceEquipment: true,
+    defenderPlayedDefense: true,
+    sameOpponentAsBlockedAttack: true,
+    sameRoundOnly: true,
+    sameTurnOnly: true,
+    currentAttackIsNormal: true,
+    usedEffectIdsThisTurn: [],
+    usedEffectIdsThisRound: [],
+    usedEffectIdsThisGame: [],
+    purchaseCompleted: true,
+    marketEndSlot: true,
+    purchasedCardCost: 4,
+    hp: 5,
+    damageTaken: 3,
+    beltName: "Black",
+    defenderHandSize: Math.max(2, after.hand.length),
+    retargetAvailable: true,
+  };
+
+  if (isCoreConsumableCard(card)) {
+    mark("consumable.commands", consumableRuntimeCommands(card, trigger as RuntimeTrigger, {
+      ...context,
+      hasTempo: after.tempo,
+      missingHp: Math.max(0, after.maxHp - after.hp),
+      expectedIncomingDamage: 3,
+      attackNumber: after.attacksThisTurn + 1,
+      currentAttackIsNormal: true,
+      firstAttackThisTurn: after.attacksThisTurn === 0,
+      revealedFocusValue: 2,
+      friendlyTargetCount: 1,
+      opponentTargetCount: 1,
+    }));
+    if (trigger === "passive" || trigger === "onHit" || trigger === "onBlock") {
+      const armedAttack = armConsumableAttackFollowupStatuses([], card);
+      mark("consumable.attackFollowup", armedAttack);
+      mark("consumable.attackFollowupResolved", resolveConsumableAttackFollowupStatuses(armedAttack, { blocked: true, interferencePrevented: false }));
+      const armedHide = armConsumableHideStatuses([], card);
+      mark("consumable.hideFollowup", armedHide);
+      mark("consumable.hideFollowupResolved", resolveConsumableHideStatuses(armedHide));
+    }
+  }
+
+  if (isCoreReactionItemCard(card)) {
+    const reactionContext = {
+      ...context,
+      incomingAttackTargetsSelf: true,
+      incomingZones: ["High", "Mid", "Low"],
+      attackNumber: 1,
+      currentAttackIsNormal: true,
+      defenseOutsideTurn: true,
+      sameOpponentAsBlockedAttack: true,
+      forcedDiscardEvent: true,
+    };
+    mark("reaction.canPlay", canPlayCoreReactionItem(card, trigger as RuntimeTrigger, reactionContext));
+    mark("reaction.commands", resolveQuickDuelReactionItemEvent({ card, self: after, opponent, trigger: trigger as RuntimeTrigger, context: reactionContext }));
+    mark("reaction.attack", resolveQuickDuelReactionItem({ card, self: after, opponent, strike: { attackPower: 5, zone: "High" }, trigger: trigger as RuntimeTrigger, context: reactionContext }));
+    mark("reaction.outcome", resolveReactionItemIncomingAttackOutcome(after, true));
+  }
+
+  if (isPermanent(card)) {
+    mark("equipment.registry", structuredEquipmentEffects(card));
+    mark("equipment.restrictions", structuredEquipmentRestrictions(card));
+    mark("equipment.speed", structuredEquipmentSpeedModifier(card));
+    mark("equipment.minimumSpeed", structuredEquipmentMinimumSpeed(card));
+    mark("equipment.flow", structuredEquipmentCurrentAttackFlow(equipment, { attackNumber: 1, hasTwoPairedWeapons: true, currentAttackIsNormal: true }));
+    mark("equipment.activation", equipmentActivationPlan(card));
+    if (trigger === "onAttackDeclared") mark("equipment.attackDeclared", structuredEquipmentAttackDeclarationResolution(equipment, commonEquipmentContext));
+    if (trigger === "onDefenseDeclared" || trigger === "onBlock") mark("equipment.block", structuredEquipmentBlockResolution(equipment, commonEquipmentContext));
+    if (trigger === "onHit") mark("equipment.hit", structuredEquipmentHitResolution(equipment, commonEquipmentContext));
+    if (trigger === "afterResolve") mark("equipment.afterResolve", structuredEquipmentAfterResolveResolution(equipment, { ...commonEquipmentContext, resolvedCardType: card.subtype ?? card.cardType }));
+    if (trigger === "onPurchase") mark("equipment.purchase", structuredEquipmentPurchaseResolution(equipment, commonEquipmentContext));
+    if (trigger === "onAttackDeclared" || trigger === "onDefenseDeclared") mark("equipment.damagePrevention", structuredEquipmentDamagePrevention(equipment, commonEquipmentContext));
+    if (trigger === "onAttackDeclared") mark("equipment.threshold", structuredEquipmentThresholdProtection(equipment, commonEquipmentContext));
+    if (trigger === "onHit") mark("equipment.speedProtection", structuredEquipmentSpeedPenaltyProtection(equipment, commonEquipmentContext));
+  }
+
+  if (card.cardType === "Location" || card.catalogId.includes("-LOC-")) {
+    const locationEffect = structuredRuntimeEffects(card).find((candidate) => candidate.id === effectId) ?? structuredRuntimeEffects(card).find((candidate) => candidate.trigger === trigger);
+    const locationEvent = String(locationEffect?.conditions?.find((condition) => condition.kind === "locationEvent")?.value ?? "attack");
+    const locationFacts = Object.fromEntries((locationEffect?.conditions ?? [])
+      .filter((condition) => condition.kind && condition.kind !== "locationEvent" && condition.kind !== "locationOperation")
+      .map((condition) => [String(condition.kind), condition.value]));
+    const locationResolution = resolveLocationHostEvent(card, {
+      locationUsedEffectsThisTurn: [],
+      locationUsedEffectsThisRound: [],
+      locationUsedEffectsThisScene: [],
+    }, locationEvent, { ...locationFacts, ownTurn: true, firstMatchingPerTurn: true, firstMatchingPerRound: true, firstMatchingPerSceneStay: true, firstAcrossPlayersPerRound: true });
+    mark("location.event", locationResolution.delta);
+    mark("location.attack", locationAttackModifier(card, attack, after, "Low"));
+    mark("location.defense", locationDefenseModifier(card, defense, after, "High"));
+    mark("location.focus", locationFocusModifier(card, card, after));
+  }
+
+  if (card.cardType === "Boss" || /-B(?:AT|PR|TQ|DF|ST)-/.test(card.catalogId)) {
+    const bossEffect = structuredRuntimeEffects(card).find((candidate) => candidate.id === effectId);
+    const bossFacts = Object.fromEntries((bossEffect?.conditions ?? [])
+      .filter((condition) => condition.kind)
+      .map((condition) => [String(condition.kind), condition.value]));
+    mark("boss.event", resolveBossCardEvent({
+      card,
+      trigger: trigger as RuntimeTrigger,
+      context: { ...bossFacts, bossHp: 20, targetHpAtMost: 5, incomingZones: ["High", "Mid", "Low"], oncePerRound: true, playerDiscarded: true },
+      state: createBossRuntimeState({
+        boss: { hp: 20, maxHp: 40, attack: 5, defense: 3, speed: 4, hand: [attack.id], discard: [], statuses: [], restrictions: [] },
+        player: { hp: 5, maxHp: 10, attack: 3, defense: 3, speed: 4, hand: [defense.id, attack.id], discard: [], statuses: [], restrictions: [] },
+      }),
+    }));
+  }
+
+  if (card.cardType === "Combo") {
+    mark("combo.commands", comboCommandsForTrigger(card, trigger as RuntimeTrigger));
+    mark("combo.deferred", comboDeferredCommandsOnCompletion(card, trigger as RuntimeTrigger));
+    mark("combo.choice", comboChoiceOnAttack(card));
+    mark("combo.host", hostQuickDuelPlaytestCardEvent(match, "player", card, "High", cardFor, trigger as RuntimeTrigger, quickDuelHostOperations, { currentAttackHit: true, currentDefense: defense, currentDefenseBlocked: true }));
+  }
+
+  if (card.cardType === "Character") {
+    const characterEffect = structuredRuntimeEffects(card).find((candidate) => candidate.id === effectId);
+    const characterPlayer = {
+      ...after,
+      fighterId: card.catalogId,
+      equipment: characterEffect?.resolver === "character.noWeaponOffenseDefenseChoice" ? [] : after.equipment,
+      discard: characterEffect?.resolver === "character.equipDiscardPermanentUntilHide"
+        ? [...after.discard, ...equipment.filter((candidate) => isPermanent(candidate)).map((candidate) => candidate.id)]
+        : after.discard,
+      characterMarks: characterEffect?.resolver === "character.green.delayedDamagePreventionFocus"
+        ? { ...(after.characterMarks ?? {}), "round:preventedHit": true }
+        : after.characterMarks,
+    };
+    const characterMatch = conformanceMatch(characterPlayer, { ...opponent, fighterId: card.catalogId });
+    if (trigger === "onInitiate" || trigger === "onHide") {
+      mark("character.lifecycle", publishQuickDuelPlaytestLifecycleEvent(characterMatch, "player", trigger as "onInitiate" | "onHide", quickDuelHostOperations, cardFor, {}, { noCombatDamagePreviousTurn: true }));
+      if (characterEffect?.resolver === "character.green.delayedDamagePreventionFocus") mark("character.damageIncoming", publishCharacterDamageIncoming(characterMatch, "player", 3));
+    } else if (trigger === "onEquip") {
+      mark("character.equip", publishQuickDuelPlaytestEquip(characterMatch, "player", attack));
+    } else {
+      mark("character.event", publishQuickDuelPlaytestCharacterEvent(characterMatch, "player", {
+        type: trigger === "onAttackDeclared" ? "attackDeclared" : trigger === "onHit" ? "hit" : trigger === "onBlock" ? "block" : "cardPlayed",
+        card: attack,
+        zone: "High",
+        printedZone: "High",
+        selectedZone: "Mid",
+        previousAttackZone: "Low",
+        firstAttackThisTurn: true,
+        playedKataEarlierThisTurn: true,
+        differentZoneFromPreviousAttack: true,
+        hasWeaponEquipped: false,
+        attackPower: 5,
+        damage: 2,
+        blocked: trigger === "onBlock",
+        discardedJunk: true,
+        discardedOutsideHide: true,
+        selectedId: after.hand[0],
+        completedBeltExam: true,
+        sceneChanged: true,
+      } as CharacterRuntimeEvent));
+    }
+  }
+
+  if (isAttack(card) || isDefense(card) || isKata(card)) {
+    mark("attack.flow", attackHasFlow(after, card, "High"));
+    mark("attack.zones", attackAllowedZones(after, card));
+    mark("attack.modifier", printedAttackRuleModifier(after, opponent, card, "High"));
+    mark("attack.piercing", attackPiercingModifier(after, opponent, card, "High"));
+    mark("attack.cycle", structuredAttackCyclePlan(after, card, "High", true));
+    mark("defense.modifier", defenseCardRuleModifier(after, opponent, defense, attack, 5, "High"));
+    mark("family.commands", stage3cCommands(card, trigger as RuntimeTrigger, context));
+    mark("kata.commands", kataRuntimeCommandsForHost(card, trigger as RuntimeTrigger, stage3cKataContext(after, card)));
+  }
+
+  return evidence;
+}
+
 /**
- * Executes every generated Playtest effect entry through the browser host's
- * actual effect application function. This is intentionally separate from the
- * headless Game certification: it guards the React Playtest adapter against
- * silently dropping a canonical trigger or reintroducing prose execution.
+ * Executes every generated effect entry through the actual Playtest/module
+ * runtime hosts. This is intentionally separate from the headless Game
+ * certification: it guards the React Playtest adapters against silently
+ * dropping a canonical trigger or reintroducing prose execution.
  */
 export function runPlaytestRuntimeCertification(): PlaytestRuntimeCertificationReport {
   const fighterId = characters[0]?.id ?? "";
@@ -2166,6 +2450,8 @@ export function runPlaytestRuntimeCertification(): PlaytestRuntimeCertificationR
   let exercisedEffects = 0;
   let triggerInvocations = 0;
   let observableInvocations = 0;
+  let behaviorallyCertifiedEffects = 0;
+  let outOfModeEffects = 0;
   const byTrigger: Record<string, { effects: number; observable: number }> = {};
   const context = {
     friendlyTargetCount: 1,
@@ -2198,6 +2484,7 @@ export function runPlaytestRuntimeCertification(): PlaytestRuntimeCertificationR
       const before = JSON.stringify(fixture);
       try {
         const result = applyCardEffects(fixture, isolatedCard, "ai", trigger as "onPlay", context, false);
+        const route = playtestCardRouteEvidence(card, effectId, trigger, fixture, result, context);
         triggerInvocations += 1;
         exercisedEffects += 1;
         const after = JSON.stringify(result);
@@ -2205,6 +2492,9 @@ export function runPlaytestRuntimeCertification(): PlaytestRuntimeCertificationR
         triggerReport.effects += 1;
         if (before !== after) observableInvocations += 1;
         if (before !== after) triggerReport.observable += 1;
+        const effectEvidence = before !== after || route.signals.length > 0 || route.effectIds.includes(effectId);
+        if (effectEvidence) behaviorallyCertifiedEffects += 1;
+        else failures.push({ catalogId: card.catalogId, effectId, trigger, message: "Playtest route produced no state, status, choice, command, or event evidence" });
       } catch (error) {
         failures.push({ catalogId: card.catalogId, effectId, trigger, message: error instanceof Error ? error.message : String(error) });
       }
@@ -2212,12 +2502,14 @@ export function runPlaytestRuntimeCertification(): PlaytestRuntimeCertificationR
   }
 
   return {
-    pass: failures.length === 0 && exercisedEffects === structuredEffects,
+    pass: failures.length === 0 && exercisedEffects === structuredEffects && behaviorallyCertifiedEffects + outOfModeEffects === structuredEffects,
     catalogCards: cards.length,
     structuredEffects,
     exercisedEffects,
     triggerInvocations,
     observableInvocations,
+    behaviorallyCertifiedEffects,
+    outOfModeEffects,
     byTrigger,
     failures,
   };
