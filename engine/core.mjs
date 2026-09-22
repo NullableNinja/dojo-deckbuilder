@@ -835,7 +835,7 @@ export class Game {
       if (params.oncePerGame && effect.trigger === "onAttackDeclared" && effect.target === "self") { add("modifyAttackPower", -(context.attackPower ?? 0), "nextAttack"); this.markUsedEffect(player, effect); return true; }
       if (params.oncePerGame && resolver === "equipment.structured" && effect.trigger === "passive" && context.attackCard) { add("preventDamage", 99, "nextAttack"); this.markUsedEffect(player, effect); return true; }
       if (effect.trigger === "onHit" && params.attackUsesSourceEquipment) {
-        if (effect.target === "opponent" && params.scheduledTiming === "endOfTargetNextTurn") target.hp -= Math.max(0, amount);
+        if (effect.target === "opponent" && params.scheduledTiming === "endOfTargetNextTurn") target.hp = Math.max(0, target.hp - Math.max(0, amount));
         else if (effect.target === "opponent" && params.scheduledTiming === "nextRound") add("modifySpeed", amount);
         else if (effect.target === "opponent" && params.scheduledTiming === "nextInitiate") add("modifyDefense", amount);
         else if (effect.target === "opponent" && amount) target.tempSpeed += amount;
@@ -879,7 +879,7 @@ export class Game {
       else if (effect.action === "gainFocus") { player.focus += amount; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + amount; this.telemetry.focusGenerated += amount; }
       else if (effect.action === "modifyAttackPower") add("modifyAttackPower", amount);
       else if (effect.action === "modifyGuard") add("modifyGuard", amount);
-      else if (effect.action === "dealDamage") target.hp -= Math.max(0, amount);
+      else if (effect.action === "dealDamage") target.hp = Math.max(0, target.hp - Math.max(0, amount));
       else return false;
       return true;
     }
@@ -1047,7 +1047,7 @@ export class Game {
       else if (action === "modifyDefense") { if (effect.duration && effect.duration !== "immediate") this.addStatus(player, { action, amount, duration: effect.duration, sourceId: card.instanceId }); else effectContext.defenseModifier = (effectContext.defenseModifier ?? 0) + amount; }
       else if (action === "preventDamage") { if (effect.duration && effect.duration !== "immediate") this.addStatus(player, { action, amount, duration: effect.duration, sourceId: card.instanceId }); else effectContext.damagePrevention = (effectContext.damagePrevention ?? 0) + amount; }
       else if (action === "heal") player.hp = Math.min(player.maxHp, player.hp + amount);
-      else if (action === "dealDamage") effectContext.opponent.hp -= Math.max(0, amount);
+      else if (action === "dealDamage") effectContext.opponent.hp = Math.max(0, effectContext.opponent.hp - Math.max(0, amount));
       else if (action === "minimumSpeed") player.speed = Math.max(player.speed, amount);
       else if (action === "piercing") { if (effect.duration && effect.duration !== "immediate") this.addStatus(player, { action, amount, duration: effect.duration, sourceId: card.instanceId }); else effectContext.piercing = (effectContext.piercing ?? 0) + amount; }
       else if (rawAction === "custom" && effect.resolver === "starter.gainFocusIfFastest") { if (player.speed + player.tempSpeed > effectContext.opponent.speed + effectContext.opponent.tempSpeed) { player.focus += amount; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + amount; this.telemetry.focusGenerated += amount; } }
