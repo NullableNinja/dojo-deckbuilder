@@ -1049,6 +1049,7 @@
     "purchasedCardCost": "Printed Focus cost of the card involved in the current purchase event.",
     "pendingFromSource": "A prior effect from this source scheduled the current Initiate reward.",
     "forcedDiscardEvent": "An opponent-controlled effect is currently forcing the controller to discard one or more cards.",
+    "equipmentRestriction": "A canonical Equipment restriction published while the source remains equipped.",
     "defenseOutsideTurn": "The current Defense is being played outside the controller's own turn.",
     "armedEquipmentZoneMatched": "The current Attack uses the zone previously chosen by this source Equipment's armed effect.",
     "discardedPrintedFocusValue": "Printed Focus Value of the card paid/discarded for the current Equipment effect.",

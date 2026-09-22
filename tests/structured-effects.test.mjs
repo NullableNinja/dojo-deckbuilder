@@ -5,7 +5,7 @@ import { effectPlanForCard } from "../app/card-effects.ts";
 import { comboPlanForHost } from "../app/combo-playtest-bridge.ts";
 import { isSupportedComboResolver, structuredComboEffects } from "../app/combo-runtime.ts";
 import { createBossRuntimeState, resolveBossCardEvent } from "../app/boss-runtime.ts";
-import { structuredDefenseEquipmentBonus, structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
+import { structuredDefenseEquipmentBonus, structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentRestrictions, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection, structuredPostBlockCycle } from "../app/equipment-structured.ts";
 import { equipmentOnEquipPlan } from "../app/effect-resolvers.ts";
 import { structuredLocationDefenseForHost, structuredLocationKataFocusForHost } from "../app/location-playtest-bridge.ts";
 
@@ -37,6 +37,12 @@ test("Equipment Flow and Location modifiers resolve from canonical contracts", (
   assert.equal(bus.guard, -1);
   const library = structuredLocationKataFocusForHost(card("DDB-LOC-CORE-039"), { firstKataThisTurn: true });
   assert.equal(library.focus, 1);
+});
+
+test("Equipment restrictions resolve from canonical conditions rather than card identity", () => {
+  assert.deepEqual(structuredEquipmentRestrictions(card("DDB-DEQ-CORE-001")), ["noTwoHandedWeapon"]);
+  assert.deepEqual(structuredEquipmentRestrictions(card("DDB-DEQ-CORE-010")), ["noWeaponAttacks"]);
+  assert.deepEqual(structuredEquipmentRestrictions(card("DDB-WPN-CORE-001")), []);
 });
 
 test("Quick Duel host does not dispatch these mechanics by card identity or printed Flow prose", async () => {
@@ -429,13 +435,15 @@ test("choice-free Equipment after-Resolve watchers execute once through the shar
   assert.deepEqual(repeat.exhaustSourceIds, []);
 });
 
-test("choice-requiring Equipment after-Resolve watchers stay explicit", () => {
+test("choice-requiring Equipment after-Resolve watchers expose a resumable cycle", () => {
   const kunai = structuredEquipmentAfterResolveResolution([{ id: "kunai", catalogId: "DDB-WPN-CORE-040" }], {
     resolvedCardType: "Attack",
     defenderPlayedDefense: false,
   });
-  assert.equal(kunai.draw, 0);
-  assert.ok(kunai.unsupported.includes("equipment-wpn-040-no-defense-cycle-discard"));
+  assert.equal(kunai.draw, 1);
+  assert.equal(kunai.discard, 1);
+  assert.equal(kunai.choiceRequired, true);
+  assert.deepEqual(kunai.unsupported, []);
 });
 
 test("Equipment purchase timing exposes discounts before payment and exhausts sources after payment", () => {

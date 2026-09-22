@@ -26,7 +26,7 @@ import { isCoreKataCard, kataEquipFromHandPlanForHost, kataRuntimeCommandsForHos
 import { expirePreventionAtNextInitiate, resolveNextDamagePreventionStatuses } from "./structured-damage-prevention.ts";
 import { type CharacterRuntimeChoice, type CharacterRuntimeEvent } from "./character-runtime";
 import { characterAttackZonesForHost } from "./playtest-character-bridge.ts";
-import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
+import { structuredEquipmentAfterResolveResolution, structuredEquipmentAttackDeclarationResolution, structuredEquipmentBlockResolution, structuredEquipmentCurrentAttackFlow, structuredEquipmentDamagePrevention, structuredEquipmentHitResolution, structuredEquipmentMinimumSpeed, structuredEquipmentPurchaseResolution, structuredEquipmentRestrictions, structuredEquipmentSpeedPenaltyProtection, structuredEquipmentThresholdProtection } from "./equipment-structured.ts";
 import { queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts";
 import { commitQuickDuelCharacterPurchase, previewQuickDuelCharacterPurchasePrice } from "./quick-duel-character-purchase-host";
 import { applyQuickDuelPlaytestTransition, hostQuickDuelPlaytestCardEvent, prepareQuickDuelPlaytestAttack, publishQuickDuelPlaytestAttackDeclared, publishQuickDuelPlaytestDamageIncoming, publishQuickDuelPlaytestEquip, publishQuickDuelPlaytestLifecycleEvent, resolveQuickDuelPlaytestCharacterChoice, type QuickDuelPlaytestAttackDeclarationResult } from "./quick-duel-playtest-host";
@@ -184,6 +184,7 @@ type Board = {
   stage3cSpeedOverride?: number | null;
   stage3cPurchaseCostModifier?: number;
   suppressedEquipmentPenaltyIds?: string[];
+  structuredPendingChoice?: { sourceCardId: string; draw: number; discard: number };
 };
 
 type PendingStrike = {
@@ -397,6 +398,18 @@ function kataEquipCandidate(card: CardEntry | undefined, plan: ReturnType<typeof
 }
 function hasTag(card: CardEntry, tag: string) { return card.tags.some((entry) => entry.toLocaleLowerCase().includes(tag.toLocaleLowerCase())); }
 function isWeapon(card: CardEntry) { return card.subtype === "Weapon"; }
+function equipmentHasRestriction(board: Board, restriction: string) {
+  return board.equipment
+    .map(cardFor)
+    .filter((card): card is CardEntry => Boolean(card))
+    .some((card) => structuredEquipmentRestrictions(card).includes(restriction));
+}
+function weaponUsesTwoHands(card: CardEntry) {
+  return isWeapon(card) && numberValue(card.stats.Hands ?? card.details?.Hands) >= 2;
+}
+function weaponAttackBlocked(board: Board, card: CardEntry) {
+  return isWeapon(card) && equipmentHasRestriction(board, "noWeaponAttacks");
+}
 function matchesZone(card: CardEntry, zone: string) { return (card.zone ?? "").toLocaleLowerCase().includes("any") || (card.zone ?? "").toLocaleLowerCase().includes(zone.toLocaleLowerCase()); }
 function removeOne(items: string[], id: string) { const index = items.indexOf(id); return index < 0 ? items : [...items.slice(0, index), ...items.slice(index + 1)]; }
 function isJunk(card: CardEntry | undefined) { return Boolean(card && (card.subtype === "Junk" || card.cardType === "Junk" || hasTag(card, "Junk"))); }
@@ -918,21 +931,25 @@ function applyStructuredEquipmentAfterResolve(board: Board, resolvedCard: CardEn
     usedEffectIdsThisTurn: board.usedEffectIdsThisTurn,
     usedEffectIdsThisRound: board.equipmentEffectIdsThisRound,
   });
-  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length && !resolution.focus && !resolution.draw) return { board, notes: [] as string[] };
+  if (!resolution.matchedEffectIds.length && !resolution.exhaustSourceIds.length && !resolution.focus && !resolution.draw && !resolution.discard) return { board, notes: [] as string[] };
   let next = board;
   if (resolution.focus) next = gainFocus(next, resolution.focus);
-  if (resolution.draw) next = drawCards(next, resolution.draw);
+  if (resolution.draw && !resolution.choiceRequired) next = drawCards(next, resolution.draw);
   for (const sourceId of resolution.exhaustSourceIds) if (next.equipment.includes(sourceId)) next = exhaustEquipment(next, sourceId);
   next = {
     ...next,
     usedEffectIdsThisTurn: [...new Set([...(next.usedEffectIdsThisTurn ?? []), ...resolution.matchedEffectIds])],
     equipmentEffectIdsThisRound: [...new Set([...(next.equipmentEffectIdsThisRound ?? []), ...resolution.matchedEffectIds])],
   };
+  if (resolution.choiceRequired && resolution.choiceSourceId) {
+    next = { ...next, structuredPendingChoice: { sourceCardId: resolution.choiceSourceId, draw: resolution.draw, discard: resolution.discard } };
+  }
   return {
     board: next,
     notes: [
       ...(resolution.focus ? [`Equipment after-Resolve effect gains ${resolution.focus} Focus`] : []),
       ...(resolution.draw ? [`Equipment after-Resolve effect draws ${resolution.draw}`] : []),
+      ...(resolution.discard ? [`Equipment after-Resolve effect requires ${resolution.discard} discard${resolution.discard === 1 ? "" : "s"}`] : []),
       ...(resolution.exhaustSourceIds.length ? [`${resolution.exhaustSourceIds.length} Equipment source${resolution.exhaustSourceIds.length === 1 ? "" : "s"} exhaust`] : []),
     ],
   };
@@ -2029,7 +2046,20 @@ function applyCardEffects(board: Board, card: CardEntry, owner: "player" | "ai",
       if (effect.kind === "heal") next = applyHealing(next, effect.amount);
     }
   }
-  if (timing === "afterResolve") next = applyStructuredEquipmentAfterResolve(next, card, familyContext).board;
+  if (timing === "afterResolve") {
+    next = applyStructuredEquipmentAfterResolve(next, card, familyContext).board;
+    const pending = next.structuredPendingChoice;
+    if (pending && owner === "ai") {
+      next = drawCards(next, pending.draw);
+      const discardCount = Math.min(pending.discard, next.hand.length);
+      if (discardCount) {
+        const ranked = [...next.hand].sort((left, right) => numberValue(cardFor(left)?.focusValue) - numberValue(cardFor(right)?.focusValue));
+        const discarded = ranked.slice(0, discardCount);
+        next = { ...next, hand: next.hand.filter((id) => !discarded.includes(id)), discard: [...next.discard, ...discarded] };
+      }
+      next = { ...next, structuredPendingChoice: undefined };
+    }
+  }
   if (timing === "onPlay" && !isCoreKataCard(card)) {
     const conditionalHeal = conditionalHealAfterHit(card, board.wasHitSinceLastTurn);
     if (conditionalHeal) next = applyHealing(next, conditionalHeal);
@@ -2552,6 +2582,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const chooseAttack = (card: CardEntry) => setMatch((current) => {
     if (!current) return current;
     if ((current.player.stage3cRestrictions ?? []).includes("attack")) return current;
+    if (weaponAttackBlocked(current.player, card)) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot attack with a Weapon while this Equipment restriction is active.`);
     if (current.player.attackLockedThisTurn && current.player.attacksThisTurn > 0) return current;
     if (current.attackCostDecisionCardId && current.attackCostDecisionCardId !== card.id) return current;
     const zones = attackAllowedZones(current.player, card);
@@ -2564,6 +2595,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current || current.phase !== "player-initiate" || current.winner) return current;
     const card = cardFor(id);
     if (!card || !isPermanent(card)) return current;
+    if (weaponUsesTwoHands(card) && equipmentHasRestriction(current.player, "noTwoHandedWeapon")) {
+      return write(current, `${card.name} cannot be equipped while a no-two-handed-Weapon restriction is active.`);
+    }
     const characterEquip = publishQuickDuelPlaytestEquip(current, "player", card);
     if (!characterEquip.allowed) return write(current, `${cardFor(current.player.fighterId)?.name ?? "Your fighter"} cannot equip ${card.name}.`);
     const equippedMatch = characterEquip.match;
@@ -2678,7 +2712,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (continuation.reversalEligible && !cleared.player.reversalUsedRound && reversalAttacks.length) {
       return write(cleared, `Reversal window: the block is certified and ${reversalAttacks.length} counterattack${reversalAttacks.length === 1 ? " is" : "s are"} ready.`, { phase: "reversal-window", reversalRemainingAiAttacks: continuation.remainingAiAttacks, selectedAttackId: null });
     }
-    if (continuation.remainingAiAttacks.length) return openAiStrike(cleared, continuation.remainingAiAttacks[0], continuation.remainingAiAttacks.slice(1), settings.tempo);
+    if (continuation.remainingAiAttacks.length) return openAiStrike(cleared, continuation.remainingAiAttacks[0], continuation.remainingAiAttacks.slice(1), settings.tempo, settings.locations, settings.houseRuleIds);
     return finishAiTurn(cleared, "Computer finishes its Yell and clears the mat.", settings.locations, settings.houseRuleIds);
   };
 
@@ -2710,6 +2744,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!current?.selectedAttackId || current.phase !== "player-yell" || current.winner || current.pendingDiscard || current.pendingChoice || stage3cRestrictionBlocks(current.player.stage3cRestrictions, "attack")) return current;
     const card = cardFor(current.selectedAttackId);
     if (!card || !isAttack(card) || !current.player.hand.includes(card.id)) return current;
+    if (weaponAttackBlocked(current.player, card)) return write(current, `${card.name} cannot be used while a no-Weapon-Attacks restriction is active.`, { selectedAttackId: null });
     if (hasUntargetableStatus(current.ai.stage3cStatuses)) return write(current, `${cardFor(current.ai.fighterId)?.name ?? "The opponent"} cannot be targeted through Smoke Bomb. Choose a different action.`, { selectedAttackId: null });
     const anyZone = attackHasFlexibleZone(current.player, card);
     const requestedZone = anyZone ? current.selectedZone : card.zone?.split(",")[0] ?? "High";
@@ -2855,6 +2890,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!hit) nextAi = { ...nextAi, blockedSinceLastTurn: true, blockedThisRound: true };
     nextPlayer = applyCardEffects(nextPlayer, card, "player", hit ? "onHit" : "afterResolve", { defenderPlayedDefense: Boolean(defenseCard) });
     if (hit) nextPlayer = applyCardEffects(nextPlayer, card, "player", "afterResolve", { defenderPlayedDefense: Boolean(defenseCard) });
+    const structuredPendingChoice = nextPlayer.structuredPendingChoice;
+    if (structuredPendingChoice) nextPlayer = { ...nextPlayer, structuredPendingChoice: undefined };
     const consumableAttackFollowup = resolveConsumableAttackFollowupStatuses(nextPlayer.stage3cStatuses ?? [], { blocked: !hit, interferencePrevented: false });
     nextPlayer = {
       ...nextPlayer,
@@ -2904,7 +2941,9 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const suppression = hit ? finalAttackEquipmentSuppression(card) : 0;
     const suppressionTargets = suppression ? suppressionCandidates(nextAi, zone, nextPlayer) : [];
     const hitChoice = hit ? finalAttackHitChoice(card) : null;
-    const pendingChoice: PendingChoice | null = suppressionTargets.length
+    const pendingChoice: PendingChoice | null = structuredPendingChoice
+      ? { kind: "discard-draw", sourceCardId: structuredPendingChoice.sourceCardId, remaining: structuredPendingChoice.discard, draw: structuredPendingChoice.draw }
+      : suppressionTargets.length
       ? { kind: "attack-equipment-target", sourceCardId: card.id, candidates: suppressionTargets, amount: suppression }
       : hitChoice
         ? { kind: "attack-option", sourceCardId: card.id, effect: hitChoice.kind }
@@ -3610,10 +3649,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (hasUntargetableStatus(prepared.player.stage3cStatuses)) return finishAiTurn(prepared, "Smoke Bomb leaves the computer without a legal target this Yell.", settings.locations, settings.houseRuleIds);
     const availableAttacks = stage3cRestrictionBlocks(prepared.ai.stage3cRestrictions, "attack")
       ? []
-      : prepared.ai.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card)); });
+      : prepared.ai.hand.filter((id) => { const card = cardFor(id); return Boolean(card && isAttack(card) && !weaponAttackBlocked(prepared.ai, card)); });
     const aiAttackIds = settings.difficulty === "student" ? shuffle(availableAttacks) : availableAttacks.sort((left, right) => aiAttackScore(cardFor(right)!, prepared.ai, prepared.player, cardFor(prepared.locationId)) - aiAttackScore(cardFor(left)!, prepared.ai, prepared.player, cardFor(prepared.locationId)));
     if (!aiAttackIds.length) return finishAiTurn(prepared, "Computer finds no Attack and files an awkward report.", settings.locations, settings.houseRuleIds);
-    return openAiStrike(prepared, aiAttackIds[0], aiAttackIds.slice(1), settings.tempo);
+    return openAiStrike(prepared, aiAttackIds[0], aiAttackIds.slice(1), settings.tempo, settings.locations, settings.houseRuleIds);
   });
 
   useEffect(() => {
@@ -3852,7 +3891,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     if (!hit && !nextPlayer.reversalUsedRound && (reversalAttacks.length || reactionFollowupAvailable)) {
       return write(resolved, `Reversal window: the block is certified and ${reversalAttacks.length} counterattack${reversalAttacks.length === 1 ? " is" : "s are"} ready.`, { phase: "reversal-window", reversalRemainingAiAttacks: pending.remainingAiAttacks, selectedAttackId: null });
     }
-    if (pending.remainingAiAttacks.length) return openAiStrike(resolved, pending.remainingAiAttacks[0], pending.remainingAiAttacks.slice(1), settings.tempo);
+    if (pending.remainingAiAttacks.length) return openAiStrike(resolved, pending.remainingAiAttacks[0], pending.remainingAiAttacks.slice(1), settings.tempo, settings.locations, settings.houseRuleIds);
     return finishAiTurn(resolved, "Computer finishes its Yell and clears the mat.", settings.locations, settings.houseRuleIds);
   };
 
@@ -3861,7 +3900,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
   const declineReversal = () => setMatch((current) => {
     if (!current || current.phase !== "reversal-window") return current;
     const resumed = write(current, "Reversal declined. Restraint has been noted and immediately questioned.", { selectedAttackId: null, player: resolveReactionFollowupFallback({ ...current.player, reversalAttackBonus: 0 }) });
-    if (current.reversalRemainingAiAttacks.length) return openAiStrike(resumed, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo);
+    if (current.reversalRemainingAiAttacks.length) return openAiStrike(resumed, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo, settings.locations, settings.houseRuleIds);
     return finishAiTurn(resumed, "Computer finishes its Yell and clears the mat.", settings.locations, settings.houseRuleIds);
   });
 
@@ -3969,7 +4008,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const result = hit ? `Reversal! ${card.name} hits ${cardFor(current.ai.fighterId)?.name ?? "the computer"} for ${damage}.` : `Reversal! ${card.name} is blocked${defenseCard ? ` by ${defenseCard.name}` : " by base DEF"}.`;
     const resolved = write(current, `${result} Attack ${attackPower} vs Defense ${defensePower}.${modifiers.length ? ` ${modifiers.join("; ")}.` : ""}`, { player: nextPlayer, ai: nextAi, selectedAttackId: null, exchangeSequence: (current.exchangeSequence ?? 0) + 1, lastExchange, winner: nextAi.hp ? null : "player" });
     if (!nextAi.hp) return resolved;
-    if (current.reversalRemainingAiAttacks.length) return openAiStrike(resolved, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo);
+    if (current.reversalRemainingAiAttacks.length) return openAiStrike(resolved, current.reversalRemainingAiAttacks[0], current.reversalRemainingAiAttacks.slice(1), settings.tempo, settings.locations, settings.houseRuleIds);
     return finishAiTurn(resolved, "Computer finishes its Yell after surviving the Reversal paperwork.", settings.locations, settings.houseRuleIds);
   };
 
@@ -4354,8 +4393,19 @@ function applyBeltPromotion(board: Board, beltIndex: number) {
   return gainFocus({ ...board, belt: beltIndex }, rank?.reward.onPromotionFocus ?? 0);
 }
 
-function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string[], useTempo: boolean) {
-  const card = cardFor(cardId)!;
+function openAiStrike(current: Match, cardId: string, remainingAiAttacks: string[], useTempo: boolean, sceneChanges: boolean, houseRuleIds: readonly string[]) {
+  const card = cardFor(cardId);
+  if (!card || weaponAttackBlocked(current.ai, card)) {
+    const nextIndex = remainingAiAttacks.findIndex((candidateId) => {
+      const candidate = cardFor(candidateId);
+      return Boolean(candidate && isAttack(candidate) && !weaponAttackBlocked(current.ai, candidate));
+    });
+    if (nextIndex >= 0) {
+      const nextId = remainingAiAttacks[nextIndex];
+      return openAiStrike(current, nextId, [...remainingAiAttacks.slice(0, nextIndex), ...remainingAiAttacks.slice(nextIndex + 1)], useTempo, sceneChanges, houseRuleIds);
+    }
+    return finishAiTurn(current, "Computer finds no legal Weapon Attack under the active Equipment restriction.", sceneChanges, houseRuleIds);
+  }
   const anyZone = attackHasFlexibleZone(current.ai, card);
   const requestedZone = anyZone ? ["High", "Mid", "Low"][Math.floor(Math.random() * 3)] : card.zone?.split(",")[0] ?? "High";
   const declaration = publishQuickDuelPlaytestAttackDeclared(current, "ai", card, requestedZone, {

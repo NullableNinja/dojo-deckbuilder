@@ -31,6 +31,12 @@
           "trigger": "passive",
           "target": "self",
           "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "equipmentRestriction",
+              "value": "noTwoHandedWeapon"
+            }
+          ],
           "resolver": "equipment.structured"
         }
       ]
@@ -372,6 +378,12 @@
           "trigger": "passive",
           "target": "self",
           "duration": "whileEquipped",
+          "conditions": [
+            {
+              "kind": "equipmentRestriction",
+              "value": "noWeaponAttacks"
+            }
+          ],
           "resolver": "equipment.structured"
         }
       ]

@@ -60,7 +60,7 @@ export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
   "otherZonesRequired", "otherZonesBefore", "completionFocus", "equipmentSubtype", "equippedOnly", "attackBonusDelta",
   "sameRoundOnly", "reactionPlayedAgainstSelf", "attackHasTag", "attackUsesSourceEquipment", "attackZones",
   "firstHitWithSourceThisRound", "defenseOutsideTurn", "currentAttackIsNormal",
-  "discardedPrintedFocusValue", "firstNegativeCombatModifierThisRound", "nextPlayOfChosenCardFocus", "firstMatchingEventBefore", "attackIsReversal",
+  "discardedPrintedFocusValue", "firstNegativeCombatModifierThisRound", "nextPlayOfChosenCardFocus", "firstMatchingEventBefore", "attackIsReversal", "equipmentRestriction",
   "locationEvent", "locationOperation",
   "minimumFinalValue", "attackUsesEquipmentTagAny", "equipmentReadiedOutsideInitiate", "firstLowAttackThisTurn", "fixedValue",
   "hpLoss", "itemPlayedBeforeFirstAttack", "reveal",

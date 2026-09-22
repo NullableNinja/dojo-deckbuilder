@@ -49,6 +49,22 @@ export function structuredEquipmentEffects(card: EquipmentCardLike): EquipmentRe
   return (entry.effects ?? []).filter((effect) => effect.resolver === EQUIPMENT_STRUCTURED_RESOLVER);
 }
 
+/**
+ * Returns persistent restrictions published by an equipped card.
+ *
+ * Restrictions are deliberately exposed as semantic values rather than card
+ * identities so every host (Playtest, AI, and future adapters) can enforce the
+ * same canonical rule without maintaining a second card-specific table.
+ */
+export function structuredEquipmentRestrictions(card: EquipmentCardLike): string[] {
+  return (structuredEquipmentEffects(card) ?? [])
+    .filter((effect) => effect.trigger === "passive" && effect.duration === "whileEquipped")
+    .flatMap((effect) => (effect.conditions ?? [])
+      .filter((condition) => condition.kind === "equipmentRestriction")
+      .map((condition) => String(condition.value ?? ""))
+      .filter(Boolean));
+}
+
 export function equipmentConditionValue(effect: EquipmentRegistryEffect, kind: string) {
   return effect.conditions?.find((condition) => condition.kind === kind)?.value;
 }
@@ -1022,6 +1038,9 @@ export type EquipmentAfterResolveResolution = {
   handled: boolean;
   focus: number;
   draw: number;
+  discard: number;
+  choiceRequired: boolean;
+  choiceSourceId?: string;
   exhaustSourceIds: string[];
   matchedEffectIds: string[];
   unsupported: string[];
@@ -1038,16 +1057,12 @@ const AFTER_RESOLVE_RUNTIME_CONDITIONS = new Set([
 
 /** Resolves non-choice Equipment watchers after a card has completed. */
 export function structuredEquipmentAfterResolveResolution(cards: EquipmentCardLike[], context: EquipmentAfterResolveContext): EquipmentAfterResolveResolution {
-  const result: EquipmentAfterResolveResolution = { handled: false, focus: 0, draw: 0, exhaustSourceIds: [], matchedEffectIds: [], unsupported: [] };
+  const result: EquipmentAfterResolveResolution = { handled: false, focus: 0, draw: 0, discard: 0, choiceRequired: false, exhaustSourceIds: [], matchedEffectIds: [], unsupported: [] };
   for (const card of cards) {
     const effects = structuredEquipmentEffects(card);
     if (!effects) continue;
     result.handled = true;
     const afterResolveEffects = effects.filter((candidate) => candidate.trigger === "afterResolve");
-    if (afterResolveEffects.some((effect) => effect.effect === "core.discard")) {
-      result.unsupported.push(...afterResolveEffects.map((effect) => String(effect.id ?? "unknown-equipment-after-resolve-effect")));
-      continue;
-    }
     for (const effect of afterResolveEffects) {
       const effectId = String(effect.id ?? "unknown-equipment-after-resolve-effect");
       if ((effect.conditions ?? []).some((condition) => !AFTER_RESOLVE_RUNTIME_CONDITIONS.has(String(condition.kind ?? "")))) {
@@ -1068,11 +1083,16 @@ export function structuredEquipmentAfterResolveResolution(cards: EquipmentCardLi
       let applied = true;
       if (effect.effect === "core.gainFocus" && effect.target === "self") result.focus += Number(effect.amount ?? 0);
       else if (effect.effect === "core.draw" && effect.target === "self") result.draw += Number(effect.amount ?? 0);
+      else if (effect.effect === "core.discard" && effect.target === "self") result.discard += Number(effect.amount ?? 0);
       else if (effect.effect === "equipment.exhaust" && effect.target === "source") result.exhaustSourceIds.push(String(card.id ?? card.catalogId ?? ""));
       else applied = false;
       if (applied) result.matchedEffectIds.push(effectId);
       else result.unsupported.push(effectId);
     }
+  }
+  if (result.draw > 0 && result.discard > 0) {
+    result.choiceRequired = true;
+    result.choiceSourceId = cards.find((card) => (structuredEquipmentEffects(card) ?? []).some((effect) => effect.trigger === "afterResolve" && effect.effect === "core.discard"))?.id ?? undefined;
   }
   return result;
 }

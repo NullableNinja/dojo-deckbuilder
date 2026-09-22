@@ -73,7 +73,7 @@ const structuredParameterKinds = new Set([
   "triggerOnFirstThresholdCrossing", "chosenZoneFirstAttackPower", "otherZonesRequired", "otherZonesBefore",
   "completionFocus", "equipmentSubtype", "equippedOnly", "attackBonusDelta", "sameRoundOnly", "reactionPlayedAgainstSelf",
   "attackHasTag", "attackUsesSourceEquipment", "attackZones", "firstHitWithSourceThisRound", "defenseOutsideTurn",
-  "currentAttackIsNormal", "discardedPrintedFocusValue", "firstNegativeCombatModifierThisRound", "nextPlayOfChosenCardFocus",
+  "currentAttackIsNormal", "discardedPrintedFocusValue", "firstNegativeCombatModifierThisRound", "nextPlayOfChosenCardFocus", "equipmentRestriction",
   "firstMatchingEventBefore", "attackIsReversal",
   "locationEvent", "locationOperation", "minimumFinalValue", "maximumFinalValue", "fixedValue", "choiceOptions",
   "destroyCount", "drawCount", "discardCount", "focusGain", "hpLoss", "maximumLoss", "appliesNextRound",
@@ -811,6 +811,8 @@ export class Game {
 
     if (resolver === "equipment.structured") {
       if (effect.action !== "custom") return false;
+      if (params.incomingZones !== undefined) { if (!context.zone || (Array.isArray(params.incomingZones) && params.incomingZones.includes(context.zone))) add("modifyDefense", amount); return true; }
+      if (params.equipmentRestriction) { this.addStatus(player, { action: "equipmentRestriction", value: String(params.equipmentRestriction), duration: effect.duration ?? "whileEquipped", sourceId: card.instanceId }); return true; }
       if (params.choiceKind) {
         const options = params.choiceKind === "incoming-zone" || params.choiceKind === "next-attack-zone" ? zones : ["accept", "skip"];
         context.choice = { kind: "structured", effectId: effect.id, options };
