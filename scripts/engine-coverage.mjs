@@ -15,9 +15,12 @@ if (json) {
   const top = (values, limit = 12) => Object.entries(values).slice(0, limit).map(([key, count]) => `${count} ${key}`).join("; ") || "(none)";
   console.log(`Rules ${report.rulesVersion}`);
   console.log(`TOTAL STRUCTURED EFFECTS ${report.totalEffects}`);
+  console.log(`STATICALLY RECOGNIZED ${report.staticallyRecognizedEffects}`);
+  console.log(`SEMANTICALLY EXECUTABLE ${report.semanticallyExecutableEffects}`);
+  console.log(`BEHAVIORALLY CERTIFIED ${report.behaviorallyCertifiedEffects}`);
   console.log(`SUPPORTED ${report.supportedEffects}`);
   console.log(`UNSUPPORTED ${report.unsupportedEffects}`);
-  console.log(`OUT-OF-MODE ${report.unsupportedByScope["out-of-mode"] ?? 0}`);
+  console.log(`OUT-OF-MODE ${report.outOfModeEffects}`);
   console.log(`BASELINE CORE UNSUPPORTED ${report.unsupportedByScope["baseline-core"] ?? 0}`);
   console.log(`CARDS FULLY SUPPORTED ${report.cardsFullySupported.length}`);
   console.log(`CARDS PARTIALLY SUPPORTED ${report.cardsPartiallySupported.length}`);

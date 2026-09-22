@@ -1,3 +1,5 @@
+import { HEADLESS_GENERIC_ACTIONS, HEADLESS_RESOLVER_ACTIONS, HEADLESS_STRUCTURED_RESOLVERS } from "./core.mjs";
+
 export const HEADLESS_SUPPORTED_ACTIONS = new Set([
   "gainFocus", "draw", "modifyAttackPower", "modifySpeed", "modifyGuard", "modifyDefense",
   "preventDamage", "heal", "dealDamage", "minimumSpeed", "piercing", "chooseZone",
@@ -78,43 +80,12 @@ const listValue = (value) => Array.isArray(value) ? value.join(",") : String(val
 export const canonicalAction = (effect) => {
   const action = String(effect.action ?? effect.effect ?? "(none)");
   if (action !== "custom") return action;
-  if (["attack.optionalDiscardDraw", "defense.optionalDiscardDraw", "defense.stepBackCycle"].includes(String(effect.resolver))) return "cycleDiscardDraw";
   if (String(effect.id).endsWith("dodge-block-cycle")) return "cycleDiscardDraw";
-  if (String(effect.resolver) === "kata.flowGrant") return "grantFlow";
-  if (String(effect.resolver) === "kata.purchaseDiscount") return "modifyCost";
-  if (String(effect.resolver) === "kata.deckLook") return "deckLook";
-  if (String(effect.resolver) === "reaction.preventIncomingDamage") return "preventDamage";
-  if (String(effect.resolver) === "consumable.modifyAttackStat") return "modifyAttackPower";
-  if (String(effect.resolver) === "consumable.removeTemporaryNegativeStatModifier") return "removeTemporaryNegativeStatModifier";
-  if (String(effect.resolver) === "kata.recoverThenDiscard") return "recoverThenDiscard";
-  if (String(effect.resolver) === "kata.recycle") return "recycle";
-  if (String(effect.resolver) === "kata.equipFromHand") return "equipFromHand";
-  if (String(effect.resolver) === "defense.deckLookChoice") return "deckLook";
-  if (["consumable.topThreeAttackSelection", "consumable.reorderTopThree"].includes(String(effect.resolver))) return "deckLook";
-  if (String(effect.resolver) === "consumable.setSpeedToValue") return "setSpeed";
-  if (String(effect.resolver) === "consumable.modifyDefenseUntilNextTurn") return "modifyDefenseUntilNextTurn";
-  if (String(effect.resolver) === "consumable.preventAttackUntilNextTurn") return "restrictAttack";
-  if (String(effect.resolver) === "reaction.reduceDeclaredAttackPower") return "modifyAttackPower";
-  if (String(effect.resolver) === "reaction.defenseAgainstIncomingAttack") return "reactionDefense";
-  if (String(effect.resolver) === "attack.final.onlyAttackLock") return "restrictAttack";
-  if (String(effect.resolver) === "consumable.healAndRemoveStatus") return "removeTemporaryStatus";
-  if (String(effect.resolver) === "consumable.nextKataFocusBonus") return "grantKataFocus";
-  if (String(effect.resolver) === "consumable.preventInterfereOnNextAttack") return "restrictReaction";
-  if (String(effect.resolver) === "consumable.untargetableUntilTurnOrAttack") return "untargetable";
-  if (String(effect.resolver) === "consumable.warrantyIcePop") return "restrictConsumable";
-  if (String(effect.resolver) === "attack.final.hitChoice") return "hitChoice";
-  if (String(effect.resolver) === "character.cannotEquipWeapons") return "restrictWeapon";
-  if (String(effect.resolver) === "character.equipDiscardPermanentUntilHide") return "equipFromDiscard";
-  if (String(effect.resolver) === "character.green.linkedAttackHitRecycle") return "recycle";
-  if (String(effect.resolver) === "character.green.linkedAttackHitRewardChoice") return "hitChoice";
-  if (String(effect.resolver) === "character.incomingAttackSlowChoice") return "incomingAttackChoice";
-  if (String(effect.resolver) === "character.revealConsumableCycle") return "cycleDiscardDraw";
-  if (String(effect.resolver) === "character.exhaustReadyEquipmentLock") return "equipmentToggle";
-  if (["character.discardJunkDestroyChoice", "character.forcedJunkDiscardDestroyChoice"].includes(String(effect.resolver))) return "discardOrDestroy";
+  if (HEADLESS_RESOLVER_ACTIONS[String(effect.resolver)]) return HEADLESS_RESOLVER_ACTIONS[String(effect.resolver)];
   if (String(effect.resolver) === "attack.final.cycle") return action;
   if (["attack.final.defensiveReaction", "attack.final.comboMultiplicity", "attack.final.fireDrillFeint"].includes(String(effect.resolver))) return "structured";
   if (String(effect.resolver) === "equipment.structured" || String(effect.resolver) === "location.structured") return action === "custom" ? "structured" : action;
-  if (["character", "consumable", "defense", "kata", "reaction", "combo", "boss"].some((prefix) => String(effect.resolver).startsWith(`${prefix}.`))) return "structured";
+  if (HEADLESS_STRUCTURED_RESOLVERS.has(String(effect.resolver))) return "structured";
   return {
     "equipment.modifyDefenseContribution": "modifyDefenseContribution",
     "combat.modifyDefense": "modifyDefense",
@@ -170,12 +141,36 @@ const supportGroup = (effect) => [
   (effect.conditions ?? []).map(conditionKind).join(",") || "(none)",
 ].map(listValue).join(" | ");
 
+const semanticActionFor = (effect) => {
+  const action = String(effect.action ?? effect.effect ?? "(none)");
+  const resolver = String(effect.resolver ?? "");
+  if (action === "custom" && resolver === "starter.gainFocusIfFastest") return "starter.gainFocusIfFastest";
+  if (action === "custom" && HEADLESS_RESOLVER_ACTIONS[resolver]) return HEADLESS_RESOLVER_ACTIONS[resolver];
+  if (action === "custom" && HEADLESS_STRUCTURED_RESOLVERS.has(resolver)) return "structured";
+  if (action === "custom" && resolver === "attack.final.cycle") return "(unsupported-custom)";
+  if (action === "custom") return String(effect.effect ?? action);
+  return {
+    "equipment.modifyDefenseContribution": "modifyDefenseContribution", "combat.modifyDefense": "modifyDefense", "combat.grantFlow": "grantFlow",
+    "core.gainXP": "gainXP", "core.reveal": "reveal", "economy.modifyCost": "modifyCost", "economy.spendFocus": "spendFocus", "core.moveCard": "moveCard",
+  }[action] ?? action;
+};
+
+const semanticExecution = (effect, conditionKinds) => {
+  const resolver = String(effect.resolver ?? "");
+  const action = semanticActionFor(effect);
+  const conditionsSupported = conditionKinds.every((kind) => HEADLESS_SUPPORTED_CONDITIONS.has(kind));
+  const actionSupported = HEADLESS_GENERIC_ACTIONS.has(action)
+    || action === "structured" && HEADLESS_STRUCTURED_RESOLVERS.has(resolver)
+    || action === "starter.gainFocusIfFastest";
+  return { supported: conditionsSupported && actionSupported, action, conditionsSupported, actionSupported };
+};
+
 export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = null } = {}) {
   const catalogById = new Map(catalog.map((card) => [card.catalogId, card]));
   const actionCounts = {}; const resolverCounts = {}; const conditionCounts = {}; const triggerCounts = {}; const targetCounts = {}; const durationCounts = {};
   const unsupportedActions = {}; const unsupportedResolvers = {}; const unsupportedConditions = {};
   const scopeCounts = {}; const unsupportedByScope = {}; const unsupportedGroups = {}; const unsupportedGroupsByScope = { "baseline-core": {}, "out-of-mode": {} }; const supportedByFamily = {}; const unsupportedByFamily = {};
-  const cardStatus = {}; const unsupportedEntries = []; let totalEffects = 0; let supportedEffects = 0; let fullySupportedCards = 0; let cardsWithEffects = 0;
+  const cardStatus = {}; const unsupportedEntries = []; const staticallyUnsupportedEntries = []; let totalEffects = 0; let staticallyRecognizedEffects = 0; let semanticallyExecutableEffects = 0; let fullySupportedCards = 0; let cardsWithEffects = 0;
   for (const [catalogId, card] of Object.entries(cardEffects.cards ?? {})) {
     const effects = card.effects ?? []; if (!effects.length) continue; cardsWithEffects += 1;
     const catalogCard = catalogById.get(catalogId) ?? { catalogId, cardType: catalogId.startsWith("DDB-B") ? "Boss" : "" };
@@ -187,8 +182,11 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
       const action = String(effect.action ?? effect.effect ?? "(none)"); const semanticAction = canonicalAction(effect); const resolver = String(effect.resolver ?? "(none)");
       increment(actionCounts, action); increment(resolverCounts, resolver); increment(triggerCounts, effect.trigger ?? "(none)"); increment(targetCounts, effect.target ?? "(none)"); increment(durationCounts, effect.duration ?? "(none)");
       const conditions = (effect.conditions ?? []).map(conditionKind); for (const kind of conditions) increment(conditionCounts, kind);
-      let supported = HEADLESS_SUPPORTED_ACTIONS.has(semanticAction) || action === "custom" && resolver === "starter.gainFocusIfFastest";
-      for (const kind of conditions) if (!HEADLESS_SUPPORTED_CONDITIONS.has(kind)) { supported = false; increment(unsupportedConditions, kind); }
+      const staticallyRecognized = HEADLESS_SUPPORTED_ACTIONS.has(semanticAction) || action === "custom" && resolver === "starter.gainFocusIfFastest";
+      if (staticallyRecognized) staticallyRecognizedEffects += 1;
+      for (const kind of conditions) if (!HEADLESS_SUPPORTED_CONDITIONS.has(kind)) increment(unsupportedConditions, kind);
+      const execution = semanticExecution(effect, conditions);
+      const supported = execution.supported;
       const group = supportGroup(effect);
       if (!supported) {
         unsupportedEntries.push({
@@ -205,9 +203,10 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
           conditions,
           effectId: effect.id ?? null,
         });
+        if (staticallyRecognized) staticallyUnsupportedEntries.push({ catalogId, effectId: effect.id ?? null, resolver, semanticAction: execution.action, reason: execution.conditionsSupported ? "missing-runtime-contract" : "unsupported-condition" });
         cardSupported = false; increment(unsupportedActions, semanticAction); if (action === "custom" && resolver !== "starter.gainFocusIfFastest") increment(unsupportedResolvers, resolver);
         increment(unsupportedGroups, group); increment(unsupportedGroupsByScope[scope], group); increment(unsupportedByScope, scope); increment(unsupportedByFamily, family);
-      } else { supportedEffects += 1; cardSupportedCount += 1; increment(supportedByFamily, family); }
+      } else { semanticallyExecutableEffects += 1; cardSupportedCount += 1; increment(supportedByFamily, family); }
     }
     if (cardSupported) fullySupportedCards += 1;
     cardStatus[catalogId] = { family, scope, total: effects.length, supported: cardSupportedCount, unsupported: effects.length - cardSupportedCount };
@@ -215,14 +214,17 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
   const cardsFullySupported = Object.entries(cardStatus).filter(([, status]) => status.unsupported === 0).map(([id]) => id).sort();
   const cardsPartiallySupported = Object.entries(cardStatus).filter(([, status]) => status.supported > 0 && status.unsupported > 0).map(([id]) => id).sort();
   const cardsWithZeroSupportedEffects = Object.entries(cardStatus).filter(([, status]) => status.supported === 0).map(([id]) => id).sort();
-  const unsupportedEffects = totalEffects - supportedEffects;
+  const supportedEffects = semanticallyExecutableEffects;
+  const unsupportedEffects = totalEffects - semanticallyExecutableEffects;
   return {
     cardsWithEffects, fullySupportedCards, totalEffects, supportedEffects, unsupportedEffects,
+    staticallyRecognizedEffects, semanticallyExecutableEffects, behaviorallyCertifiedEffects: 0,
+    baselineCoreEffects: scopeCounts["baseline-core"] ?? 0, outOfModeEffects: scopeCounts["out-of-mode"] ?? 0,
     actionCounts: sorted(actionCounts), resolverCounts: sorted(resolverCounts), conditionCounts: sorted(conditionCounts),
     triggerCounts: sorted(triggerCounts), targetCounts: sorted(targetCounts), durationCounts: sorted(durationCounts),
     unsupportedActions: sorted(unsupportedActions), unsupportedResolvers: sorted(unsupportedResolvers), unsupportedConditions: sorted(unsupportedConditions),
     scopeCounts: sorted(scopeCounts), unsupportedByScope: sorted(unsupportedByScope), supportedByFamily: sorted(supportedByFamily), unsupportedByFamily: sorted(unsupportedByFamily),
-    topUnsupportedGroups: sorted(unsupportedGroups), topUnsupportedGroupsByScope: Object.fromEntries(Object.entries(unsupportedGroupsByScope).map(([scope, groups]) => [scope, sorted(groups)])), unsupportedEntries, cardStatus,
+    topUnsupportedGroups: sorted(unsupportedGroups), topUnsupportedGroupsByScope: Object.fromEntries(Object.entries(unsupportedGroupsByScope).map(([scope, groups]) => [scope, sorted(groups)])), unsupportedEntries, staticallyUnsupportedEntries, cardStatus,
     cardsFullySupported, cardsPartiallySupported, cardsWithZeroSupportedEffects,
   };
 }

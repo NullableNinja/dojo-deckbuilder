@@ -13,6 +13,51 @@ const isAttack = (card) => attackPower(card) > 0;
 const isDefense = (card) => guard(card) > 0;
 const cardType = (card) => card.subtype === "Kata" ? "Kata" : isAttack(card) ? "Attack" : card.subtype;
 const zones = ["High", "Mid", "Low"];
+
+// These are the contracts shared by the runtime and the coverage auditor.
+// Keep resolver names exact: a family prefix is not an implementation.
+export const HEADLESS_RESOLVER_ACTIONS = Object.freeze({
+  "attack.optionalDiscardDraw": "cycleDiscardDraw", "defense.optionalDiscardDraw": "cycleDiscardDraw", "defense.stepBackCycle": "cycleDiscardDraw",
+  "attack.grantNextAttackFlow": "grantFlow", "character.green.linkedSpeedTempoFlow": "grantFlow", "character.secondKickNextKickFlow": "grantFlow",
+  "consumable.nextAttackFlowUntilEndOfTurn": "grantFlow", "consumable.gainXp": "gainXP",
+  "kata.flowGrant": "grantFlow", "kata.purchaseDiscount": "modifyCost", "kata.deckLook": "deckLook",
+  "defense.deckLookChoice": "deckLook", "consumable.topThreeAttackSelection": "deckLook", "consumable.reorderTopThree": "deckLook",
+  "reaction.preventIncomingDamage": "preventDamage", "reaction.reduceDeclaredAttackPower": "modifyAttackPower", "reaction.defenseAgainstIncomingAttack": "reactionDefense",
+  "consumable.modifyAttackStat": "modifyAttackPower", "consumable.removeTemporaryNegativeStatModifier": "removeTemporaryNegativeStatModifier",
+  "consumable.healAndRemoveStatus": "removeTemporaryStatus", "consumable.nextKataFocusBonus": "grantKataFocus", "consumable.preventInterfereOnNextAttack": "restrictReaction",
+  "consumable.untargetableUntilTurnOrAttack": "untargetable", "consumable.warrantyIcePop": "restrictConsumable", "attack.final.onlyAttackLock": "restrictAttack",
+  "character.cannotEquipWeapons": "restrictWeapon", "character.equipDiscardPermanentUntilHide": "equipFromDiscard", "character.green.linkedAttackHitRecycle": "recycle",
+  "character.green.linkedAttackHitRewardChoice": "hitChoice", "character.incomingAttackSlowChoice": "incomingAttackChoice", "character.revealConsumableCycle": "cycleDiscardDraw",
+  "character.exhaustReadyEquipmentLock": "equipmentToggle", "character.discardJunkDestroyChoice": "discardOrDestroy", "character.forcedJunkDiscardDestroyChoice": "discardOrDestroy",
+  "kata.recoverThenDiscard": "recoverThenDiscard", "kata.recycle": "recycle", "kata.equipFromHand": "equipFromHand",
+  "consumable.setSpeedToValue": "setSpeed", "consumable.modifyDefenseUntilNextTurn": "modifyDefenseUntilNextTurn", "consumable.preventAttackUntilNextTurn": "restrictAttack",
+});
+
+export const HEADLESS_GENERIC_ACTIONS = new Set([
+  "gainFocus", "draw", "modifyAttackPower", "modifySpeed", "modifyGuard", "modifyDefense", "preventDamage", "heal", "dealDamage", "minimumSpeed", "piercing", "chooseZone",
+  "discard", "destroy", "ready", "exhaust", "reveal", "gainXP", "spendFocus", "modifyDefenseContribution", "grantFlow", "modifyCost", "cycleDiscardDraw", "deckLook", "structured",
+  "removeTemporaryNegativeStatModifier", "removeTemporaryStatus", "recoverThenDiscard", "recycle", "equipFromHand", "equipFromDiscard", "setSpeed", "modifyDefenseUntilNextTurn", "restrictAttack",
+  "restrictReaction", "restrictConsumable", "restrictWeapon", "untargetable", "reactionDefense", "grantKataFocus", "hitChoice", "equipmentToggle", "discardOrDestroy", "incomingAttackChoice",
+  "moveCard", "starter.gainFocusIfFastest",
+]);
+
+export const HEADLESS_STRUCTURED_RESOLVERS = new Set([
+  "equipment.structured", "location.structured",
+  "attack.final.defensiveReaction", "attack.final.comboMultiplicity", "attack.final.fireDrillFeint", "attack.final.cycle", "attack.final.hitChoice",
+  "character.noWeaponOffenseDefenseChoice", "character.ignoreTemporaryAttackBonusesOnceGame", "character.reduceLargeAttackModifier", "character.discardToChangeDeclaredZone",
+  "character.revealReplacementOnceGame", "character.comboRevealChoice", "character.junkDiscardToBottomCycle", "character.green.repeatModifiedCardTypeBonus",
+  "consumable.cancelReaction", "consumable.raffleTicket", "consumable.replaceDisarmWithSelfDestroy", "consumable.replaceRevealedMarketOrLocation", "consumable.suppressChosenWeaponClause", "consumable.blockedAttackBacklash",
+  "defense.playRestriction", "defense.beltExam", "defense.forceNextAttackZone", "defense.blockChoice", "defense.reversalTargetProtection",
+  "kata.flowGrant", "kata.attackModifier", "kata.attackRestriction", "kata.branch", "kata.deferredEvent", "kata.variableCycle", "kata.deckLook", "kata.revealUntil", "kata.equipmentChoice", "kata.equipmentActivation", "kata.markCard", "kata.purchaseDiscount", "kata.comboDiscount", "kata.recoverThenDiscard", "kata.recycle", "kata.equipFromHand", "kata.weaponModifier", "kata.damagePrevention",
+  "reaction.preventIncomingDamage", "reaction.reduceDeclaredAttackPower", "reaction.secondNormalAttackPenaltyAndInitiateDraw", "reaction.defenseAgainstIncomingAttack", "reaction.forceAttackerDrawDiscardBeforeDefense", "reaction.defenseBeltExamCredit", "reaction.reversalOrDefenseFollowup", "reaction.preventForcedDiscard", "reaction.outOfTurnConsumableShield",
+  "combo.grantFlow", "combo.gainXP", "combo.equipmentDefenseSuppression", "combo.discardWeaponChoice",
+  "boss.hitTempoLock", "boss.startTurnDiscard", "boss.reveal",
+  "boss.attack.hitTempoLock", "boss.profile.kataDefense", "boss.profile.blockDefense", "boss.profile.startTurnDiscardOrPower", "boss.stage.enrage", "boss.stage.stats", "boss.technique.revealNextArsenal", "boss.technique.nextDefense",
+  "attack.currentAttackFlow", "attack.nextAttackArmorPenalty", "character.marketDiscountFloor", "consumable.nextIncomingAttackDefense", "consumable.revealTopFocusValue", "consumable.ascendPurchaseDiscount",
+  "defense.nextPurchaseDiscount", "defense.nextTurnPurchaseDiscount", "defense.armorDefenseBonus",
+  "kata.choice", "kata.controlledEscalation", "kata.discardBranch", "kata.zoneAttackReward", "kata.copyKata", "kata.comboHitReward", "kata.threeZonePlan",
+  "reaction.preserveMarketDiscount", "reaction.cancelComboPayoff",
+]);
 const structuredParameterKinds = new Set([
   "choiceKind", "choiceOptions", "incomingZones", "discardCost", "nonHonorSceneChangedThisRound",
   "sourceAffectedCountThreshold", "scheduledTiming", "minimumDraw", "firstSwapThisGame", "discardedByEffect",
@@ -436,7 +481,7 @@ export class Game {
       minimumBelt: ["White", "Gold", "Orange", "Green", "Purple", "Blue", "Red", "Brown", "Black"][context.player.beltIndex] ?? "White",
       currentAttackIsNormal: !context.attackCard?.tags?.includes("Reversal"),
       attackIsReversal: Boolean(context.attackCard?.tags?.includes("Reversal")),
-      attackIsUnarmed: !context.player.equipment.some((card) => card.subtype === "Weapon"),
+      attackIsUnarmed: Boolean(context.attackIsUnarmed) || !context.player.equipment.some((card) => card.subtype === "Weapon"),
       targetHasMatchingArmor: context.opponent.equipment.some((card) => card.subtype === "Defense Equipment" && (card.tags ?? []).some((tag) => (context.attackCard?.tags ?? []).includes(tag))),
     };
     const beltRank = (value) => ["White", "Gold", "Orange", "Green", "Purple", "Blue", "Red", "Brown", "Black"].indexOf(String(value));
@@ -493,10 +538,12 @@ export class Game {
   }
 
   applyEquipmentWatchers(player, resolver, context = {}) {
+    const result = { ...context };
     for (const equipment of player.equipment) {
       const effects = this.cardEffects(equipment, "passive").filter((effect) => effect.resolver === resolver && (!context.watchCondition || (effect.conditions ?? []).some((condition) => condition.kind === context.watchCondition)));
-      if (effects.length) this.applyCardEffects(player, equipment, "passive", { opponent: this.players[1 - player.id], sourceCard: equipment, ...context, effectOverride: effects });
+      if (effects.length) Object.assign(result, this.applyCardEffects(player, equipment, "passive", { opponent: this.players[1 - player.id], sourceCard: equipment, ...result, effectOverride: effects }));
     }
+    return result;
   }
 
   applyEquipmentTrigger(player, trigger, context = {}) {
@@ -517,6 +564,15 @@ export class Game {
   unsupportedEffect(card, effect) { this.telemetry.unsupportedEffects += 1; this.emit({ type: "unsupported-effect", player: null, card: card.catalogId, effect: effect.id, action: effect.action ?? null }); }
 
   queueCardChoice(player, targetPlayer, effect, movement, amount = 1) {
+    let effectiveAmount = amount;
+    if (movement === "discard" && effect.forcedDiscardEvent === true) {
+      const eventContext = { opponent: player, sourceCard: effect.sourceCardId ? this.cardByInstance(player.id, effect.sourceCardId) : null, forcedDiscardEvent: true };
+      for (const equipment of targetPlayer.equipment) {
+        const result = this.applyCardEffects(targetPlayer, equipment, "passive", { ...eventContext, sourceCard: equipment });
+        effectiveAmount = Math.max(0, effectiveAmount - Number(result.forcedDiscardReduction ?? 0));
+      }
+      if (effectiveAmount === 0) return true;
+    }
     const requestedZones = (effect.conditions ?? []).find((condition) => condition.kind === "zones")?.value;
     const sourceZones = Array.isArray(requestedZones) && requestedZones.length ? requestedZones : ["hand"];
     const requestedType = (effect.conditions ?? []).find((condition) => condition.kind === "cardType")?.value;
@@ -524,8 +580,9 @@ export class Game {
     const options = candidates.map((candidate) => ({ id: candidate.instanceId, label: candidate.name }));
     if (!options.length) return false;
     this.pendingChoice = {
-      kind: "card-movement", playerId: player.id, targetPlayerId: targetPlayer.id, movement, amount,
+      kind: "card-movement", playerId: player.id, targetPlayerId: targetPlayer.id, movement, amount: effectiveAmount,
       sourceZones, sourceCardId: effect.sourceCardId ?? null, effectId: effect.id ?? null,
+      discardBranch: effect.discardBranch === true, branchDraw: num(effect.branchDraw ?? 0), branchFocus: num(effect.branchFocus ?? 0), branchDefense: num(effect.branchDefense ?? 0),
       drawIfSourceZone: (effect.conditions ?? []).find((condition) => condition.kind === "drawIfSourceZone")?.value ?? null,
       drawAmount: num((effect.conditions ?? []).find((condition) => condition.kind === "drawAmount")?.value ?? 0),
       options,
@@ -545,6 +602,14 @@ export class Game {
     const remaining = Number(pending.amount ?? 1) - 1;
     this.pendingChoice = null;
     if (remaining > 0 && this.queueCardChoice(this.players[pending.playerId], targetPlayer, pending, pending.movement, remaining)) return true;
+    if (pending.discardBranch) {
+      const player = this.players[pending.playerId];
+      if (player.lastTurnWasHit && pending.branchDraw > 0) this.draw(player, pending.branchDraw);
+      else {
+        if (pending.branchFocus > 0) { player.focus += pending.branchFocus; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + pending.branchFocus; this.telemetry.focusGenerated += pending.branchFocus; }
+        if (pending.branchDefense > 0) this.addStatus(player, { action: "modifyDefense", amount: pending.branchDefense, duration: "nextHonor", sourceId: pending.sourceCardId });
+      }
+    }
     return true;
   }
 
@@ -703,6 +768,46 @@ export class Game {
       }
       return true;
     }
+    if (resolver === "attack.currentAttackFlow") { context.flow = true; return true; }
+    if (resolver === "attack.nextAttackArmorPenalty") { this.addStatus(opponent, { action: "modifyDefense", amount, duration: "nextAttack", sourceId: card.instanceId }); return true; }
+    if (resolver === "character.marketDiscountFloor") { if (cost(context.purchasedCard ?? context.marketCard ?? {}) >= 5 || Number(context.purchaseCost ?? 0) >= 5) context.costModifier = (context.costModifier ?? 0) + amount; return true; }
+    if (resolver === "consumable.nextIncomingAttackDefense") { this.addStatus(player, { action: "modifyDefense", amount, duration: "nextIncomingAttack", sourceId: card.instanceId }); return true; }
+    if (resolver === "consumable.revealTopFocusValue") {
+      if (effect.action === "custom" || effect.effect === "core.reveal") {
+        const revealed = this.reveal(player, amount || 1); context.revealedFocusValue = focus(revealed[revealed.length - 1]);
+      }
+      return true;
+    }
+    if (resolver === "consumable.ascendPurchaseDiscount") { this.addStatus(player, { action: "modifyCost", amount, duration: "nextPurchase", sourceId: card.instanceId }); return true; }
+    if (resolver === "defense.nextPurchaseDiscount") { this.addStatus(player, { action: "modifyCost", amount, duration: "nextPurchase", sourceId: card.instanceId }); return true; }
+    if (resolver === "defense.nextTurnPurchaseDiscount") { this.addStatus(player, { action: "modifyCost", amount, duration: "nextTurn", sourceId: card.instanceId }); return true; }
+    if (resolver === "defense.armorDefenseBonus") { const matchingArmor = player.equipment.some((candidate) => candidate.subtype === "Defense Equipment" && (candidate.tags ?? []).some((tag) => (context.attackCard?.tags ?? []).includes(tag))); if (matchingArmor) context.defenseModifier = (context.defenseModifier ?? 0) + amount; return true; }
+    if (resolver === "kata.choice") {
+      if (player.lastTurnWasHit) {
+        const options = (params.choiceOptions ?? []).map((option) => ({ id: String(option), label: String(option) }));
+        this.pendingChoice = { kind: "structured", playerId: player.id, effectId: effect.id ?? null, resolver, options: options.length ? options : [{ id: "nextAttackPower:+1", label: "Next Attack +1" }, { id: "nextDefenseGuard:+1", label: "Next Defense +1" }] };
+      }
+      return true;
+    }
+    if (resolver === "kata.controlledEscalation") { this.addStatus(player, { action: "controlledEscalation", amount: Number(params.matchingZonePowerBonus ?? 1), duration: "endOfTurn", sourceId: card.instanceId }); player.nextAttackAnyZone = true; return true; }
+    if (resolver === "kata.discardBranch") {
+      if (player.hand.length) this.queueCardChoice(player, player, { ...effect, discardBranch: true, branchDraw: 2, branchFocus: 1, branchDefense: 1, sourceCardId: card.instanceId }, "discard", 1);
+      return true;
+    }
+    if (resolver === "kata.zoneAttackReward") { this.addStatus(player, { action: "zoneAttackReward", amount: Number(params.afterResolveFocus ?? 1), duration: "endOfTurn", sourceId: card.instanceId }); player.nextAttackAnyZone = true; return true; }
+    if (resolver === "kata.copyKata") {
+      const source = [...opponent.played].reverse().find((candidate) => candidate.subtype === "Kata");
+      const copied = source ? this.cardEffects(source, "onPlay").filter((candidate) => candidate.resolver !== "kata.copyKata") : [];
+      if (copied.length) this.applyCardEffects(player, card, "onPlay", { ...context, sourceCard: card, effectOverride: copied });
+      return true;
+    }
+    if (resolver === "kata.comboHitReward") {
+      if (Number(context.damage ?? 0) >= Number(params.minimumDamage ?? 0)) { player.focus += Number(params.gainFocus ?? 1); player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + Number(params.gainFocus ?? 1); this.telemetry.focusGenerated += Number(params.gainFocus ?? 1); }
+      return true;
+    }
+    if (resolver === "kata.threeZonePlan") { this.addStatus(player, { action: "threeZonePlan", amount: Number(params.completionFocus ?? 1), duration: "endOfTurn", sourceId: card.instanceId, zones: [] }); player.nextAttackAnyZone = true; return true; }
+    if (resolver === "reaction.preserveMarketDiscount") { this.addStatus(player, { action: "preserveMarketDiscount", duration: "nextPurchase", sourceId: card.instanceId }); return true; }
+    if (resolver === "reaction.cancelComboPayoff") { this.addStatus(opponent, { action: "cancelComboPayoff", duration: "turn", sourceId: card.instanceId }); return true; }
 
     if (resolver === "equipment.structured") {
       if (effect.action !== "custom") return false;
@@ -718,6 +823,15 @@ export class Game {
         return true;
       }
       if (params.selfIsLowestXp) { if (player.xp <= opponent.xp) add("modifyDefense", amount || 1); return true; }
+      if (params.forcedDiscardEvent) {
+        if (context.forcedDiscardEvent) context.forcedDiscardReduction = (context.forcedDiscardReduction ?? 0) + Math.max(0, amount || 1);
+        return true;
+      }
+      if (params.oncePerGame && effect.trigger === "passive" && !context.attackCard) {
+        this.addStatus(player, { action: "preventDamage", amount: 99, duration: "nextAttack", sourceId: card.instanceId });
+        this.markUsedEffect(player, effect);
+        return true;
+      }
       if (params.oncePerGame && effect.trigger === "onAttackDeclared" && effect.target === "self") { add("modifyAttackPower", -(context.attackPower ?? 0), "nextAttack"); this.markUsedEffect(player, effect); return true; }
       if (params.oncePerGame && resolver === "equipment.structured" && effect.trigger === "passive" && context.attackCard) { add("preventDamage", 99, "nextAttack"); this.markUsedEffect(player, effect); return true; }
       if (effect.trigger === "onHit" && params.attackUsesSourceEquipment) {
@@ -733,8 +847,15 @@ export class Game {
       if (params.discardedByEffect) { this.moveCard(player, card, "hand"); return true; }
       if (effect.trigger === "passive" && effect.duration === "whileEquipped" && !context.attackCard) { this.addStatus(player, { action: "equipmentRestriction", value: card.catalogId, duration: "whileEquipped", sourceId: card.instanceId }); return true; }
       if (params.firstNegativeCombatModifierThisRound) { this.removeTemporaryNegativeStatModifier(player, 1); return true; }
-      if (effect.action === "custom" && amount) add("modifyAttackPower", amount);
-      return true;
+      if (params.attackHasTag) { context.attackIsUnarmed = (context.attackCard?.tags ?? []).includes(String(params.attackHasTag)); return true; }
+      if (params.reactionPlayedAgainstSelf) {
+        if (context.reactionPlayedAgainstSelf && params.scheduledTiming === "exchangeEnd") context.defenseModifier = (context.defenseModifier ?? 0) + amount;
+        return true;
+      }
+      // A structured Equipment effect is supported only when one of the
+      // explicit semantic branches above consumed its parameters.  Never
+      // convert an unknown Equipment operation into a generic attack bonus.
+      return false;
     }
 
     if (resolver.startsWith("location.")) {
@@ -759,6 +880,7 @@ export class Game {
       else if (effect.action === "modifyAttackPower") add("modifyAttackPower", amount);
       else if (effect.action === "modifyGuard") add("modifyGuard", amount);
       else if (effect.action === "dealDamage") target.hp -= Math.max(0, amount);
+      else return false;
       return true;
     }
 
@@ -805,22 +927,31 @@ export class Game {
       if (resolver === "kata.equipFromHand") { this.queueZoneChoice(player, effect, { zones: ["hand"], operation: "equip-from-hand" }); return true; }
       if (resolver === "kata.weaponModifier") { this.addStatus(player, { action: "modifyAttackPower", amount: Number(params.attackBonusDelta ?? 1), duration: "nextAttack", sourceId: card.instanceId }); return true; }
       if (resolver === "kata.damagePrevention") { this.addStatus(player, { action: "preventDamage", amount: amount || 1, duration: "nextAttack", sourceId: card.instanceId }); return true; }
-      return true;
+      return false;
     }
 
     if (resolver.startsWith("reaction.")) {
       if (resolver === "reaction.preventIncomingDamage") { context.damagePrevention = (context.damagePrevention ?? 0) + amount; return true; }
       if (resolver === "reaction.reduceDeclaredAttackPower" || resolver === "reaction.secondNormalAttackPenaltyAndInitiateDraw") { context.opponentAttackPowerModifier = (context.opponentAttackPowerModifier ?? 0) + amount; return true; }
       if (resolver === "reaction.defenseAgainstIncomingAttack") { context.defenseModifier = (context.defenseModifier ?? 0) + amount; return true; }
-      if (resolver === "reaction.forceAttackerDrawDiscardBeforeDefense") { this.draw(opponent, 1); this.queueCardChoice(opponent, opponent, effect, "discard", 1); return true; }
+      if (resolver === "reaction.forceAttackerDrawDiscardBeforeDefense") { this.draw(opponent, 1); this.queueCardChoice(opponent, opponent, { ...effect, forcedDiscardEvent: true }, "discard", 1); return true; }
       if (resolver === "reaction.defenseBeltExamCredit") { player.xp += 1; this.telemetry.xpGenerated += 1; return true; }
       if (resolver === "reaction.reversalOrDefenseFollowup") { player.nextAttackPower += 1; return true; }
       if (resolver === "reaction.preventForcedDiscard") { this.addStatus(player, { action: "preventForcedDiscard", duration: "round", sourceId: card.instanceId }); return true; }
       if (resolver === "reaction.outOfTurnConsumableShield") { this.addStatus(player, { action: "preventDamage", amount: 1, duration: "nextAttack", sourceId: card.instanceId }); return true; }
+      return false;
+    }
+    if (resolver.startsWith("combo.")) { if (resolver === "combo.grantFlow") player.nextAttackFlow = true; else if (resolver === "combo.gainXP") { player.xp += amount; this.telemetry.xpGenerated += amount; } else if (resolver === "combo.equipmentDefenseSuppression") add("modifyDefense", amount, "nextAttack", opponent); else if (resolver === "combo.discardWeaponChoice") { const weapon = player.equipment.find((entry) => entry.subtype === "Weapon"); if (weapon) this.discardCard(player, weapon); } else return false; return true; }
+    if (resolver.startsWith("boss.")) {
+      if (resolver.includes("hitTempoLock")) { opponent.tempo = false; this.addStatus(opponent, { action: "tempoLocked", duration: effect.duration ?? "endOfRound", sourceId: card.instanceId }); }
+      else if (resolver.includes("startTurnDiscard")) this.queueCardChoice(opponent, opponent, { ...effect, forcedDiscardEvent: true }, "discard", 1);
+      else if (resolver.includes("reveal")) this.reveal(player, amount || 1);
+      else if (resolver === "boss.profile.kataDefense" || resolver === "boss.profile.blockDefense" || resolver === "boss.technique.nextDefense") this.addStatus(player, { action: "modifyDefense", amount, duration: effect.duration ?? "nextHonor", sourceId: card.instanceId });
+      else if (resolver === "boss.stage.enrage") this.addStatus(player, { action: "bossEnrage", amount: 1, duration: "game", sourceId: card.instanceId });
+      else if (resolver === "boss.stage.stats") this.addStatus(player, { action: "bossStageStats", amount: 1, duration: "game", sourceId: card.instanceId });
+      else return false;
       return true;
     }
-    if (resolver.startsWith("combo.")) { if (resolver === "combo.grantFlow") player.nextAttackFlow = true; else if (resolver === "combo.gainXP") { player.xp += amount; this.telemetry.xpGenerated += amount; } else if (resolver === "combo.equipmentDefenseSuppression") add("modifyDefense", amount, "nextAttack", opponent); else if (resolver === "combo.discardWeaponChoice") { const weapon = player.equipment.find((entry) => entry.subtype === "Weapon"); if (weapon) this.discardCard(player, weapon); } return true; }
-    if (resolver.startsWith("boss.")) { if (resolver.includes("hitTempoLock")) opponent.tempo = false; else if (resolver.includes("startTurnDiscard")) this.queueCardChoice(opponent, opponent, effect, "discard", 1); else if (resolver.includes("reveal")) this.reveal(player, amount || 1); return true; }
     return false;
   }
 
@@ -851,11 +982,12 @@ export class Game {
       if (!conditions.known) { this.unsupportedEffect(card, effect); continue; }
       if (!conditions.pass) continue;
       const unsupportedBefore = this.telemetry.unsupportedEffects;
-      const amount = num(effect.amount); const rawAction = effect.action ?? effect.effect; const semanticAction = rawAction === "custom" ? effect.effect : rawAction; const resolverAction = ({ "attack.optionalDiscardDraw": "cycleDiscardDraw", "defense.optionalDiscardDraw": "cycleDiscardDraw", "defense.stepBackCycle": "cycleDiscardDraw", "kata.flowGrant": "grantFlow", "kata.purchaseDiscount": "modifyCost", "kata.deckLook": "deckLook", "defense.deckLookChoice": "deckLook", "consumable.topThreeAttackSelection": "deckLook", "consumable.reorderTopThree": "deckLook", "reaction.preventIncomingDamage": "preventDamage", "reaction.reduceDeclaredAttackPower": "modifyAttackPower", "reaction.defenseAgainstIncomingAttack": "reactionDefense", "consumable.modifyAttackStat": "modifyAttackPower", "consumable.removeTemporaryNegativeStatModifier": "removeTemporaryNegativeStatModifier", "consumable.healAndRemoveStatus": "removeTemporaryStatus", "consumable.nextKataFocusBonus": "grantKataFocus", "consumable.preventInterfereOnNextAttack": "restrictReaction", "consumable.untargetableUntilTurnOrAttack": "untargetable", "consumable.warrantyIcePop": "restrictConsumable", "attack.final.onlyAttackLock": "restrictAttack", "character.cannotEquipWeapons": "restrictWeapon", "character.equipDiscardPermanentUntilHide": "equipFromDiscard", "character.green.linkedAttackHitRecycle": "recycle", "character.green.linkedAttackHitRewardChoice": "hitChoice", "character.incomingAttackSlowChoice": "incomingAttackChoice", "character.revealConsumableCycle": "cycleDiscardDraw", "character.exhaustReadyEquipmentLock": "equipmentToggle", "character.discardJunkDestroyChoice": "discardOrDestroy", "character.forcedJunkDiscardDestroyChoice": "discardOrDestroy", "kata.recoverThenDiscard": "recoverThenDiscard", "kata.recycle": "recycle", "kata.equipFromHand": "equipFromHand", "consumable.setSpeedToValue": "setSpeed", "consumable.modifyDefenseUntilNextTurn": "modifyDefenseUntilNextTurn", "consumable.preventAttackUntilNextTurn": "restrictAttack" })[effect.resolver]; let action = ({ "equipment.modifyDefenseContribution": "modifyDefenseContribution", "combat.modifyDefense": "modifyDefense", "combat.grantFlow": "grantFlow", "core.gainXP": "gainXP", "core.reveal": "reveal", "economy.modifyCost": "modifyCost", "economy.spendFocus": "spendFocus", "core.moveCard": "moveCard" })[semanticAction] ?? resolverAction ?? semanticAction;
-      if ([undefined, "custom", "core.custom"].includes(action) && ["location.", "equipment.", "character.", "consumable.", "defense.", "kata.", "reaction.", "combo.", "boss.", "attack.final."].some((prefix) => String(effect.resolver ?? "").startsWith(prefix))) action = "structured";
+      const amount = num(effect.amount); const rawAction = effect.action ?? effect.effect; const semanticAction = rawAction === "custom" ? effect.effect : rawAction;
+      let action = ({ "equipment.modifyDefenseContribution": "modifyDefenseContribution", "combat.modifyDefense": "modifyDefense", "combat.grantFlow": "grantFlow", "core.gainXP": "gainXP", "core.reveal": "reveal", "economy.modifyCost": "modifyCost", "economy.spendFocus": "spendFocus", "core.moveCard": "moveCard" })[semanticAction] ?? HEADLESS_RESOLVER_ACTIONS[effect.resolver] ?? semanticAction;
+      if ([undefined, "custom", "core.custom"].includes(action) && HEADLESS_STRUCTURED_RESOLVERS.has(String(effect.resolver ?? ""))) action = "structured";
       if (effect.resolver === "attack.final.hitChoice") action = "hitChoice";
       if (String(effect.id).endsWith("dodge-block-cycle")) this.queueDiscardDrawChoice(player, { ...effect, drawAmount: 1 });
-      else if (action === "gainFocus") { player.focus += amount; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + amount; this.telemetry.focusGenerated += amount; }
+      else if (action === "gainFocus") { const gained = effect.resolver === "consumable.revealTopFocusValue" ? Math.max(1, Number(effectContext.revealedFocusValue ?? amount)) : amount; player.focus += gained; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + gained; this.telemetry.focusGenerated += gained; }
       else if (action === "draw") this.draw(player, Math.max(0, amount));
       else if (action === "reveal") this.reveal(effect.target === "opponent" ? effectContext.opponent : player, Math.max(1, amount));
       else if (action === "moveCard") {
@@ -880,7 +1012,11 @@ export class Game {
       else if (action === "modifyDefenseUntilNextTurn") this.addStatus(player, { action: "modifyDefense", amount, duration: "nextHonor", sourceId: card.instanceId });
       else if (action === "restrictAttack") this.addStatus(player, { action: "restrictAttack", duration: "nextHonor", sourceId: card.instanceId });
       else if (action === "modifyCost") this.addStatus(player, { action, amount, duration: effect.duration ?? "nextPurchase", sourceId: card.instanceId });
-      else if (action === "grantFlow") player.nextAttackFlow = true;
+      else if (action === "grantFlow") {
+        if (effect.resolver === "character.green.linkedSpeedTempoFlow" && player.turnStats.zones.size >= 2) player.nextAttackFlow = true;
+        else if (effect.resolver === "character.secondKickNextKickFlow") { const kicks = (player.turnStats.kickCount ?? 0) + (effectContext.attackCard?.tags?.includes("Kick") ? 1 : 0); player.turnStats.kickCount = kicks; if (kicks === 2) player.nextAttackFlow = true; }
+        else player.nextAttackFlow = true;
+      }
       else if (action === "cycleDiscardDraw") {
         const drawAmount = (effect.conditions ?? []).find((condition) => ["draw", "drawAfterCost"].includes(condition.kind))?.value ?? 1;
         this.queueDiscardDrawChoice(player, { ...effect, drawAmount, postDrawDiscard: effect.resolver === "defense.stepBackCycle", candidateType: effect.resolver === "character.revealConsumableCycle" ? "Consumable" : null, revealSelected: effect.resolver === "character.revealConsumableCycle" });
@@ -936,8 +1072,10 @@ export class Game {
     const attackContext = this.applyLocationEvent(attacker, "attack", this.applyPassiveEquipment(attacker, defender, { attackCard: card, zone, attackPowerModifier: this.statusValue(attacker, "modifyAttackPower", { consumeDuration: "nextAttack" }), piercing: this.statusValue(attacker, "piercing", { consumeDuration: "nextAttack" }), allowChoice: false }));
     const context = this.applyCardEffects(attacker, card, "passive", attackContext);
     Object.assign(context, this.applyCardEffects(attacker, card, "onAttackDeclared", context));
+    const linkedCharacterEffects = this.cardEffects(attacker.character, "passive").filter((effect) => ["character.green.linkedSpeedTempoFlow", "character.secondKickNextKickFlow"].includes(effect.resolver));
+    if (linkedCharacterEffects.length) Object.assign(context, this.applyCardEffects(attacker, attacker.character, "passive", { ...context, sourceCard: attacker.character, opponent: defender, attackCard: card, effectOverride: linkedCharacterEffects }));
     if (defenseCard) { remove(defender.hand, defenseCard); defender.discard.push(defenseCard); defender.focus += focus(defenseCard); this.telemetry.focusGenerated += focus(defenseCard); this.track(defenseCard, "played", defender); }
-    const defenseBase = this.applyLocationEvent(defender, "defense", this.applyPassiveEquipment(defender, attacker, { opponent: attacker, attackCard: card, defenseCard, defensePlayed: Boolean(defenseCard), defenseOutsideTurn: defender.id !== this.activePlayer, zone, guardModifier: this.statusValue(defender, "modifyGuard", { consumeDuration: "nextDefense" }), defenseModifier: reactionDefense, damagePrevention: this.statusValue(defender, "preventDamage", { consumeDuration: "nextDefense" }) }));
+    const defenseBase = this.applyLocationEvent(defender, "defense", this.applyPassiveEquipment(defender, attacker, { opponent: attacker, attackCard: card, defenseCard, defensePlayed: Boolean(defenseCard), defenseOutsideTurn: defender.id !== this.activePlayer, zone, guardModifier: this.statusValue(defender, "modifyGuard", { consumeDuration: "nextDefense" }), defenseModifier: reactionDefense + this.statusValue(defender, "modifyDefense", { consumeDuration: "nextIncomingAttack" }), damagePrevention: this.statusValue(defender, "preventDamage", { consumeDuration: "nextDefense" }) }));
     const defenseContext = defenseCard ? this.applyCardEffects(defender, defenseCard, "onDefenseDeclared", defenseBase) : defenseBase;
     const tempo = useTempo && attacker.tempo ? this.definition.turn.tempoAttackPower : 0; if (tempo) attacker.tempo = false;
     const attack = attackPower(card) + attacker.atk + tempo + attacker.nextAttackPower + this.statusValue(attacker, "modifyAttackPower") + (context.attackPowerModifier ?? 0) + reactionAttackModifier; attacker.nextAttackPower = 0;
@@ -948,7 +1086,7 @@ export class Game {
     if (damage > 0) { this.applyEquipmentTrigger(attacker, "onHit", { opponent: defender, attackCard: card, damage, attack, block, zone }); this.applyCharacterEffects(attacker, "onHit", { opponent: defender, attackCard: card, damage, attack, block, zone }); this.applyCardEffects(attacker, card, "onHit", { opponent: defender, attackCard: card, damage, attack, block, zone }); }
     else if (defenseCard) { this.applyEquipmentTrigger(defender, "onBlock", { opponent: attacker, attackCard: card, defenseCard, damage, attack, block, zone, defensePlayed: true }); this.applyCharacterEffects(defender, "onBlock", { opponent: attacker, attackCard: card, defenseCard, damage, attack, block, zone, defensePlayed: true }); this.applyCardEffects(defender, defenseCard, "onBlock", { opponent: attacker, attackCard: card, defenseCard, damage, attack, block, zone, defensePlayed: true }); }
     this.applyCardEffects(attacker, card, "afterResolve", { opponent: defender, attackCard: card, damage, attack, block, zone });
-    if (flow && !attacker.turnStats.flowDrawUsed) { this.draw(attacker, 1); attacker.turnStats.flowDrawUsed = true; }
+    if ((flow || context.flow) && !attacker.turnStats.flowDrawUsed) { this.draw(attacker, 1); attacker.turnStats.flowDrawUsed = true; }
     if (damage > 0) { this.track(card, "damageDealt", attacker, damage); this.track(card, "hits", attacker); }
     if (defenseCard) this.track(defenseCard, damage === 0 ? "blocks" : "damagePrevented", defender, damage === 0 ? 1 : Math.max(0, block - attack + damage));
     this.emit({ type: "attack", attacker: attacker.id, defender: defender.id, card: card.catalogId, defense: defenseCard?.catalogId ?? null, attack, block, damage, defenseFocus: focus(defenseCard) }); this.checkWinner();
@@ -974,7 +1112,8 @@ export class Game {
   }
 
   buy(player, card) {
-    const discount = player.statuses.filter((status) => status.action === "modifyCost").reduce((sum, status) => sum + num(status.amount), 0);
+    const characterDiscount = this.cardEffects(player.character, "passive").filter((effect) => effect.resolver === "character.marketDiscountFloor" && cost(card ?? {}) >= 5).reduce((sum, effect) => sum + num(effect.amount), 0);
+    const discount = player.statuses.filter((status) => status.action === "modifyCost").reduce((sum, status) => sum + num(status.amount), characterDiscount);
     const itemPenalty = card?.cardType === "Item" ? player.statuses.filter((status) => status.action === "nextItemCostPenalty").reduce((sum, status) => sum + num(status.amount), 0) : 0;
     const finalCost = Math.max(0, cost(card) + discount + itemPenalty);
     if (!card || !this.market.includes(card) || finalCost > player.focus) return false;
@@ -1030,6 +1169,14 @@ export class Game {
     if (pending.kind === "card-movement") return this.resolveCardMovementChoice(pending, selected);
     if (pending.kind === "zone-choice") return this.resolveZoneChoice(pending, selected);
     if (pending.kind === "hit-choice") return this.resolveHitChoice(pending, selected);
+    if (pending.kind === "structured") {
+      const player = this.players[pending.playerId];
+      if (selected === "nextAttackPower:+1") player.nextAttackPower += 1;
+      else if (selected === "nextDefenseGuard:+1") this.addStatus(player, { action: "modifyGuard", amount: 1, duration: "nextDefense", sourceId: pending.effectId });
+      else return false;
+      this.pendingChoice = null;
+      return true;
+    }
     if (pending.kind === "incoming-attack-choice") {
       const player = this.players[pending.playerId];
       if (selected === "accept") { player.tempSpeed -= 1; player.turnStats.reducedIncomingAttack = true; }
@@ -1083,7 +1230,7 @@ export class Game {
     }
     if (pending.kind === "reaction") {
       const attacker = this.players[pending.attackerId]; const defender = this.players[pending.playerId]; const attackCard = this.cardByInstance(pending.attackerId, pending.cardId);
-      if (selected !== "pass") { const reaction = defender.hand.find((candidate) => candidate.instanceId === selected); if (!reaction || !attackCard) return false; remove(defender.hand, reaction); defender.played.push(reaction); defender.focus += focus(reaction); this.track(reaction, "played", defender); const reactionContext = this.applyCardEffects(defender, reaction, "onAttackDeclared", { opponent: attacker, attackCard, zone: pending.zone, incomingAttackTargetsSelf: true }); defender.discard.push(reaction); const defenseOptions = pending.defenseOptions; this.pendingChoice = { kind: "defense", playerId: pending.playerId, attackerId: pending.attackerId, cardId: pending.cardId, zone: pending.zone, reactionPrevention: reactionContext.damagePrevention ?? 0, reactionAttackModifier: reactionContext.opponentAttackPowerModifier ?? 0, reactionDefense: reactionContext.defenseModifier ?? 0, options: defenseOptions }; return true; }
+      if (selected !== "pass") { const reaction = defender.hand.find((candidate) => candidate.instanceId === selected); if (!reaction || !attackCard) return false; remove(defender.hand, reaction); defender.played.push(reaction); defender.focus += focus(reaction); this.track(reaction, "played", defender); const reactionContext = this.applyCardEffects(defender, reaction, "onAttackDeclared", { opponent: attacker, attackCard, zone: pending.zone, incomingAttackTargetsSelf: true }); const equipmentReaction = this.applyEquipmentWatchers(defender, "equipment.structured", { opponent: attacker, attackCard, reactionPlayedAgainstSelf: true, scheduledTiming: "exchangeEnd" }); defender.discard.push(reaction); const defenseOptions = pending.defenseOptions; this.pendingChoice = { kind: "defense", playerId: pending.playerId, attackerId: pending.attackerId, cardId: pending.cardId, zone: pending.zone, reactionPrevention: reactionContext.damagePrevention ?? 0, reactionAttackModifier: reactionContext.opponentAttackPowerModifier ?? 0, reactionDefense: (reactionContext.defenseModifier ?? 0) + (equipmentReaction.defenseModifier ?? 0), options: defenseOptions }; return true; }
       this.pendingChoice = { kind: "defense", playerId: pending.playerId, attackerId: pending.attackerId, cardId: pending.cardId, zone: pending.zone, options: pending.defenseOptions }; return true;
     }
     if (pending.kind === "attack-zone") { const card = this.cardByInstance(pending.playerId, pending.cardId); this.pendingChoice = null; return this.beginAttack(pending.playerId, card, { zone: selected }); }
