@@ -313,6 +313,7 @@ export class Game {
       attackTagAny: context.attackCard?.tags ?? [],
       minimumBelt: ["White", "Gold", "Orange", "Green", "Purple", "Blue", "Red", "Brown", "Black"][context.player.beltIndex] ?? "White",
       currentAttackIsNormal: !context.attackCard?.tags?.includes("Reversal"),
+      attackIsReversal: Boolean(context.attackCard?.tags?.includes("Reversal")),
       attackIsUnarmed: !context.player.equipment.some((card) => card.subtype === "Weapon"),
       targetHasMatchingArmor: context.opponent.equipment.some((card) => card.subtype === "Defense Equipment" && (card.tags ?? []).some((tag) => (context.attackCard?.tags ?? []).includes(tag))),
     };

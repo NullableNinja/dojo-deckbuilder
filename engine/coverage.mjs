@@ -33,6 +33,7 @@ export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
   "playedAttackThisTurn", "discardedFocusValue", "discardedCardType", "priorJumpOrSpinAttack", "targetHasExhaustedEquipment", "selfSpeedChangedThisRound",
   "piercingScope", "scope", "defenseTagAny", "sourceArmorHelpedBlock", "firstArmorBlockThisRound", "armedEquipmentZoneMatched",
   "examRequirementCompleted", "completesActiveBeltExam", "goldBeltExamThirdZone", "duration",
+  "hpAtOrBelowHalfMax", "attackIsReversal",
   "focusGain", "allowedZones", "chooseZone", "discardCount", "drawCount", "maximumLoss", "nextItemOnly", "afterThatConsumable",
   "attackBlocked", "firstComboThisTurn", "firstConsumableThisTurn", "firstConsumableUsedThisTurn", "firstHighAttackThisTurn", "firstHitWithSourceThisRound",
   "hasTwoPairedWeapons", "incomingAttackZone", "marketEndSlot",
