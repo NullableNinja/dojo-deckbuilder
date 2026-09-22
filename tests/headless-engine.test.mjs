@@ -83,6 +83,36 @@ test("generic equipment ready and exhaust actions mutate persistent equipment st
   assert.equal(game.telemetry.unsupportedEffects, 0);
 });
 
+test("Character Initiate Consumable cycling is a resumable headless choice", async () => {
+  const data = await loadGameData();
+  const bento = data.cards.find((card) => card.catalogId === "DDB-CHR-CORE-023");
+  const game = new Game(data, { seed: 108, characters: [bento, data.cards.find((card) => card.cardType === "Character" && card.catalogId !== bento.catalogId)] });
+  game.advanceAutomaticEvents();
+  const player = game.players[game.activePlayer];
+  const consumable = game.cardInstance(data.cards.find((card) => card.subtype === "Consumable"));
+  player.hand = [consumable];
+  player.deck = [game.cardInstance(data.cards.find((card) => card.catalogId === "DDB-STA-CORE-002"))];
+  assert.equal(game.applyAction({ type: "pass", playerId: player.id }), true);
+  assert.equal(game.getPendingChoice()?.kind, "cycle-discard-draw");
+  assert.equal(game.getPendingChoice()?.options.some((option) => option.id === consumable.instanceId), true);
+  assert.equal(game.resolveChoice({ optionId: consumable.instanceId }), true);
+  assert.equal(player.discard.includes(consumable), true);
+});
+
+test("Character Junk discard replacement exposes destroy-or-keep and Green follow-up", async () => {
+  const data = await loadGameData();
+  const panda = data.cards.find((card) => card.catalogId === "DDB-CHR-CORE-015");
+  const game = new Game(data, { seed: 109, characters: [panda, data.cards.find((card) => card.cardType === "Character" && card.catalogId !== panda.catalogId)] });
+  const player = game.players[0];
+  const junk = game.cardInstance(data.cards.find((card) => card.category === "Junk"));
+  player.hand = [junk];
+  assert.equal(game.discardCard(player, junk), true);
+  assert.equal(game.getPendingChoice()?.kind, "discard-or-destroy");
+  assert.equal(game.resolveChoice({ optionId: "destroy" }), true);
+  assert.equal(player.destroyed.includes(junk), true);
+  assert.equal(game.getPendingChoice()?.kind, "card-movement");
+});
+
 test("Flow and Reaction Item effects use the shared headless event path", async () => {
   const data = await loadGameData();
   const game = new Game(data, { seed: 106 });
@@ -126,7 +156,7 @@ test("headless effect coverage is explicit and machine-reportable", async () => 
   assert.ok(coverage.unsupportedEffects > 0, "remaining unsupported classes must remain visible");
   assert.ok(Object.keys(coverage.unsupportedActions).length > 0 || Object.keys(coverage.unsupportedResolvers).length > 0);
   assert.equal(coverage.scopeCounts["baseline-core"] + coverage.scopeCounts["out-of-mode"], coverage.totalEffects);
-  assert.equal(coverage.unsupportedByScope["baseline-core"], 122);
+  assert.equal(coverage.unsupportedByScope["baseline-core"], 99);
   assert.equal(coverage.unsupportedByScope["out-of-mode"], 106);
   assert.ok(Object.keys(coverage.topUnsupportedGroups).length > 0);
   assert.ok(coverage.cardsPartiallySupported.length > 0);

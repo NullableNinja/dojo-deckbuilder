@@ -3,7 +3,7 @@ export const HEADLESS_SUPPORTED_ACTIONS = new Set([
   "preventDamage", "heal", "dealDamage", "minimumSpeed", "piercing", "chooseZone",
   "discard", "destroy", "ready", "exhaust",
   "reveal", "gainXP", "spendFocus", "modifyDefenseContribution", "grantFlow", "modifyCost", "cycleDiscardDraw", "deckLook",
-  "removeTemporaryNegativeStatModifier", "removeTemporaryStatus", "recoverThenDiscard", "recycle", "equipFromHand", "equipFromDiscard", "setSpeed", "modifyDefenseUntilNextTurn", "restrictAttack", "restrictReaction", "restrictConsumable", "restrictWeapon", "untargetable", "reactionDefense", "grantKataFocus", "hitChoice",
+  "removeTemporaryNegativeStatModifier", "removeTemporaryStatus", "recoverThenDiscard", "recycle", "equipFromHand", "equipFromDiscard", "setSpeed", "modifyDefenseUntilNextTurn", "restrictAttack", "restrictReaction", "restrictConsumable", "restrictWeapon", "untargetable", "reactionDefense", "grantKataFocus", "hitChoice", "equipmentToggle", "discardOrDestroy", "incomingAttackChoice",
 ]);
 
 export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
@@ -37,16 +37,20 @@ export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
   "focusGain", "allowedZones", "chooseZone", "discardCount", "drawCount", "maximumLoss", "nextItemOnly", "afterThatConsumable",
   "attackBlocked", "firstComboThisTurn", "firstConsumableThisTurn", "firstConsumableUsedThisTurn", "firstHighAttackThisTurn", "firstHitWithSourceThisRound",
   "hasTwoPairedWeapons", "incomingAttackZone", "marketEndSlot",
+  "playedAsReversal", "boughtCardLastAscend", "previousCardIsItem", "costPaid", "consumableUsedThisRound",
+  "purchaseCompleted", "purchasedCardCost", "ascendCompleted", "boughtCardThisAscend", "nextAttackDifferentZone",
+  "nextAttackHasTag", "nextQualifyingAttackOnly", "sourceActivationArmed", "equippedCardSubtypeIn", "minimumDraw",
+  "attackTiming", "appliesTo", "afterOpponentCommitsDefense", "itemCostPenalty", "defenseGuardPenalty",
 ]);
 
 const increment = (map, key) => { const normalized = String(key ?? "(none)"); map[normalized] = (map[normalized] ?? 0) + 1; };
 const sorted = (map) => Object.fromEntries(Object.entries(map).sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0])));
 const conditionKind = (condition) => typeof condition === "string" ? condition.match(/kind=([^;}]*)/)?.[1] ?? "(unknown)" : condition?.kind ?? "(unknown)";
 const listValue = (value) => Array.isArray(value) ? value.join(",") : String(value ?? "(none)");
-const canonicalAction = (effect) => {
+export const canonicalAction = (effect) => {
   const action = String(effect.action ?? effect.effect ?? "(none)");
   if (action !== "custom") return action;
-  if (["attack.optionalDiscardDraw", "defense.optionalDiscardDraw"].includes(String(effect.resolver))) return "cycleDiscardDraw";
+  if (["attack.optionalDiscardDraw", "defense.optionalDiscardDraw", "defense.stepBackCycle"].includes(String(effect.resolver))) return "cycleDiscardDraw";
   if (String(effect.resolver) === "kata.flowGrant") return "grantFlow";
   if (String(effect.resolver) === "kata.purchaseDiscount") return "modifyCost";
   if (String(effect.resolver) === "kata.deckLook") return "deckLook";
@@ -72,6 +76,12 @@ const canonicalAction = (effect) => {
   if (String(effect.resolver) === "attack.final.hitChoice") return "hitChoice";
   if (String(effect.resolver) === "character.cannotEquipWeapons") return "restrictWeapon";
   if (String(effect.resolver) === "character.equipDiscardPermanentUntilHide") return "equipFromDiscard";
+  if (String(effect.resolver) === "character.green.linkedAttackHitRecycle") return "recycle";
+  if (String(effect.resolver) === "character.green.linkedAttackHitRewardChoice") return "hitChoice";
+  if (String(effect.resolver) === "character.incomingAttackSlowChoice") return "incomingAttackChoice";
+  if (String(effect.resolver) === "character.revealConsumableCycle") return "cycleDiscardDraw";
+  if (String(effect.resolver) === "character.exhaustReadyEquipmentLock") return "equipmentToggle";
+  if (["character.discardJunkDestroyChoice", "character.forcedJunkDiscardDestroyChoice"].includes(String(effect.resolver))) return "discardOrDestroy";
   return {
     "equipment.modifyDefenseContribution": "modifyDefenseContribution",
     "combat.modifyDefense": "modifyDefense",
@@ -132,7 +142,7 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
   const actionCounts = {}; const resolverCounts = {}; const conditionCounts = {}; const triggerCounts = {}; const targetCounts = {}; const durationCounts = {};
   const unsupportedActions = {}; const unsupportedResolvers = {}; const unsupportedConditions = {};
   const scopeCounts = {}; const unsupportedByScope = {}; const unsupportedGroups = {}; const unsupportedGroupsByScope = { "baseline-core": {}, "out-of-mode": {} }; const supportedByFamily = {}; const unsupportedByFamily = {};
-  const cardStatus = {}; let totalEffects = 0; let supportedEffects = 0; let fullySupportedCards = 0; let cardsWithEffects = 0;
+  const cardStatus = {}; const unsupportedEntries = []; let totalEffects = 0; let supportedEffects = 0; let fullySupportedCards = 0; let cardsWithEffects = 0;
   for (const [catalogId, card] of Object.entries(cardEffects.cards ?? {})) {
     const effects = card.effects ?? []; if (!effects.length) continue; cardsWithEffects += 1;
     const catalogCard = catalogById.get(catalogId) ?? { catalogId, cardType: catalogId.startsWith("DDB-B") ? "Boss" : "" };
@@ -148,6 +158,20 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
       for (const kind of conditions) if (!HEADLESS_SUPPORTED_CONDITIONS.has(kind)) { supported = false; increment(unsupportedConditions, kind); }
       const group = supportGroup(effect);
       if (!supported) {
+        unsupportedEntries.push({
+          catalogId,
+          cardName: catalogCard.name ?? card.name ?? catalogId,
+          family,
+          scope,
+          action,
+          semanticAction,
+          resolver,
+          trigger: effect.trigger ?? "(none)",
+          target: effect.target ?? "(none)",
+          duration: effect.duration ?? "(none)",
+          conditions,
+          effectId: effect.id ?? null,
+        });
         cardSupported = false; increment(unsupportedActions, semanticAction); if (action === "custom" && resolver !== "starter.gainFocusIfFastest") increment(unsupportedResolvers, resolver);
         increment(unsupportedGroups, group); increment(unsupportedGroupsByScope[scope], group); increment(unsupportedByScope, scope); increment(unsupportedByFamily, family);
       } else { supportedEffects += 1; cardSupportedCount += 1; increment(supportedByFamily, family); }
@@ -165,7 +189,7 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
     triggerCounts: sorted(triggerCounts), targetCounts: sorted(targetCounts), durationCounts: sorted(durationCounts),
     unsupportedActions: sorted(unsupportedActions), unsupportedResolvers: sorted(unsupportedResolvers), unsupportedConditions: sorted(unsupportedConditions),
     scopeCounts: sorted(scopeCounts), unsupportedByScope: sorted(unsupportedByScope), supportedByFamily: sorted(supportedByFamily), unsupportedByFamily: sorted(unsupportedByFamily),
-    topUnsupportedGroups: sorted(unsupportedGroups), topUnsupportedGroupsByScope: Object.fromEntries(Object.entries(unsupportedGroupsByScope).map(([scope, groups]) => [scope, sorted(groups)])), cardStatus,
+    topUnsupportedGroups: sorted(unsupportedGroups), topUnsupportedGroupsByScope: Object.fromEntries(Object.entries(unsupportedGroupsByScope).map(([scope, groups]) => [scope, sorted(groups)])), unsupportedEntries, cardStatus,
     cardsFullySupported, cardsPartiallySupported, cardsWithZeroSupportedEffects,
   };
 }
