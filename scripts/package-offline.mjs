@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { basename, dirname, join, resolve } from "node:path";
@@ -18,6 +18,10 @@ await rm(stage, { recursive: true, force: true });
 await rm(zip, { force: true });
 await mkdir(packageRoot, { recursive: true });
 await mkdir(stage, { recursive: true });
+const offlineIndex = await readFile(resolve(repo, "dist", "index.html"), "utf8");
+if (!offlineIndex.includes('src="./assets/') || offlineIndex.includes('src="/dojo-deckbuilder/')) {
+  throw new Error("Offline packaging requires a relative-asset build. Run npm run build:offline before packaging.");
+}
 await cp(resolve(repo, "dist"), join(stage, "dist"), { recursive: true });
 await cp(resolve(repo, "engine"), join(stage, "engine"), { recursive: true });
 await cp(resolve(repo, "app", "data"), join(stage, "app", "data"), { recursive: true });

@@ -16,6 +16,44 @@ test("headless engine exposes canonical phases, legal actions, and serializable 
   assert.doesNotThrow(() => JSON.stringify(game.getState()));
 });
 
+test("locked initiative order gives both living players a turn before the next Honor", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 42, strategies: ["economy", "aggression"] });
+  const seenPlayers = new Set();
+  const policy = {
+    chooseAction(current, legal) {
+      seenPlayers.add(current.activePlayer);
+      return current.defaultAction(legal);
+    },
+    chooseChoice(current) {
+      seenPlayers.add(current.pendingChoice?.playerId ?? current.activePlayer);
+      return current.defaultChoice();
+    },
+  };
+  const result = game.run({ policy });
+  assert.deepEqual([...seenPlayers].sort(), [0, 1]);
+  assert.ok(result.turns >= 2);
+  assert.equal(result.invariantFailures.length, 0);
+});
+
+test("while-equipped equipment modifiers do not accumulate across combat events", async () => {
+  const data = await loadGameData();
+  const result = new Game(data, { seed: 9093, strategies: ["balanced", "fortress"] }).run();
+  const trafficConeStatuses = result.state.players
+    .flatMap((player) => player.statuses)
+    .filter((status) => status.sourceId?.startsWith("DDB-WPN-CORE-063#"));
+  assert.ok(trafficConeStatuses.length <= 1);
+  assert.ok(result.telemetry.damagePrevented < 10000);
+  assert.equal(result.invariantFailures.length, 0);
+});
+
+test("market legal actions include active purchase penalties", async () => {
+  const data = await loadGameData();
+  const result = new Game(data, { seed: 12001, strategies: ["balanced", "balanced"] }).run();
+  assert.equal(result.invariantFailures.length, 0);
+  assert.equal(result.unsupportedEffects, 0);
+});
+
 test("attack and defense choices suspend and resume through one action contract", async () => {
   const data = await loadGameData();
   const game = new Game(data, { seed: 102 });

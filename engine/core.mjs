@@ -126,7 +126,7 @@ export class Game {
     this.round = 1; this.turns = 0; this.winner = null; this.reason = "";
     this.events = []; this.decisions = []; this.lastPresentedChoice = null; this.cardStats = new Map(); this.marketPurchasedThisRound = false;
     this.invariantFailure = null;
-    this.phase = this.definition.turn.phases[0]; this.activePlayer = 0; this.pendingChoice = null; this.status = "active";
+    this.phase = this.definition.turn.phases[0]; this.activePlayer = 0; this.turnOrder = [0, 1]; this.turnOrderPosition = 0; this.pendingChoice = null; this.status = "active";
     this.telemetry = {
       attacks: 0, hits: 0, blocks: 0, totalDamage: 0, damagePrevented: 0,
       cardsPlayed: 0, cardsAcquired: 0, cardsDrawn: 0, cardsDiscarded: 0,
@@ -578,8 +578,9 @@ export class Game {
   applyPassiveEquipment(player, opponent, context = {}) {
     const result = { player, opponent, ...context };
     for (const equipment of player.equipment) {
+      const before = Object.fromEntries(["attackPowerModifier", "guardModifier", "defenseModifier", "damagePrevention", "piercing"].map((key) => [key, result[key] ?? 0]));
       const next = this.applyCardEffects(player, equipment, "passive", { ...result, sourceCard: equipment });
-      for (const key of ["attackPowerModifier", "guardModifier", "defenseModifier", "damagePrevention", "piercing"]) if (next[key] !== undefined) result[key] = (result[key] ?? 0) + (next[key] ?? 0);
+      for (const key of Object.keys(before)) if (next[key] !== undefined) result[key] = (result[key] ?? 0) + (next[key] ?? 0) - before[key];
     }
     return result;
   }
@@ -794,7 +795,7 @@ export class Game {
     const amount = num(effect.amount);
     const target = effect.target === "opponent" ? opponent : player;
     const add = (action, value, duration = effect.duration ?? "immediate", subject = target) => {
-      if (duration && duration !== "immediate") this.addStatus(subject, { action, amount: value, duration, sourceId: card.instanceId });
+      if (duration && duration !== "immediate" && duration !== "whileEquipped") this.addStatus(subject, { action, amount: value, duration, sourceId: card.instanceId });
       else {
         const key = action === "modifyAttackPower" ? "attackPowerModifier" : action === "modifyGuard" ? "guardModifier" : action === "modifyDefense" ? "defenseModifier" : action === "preventDamage" ? "damagePrevention" : `${action}Modifier`;
         context[key] = (context[key] ?? 0) + value;
@@ -1181,11 +1182,16 @@ export class Game {
     remove(player.hand, card); player.played.push(card); player.focus += focus(card); this.telemetry.focusGenerated += focus(card); if (card.subtype === "Kata" && this.hasStatus(player, "kataFocusBonus")) { player.focus += this.statusValue(player, "kataFocusBonus", { consumeDuration: "endOfTurn" }); player.turnStats.focusGenerated += this.statusValue(player, "kataFocusBonus"); this.telemetry.focusGenerated += 1; this.removeStatus(player, "kataFocusBonus"); } player.plays += 1; player.turnStats.playsThisTurn = (player.turnStats.playsThisTurn ?? 0) + 1; if (card.subtype === "Consumable") { player.turnStats.usedConsumableThisTurn = true; player.turnStats.usedConsumableThisRound = true; player.turnStats.consumableCount = (player.turnStats.consumableCount ?? 0) + 1; } const equipment = ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype); if (equipment) player.equipment.push(card); player.turnStats.equippedThisTurn = equipment || player.turnStats.equippedThisTurn; this.track(card, "played", player); this.applyCardEffects(player, card, "onPlay", { opponent: this.players[1 - player.id], attackCard: null }); if (card.subtype === "Kata") player.turnStats.kataCount = (player.turnStats.kataCount ?? 0) + 1; if (equipment) this.applyCardEffects(player, card, "onEquip", { opponent: this.players[1 - player.id], sourceCard: card, equippedCard: card }); return true;
   }
 
-  buy(player, card) {
+  purchaseCost(player, card) {
+    if (!card) return Infinity;
     const characterDiscount = this.cardEffects(player.character, "passive").filter((effect) => effect.resolver === "character.marketDiscountFloor" && cost(card ?? {}) >= 5).reduce((sum, effect) => sum + num(effect.amount), 0);
     const discount = player.statuses.filter((status) => status.action === "modifyCost").reduce((sum, status) => sum + num(status.amount), characterDiscount);
     const itemPenalty = card?.cardType === "Item" ? player.statuses.filter((status) => status.action === "nextItemCostPenalty").reduce((sum, status) => sum + num(status.amount), 0) : 0;
-    const finalCost = Math.max(0, cost(card) + discount + itemPenalty);
+    return Math.max(0, cost(card) + discount + itemPenalty);
+  }
+
+  buy(player, card) {
+    const finalCost = this.purchaseCost(player, card);
     if (!card || !this.market.includes(card) || finalCost > player.focus) return false;
     player.turnStats.focusSpent = (player.turnStats.focusSpent ?? 0) + finalCost;
     if (card.cardType === "Item") this.removeStatus(player, "nextItemCostPenalty");
@@ -1208,8 +1214,8 @@ export class Game {
     const player = this.players[playerId];
     if (this.phase === "Honor") return [{ type: "pass", playerId }];
     if (this.phase === "Initiate") return [{ type: "pass", playerId }, ...player.hand.filter((card) => ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype) && this.canPlayCard(player, card)).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...player.equipment.filter((card) => !this.equipmentIsExhausted(player, card) && this.equipmentHasManualActivation(card)).map((card) => ({ type: "activate-equipment", playerId, cardId: card.instanceId }))];
-    if (this.phase === "Yell") return [...(this.hasStatus(player, "restrictAttack") ? [] : player.hand.filter((card) => isAttack(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-attack", playerId, cardId: card.instanceId }))), ...player.hand.filter((card) => !isAttack(card) && !isDefense(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...(this.definition.economy.defensePractice.usesPerTurn > 0 && !player.practiceUsed ? player.hand.filter(isDefense).map((card) => ({ type: "practice", playerId, cardId: card.instanceId })) : []), { type: "pass", playerId }];
-    if (this.phase === "Ascend") return [...this.market.filter((card) => cost(card) <= player.focus).map((card) => ({ type: "purchase", playerId, cardId: card.instanceId })), { type: "pass", playerId }];
+    if (this.phase === "Yell") return [...(this.hasStatus(player, "restrictAttack") || this.hasStatus(this.players[1 - playerId], "untargetable") ? [] : player.hand.filter((card) => isAttack(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-attack", playerId, cardId: card.instanceId }))), ...player.hand.filter((card) => !isAttack(card) && !isDefense(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...(this.definition.economy.defensePractice.usesPerTurn > 0 && !player.practiceUsed ? player.hand.filter(isDefense).map((card) => ({ type: "practice", playerId, cardId: card.instanceId })) : []), { type: "pass", playerId }];
+    if (this.phase === "Ascend") return [...this.market.filter((card) => this.purchaseCost(player, card) <= player.focus).map((card) => ({ type: "purchase", playerId, cardId: card.instanceId })), { type: "pass", playerId }];
     if (this.phase === "Hide") return [{ type: "hide", playerId }];
     return [];
   }
@@ -1349,10 +1355,10 @@ export class Game {
     this.sceneChangedThisRound = false;
     this.revealLocation();
     for (const player of this.players) { if (player.hp > 0) this.gainXp(player, this.definition.progression.xpPerHonor, "honor"); player.effectUsage.turn = {}; player.tempo = true; player.practiceUsed = false; player.attackCount = 0; this.expireStatuses(player, "nextHonor"); player.turnStats = { zones: new Set(), attacked: false, hit: false, blocked: false, damageTaken: 0, hitCount: 0, defenseCount: 0, incomingAttackCount: 0, kataCount: 0, focusGenerated: 0, playedDefenseSinceLastTurn: false, previousAttackHit: false, previousAttackBlocked: false, previousCardType: null, previousAttackTags: [], previousOpponentId: null, previousZone: null, flowDrawUsed: false, boughtCardThisTurn: false, boughtCardThisAscend: false, usedConsumableThisRound: false, consumableCount: 0 }; }
-    const living = this.players.filter((player) => player.hp > 0).sort((left, right) => (right.speed + right.tempSpeed) - (left.speed + left.tempSpeed) || left.id - right.id); if (living.length) this.activePlayer = living[0].id; this.phase = "Initiate"; this.emit({ type: "honor", players: this.players.map((player) => ({ id: player.id, xp: player.xp })) }); return true;
+    const living = this.players.filter((player) => player.hp > 0).sort((left, right) => (right.speed + right.tempSpeed) - (left.speed + left.tempSpeed) || left.id - right.id); this.turnOrder = living.map((player) => player.id); this.turnOrderPosition = 0; if (this.turnOrder.length) this.activePlayer = this.turnOrder[0]; this.phase = "Initiate"; this.emit({ type: "honor", players: this.players.map((player) => ({ id: player.id, xp: player.xp })), turnOrder: [...this.turnOrder] }); return true;
   }
 
-  finishTurn() { this.turns += 1; this.expireStatuses(this.players[this.activePlayer], "endOfTurn"); this.players[this.activePlayer].effectUsage.turn = {}; const next = this.activePlayer === 0 ? 1 : 0; if (next === 0) { this.round += 1; for (const player of this.players) { player.effectUsage.round = {}; this.expireStatuses(player, "endOfRound"); } if (!this.marketPurchasedThisRound) this.refillMarket(true); this.marketPurchasedThisRound = false; this.phase = "Honor"; } else this.phase = "Initiate"; this.activePlayer = next; this.checkWinner(); }
+  finishTurn() { this.turns += 1; this.expireStatuses(this.players[this.activePlayer], "endOfTurn"); this.players[this.activePlayer].effectUsage.turn = {}; const nextPosition = this.turnOrderPosition + 1; if (nextPosition < this.turnOrder.length) { this.turnOrderPosition = nextPosition; this.activePlayer = this.turnOrder[nextPosition]; this.phase = "Initiate"; } else { this.round += 1; this.turnOrderPosition = 0; for (const player of this.players) { player.effectUsage.round = {}; this.expireStatuses(player, "endOfRound"); } if (!this.marketPurchasedThisRound) this.refillMarket(true); this.marketPurchasedThisRound = false; this.phase = "Honor"; } this.checkWinner(); }
 
   hide(player) { const incomingDamage = player.turnStats.damageTaken ?? 0; for (const card of new Set([...player.played, ...player.equipment])) this.applyCardEffects(player, card, "onHide", { opponent: this.players[1 - player.id], incomingDamage }); player.lastTurnWasHit = Boolean(player.turnStats.hit || incomingDamage); player.lastTurnAttacked = Boolean(player.turnStats.attacked); player.lastTurnWasBlocked = Boolean(player.turnStats.blocked); player.discard.push(...player.hand, ...player.played.filter((card) => !player.equipment.includes(card))); player.hand = []; player.played = player.equipment.slice(); player.focus = 0; player.badHabitFocusUsed = false; player.practiceUsed = false; player.nextAttackPower = 0; player.tempSpeed = 0; this.expireStatuses(player, "endOfTurn"); this.draw(player, this.definition.turn.handSize + (player.xp >= 28 ? 1 : 0)); this.emit({ type: "hide", player: player.id, handSize: player.hand.length }); }
 
@@ -1368,6 +1374,7 @@ export class Game {
   defaultChoice() {
     if (["attack-zone", "card-movement", "cycle-discard-draw", "deck-look", "zone-choice", "hit-choice", "incoming-attack-choice", "equipment-toggle", "discard-or-destroy"].includes(this.pendingChoice?.kind)) return { optionId: this.pendingChoice.options[0].id };
     if (this.pendingChoice?.kind === "reaction") return { optionId: "pass" };
+    if (this.pendingChoice?.kind === "structured") return { optionId: this.pendingChoice.options[0].id };
     const defender = this.players[this.pendingChoice.playerId]; const defense = chooseDefense(defender.hand); return { optionId: defense?.instanceId ?? "pass" };
   }
 
@@ -1397,7 +1404,7 @@ export class Game {
   }
 
   checkInvariants() {
-    const failures = []; if (!Number.isInteger(this.round) || this.round < 1) failures.push("round must be a positive integer"); if (!Number.isInteger(this.activePlayer) || !this.players[this.activePlayer]) failures.push("activePlayer must identify a player"); if (!this.definition.turn.phases.includes(this.phase)) failures.push(`unknown phase ${this.phase}`);
+    const failures = []; if (!Number.isInteger(this.round) || this.round < 1) failures.push("round must be a positive integer"); if (!Number.isInteger(this.activePlayer) || !this.players[this.activePlayer]) failures.push("activePlayer must identify a player"); if (!Array.isArray(this.turnOrder) || !this.turnOrder.length) failures.push("turnOrder must contain at least one player"); if (!Number.isInteger(this.turnOrderPosition) || this.turnOrderPosition < 0 || this.turnOrderPosition >= Math.max(1, this.turnOrder.length)) failures.push("turnOrderPosition must identify a turn in the initiative order"); if (this.turnOrder?.[this.turnOrderPosition] !== this.activePlayer && this.phase !== "Honor") failures.push("activePlayer must match the locked initiative order"); if (new Set(this.turnOrder ?? []).size !== (this.turnOrder ?? []).length) failures.push("turnOrder must not contain duplicate players"); if ((this.turnOrder ?? []).some((id) => !this.players[id])) failures.push("turnOrder must contain valid players"); if (!this.definition.turn.phases.includes(this.phase)) failures.push(`unknown phase ${this.phase}`);
     const seen = new Map();
     const visit = (location, cards) => { for (const card of cards ?? []) { if (!card?.instanceId) failures.push(`${location} contains a card without instanceId`); else if (seen.has(card.instanceId)) failures.push(`${location} duplicates ${card.instanceId}; already in ${seen.get(card.instanceId)}`); else seen.set(card.instanceId, location); } };
     visit("market", this.market); visit("marketDeck", this.marketDeck); visit("marketDiscard", this.marketDiscard); visit("locationDeck", this.locationDeck); visit("locationDiscard", this.locationDiscard); visit("currentLocation", this.currentLocation ? [this.currentLocation] : []);
@@ -1409,7 +1416,7 @@ export class Game {
 
   getState() {
     const cardIds = (cards) => cards.map((card) => card.instanceId ?? card.catalogId);
-    return { schemaVersion: 2, rulesVersion: this.definition.rulesVersion, seed: this.seed, round: this.round, turns: this.turns, phase: this.phase, activePlayer: this.activePlayer, winner: this.winner, reason: this.reason, pendingChoice: this.getPendingChoice(), market: cardIds(this.market), marketDeck: cardIds(this.marketDeck), marketDiscard: cardIds(this.marketDiscard), location: this.currentLocation?.catalogId ?? null, locationDeck: cardIds(this.locationDeck ?? []), locationDiscard: cardIds(this.locationDiscard ?? []), players: this.players.map((player) => ({ id: player.id, hp: player.hp, maxHp: player.maxHp, atk: player.atk, def: player.def, speed: player.speed, focus: player.focus, xp: player.xp, beltIndex: player.beltIndex, tempo: player.tempo, exhaustedEquipment: [...player.exhaustedEquipment], statuses: structuredClone(player.statuses), cardZones: { deck: cardIds(player.deck), hand: cardIds(player.hand), discard: cardIds(player.discard), destroyed: cardIds(player.destroyed), played: cardIds(player.played), equipment: cardIds(player.equipment) } })) };
+    return { schemaVersion: 2, rulesVersion: this.definition.rulesVersion, seed: this.seed, round: this.round, turns: this.turns, phase: this.phase, activePlayer: this.activePlayer, turnOrder: [...this.turnOrder], turnOrderPosition: this.turnOrderPosition, winner: this.winner, reason: this.reason, pendingChoice: this.getPendingChoice(), market: cardIds(this.market), marketDeck: cardIds(this.marketDeck), marketDiscard: cardIds(this.marketDiscard), location: this.currentLocation?.catalogId ?? null, locationDeck: cardIds(this.locationDeck ?? []), locationDiscard: cardIds(this.locationDiscard ?? []), players: this.players.map((player) => ({ id: player.id, hp: player.hp, maxHp: player.maxHp, atk: player.atk, def: player.def, speed: player.speed, focus: player.focus, xp: player.xp, beltIndex: player.beltIndex, tempo: player.tempo, exhaustedEquipment: [...player.exhaustedEquipment], statuses: structuredClone(player.statuses), cardZones: { deck: cardIds(player.deck), hand: cardIds(player.hand), discard: cardIds(player.discard), destroyed: cardIds(player.destroyed), played: cardIds(player.played), equipment: cardIds(player.equipment) } })) };
   }
 
   result() { return { seed: this.seed, winner: this.winner, reason: this.reason, rounds: this.round, turns: this.turns, phase: this.phase, players: this.players.map((player) => ({ id: player.id, strategy: player.strategy, hp: player.hp, xp: player.xp, beltIndex: player.beltIndex, purchases: player.purchases, plays: player.plays, openingPurchase: player.openingPurchase })), cards: [...this.cardStats.values()], telemetry: { ...this.telemetry }, invariantFailures: this.checkInvariants(), unsupportedEffects: this.telemetry.unsupportedEffects, decisions: this.decisions, events: this.events, state: this.getState() }; }
