@@ -1329,6 +1329,9 @@ function withPlayerCharacterChoice(result: {
 
 function isCoreDefenseCard(card: CardEntry) { return card.catalogId.startsWith("DDB-DEF-CORE-"); }
 function isCoreConsumableCard(card: CardEntry) { return card.catalogId.startsWith("DDB-CON-CORE-"); }
+function hasStructuredResolver(card: CardEntry, resolver: string) {
+  return structuredRuntimeResolvers(card, resolver).length > 0;
+}
 function isCoreReactionItemCard(card: CardEntry) { return card.catalogId.startsWith("DDB-RIT-CORE-"); }
 
 function reactionItemContext(zone: string, attacker: Board, attackAlreadyDeclared = false, normalAttack = true): ReactionItemRuntimeContext {
@@ -3176,7 +3179,7 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       if (defensePenalty) nextAi = queueOpponentCardModification({ ...nextAi, nextDefenseCardBonus: (nextAi.nextDefenseCardBonus ?? 0) - defensePenalty }, "Defense");
     }
     if (isCoreConsumableCard(card)) {
-      if (card.catalogId === "DDB-CON-CORE-009") {
+      if (hasStructuredResolver(card, "consumable.chooseOpponentDiscardReactionIfAble")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.chooseOpponentDiscardReactionIfAble"]);
         const reactions = nextAi.hand.map(cardFor).filter((candidate): candidate is CardEntry => Boolean(candidate && String(candidate.timing ?? "").toLocaleLowerCase() === "reaction"));
         if (reactions.length) {
@@ -3184,58 +3187,58 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
           nextAi = { ...nextAi, hand: removeOne(nextAi.hand, chosen.id), discard: [...nextAi.discard, chosen.id] };
         }
       }
-      if (card.catalogId === "DDB-CON-CORE-010") {
+      if (hasStructuredResolver(card, "consumable.optionalExhaustToCycle")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.optionalExhaustToCycle"]);
         const equipmentIds = stage3cReadyEquipmentIds(nextPlayer);
         if (!pendingChoice && equipmentIds.length) pendingChoice = { kind: "stage3c-trail-mix", sourceCardId: id, equipmentIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-012" && current.phase === "player-ascend") {
+      if (hasStructuredResolver(card, "consumable.raffleTicket") && current.phase === "player-ascend") {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.raffleTicket"]);
         const reveal = revealMarketCards(nextMarketDeck, nextMarketDiscard, 1);
         nextMarketDeck = reveal.marketDeck;
         nextMarketDiscard = reveal.marketDiscard;
         if (reveal.revealed[0]) pendingChoice = { kind: "stage3c-raffle", sourceCardId: id, revealedCardId: reveal.revealed[0] };
       }
-      if (card.catalogId === "DDB-CON-CORE-021") {
+      if (hasStructuredResolver(card, "consumable.zoneSpecificIncomingAttackPenalty")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.zoneSpecificIncomingAttackPenalty"]);
         pendingChoice = { kind: "stage3c-zone-ward", sourceCardId: id, amount: -2 };
       }
-      if (card.catalogId === "DDB-CON-CORE-022") {
+      if (hasStructuredResolver(card, "consumable.reorderTopThree")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.reorderTopThree"]);
         const reveal = revealDeckTop(nextPlayer, 3);
         const types = new Set(reveal.revealed.map((candidate) => cardFor(candidate)?.cardType ?? "Unknown"));
         nextPlayer = reveal.board;
         if (reveal.revealed.length) pendingChoice = { kind: "deck-order", sourceCardId: id, revealed: reveal.revealed, ordered: [], bonusFocus: reveal.revealed.length === 3 && types.size === 3 ? 1 : 0 };
       }
-      if (card.catalogId === "DDB-CON-CORE-031" || card.catalogId === "DDB-CON-CORE-056") {
+      if (hasStructuredResolver(card, "consumable.removeTemporaryNegativeStatModifier")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.removeTemporaryNegativeStatModifier"]);
         const stats = stage3cNegativeStatOptions(nextPlayer);
-        if (stats.length) pendingChoice = { kind: "stage3c-remove-negative", sourceCardId: id, bonusAttack: card.catalogId === "DDB-CON-CORE-031" ? 1 : 0, stats };
+        if (stats.length) pendingChoice = { kind: "stage3c-remove-negative", sourceCardId: id, bonusAttack: hasStructuredResolver(card, "consumable.pepTalkConditionalAttackBonus") ? 1 : 0, stats };
       }
       if (nextPlayer.stage3cChoices?.some((choice) => choice.resolver === "consumable.healAndRemoveStatus")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.healAndRemoveStatus"]);
         const statusIds = removableTemporaryStatuses(nextPlayer.stage3cStatuses).map((status) => status.sourceEffectId);
         if (!pendingChoice && statusIds.length) pendingChoice = { kind: "stage3c-remove-status", sourceCardId: id, statusIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-032") {
+      if (hasStructuredResolver(card, "consumable.discardUpToForFocus")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.discardUpToForFocus"]);
         if (nextPlayer.hand.length) pendingChoice = { kind: "stage3c-discard-focus", sourceCardId: id, remaining: Math.min(2, nextPlayer.hand.length), focusPerDiscard: 2, optional: true };
       }
-      if (card.catalogId === "DDB-CON-CORE-035") {
+      if (hasStructuredResolver(card, "consumable.suppressChosenWeaponClause")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.suppressChosenWeaponClause"]);
         const equipmentIds = nextPlayer.equipment.filter((equipmentId) => { const item = cardFor(equipmentId); return Boolean(item && isWeapon(item)); });
         if (equipmentIds.length) pendingChoice = { kind: "stage3c-weapon-suppress", sourceCardId: id, equipmentIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-045") {
+      if (hasStructuredResolver(card, "consumable.exhaustEquipmentForFocus")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.exhaustEquipmentForFocus"]);
         const equipmentIds = stage3cReadyEquipmentIds(nextPlayer);
         if (equipmentIds.length) pendingChoice = { kind: "stage3c-exhaust-focus", sourceCardId: id, equipmentIds, focus: 3 };
       }
-      if (card.catalogId === "DDB-CON-CORE-049" && current.phase === "defense-window" && current.pendingStrike) {
+      if (hasStructuredResolver(card, "consumable.untargetableUntilTurnOrAttack") && current.phase === "defense-window" && current.pendingStrike) {
         const escaped = write(current, `Smoke Bomb invalidates ${cardFor(current.pendingStrike.cardId)?.name ?? "the incoming Attack"}'s only legal target. The strike is spent without dealing damage.`, { player: nextPlayer, ai: nextAi, pendingStrike: null, pendingChoice: null, pendingCombatContinuation: null });
         return finishAiTurn(escaped, "Computer cannot legally target you through the Smoke Bomb and ends its Yell.", settings.locations, settings.houseRuleIds);
       }
-      if (card.catalogId === "DDB-CON-CORE-051") {
+      if (hasStructuredResolver(card, "consumable.topThreeAttackSelection")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.topThreeAttackSelection"]);
         const sparring = beginStage3CSparringDummy(nextPlayer, id);
         nextPlayer = sparring.board;
@@ -4641,12 +4644,12 @@ function prepareAiTurn(current: Match) {
       nextPlayer = applyStage3CTiming(nextPlayer, card, "afterResolve", "player", stage3cConsumableContext(nextAi), "opponent");
     }
     if (isCoreConsumableCard(card)) {
-      if (card.catalogId === "DDB-CON-CORE-009") {
+      if (hasStructuredResolver(card, "consumable.chooseOpponentDiscardReactionIfAble")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.chooseOpponentDiscardReactionIfAble"]);
         const reactionIds = nextPlayer.hand.filter((candidate) => String(cardFor(candidate)?.timing ?? "").toLocaleLowerCase() === "reaction");
         if (reactionIds.length) pendingChoice = { kind: "stage3c-reaction-discard", sourceCardId: card.id, reactionIds };
       }
-      if (card.catalogId === "DDB-CON-CORE-010") {
+      if (hasStructuredResolver(card, "consumable.optionalExhaustToCycle")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.optionalExhaustToCycle"]);
         const equipmentId = stage3cReadyEquipmentIds(nextAi)[0];
         if (equipmentId) {
@@ -4656,11 +4659,11 @@ function prepareAiTurn(current: Match) {
           if (discardId) nextAi = { ...nextAi, hand: removeOne(nextAi.hand, discardId), discard: [...nextAi.discard, discardId] };
         }
       }
-      if (card.catalogId === "DDB-CON-CORE-021") {
+      if (hasStructuredResolver(card, "consumable.zoneSpecificIncomingAttackPenalty")) {
         nextPlayer = clearStage3CResolverChoices(nextPlayer, ["consumable.zoneSpecificIncomingAttackPenalty"]);
         nextPlayer = stage3cArmZoneWard(nextPlayer, card.id, stage3cAiPreferredAttackZone(nextPlayer), -2);
       }
-      if (card.catalogId === "DDB-CON-CORE-022") {
+      if (hasStructuredResolver(card, "consumable.reorderTopThree")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.reorderTopThree"]);
         const reveal = revealDeckTop(nextAi, 3);
         const ordered = [...reveal.revealed].sort((left, right) => cardCost(cardFor(right)) - cardCost(cardFor(left)));
@@ -4668,13 +4671,13 @@ function prepareAiTurn(current: Match) {
         nextAi = { ...reveal.board, deck: [...reveal.board.deck, ...ordered.slice().reverse()] };
         if (reveal.revealed.length === 3 && types.size === 3) nextAi = gainFocus(nextAi, 1);
       }
-      if (card.catalogId === "DDB-CON-CORE-031" || card.catalogId === "DDB-CON-CORE-056") {
+      if (hasStructuredResolver(card, "consumable.removeTemporaryNegativeStatModifier")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.removeTemporaryNegativeStatModifier"]);
         const stat = stage3cNegativeStatOptions(nextAi)[0];
         if (stat) {
           const removed = stage3cRemoveTemporaryNegative(nextAi, stat);
           nextAi = removed.board;
-          if (removed.removed && card.catalogId === "DDB-CON-CORE-031") {
+          if (removed.removed && hasStructuredResolver(card, "consumable.pepTalkConditionalAttackBonus")) {
             const status: RuntimeStatus = { sourceEffectId: `consumable-pep-talk-bonus:${card.id}`, effect: "combat.modifyAttackPower", target: "self", amount: 1, duration: "nextAttack", resolver: "consumable.pepTalkConditionalAttackBonus", qualifier: { nextAttack: true, expires: "endOfTurn" }, appliedImmediately: false };
             nextAi = { ...nextAi, stage3cStatuses: [...(nextAi.stage3cStatuses ?? []), status] };
           }
@@ -4685,22 +4688,22 @@ function prepareAiTurn(current: Match) {
         const sourceEffectId = chooseAiTemporaryStatusRemoval(nextAi.stage3cStatuses);
         if (sourceEffectId) nextAi = removeTemporaryStatus(nextAi, sourceEffectId).board;
       }
-      if (card.catalogId === "DDB-CON-CORE-032") {
+      if (hasStructuredResolver(card, "consumable.discardUpToForFocus")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.discardUpToForFocus"]);
         const discarded = [...nextAi.hand].sort((left, right) => cardFocus(cardFor(left)) - cardFocus(cardFor(right))).slice(0, 2);
         nextAi = gainFocus({ ...nextAi, hand: nextAi.hand.filter((candidate) => !discarded.includes(candidate)), discard: [...nextAi.discard, ...discarded] }, discarded.length * 2);
       }
-      if (card.catalogId === "DDB-CON-CORE-035") {
+      if (hasStructuredResolver(card, "consumable.suppressChosenWeaponClause")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.suppressChosenWeaponClause"]);
         const weaponId = nextAi.equipment.find((candidate) => { const item = cardFor(candidate); return Boolean(item && isWeapon(item)); });
         if (weaponId) nextAi = { ...nextAi, suppressedEquipmentPenaltyIds: [...new Set([...(nextAi.suppressedEquipmentPenaltyIds ?? []), weaponId])] };
       }
-      if (card.catalogId === "DDB-CON-CORE-045") {
+      if (hasStructuredResolver(card, "consumable.exhaustEquipmentForFocus")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.exhaustEquipmentForFocus"]);
         const equipmentId = stage3cReadyEquipmentIds(nextAi)[0];
         if (equipmentId) nextAi = gainFocus(exhaustEquipment(nextAi, equipmentId), 3);
       }
-      if (card.catalogId === "DDB-CON-CORE-051") {
+      if (hasStructuredResolver(card, "consumable.topThreeAttackSelection")) {
         nextAi = clearStage3CResolverChoices(nextAi, ["consumable.topThreeAttackSelection"]);
         const reveal = revealDeckTop(nextAi, 3);
         const attackId = reveal.revealed.filter((candidate) => isAttack(cardFor(candidate)!)).sort((left, right) => cardPower(cardFor(right)!) - cardPower(cardFor(left)!))[0];

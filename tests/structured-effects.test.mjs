@@ -52,6 +52,9 @@ test("Quick Duel host does not dispatch these mechanics by card identity or prin
   assert.doesNotMatch(source, /this Attack gains Flow/i);
   assert.doesNotMatch(source, /location\.name\s*===/);
   assert.doesNotMatch(source, /includes\(location\.name\)/);
+  for (const catalogId of ["DDB-CON-CORE-009", "DDB-CON-CORE-010", "DDB-CON-CORE-021", "DDB-CON-CORE-022", "DDB-CON-CORE-031", "DDB-CON-CORE-032", "DDB-CON-CORE-035", "DDB-CON-CORE-045", "DDB-CON-CORE-051"]) {
+    assert.doesNotMatch(source, new RegExp(catalogId), `consumable ${catalogId} must resolve by canonical resolver`);
+  }
 });
 
 test("every canonical structured-effect entry resolves as structured data, never card prose", () => {
