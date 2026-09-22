@@ -11,10 +11,10 @@ const remove = (list, value) => { const index = list.indexOf(value); if (index >
  *
  * This is an engine mode, not a simulator rule overlay. The player side uses
  * the normal Game lifecycle and combat resolver; this class supplies only the
- * canonical Boss ladder, Boss Arsenal, Boss Guard, and Boss turn lifecycle.
+ * canonical Boss ladder, Boss Arsenal, Boss Guard, and automated Boss turn.
  */
 export class BossBlitzGame extends Game {
-  constructor(data, { seed = 1, strategies = ["balanced"], characters = [], bossProfiles = null, interactive = false } = {}) {
+  constructor(data, { seed = 1, strategies = ["balanced"], characters = [], bossProfiles = null } = {}) {
     const catalogCharacters = data.cards.filter((card) => card.cardType === "Character");
     const roster = (characters.length ? characters : catalogCharacters.slice(0, 3)).map((entry) => typeof entry === "string" ? data.byId.get(entry) : entry).filter(Boolean).slice(0, 3);
     if (roster.length !== 3) throw new Error("Boss Blitz requires exactly three canonical Characters");
@@ -23,11 +23,6 @@ export class BossBlitzGame extends Game {
     this.bossConfig = this.definition.mode.bossBlitz;
     if (!this.bossConfig) throw new Error("boss-blitz is missing its canonical bossBlitz definition");
     this.bossProfiles = bossProfiles;
-    this.interactive = Boolean(interactive);
-    this.pendingBossAttack = null;
-    this.bossTurnInProgress = false;
-    this.bossTurnAttackIndex = 0;
-    this.bossTurnAttackCount = 0;
     this.bossStageIndex = 0;
     this.bossStagePending = false;
     this.bossGuard = null;
@@ -303,32 +298,17 @@ export class BossBlitzGame extends Game {
     const player = this.players[0];
     const card = this.revealBossAttack();
     boss.hand.push(card);
+    const defense = chooseDefense(player.hand);
     const stageBonus = num(this.currentBossStageStats["Boss ATK Bonus"]);
     boss.nextAttackPower = stageBonus + this.bossAttackPowerBonus;
     this.bossAttackPowerBonus = 0;
-    if (this.interactive) {
-      this.pendingBossAttack = { card };
-      if (!this.beginAttack(1, card, { zone: card.zone })) throw new Error(`Boss attack could not be presented at seed ${this.seed}`);
-      return null;
-    }
-    const defense = chooseDefense(player.hand);
-    const result = this.executeBossAttack(card, defense);
-    return this.finalizeBossAttack(card, result, defense);
-  }
-
-  executeBossAttack(card, defense) {
     this._suppressBossStructuredEffects = true;
     let result;
     try {
-      result = super.resolveAttack(this.players[1], this.players[0], card, { useTempo: false, defenseCard: defense, zone: card.zone });
+      result = super.resolveAttack(boss, player, card, { useTempo: false, defenseCard: defense, zone: card.zone });
     } finally {
       this._suppressBossStructuredEffects = false;
     }
-    return result;
-  }
-
-  finalizeBossAttack(card, result, defense) {
-    const boss = this.players[1];
     remove(boss.played, card);
     this.bossArsenalDiscard.push(card);
     const blocked = Boolean(result?.damage === 0 && defense);
@@ -355,7 +335,6 @@ export class BossBlitzGame extends Game {
         if (options.length) this.pendingChoice.options = options;
         else { this.pendingChoice = null; this.lastPresentedChoice = null; continue; }
       }
-      if (this.interactive && this.pendingChoice.playerId === 0) return;
       const pending = this.getPendingChoice();
       if (this.lastPresentedChoice !== this.pendingChoice) {
         this.telemetry.choicesPresented += 1;
@@ -371,28 +350,14 @@ export class BossBlitzGame extends Game {
   }
 
   runBossTurn() {
-    if (this.winner !== null || this.bossStagePending) return false;
-    this.bossTurnInProgress = true;
-    this.bossTurnAttackIndex = 0;
-    this.bossTurnAttackCount = this.currentBossAttackCount();
+    if (this.winner !== null || this.bossStagePending) return;
     this.applyBossProfileEvent("boss-turn-start", { fallbackAttackPower: 1 });
-    this.continueBossTurn();
-    return true;
-  }
-
-  continueBossTurn() {
-    if (!this.bossTurnInProgress || this.winner !== null || this.bossStagePending) return;
     this.resolveBossPendingChoices();
-    if (this.pendingChoice) return;
-    while (this.bossTurnAttackIndex < this.bossTurnAttackCount && this.winner === null && this.players[0].hp > 0) {
+    const count = this.currentBossAttackCount();
+    for (let index = 0; index < count && this.winner === null && this.players[0].hp > 0; index += 1) {
       this.resolveBossAttack();
-      if (this.pendingChoice) return;
       this.resolveBossPendingChoices();
-      if (this.pendingChoice) return;
-      this.bossTurnAttackIndex += 1;
     }
-    this.bossTurnInProgress = false;
-    this.completeTurnAfterBoss();
   }
 
   advanceBossAfterKo() {
@@ -450,12 +415,7 @@ export class BossBlitzGame extends Game {
     this.turns += 1;
     this.expireStatuses(this.players[0], "endOfTurn");
     this.players[0].effectUsage.turn = {};
-    const bossTurnRan = this.runBossTurn();
-    if (this.winner !== null || this.pendingChoice || this.bossTurnInProgress || bossTurnRan) return;
-    this.completeTurnAfterBoss();
-  }
-
-  completeTurnAfterBoss() {
+    this.runBossTurn();
     if (this.winner !== null) return;
     this.saveActiveFighter(this.players[0]);
     this.round = Math.min(this.round + 1, this.definition.mode.maxRounds);
@@ -495,26 +455,7 @@ export class BossBlitzGame extends Game {
     return super.beginAttack(playerId, card, action);
   }
 
-  resolveChoice(choice) {
-    const result = super.resolveChoice(choice);
-    if (result && this.interactive && this.bossTurnInProgress && !this.pendingChoice && !this.pendingBossAttack && this.winner === null) this.continueBossTurn();
-    return result;
-  }
-
   resolveAttack(attacker, defender, card, options = {}) {
-    const isInteractiveBossAttack = this.interactive && attacker?.id === 1 && defender?.id === 0 && this.pendingBossAttack?.card?.instanceId === card?.instanceId;
-    if (isInteractiveBossAttack) {
-      const defense = options.defenseCard ?? null;
-      const result = this.executeBossAttack(card, defense);
-      this.pendingBossAttack = null;
-      this.finalizeBossAttack(card, result, defense);
-      if (this.winner === null) {
-        this.bossTurnAttackIndex += 1;
-        this.continueBossTurn();
-      }
-      this.saveActiveFighter(this.players[0]);
-      return result;
-    }
     const isPlayerAgainstBoss = attacker?.id === 0 && defender?.id === 1;
     if (isPlayerAgainstBoss) {
       const changed = card?.zone === "Any" && options.zone && options.zone !== card.zone;

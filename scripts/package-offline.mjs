@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { basename, dirname, join, resolve } from "node:path";
@@ -18,6 +18,11 @@ await rm(stage, { recursive: true, force: true });
 await rm(zip, { force: true });
 await mkdir(packageRoot, { recursive: true });
 await mkdir(stage, { recursive: true });
+const offlineIndex = await readFile(resolve(repo, "dist", "index.html"), "utf8");
+if (!offlineIndex.includes('src="./assets/') || offlineIndex.includes('src="/dojo-deckbuilder/')) {
+  throw new Error("Offline packaging requires a relative-asset build. Run npm run build:offline before packaging.");
+}
+await cp(resolve(repo, "dist"), join(stage, "dist"), { recursive: true });
 await cp(resolve(repo, "engine"), join(stage, "engine"), { recursive: true });
 await cp(resolve(repo, "app", "data"), join(stage, "app", "data"), { recursive: true });
 await cp(resolve(repo, "content"), join(stage, "content"), { recursive: true });
@@ -27,28 +32,20 @@ if (process.platform === "win32") {
   await cp(process.execPath, join(stage, "runtime", "node.exe"));
 }
 
-let gameAppName = null;
-let gameExeName = null;
+let playAppName = null;
+let playExeName = null;
 let simulatorAppName = null;
 let simulatorExeName = null;
 if (process.platform === "win32") {
   const electronRoot = resolve(packageRoot, "electron-build");
-  const gameSource = resolve(electronRoot, "game-source");
+  const playSource = resolve(electronRoot, "play-source");
   const simulatorSource = resolve(electronRoot, "simulator-source");
   await rm(electronRoot, { recursive: true, force: true });
-  await mkdir(gameSource, { recursive: true });
+  await mkdir(playSource, { recursive: true });
   await mkdir(simulatorSource, { recursive: true });
-  await mkdir(join(gameSource, "runtime"), { recursive: true });
-  await mkdir(join(simulatorSource, "runtime"), { recursive: true });
-  await cp(resolve(repo, "engine"), join(gameSource, "engine"), { recursive: true });
-  await cp(resolve(repo, "app", "data"), join(gameSource, "app", "data"), { recursive: true });
-  await cp(resolve(repo, "app", "assets"), join(gameSource, "assets"), { recursive: true });
-  await cp(resolve(repo, "desktop", "game-main.cjs"), join(gameSource, "game-main.cjs"));
-  await cp(resolve(repo, "desktop", "game-preload.cjs"), join(gameSource, "game-preload.cjs"));
-  await cp(resolve(repo, "desktop", "game.html"), join(gameSource, "game.html"));
-  await cp(resolve(repo, "desktop", "game-renderer.js"), join(gameSource, "game-renderer.js"));
-  await cp(process.execPath, join(gameSource, "runtime", "node.exe"));
-  await writeFile(join(gameSource, "package.json"), `${JSON.stringify({ name: "dojo-deckbuilder-game", productName: "Dojo Deckbuilder Game", version: "1.0.0", main: "game-main.cjs" }, null, 2)}\n`);
+  await cp(resolve(repo, "dist"), join(playSource, "dist"), { recursive: true });
+  await cp(resolve(repo, "desktop", "play-main.cjs"), join(playSource, "play-main.cjs"));
+  await writeFile(join(playSource, "package.json"), `${JSON.stringify({ name: "dojo-deckbuilder-desktop", productName: "Dojo Deckbuilder", version: "1.0.0", main: "play-main.cjs" }, null, 2)}\n`);
 
   await cp(resolve(repo, "engine"), join(simulatorSource, "engine"), { recursive: true });
   await cp(resolve(repo, "content"), join(simulatorSource, "content"), { recursive: true });
@@ -61,13 +58,13 @@ if (process.platform === "win32") {
   await writeFile(join(simulatorSource, "package.json"), `${JSON.stringify({ name: "dojo-deckbuilder-simulator", productName: "Dojo Deckbuilder Simulator", version: "1.0.0", main: "simulator-main.cjs" }, null, 2)}\n`);
 
   const electronVersion = require("electron/package.json").version;
-  const [gameOutput] = await packager({ dir: gameSource, out: electronRoot, name: "Dojo-Deckbuilder-Game", platform: "win32", arch: "x64", electronVersion, overwrite: true, asar: false });
+  const [playOutput] = await packager({ dir: playSource, out: electronRoot, name: "Dojo-Deckbuilder", platform: "win32", arch: "x64", electronVersion, overwrite: true, asar: true });
   const [simulatorOutput] = await packager({ dir: simulatorSource, out: electronRoot, name: "Dojo-Deckbuilder-Simulator", platform: "win32", arch: "x64", electronVersion, overwrite: true, asar: false });
-  gameAppName = basename(gameOutput);
-  gameExeName = "Dojo-Deckbuilder-Game.exe";
+  playAppName = basename(playOutput);
+  playExeName = "Dojo-Deckbuilder.exe";
   simulatorAppName = basename(simulatorOutput);
   simulatorExeName = "Dojo-Deckbuilder-Simulator.exe";
-  await cp(gameOutput, join(stage, "apps", gameAppName), { recursive: true });
+  await cp(playOutput, join(stage, "apps", playAppName), { recursive: true });
   await cp(simulatorOutput, join(stage, "apps", simulatorAppName), { recursive: true });
 }
 await mkdir(join(stage, "reports"), { recursive: true });
@@ -75,8 +72,8 @@ await writeFile(join(stage, "package.json"), `${JSON.stringify({ type: "module",
 await writeFile(join(stage, "mode-manifest.json"), `${JSON.stringify({ rulesVersion: data.definition.rulesVersion, rulesRevision: data.definition.rulesRevision, ...modes }, null, 2)}\n`);
 const launcher = process.platform === "win32" ? "%~dp0runtime\\node.exe" : "node";
 const playCommand = process.platform === "win32"
-  ? `@echo off\r\ncd /d "%~dp0"\r\n"%~dp0apps\\${gameAppName}\\${gameExeName}"\r\n`
-  : `@echo off\r\ncd /d "%~dp0"\r\n"${launcher}" engine\\desktop-server.mjs %*\r\n`;
+  ? `@echo off\r\ncd /d "%~dp0"\r\n"%~dp0apps\\${playAppName}\\${playExeName}"\r\n`
+  : `@echo off\r\ncd /d "%~dp0"\r\n"${launcher}" tools\\offline-server.mjs --root=dist %*\r\n`;
 const simulateCommand = process.platform === "win32"
   ? `@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\nif "%*"=="" (\r\n  "%~dp0apps\\${simulatorAppName}\\${simulatorExeName}"\r\n  exit /b %ERRORLEVEL%\r\n)\r\necho Dojo Deckbuilder offline simulator CLI\r\necho Rules: ${data.definition.rulesVersion}/${data.definition.rulesRevision}\r\necho.\r\n"${launcher}" engine\\parallel-simulate.mjs %*\r\nset "EXITCODE=%ERRORLEVEL%"\r\necho.\r\nif "%EXITCODE%"=="0" ( echo Simulation complete. Reports are under the reports folder. ) else ( echo Simulation failed with exit code %EXITCODE%. )\r\nif /I not "%DOJO_NO_PAUSE%"=="1" pause\r\nexit /b %EXITCODE%\r\n`
   : `@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\n"${launcher}" tools\\simulate-menu.mjs\r\n`;
@@ -91,7 +88,7 @@ const readme = [
   "",
   "## Play locally",
   "",
-  "Run `play.cmd` or double-click `Dojo-Deckbuilder-Game.exe` under `apps`. This is the focused offline game client: it opens directly to mode selection and does not load the Dojo website, rules homepage, navigation, or browser server.",
+  "Run `play.cmd` or double-click the Dojo Deckbuilder executable under `apps`. It opens a native desktop window and does not use a web browser or local server.",
   "",
   "## Run parallel simulations",
   "",
