@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent, type SetStateAction } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type SetStateAction } from "react";
 import cardPlaceholderUrl from "./assets/art/card-placeholder-v2.webp";
 import starterJabArtUrl from "./assets/starter/starter-jab-art-v2.webp";
 import highGuardArtUrl from "./assets/starter/high-guard-art-v2.webp";
@@ -2846,14 +2846,21 @@ function CombatStage({ match, currentLocation, selectedAttack, turnCoach, guided
 }
 
 function FeaturedComboPanel({ card, focus, learnedCount, attempted, discount = 0, onLearn, onPass, onContinue, onInspect }: { card: CardEntry; focus: number; learnedCount: number; attempted: boolean; discount?: number; onLearn: () => void; onPass: () => void; onContinue: () => void; onInspect: () => void }) {
+  const [comboPanelOpen, setComboPanelOpen] = useState(false);
   const art = artistUrl(card);
   const printedCost = cardCost(card);
   const cost = Math.max(0, printedCost - discount);
   const headingId = `featured-combo-${presentationSlug(card.id)}`;
   const requirement = String(card.details?.["Sequence / Requirement"] ?? "See the printed Combo requirement.");
   const payoff = String(card.details?.Effect ?? card.rulesText ?? "See the printed Combo payoff.");
-  return <aside className="ascend-featured-combo" aria-labelledby={headingId}>
-    <header><div><span className="eyebrow">Featured Combo · same decision desk</span><h3 id={headingId}>{card.name}</h3></div><span className="ascend-featured-combo-state">{attempted ? "FILED" : `${learnedCount}/2 LEARNED`}</span></header>
+  const toggleComboPanel = () => setComboPanelOpen((open) => !open);
+  const handleComboHeaderKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    toggleComboPanel();
+  };
+  return <aside className={`ascend-featured-combo${comboPanelOpen ? " is-open" : ""}`} data-combo-popout="ready" aria-labelledby={headingId}>
+    <header role="button" tabIndex={0} aria-expanded={comboPanelOpen} aria-label={`${comboPanelOpen ? "Close" : "Open"} featured Combo ${card.name}`} onClick={toggleComboPanel} onKeyDown={handleComboHeaderKeyDown}><div><span className="eyebrow">Featured Combo · same decision desk</span><h3 id={headingId}>{card.name}</h3></div><span className="ascend-featured-combo-state">{attempted ? "FILED" : `${learnedCount}/2 LEARNED`}</span></header>
     <button type="button" className="ascend-featured-combo-card" onClick={onInspect} aria-label={`Inspect ${card.name}`}>
       {art ? <img src={art} alt="" loading="lazy" /> : <NativeCardArt card={card} />}
     </button>
