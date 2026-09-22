@@ -13,6 +13,7 @@ import {
 import type { RuntimeCommand, RuntimeTrigger } from "./family-effect-runtime.ts";
 import { clearOpponentCardModificationQueue, opponentCardModificationQueue, queueOpponentCardModification, runtimeCommandCardModificationTypes } from "./character-card-modification-facts.ts";
 import { runtimeCardFor } from "./runtime-card-catalog.ts";
+import { equipmentHandLimit } from "./equipment-hand-limit.ts";
 import {
   applyQuickDuelStructuredTransition,
   hostQuickDuelComboEvent,
@@ -450,6 +451,21 @@ export function publishQuickDuelPlaytestEquip<
   actor: QuickDuelPlaytestActor,
   card: CharacterRuntimeEvent["card"],
 ): QuickDuelPlaytestEquipResult<Match> {
+  const handLimit = equipmentHandLimit(match[actor].equipment, card, runtimeCardFor);
+  if (!handLimit.allowed) {
+    const event: CharacterRuntimeEvent = { type: "equip", card: card ?? null, allowed: false };
+    const reason = `Equipment Hand limit exceeded: ${handLimit.occupied}/${handLimit.capacity} Hands occupied; ${card?.name ?? "this Weapon"} requires ${handLimit.required}.`;
+    return {
+      match,
+      published: false,
+      conflict: false,
+      reason,
+      event,
+      choices: [],
+      notes: [reason],
+      allowed: false,
+    };
+  }
   let character = publishQuickDuelPlaytestCharacterEvent(match, actor, {
     type: "equip",
     card: card ?? null,
