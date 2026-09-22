@@ -274,6 +274,9 @@ export class Game {
       boughtCardThisAscend: Boolean(context.player.turnStats.boughtCardThisAscend),
       nextAttackDifferentZone: context.player.turnStats.previousZone ? context.player.turnStats.previousZone !== context.zone : false,
       nextAttackHasTag: context.attackCard?.tags ?? [],
+      equippedCardIsSource: Boolean(context.equippedCard && context.equippedCard === context.sourceCard),
+      incomingDamageAtLeast: context.incomingDamage ?? context.player.turnStats.damageTaken ?? 0,
+      xpFromLegalAttackOrDefense: Boolean(context.xpFromLegalAttackOrDefense),
       sameOpponentAsBlockedAttack: context.player.turnStats.previousOpponentId === context.opponent.id,
       nextPurchaseOnly: true,
       minimumFinalCost: context.purchaseCost ?? Number.MAX_SAFE_INTEGER,
@@ -385,6 +388,13 @@ export class Game {
     const effects = this.cardEffects(player.character, trigger);
     if (!effects.length) return {};
     return this.applyCardEffects(player, player.character, trigger, { ...context, sourceCard: player.character, effectOverride: effects });
+  }
+
+  applyEquipmentWatchers(player, resolver, context = {}) {
+    for (const equipment of player.equipment) {
+      const effects = this.cardEffects(equipment, "passive").filter((effect) => effect.resolver === resolver && (!context.watchCondition || (effect.conditions ?? []).some((condition) => condition.kind === context.watchCondition)));
+      if (effects.length) this.applyCardEffects(player, equipment, "passive", { opponent: this.players[1 - player.id], sourceCard: equipment, ...context, effectOverride: effects });
+    }
   }
 
   equipmentHasManualActivation(card) {
@@ -649,7 +659,7 @@ export class Game {
     const tempo = useTempo && attacker.tempo ? this.definition.turn.tempoAttackPower : 0; if (tempo) attacker.tempo = false;
     const attack = attackPower(card) + attacker.atk + tempo + attacker.nextAttackPower + this.statusValue(attacker, "modifyAttackPower") + (context.attackPowerModifier ?? 0) + reactionAttackModifier; attacker.nextAttackPower = 0;
     const block = Math.max(0, defender.def + (defenseCard ? guard(defenseCard) : 0) + this.statusValue(defender, "modifyGuard") + this.statusValue(defender, "modifyDefense") + (defenseContext.guardModifier ?? 0) + (defenseContext.defenseModifier ?? 0) - (context.piercing ?? 0) - this.statusValue(attacker, "piercing")); const damage = Math.max(this.definition.combat.damageFloor, attack - block - (defenseContext.damagePrevention ?? 0) - this.statusValue(defender, "preventDamage") - reactionPrevention); defender.hp -= damage;
-    if (damage > 0) { attacker.xp += this.definition.progression.attackXpOnHit; attacker.turnStats.hit = true; attacker.turnStats.hitCount = (attacker.turnStats.hitCount ?? 0) + 1; defender.turnStats.damageTaken = (defender.turnStats.damageTaken ?? 0) + damage; } else if (defenseCard) { defender.xp += this.definition.progression.defenseXpOnBlock; defender.turnStats.blocked = true; }
+    if (damage > 0) { attacker.xp += this.definition.progression.attackXpOnHit; this.applyEquipmentWatchers(attacker, "equipment.structured", { attackCard: card, damage, xpFromLegalAttackOrDefense: true, watchCondition: "xpFromLegalAttackOrDefense" }); attacker.turnStats.hit = true; attacker.turnStats.hitCount = (attacker.turnStats.hitCount ?? 0) + 1; defender.turnStats.damageTaken = (defender.turnStats.damageTaken ?? 0) + damage; } else if (defenseCard) { defender.xp += this.definition.progression.defenseXpOnBlock; this.applyEquipmentWatchers(defender, "equipment.structured", { attackCard: card, defenseCard, damage, xpFromLegalAttackOrDefense: true, watchCondition: "xpFromLegalAttackOrDefense" }); defender.turnStats.blocked = true; }
     attacker.turnStats.previousAttackHit = damage > 0; attacker.turnStats.previousAttackBlocked = damage === 0; attacker.turnStats.previousZone = zone; attacker.turnStats.previousAttackTags = card.tags ?? []; attacker.turnStats.previousCardType = card.subtype; attacker.turnStats.previousOpponentId = defender.id;
     if (defenseCard) defender.turnStats.playedDefenseSinceLastTurn = true;
     if (damage > 0) { this.applyCharacterEffects(attacker, "onHit", { opponent: defender, attackCard: card, damage, attack, block, zone }); this.applyCardEffects(attacker, card, "onHit", { opponent: defender, attackCard: card, damage, attack, block, zone }); }
@@ -817,7 +827,7 @@ export class Game {
 
   finishTurn() { this.turns += 1; this.expireStatuses(this.players[this.activePlayer], "endOfTurn"); this.players[this.activePlayer].effectUsage.turn = {}; const next = this.activePlayer === 0 ? 1 : 0; if (next === 0) { this.round += 1; for (const player of this.players) { player.effectUsage.round = {}; this.expireStatuses(player, "endOfRound"); } if (!this.marketPurchasedThisRound) this.refillMarket(true); this.marketPurchasedThisRound = false; this.phase = "Honor"; } else this.phase = "Initiate"; this.activePlayer = next; this.checkWinner(); }
 
-  hide(player) { for (const card of new Set([...player.played, ...player.equipment])) this.applyCardEffects(player, card, "onHide", { opponent: this.players[1 - player.id] }); player.lastTurnWasHit = Boolean(player.turnStats.hit || player.turnStats.damageTaken); player.lastTurnAttacked = Boolean(player.turnStats.attacked); player.lastTurnWasBlocked = Boolean(player.turnStats.blocked); player.discard.push(...player.hand, ...player.played.filter((card) => !player.equipment.includes(card))); player.hand = []; player.played = player.equipment.slice(); player.focus = 0; player.badHabitFocusUsed = false; player.practiceUsed = false; player.nextAttackPower = 0; player.tempSpeed = 0; this.expireStatuses(player, "endOfTurn"); this.draw(player, this.definition.turn.handSize + (player.xp >= 28 ? 1 : 0)); this.emit({ type: "hide", player: player.id, handSize: player.hand.length }); }
+  hide(player) { const incomingDamage = player.turnStats.damageTaken ?? 0; for (const card of new Set([...player.played, ...player.equipment])) this.applyCardEffects(player, card, "onHide", { opponent: this.players[1 - player.id], incomingDamage }); player.lastTurnWasHit = Boolean(player.turnStats.hit || incomingDamage); player.lastTurnAttacked = Boolean(player.turnStats.attacked); player.lastTurnWasBlocked = Boolean(player.turnStats.blocked); player.discard.push(...player.hand, ...player.played.filter((card) => !player.equipment.includes(card))); player.hand = []; player.played = player.equipment.slice(); player.focus = 0; player.badHabitFocusUsed = false; player.practiceUsed = false; player.nextAttackPower = 0; player.tempSpeed = 0; this.expireStatuses(player, "endOfTurn"); this.draw(player, this.definition.turn.handSize + (player.xp >= 28 ? 1 : 0)); this.emit({ type: "hide", player: player.id, handSize: player.hand.length }); }
 
   checkWinner() { const alive = this.players.filter((player) => player.hp > 0); if (alive.length === 1) { this.winner = alive[0].id; this.reason = "knockout"; } else if (this.round > this.definition.mode.maxRounds) { this.winner = this.players[0].hp === this.players[1].hp ? this.rng.pick([0, 1]) : this.players[0].hp > this.players[1].hp ? 0 : 1; this.reason = "round-limit"; } if (this.winner !== null) this.status = "complete"; return this.winner !== null; }
 

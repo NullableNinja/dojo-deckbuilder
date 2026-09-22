@@ -39,7 +39,8 @@ export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
   "hasTwoPairedWeapons", "incomingAttackZone", "marketEndSlot",
   "playedAsReversal", "boughtCardLastAscend", "previousCardIsItem", "costPaid", "consumableUsedThisRound",
   "purchaseCompleted", "purchasedCardCost", "ascendCompleted", "boughtCardThisAscend", "nextAttackDifferentZone",
-  "nextAttackHasTag", "nextQualifyingAttackOnly", "sourceActivationArmed", "equippedCardSubtypeIn", "minimumDraw",
+  "nextAttackHasTag", "nextQualifyingAttackOnly", "sourceActivationArmed", "equippedCardSubtypeIn", "equippedCardIsSource", "minimumDraw", "incomingDamageAtLeast",
+  "xpFromLegalAttackOrDefense",
   "attackTiming", "appliesTo", "afterOpponentCommitsDefense", "itemCostPenalty", "defenseGuardPenalty",
 ]);
 

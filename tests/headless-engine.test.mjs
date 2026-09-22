@@ -156,7 +156,7 @@ test("headless effect coverage is explicit and machine-reportable", async () => 
   assert.ok(coverage.unsupportedEffects > 0, "remaining unsupported classes must remain visible");
   assert.ok(Object.keys(coverage.unsupportedActions).length > 0 || Object.keys(coverage.unsupportedResolvers).length > 0);
   assert.equal(coverage.scopeCounts["baseline-core"] + coverage.scopeCounts["out-of-mode"], coverage.totalEffects);
-  assert.equal(coverage.unsupportedByScope["baseline-core"], 99);
+  assert.equal(coverage.unsupportedByScope["baseline-core"], 94);
   assert.equal(coverage.unsupportedByScope["out-of-mode"], 106);
   assert.ok(Object.keys(coverage.topUnsupportedGroups).length > 0);
   assert.ok(coverage.cardsPartiallySupported.length > 0);
