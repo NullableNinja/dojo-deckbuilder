@@ -10,6 +10,52 @@
     "blackBeltVictory": false,
     "maxRounds": 40
   },
+  "modeDefinitions": {
+    "boss-blitz": {
+      "id": "boss-blitz",
+      "players": 1,
+      "charactersPerPlayer": 3,
+      "startingHp": 25,
+      "blackBeltVictory": false,
+      "maxRounds": 100,
+      "executableVariants": [
+        "solo"
+      ],
+      "describedVariants": [
+        "solo",
+        "cooperative"
+      ],
+      "bossBlitz": {
+        "variant": "solo",
+        "stageCards": [
+          "DDB-BST-CORE-003",
+          "DDB-BST-CORE-002",
+          "DDB-BST-CORE-001"
+        ],
+        "stageNames": [
+          "Rival",
+          "Mini-Boss",
+          "Final Boss"
+        ],
+        "soloStageAttackCounts": [
+          1,
+          1,
+          1
+        ],
+        "soloFinalEnrageThreshold": 30,
+        "soloFinalEnragedAttackCount": 2,
+        "koXp": 5,
+        "activeCharacterHealAfterKo": 8,
+        "arsenalDeck": "Boss Arsenal Deck",
+        "bossGuardReplacesPrevious": true,
+        "cooperativeHp": [
+          45,
+          65,
+          85
+        ]
+      }
+    }
+  },
   "turn": {
     "phases": [
       "Honor",

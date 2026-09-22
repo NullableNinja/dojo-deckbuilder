@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 const root = new URL("../", import.meta.url);
 const readJson = async (path) => JSON.parse(await readFile(new URL(path, root), "utf8"));
 
-export async function loadGameData() {
+export async function loadGameData({ modeId = null } = {}) {
   const [definition, catalog, rules, cardEffects] = await Promise.all([
     readJson("app/data/game-definition.json"),
     readJson("app/data/cards.json"),
@@ -18,5 +18,9 @@ export async function loadGameData() {
   const cardEffectById = new Map(Object.entries(cardEffects.cards ?? {}));
   const comboRequirements = await readJson("app/data/combo-requirements.json");
   if (comboRequirements.rulesVersion !== definition.rulesVersion || comboRequirements.rulesRevision !== definition.rulesRevision) throw new Error("Combo requirement registry version does not match engine definition");
-  return { definition, cards: catalog.cards, rules, cardEffects, cardEffectById, comboRequirements, byId };
+  const modeDefinitions = definition.modeDefinitions ?? {};
+  const selectedMode = modeId && modeId !== definition.mode?.id ? modeDefinitions[modeId] : definition.mode;
+  if (modeId && !selectedMode) throw new Error(`Mode ${modeId} is not defined in canonical game data`);
+  const selectedDefinition = selectedMode === definition.mode ? definition : { ...definition, mode: structuredClone(selectedMode) };
+  return { definition: selectedDefinition, baseDefinition: definition, modeDefinitions, cards: catalog.cards, rules, cardEffects, cardEffectById, comboRequirements, byId };
 }

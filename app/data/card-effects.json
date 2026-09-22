@@ -2159,6 +2159,11 @@
           "target": "self",
           "amount": 1,
           "duration": "nextHonor",
+          "conditions": [
+            {
+              "kind": "oncePerRound"
+            }
+          ],
           "resolver": "boss.profile.kataDefense",
           "action": "custom"
         }
@@ -2174,6 +2179,11 @@
           "target": "opponent",
           "amount": -1,
           "duration": "immediate",
+          "conditions": [
+            {
+              "kind": "oncePerRound"
+            }
+          ],
           "resolver": "boss.profile.zoneChangeAttackPenalty",
           "action": "modifyAttackPower"
         }
@@ -2188,6 +2198,11 @@
           "trigger": "passive",
           "target": "opponent",
           "amount": 1,
+          "conditions": [
+            {
+              "kind": "oncePerRound"
+            }
+          ],
           "resolver": "boss.profile.exhaustDiscard",
           "action": "discard",
           "duration": "immediate"
@@ -2204,6 +2219,11 @@
           "target": "opponent",
           "amount": -1,
           "duration": "nextHonor",
+          "conditions": [
+            {
+              "kind": "oncePerRound"
+            }
+          ],
           "resolver": "boss.profile.zoneSpeedPenalty",
           "action": "modifySpeed"
         }
@@ -2233,6 +2253,11 @@
           "target": "opponent",
           "amount": -1,
           "duration": "nextAttack",
+          "conditions": [
+            {
+              "kind": "oncePerRound"
+            }
+          ],
           "resolver": "boss.profile.equipAttackPenalty",
           "action": "modifyAttackPower"
         }
@@ -2303,6 +2328,11 @@
           "target": "self",
           "amount": 2,
           "duration": "nextHonor",
+          "conditions": [
+            {
+              "kind": "oncePerRound"
+            }
+          ],
           "resolver": "boss.profile.blockDefense",
           "action": "custom"
         }

@@ -505,8 +505,8 @@ export class Game {
     return Boolean(next && player.xp >= Number(next.xp) && this.beltExamComplete(player) && !player.beltCheckActionUsed);
   }
 
-  promote(player) {
-    if (this.phase !== "Ascend" || !this.canPromote(player)) return false;
+  promote(player, { ignorePhase = false } = {}) {
+    if ((!ignorePhase && this.phase !== "Ascend") || !this.canPromote(player)) return false;
     const nextIndex = player.beltIndex + 1;
     const next = this.definition.progression.belts[nextIndex];
     player.beltIndex = nextIndex;
@@ -1659,6 +1659,11 @@ export class Game {
 
   run({ policy = null, maxSteps = 100000 } = {}) {
     const controller = policy ?? { chooseAction: (game, legal) => game.defaultAction(legal), chooseChoice: (game) => game.defaultChoice() }; let steps = 0;
+    // Scenario subclasses may need to resolve an engine-generated choice during
+    // an automated opponent turn. Keep the same controller available so those
+    // choices participate in deterministic replay instead of silently falling
+    // back to a different decision source.
+    this.currentPolicy = controller;
     while (this.winner === null && steps < maxSteps) { steps += 1; this.advanceAutomaticEvents(); this.assertInvariants(steps); if (this.pendingChoice) { const pending = this.getPendingChoice(); if (this.lastPresentedChoice !== this.pendingChoice) { this.telemetry.choicesPresented += 1; this.lastPresentedChoice = this.pendingChoice; } const choice = controller.chooseChoice ? controller.chooseChoice(this, pending) : this.defaultChoice(); this.decisions.push({ step: steps, kind: "choice", pendingKind: pending.kind, choice: structuredClone(choice) }); if (!this.resolveChoice(choice)) throw new Error(`Policy selected illegal choice at seed ${this.seed}`); this.assertInvariants(steps); continue; } const legal = this.getLegalActions(); if (!legal.length) throw new Error(`No legal actions in ${this.phase} for player ${this.activePlayer}`); const action = controller.chooseAction ? controller.chooseAction(this, legal) : this.defaultAction(legal); this.decisions.push({ step: steps, kind: "action", phase: this.phase, action: structuredClone(action) }); if (!this.applyAction(action)) throw new Error(`Policy selected illegal action at seed ${this.seed}: ${JSON.stringify(action)}`); this.assertInvariants(steps); }
     if (this.winner === null) throw new Error(`Game exceeded ${maxSteps} steps at seed ${this.seed}`);
     const winnerFamilies = new Set();
