@@ -3773,6 +3773,163 @@ body,
 [data-theme="dark"] .search-page-summary,
 [data-theme="dark"] .search-page-empty { background: var(--paper-light); }
 
+/* Night dojo refresh -----------------------------------------------------
+   Dark mode should feel like a room after the lights go down, not a green
+   recolor of the daytime paper. Keep the red/gold dojo signals, but move the
+   room itself into charcoal, ink blue, and a quiet violet-blue accent. */
+:root[data-theme="dark"] {
+  --ink: #eef0f7;
+  --ink-soft: #c7cad7;
+  --paper: #0b0e15;
+  --paper-light: #161a25;
+  --paper-deep: #252a38;
+  --paper-green: #1b2130;
+  --red: #eb705b;
+  --red-dark: #b84a42;
+  --gold: #f0c568;
+  --green: #8495d5;
+  --line: rgba(235, 239, 255, .15);
+  --shadow: 0 18px 50px rgba(0, 0, 0, .46);
+  --shadow-soft: 0 8px 18px rgba(0, 0, 0, .34), 0 24px 60px rgba(0, 0, 0, .38);
+}
+
+:root[data-theme="dark"] body { background: var(--paper); }
+:root[data-theme="dark"] .site-frame {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle at 12% 2%, rgba(93, 113, 206, .16), transparent 28%),
+    radial-gradient(circle at 88% 74%, rgba(235, 112, 91, .10), transparent 26%),
+    repeating-linear-gradient(92deg, rgba(218, 224, 255, .018) 0, rgba(218, 224, 255, .018) 1px, transparent 1px, transparent 7px);
+}
+
+:root[data-theme="dark"] .site-frame::before,
+:root[data-theme="dark"] .site-frame::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* A very quiet diamond lattice: dojo floor geometry, not a wallpaper. */
+:root[data-theme="dark"] .site-frame::before {
+  inset: 0;
+  opacity: .55;
+  background-image:
+    repeating-linear-gradient(135deg, transparent 0 46px, rgba(132, 149, 213, .055) 47px 48px, transparent 49px 96px),
+    repeating-linear-gradient(45deg, transparent 0 46px, rgba(235, 112, 91, .035) 47px 48px, transparent 49px 96px);
+  background-size: 136px 136px;
+  animation: dojo-lattice-drift 34s ease-in-out infinite alternate;
+}
+
+/* The outer ring echoes an ensō / sparring circle and gives the page a
+   little depth without competing with cards or readable surfaces. */
+:root[data-theme="dark"] .site-frame::after {
+  top: 112px;
+  right: -14vw;
+  width: clamp(360px, 48vw, 760px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(132, 149, 213, .14);
+  border-radius: 50%;
+  opacity: .65;
+  background:
+    radial-gradient(circle, transparent 0 47%, rgba(132, 149, 213, .07) 47.2% 47.5%, transparent 47.8%),
+    conic-gradient(from 18deg, transparent 0 24%, rgba(235, 112, 91, .10) 24.5% 25%, transparent 25.5% 67%, rgba(132, 149, 213, .10) 67.5% 68%, transparent 68.5% 100%);
+  filter: blur(.2px);
+  animation: dojo-ring-drift 26s ease-in-out infinite alternate;
+}
+
+:root[data-theme="dark"] .site-frame > * { position: relative; z-index: 1; }
+:root[data-theme="dark"] .site-header,
+:root[data-theme="dark"] .mobile-nav { background: rgba(8, 10, 17, .94); border-color: rgba(210, 218, 255, .14); }
+:root[data-theme="dark"] .site-header nav button { color: #aeb4ca; }
+:root[data-theme="dark"] .site-header nav button:hover,
+:root[data-theme="dark"] .site-header nav button.active { color: #f4f5fb; }
+:root[data-theme="dark"] .site-header nav button::after { background: var(--red); }
+:root[data-theme="dark"] .header-search { border-color: rgba(210, 218, 255, .18); background: rgba(255, 255, 255, .055); }
+:root[data-theme="dark"] .section-header-copy::after { background: linear-gradient(90deg, rgba(22, 26, 37, .98) 75%, transparent); }
+
+:root[data-theme="dark"] .mode-card.recommended { background: #2b3158; }
+:root[data-theme="dark"] .mode-card.recommended::before { background: #1d2342; }
+:root[data-theme="dark"] .mode-card.recommended::after { background: #2b3158; }
+:root[data-theme="dark"] .mode-card.recommended p { color: #e0e3f5; }
+:root[data-theme="dark"] .quick-phases { background: rgba(132, 149, 213, .08); }
+:root[data-theme="dark"] .quick-phases button { background: rgba(132, 149, 213, .10); }
+:root[data-theme="dark"] .rule-callout,
+:root[data-theme="dark"] .modal-rule,
+:root[data-theme="dark"] .card-costs span { background: #252a3d; }
+:root[data-theme="dark"] .tag-row span { color: #c0c9f2; background: #2a2e4a; }
+:root[data-theme="dark"] .paper-stack::before { background: #101520; }
+:root[data-theme="dark"] .paper-stack::after { background: #252a3a; }
+
+/* Reconcile the dense playtest surfaces with the same cool night palette. */
+:root[data-theme="dark"] .playtest-hero { background: linear-gradient(125deg, #25283c, #1b2134); }
+:root[data-theme="dark"] .playtest-character-grid button,
+:root[data-theme="dark"] .play-card-main,
+:root[data-theme="dark"] .play-card-meta,
+:root[data-theme="dark"] .fighter-stats b,
+:root[data-theme="dark"] .combat-meters b,
+:root[data-theme="dark"] .belt-track span,
+:root[data-theme="dark"] .playtest-inspector dl > div { background: #202638; border-color: #454d6b; }
+:root[data-theme="dark"] .play-card { border-color: #4c5472; background: #1b2130; }
+:root[data-theme="dark"] .play-card-meta { color: #e7e9f5; }
+:root[data-theme="dark"] .turn-coach { background: #22273b; }
+:root[data-theme="dark"] .game-phase-rail b,
+:root[data-theme="dark"] .ducktape-tray { background: #303650; }
+:root[data-theme="dark"] .ducktape-tray button { background: #414766; }
+:root[data-theme="dark"] .native-card-art { background: linear-gradient(145deg, #40364e 0 39%, #28283a 39% 100%); }
+:root[data-theme="dark"] .play-card--defense .native-card-art { background: linear-gradient(145deg, #294754 0 39%, #252f3e 39% 100%); }
+:root[data-theme="dark"] .combo-panel,
+:root[data-theme="dark"] .simulation-lab { background: linear-gradient(140deg, #272b40, #3a2c49); }
+:root[data-theme="dark"] .market-forecast { background: #30354b; }
+:root[data-theme="dark"] .rules-sync { background: #282d41; }
+:root[data-theme="dark"] .rules-sync--current { background: #28344c; }
+:root[data-theme="dark"] .playtest-shell .paper-stack::before { background: #101520; }
+:root[data-theme="dark"] .playtest-shell .paper-stack::after { background: #252a3a; }
+:root[data-theme="dark"] .event-log--compact { border-color: #4d5571; background: #282d41; }
+:root[data-theme="dark"] .fighter-panel-art { background: linear-gradient(140deg, #303653, #262b41); }
+:root[data-theme="dark"] .fighter-panel.is-enemy .fighter-panel-art { background: linear-gradient(140deg, #50353a, #3a2e3a); }
+:root[data-theme="dark"] .ascend-desk { background: #1d2333; }
+:root[data-theme="dark"] .ascend-desk-header,
+:root[data-theme="dark"] .ascend-desk-footer { border-color: #4b5470; background: #252b3e; }
+:root[data-theme="dark"] .ascend-desk-tabs { background: #151a29; }
+:root[data-theme="dark"] .ascend-desk-tabs button { border-color: #424b68; background: #232a3d; }
+:root[data-theme="dark"] .ascend-desk-tabs button.is-active { background: #303a59; }
+:root[data-theme="dark"] .ascend-belt { background: #29314a; }
+:root[data-theme="dark"] .belt-ledger-list article { border-color: #4d5672; background: #252b3e; }
+:root[data-theme="dark"] .belt-ledger-list .is-earned,
+:root[data-theme="dark"] .belt-ledger-list .is-current { border-color: #647bb6; background: #303b5a; }
+:root[data-theme="dark"] .playtest-location { background: #262c40; }
+:root[data-theme="dark"] .playtest-combat-desk { background: #202638; }
+:root[data-theme="dark"] .combat-zone-board span { border-color: #4b5571; background: #293148; }
+:root[data-theme="dark"] .combat-zone-board .is-hot { border-color: #d96b5a; background: #4d3134; }
+:root[data-theme="dark"] .hand-panel { background: #1d2334; }
+:root[data-theme="dark"] .playtest-action-dock { background: rgba(12, 15, 24, .97); }
+:root[data-theme="dark"] .playtest-shell--live .fighter-equipment-rack,
+:root[data-theme="dark"] .playtest-shell--live .combat-utility-panel,
+:root[data-theme="dark"] .fight-log-dialog { background: #202638; }
+:root[data-theme="dark"] .fight-log-dialog li { border-color: #4e5873; background: #2d3348; }
+:root[data-theme="dark"] .mat-lane { border-color: #46506e; background: rgba(8, 11, 19, .42); }
+:root[data-theme="dark"] .mat-lane-cards > button { border-color: #59637f; background: #273149; }
+:root[data-theme="dark"] .rule-section-nav { background: rgba(34, 39, 58, .68); }
+
+@keyframes dojo-lattice-drift {
+  from { background-position: 0 0, 0 0; transform: translate3d(0, 0, 0); }
+  to { background-position: 68px 34px, -42px 52px; transform: translate3d(0, -8px, 0); }
+}
+
+@keyframes dojo-ring-drift {
+  from { transform: translate3d(0, 0, 0) rotate(-4deg) scale(1); }
+  to { transform: translate3d(-26px, 18px, 0) rotate(7deg) scale(1.035); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="dark"] .site-frame::before,
+  :root[data-theme="dark"] .site-frame::after { animation: none; }
+}
+
 @media (max-width: 900px) {
   .search-page { width: min(100% - 24px, 1480px); grid-template-columns: 1fr; padding-block: 18px 100px; }
   .search-page-heading { grid-template-columns: 1fr; }
