@@ -1,30 +1,104 @@
 export const HEADLESS_SUPPORTED_ACTIONS = new Set([
   "gainFocus", "draw", "modifyAttackPower", "modifySpeed", "modifyGuard", "modifyDefense",
   "preventDamage", "heal", "dealDamage", "minimumSpeed", "piercing", "chooseZone",
+  "discard", "destroy", "ready", "exhaust",
 ]);
 
 export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
   "always", "isFastest", "firstAttackThisTurn", "attackNumber", "defenderPlayedDefense",
   "targetHpAtMost", "hasTempo", "targetPermanentEquipmentCount", "hasFewerCardsThanTarget", "alternateZone",
+  "attackZone", "attackZones", "incomingZones", "incomingAttackTargetsSelf", "sourceExhausted",
+  "firstDamageThisRound", "blockedThisRound", "playedDefenseSinceLastTurn", "previousAttackHit", "differentZoneFromPreviousAttack",
 ]);
 
-export function analyzeEffectCoverage(cardEffects) {
-  const actionCounts = {}; const resolverCounts = {}; const conditionCounts = {}; const unsupportedActions = {}; const unsupportedResolvers = {}; const unsupportedConditions = {};
-  let totalEffects = 0; let supportedEffects = 0; let fullySupportedCards = 0; let cardsWithEffects = 0;
+const increment = (map, key) => { const normalized = String(key ?? "(none)"); map[normalized] = (map[normalized] ?? 0) + 1; };
+const sorted = (map) => Object.fromEntries(Object.entries(map).sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0])));
+const conditionKind = (condition) => typeof condition === "string" ? condition.match(/kind=([^;}]*)/)?.[1] ?? "(unknown)" : condition?.kind ?? "(unknown)";
+const listValue = (value) => Array.isArray(value) ? value.join(",") : String(value ?? "(none)");
+
+/**
+ * Card family is derived from the canonical catalog, never from a card name or
+ * printed rules text. The fallback keeps this function useful with the small
+ * registry fixtures used by unit tests.
+ */
+export function classifyCardFamily(catalogCard, catalogId = "") {
+  const type = String(catalogCard?.cardType ?? "");
+  const subtype = String(catalogCard?.subtype ?? "");
+  if (type === "Boss") return "Boss / module";
+  if (type === "Location") return "Locations";
+  if (type === "Character") return "Characters";
+  if (type === "Starter") return "Starter";
+  if (type === "Combo") return "Combos";
+  if (subtype === "Attack") return "Attacks";
+  if (subtype === "Defense") return "Defenses";
+  if (subtype === "Kata") return "Katas";
+  if (subtype === "Consumable") return "Consumables";
+  if (subtype === "Weapon") return "Weapons";
+  if (subtype === "Gear") return "Gear";
+  if (subtype === "Defense Equipment") return "Equipment / defense equipment";
+  if (subtype === "Reaction Item") return "Reactions";
+  return catalogId.startsWith("DDB-B") ? "Boss / module" : "Unknown";
+}
+
+/**
+ * Quick Duel only draws from its configured market decks, plus Characters and
+ * the Starter deck. Boss, Location, and Combo registries are still reported,
+ * but are explicitly out-of-mode instead of being silently dropped.
+ */
+export function classifyEffectScope(catalogCard, definition = null) {
+  const type = String(catalogCard?.cardType ?? "");
+  if (type === "Boss" || type === "Location" || type === "Combo") return "out-of-mode";
+  const marketDecks = new Set(definition?.economy?.market?.decks ?? ["Technique Deck", "Item Deck"]);
+  const starterIds = new Set((definition?.starterDeck ?? []).map((entry) => entry.catalogId));
+  if (type === "Character" || type === "Starter" || starterIds.has(catalogCard?.catalogId) || marketDecks.has(catalogCard?.deck)) return "baseline-core";
+  return "out-of-mode";
+}
+
+const supportGroup = (effect) => [
+  effect.action ?? effect.effect ?? "(none)", effect.resolver ?? "(none)", effect.trigger ?? "(none)",
+  effect.target ?? "(none)", effect.duration ?? "(none)",
+  (effect.conditions ?? []).map(conditionKind).join(",") || "(none)",
+].map(listValue).join(" | ");
+
+export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = null } = {}) {
+  const catalogById = new Map(catalog.map((card) => [card.catalogId, card]));
+  const actionCounts = {}; const resolverCounts = {}; const conditionCounts = {}; const triggerCounts = {}; const targetCounts = {}; const durationCounts = {};
+  const unsupportedActions = {}; const unsupportedResolvers = {}; const unsupportedConditions = {};
+  const scopeCounts = {}; const unsupportedByScope = {}; const unsupportedGroups = {}; const supportedByFamily = {}; const unsupportedByFamily = {};
+  const cardStatus = {}; let totalEffects = 0; let supportedEffects = 0; let fullySupportedCards = 0; let cardsWithEffects = 0;
   for (const [catalogId, card] of Object.entries(cardEffects.cards ?? {})) {
-    const effects = card.effects ?? []; if (!effects.length) continue; cardsWithEffects += 1; let cardSupported = true;
+    const effects = card.effects ?? []; if (!effects.length) continue; cardsWithEffects += 1;
+    const catalogCard = catalogById.get(catalogId) ?? { catalogId, cardType: catalogId.startsWith("DDB-B") ? "Boss" : "" };
+    const family = classifyCardFamily(catalogCard, catalogId); const scope = classifyEffectScope(catalogCard, definition);
+    let cardSupported = true; let cardSupportedCount = 0;
     for (const effect of effects) {
-      totalEffects += 1; const action = String(effect.action ?? ""); const resolver = String(effect.resolver ?? ""); actionCounts[action] = (actionCounts[action] ?? 0) + 1; if (resolver) resolverCounts[resolver] = (resolverCounts[resolver] ?? 0) + 1;
+      totalEffects += 1;
+      increment(scopeCounts, scope);
+      const action = String(effect.action ?? effect.effect ?? "(none)"); const resolver = String(effect.resolver ?? "(none)");
+      increment(actionCounts, action); increment(resolverCounts, resolver); increment(triggerCounts, effect.trigger ?? "(none)"); increment(targetCounts, effect.target ?? "(none)"); increment(durationCounts, effect.duration ?? "(none)");
+      const conditions = (effect.conditions ?? []).map(conditionKind); for (const kind of conditions) increment(conditionCounts, kind);
       let supported = HEADLESS_SUPPORTED_ACTIONS.has(action) || action === "custom" && resolver === "starter.gainFocusIfFastest";
-      for (const raw of effect.conditions ?? []) {
-        const kind = typeof raw === "string" ? raw.match(/kind=([^;}]*)/)?.[1] : raw.kind; conditionCounts[kind] = (conditionCounts[kind] ?? 0) + 1;
-        if (!HEADLESS_SUPPORTED_CONDITIONS.has(kind)) { supported = false; unsupportedConditions[kind] = (unsupportedConditions[kind] ?? 0) + 1; }
-      }
-      if (!supported) { cardSupported = false; if (!HEADLESS_SUPPORTED_ACTIONS.has(action) && !(action === "custom" && resolver === "starter.gainFocusIfFastest")) unsupportedActions[action] = (unsupportedActions[action] ?? 0) + 1; if (action === "custom" && resolver !== "starter.gainFocusIfFastest") unsupportedResolvers[resolver] = (unsupportedResolvers[resolver] ?? 0) + 1; }
-      else { supportedEffects += 1; }
+      for (const kind of conditions) if (!HEADLESS_SUPPORTED_CONDITIONS.has(kind)) { supported = false; increment(unsupportedConditions, kind); }
+      const group = supportGroup(effect);
+      if (!supported) {
+        cardSupported = false; increment(unsupportedActions, action); if (action === "custom" && resolver !== "starter.gainFocusIfFastest") increment(unsupportedResolvers, resolver);
+        increment(unsupportedGroups, group); increment(unsupportedByScope, scope); increment(unsupportedByFamily, family);
+      } else { supportedEffects += 1; cardSupportedCount += 1; increment(supportedByFamily, family); }
     }
     if (cardSupported) fullySupportedCards += 1;
-    if (!cardSupported && !(catalogId)) throw new Error("unreachable card coverage state");
+    cardStatus[catalogId] = { family, scope, total: effects.length, supported: cardSupportedCount, unsupported: effects.length - cardSupportedCount };
   }
-  return { cardsWithEffects, fullySupportedCards, totalEffects, supportedEffects, unsupportedEffects: totalEffects - supportedEffects, actionCounts, resolverCounts, conditionCounts, unsupportedActions, unsupportedResolvers, unsupportedConditions };
+  const cardsFullySupported = Object.entries(cardStatus).filter(([, status]) => status.unsupported === 0).map(([id]) => id).sort();
+  const cardsPartiallySupported = Object.entries(cardStatus).filter(([, status]) => status.supported > 0 && status.unsupported > 0).map(([id]) => id).sort();
+  const cardsWithZeroSupportedEffects = Object.entries(cardStatus).filter(([, status]) => status.supported === 0).map(([id]) => id).sort();
+  const unsupportedEffects = totalEffects - supportedEffects;
+  return {
+    cardsWithEffects, fullySupportedCards, totalEffects, supportedEffects, unsupportedEffects,
+    actionCounts: sorted(actionCounts), resolverCounts: sorted(resolverCounts), conditionCounts: sorted(conditionCounts),
+    triggerCounts: sorted(triggerCounts), targetCounts: sorted(targetCounts), durationCounts: sorted(durationCounts),
+    unsupportedActions: sorted(unsupportedActions), unsupportedResolvers: sorted(unsupportedResolvers), unsupportedConditions: sorted(unsupportedConditions),
+    scopeCounts: sorted(scopeCounts), unsupportedByScope: sorted(unsupportedByScope), supportedByFamily: sorted(supportedByFamily), unsupportedByFamily: sorted(unsupportedByFamily),
+    topUnsupportedGroups: sorted(unsupportedGroups), cardStatus,
+    cardsFullySupported, cardsPartiallySupported, cardsWithZeroSupportedEffects,
+  };
 }

@@ -47,6 +47,42 @@ test("supported starter effects execute from the canonical card-effect registry"
   assert.equal(game.telemetry.unsupportedEffects, 0);
 });
 
+test("generic card movement exposes a deterministic serializable choice", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 104 });
+  const player = game.players[0];
+  const source = game.cardInstance(data.byId.get("DDB-STA-CORE-005"));
+  const selected = game.cardInstance(data.byId.get("DDB-STA-CORE-008"));
+  player.hand.push(source, selected);
+  game.effects.set(source.catalogId, { effects: [{ id: "test-discard", trigger: "onPlay", action: "discard", target: "self", amount: 1, duration: "immediate" }] });
+  assert.equal(game.playCard(player, source), true);
+  assert.equal(game.getPendingChoice()?.kind, "card-movement");
+  assert.ok(game.getPendingChoice().options.some((option) => option.id === selected.instanceId));
+  assert.ok(!game.getPendingChoice().options.some((option) => option.id === source.instanceId));
+  assert.equal(game.resolveChoice({ optionId: selected.instanceId }), true);
+  assert.ok(player.discard.includes(selected));
+  assert.equal(game.checkInvariants().length, 0);
+  assert.equal(game.telemetry.unsupportedEffects, 0);
+});
+
+test("generic equipment ready and exhaust actions mutate persistent equipment state", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 105 });
+  const player = game.players[0];
+  const equipment = game.cardInstance(data.byId.get("DDB-DEQ-CORE-003"));
+  player.hand.push(equipment);
+  game.effects.set(equipment.catalogId, { effects: [
+    { id: "test-exhaust", trigger: "onPlay", action: "exhaust", target: "source", amount: 1, duration: "immediate" },
+    { id: "test-ready", trigger: "onInitiate", action: "ready", target: "source", amount: 1, duration: "immediate" },
+  ] });
+  assert.equal(game.playCard(player, equipment), true);
+  assert.ok(player.exhaustedEquipment.includes(equipment.instanceId));
+  game.applyCardEffects(player, equipment, "onInitiate", { opponent: game.players[1] });
+  assert.equal(player.exhaustedEquipment.includes(equipment.instanceId), false);
+  assert.equal(game.checkInvariants().length, 0);
+  assert.equal(game.telemetry.unsupportedEffects, 0);
+});
+
 test("batch simulation reports reproducible seeds and invariant results", async () => {
   const data = await loadGameData();
   const first = await simulateBatch({ games: 4, seedStart: 700, data });
@@ -61,10 +97,15 @@ test("batch simulation reports reproducible seeds and invariant results", async 
 
 test("headless effect coverage is explicit and machine-reportable", async () => {
   const data = await loadGameData();
-  const coverage = analyzeEffectCoverage(data.cardEffects);
+  const coverage = analyzeEffectCoverage(data.cardEffects, { catalog: data.cards, definition: data.definition });
   assert.equal(coverage.cardsWithEffects, 589);
   assert.ok(coverage.totalEffects > 0);
   assert.equal(coverage.totalEffects, coverage.supportedEffects + coverage.unsupportedEffects);
   assert.ok(coverage.unsupportedEffects > 0, "remaining unsupported classes must remain visible");
   assert.ok(Object.keys(coverage.unsupportedActions).length > 0 || Object.keys(coverage.unsupportedResolvers).length > 0);
+  assert.equal(coverage.scopeCounts["baseline-core"] + coverage.scopeCounts["out-of-mode"], coverage.totalEffects);
+  assert.equal(coverage.unsupportedByScope["baseline-core"], 390);
+  assert.equal(coverage.unsupportedByScope["out-of-mode"], 123);
+  assert.ok(coverage.topUnsupportedGroups["custom | equipment.structured | passive | self | whileEquipped | incomingZones"] > 0);
+  assert.ok(coverage.cardsPartiallySupported.length > 0);
 });
