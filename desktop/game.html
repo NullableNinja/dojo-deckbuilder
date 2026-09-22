@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dojo Deckbuilder — Offline Game</title>
+    <style>
+      :root { color-scheme: dark; font-family: Segoe UI, system-ui, sans-serif; background: #090c13; color: #edf1fa; }
+      * { box-sizing: border-box; } body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 80% 0%, #27345c 0, transparent 38%), #090c13; }
+      button, input { font: inherit; } button { cursor: pointer; } .hidden { display: none !important; }
+      main { max-width: 1380px; margin: auto; padding: 28px; } header { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+      h1, h2, h3, p { margin-top: 0; } h1 { font-size: clamp(32px, 5vw, 64px); line-height: .94; margin-bottom: 10px; } h2 { margin-bottom: 8px; }
+      .eyebrow { color: #f0b96c; text-transform: uppercase; letter-spacing: .12em; font-size: 11px; font-weight: 800; } .subtle, .muted, .status { color: #aeb8ce; }
+      .panel { border: 1px solid #39445f; border-radius: 16px; background: #141a27ee; box-shadow: 0 20px 60px #0008; padding: 22px; }
+      .menu { max-width: 900px; margin: 10vh auto; text-align: center; } .mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 28px 0; }
+      .mode { text-align: left; border: 1px solid #465474; border-radius: 14px; background: #0e1420; color: #eef2fb; padding: 22px; min-height: 160px; } .mode:hover { border-color: #f0b96c; transform: translateY(-2px); }
+      .seed-row { display: flex; gap: 12px; align-items: center; justify-content: center; } input { color: #fff; background: #0b101b; border: 1px solid #4b5877; border-radius: 8px; padding: 10px; width: 150px; }
+      .action, .primary { border: 0; border-radius: 9px; padding: 10px 13px; font-weight: 800; background: #dfe7f6; color: #131a29; } .action:hover, .primary:hover { background: #f0b96c; }
+      .secondary { border: 1px solid #4b5877; background: #131b2a; color: #eef2fb; border-radius: 8px; padding: 9px 13px; } .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .toolbar .spacer { flex: 1; }
+      .game-board { display: grid; grid-template-columns: 1.05fr 1.5fr 1fr; gap: 16px; align-items: start; } .boss-card { min-height: 270px; }
+      .boss-card img, .card img { width: 100%; height: 150px; object-fit: contain; border-radius: 8px; background: #090d16; } .boss-card img { height: 190px; }
+      .card-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; } .card { min-width: 132px; max-width: 150px; border: 1px solid #3a4864; border-radius: 10px; background: #0b111d; padding: 8px; }
+      .card img { height: 105px; } .card b { display: block; font-size: 12px; line-height: 1.15; margin: 7px 0 4px; } .card small { color: #aab5cb; font-size: 10px; } .card .rules { color: #cbd4e8; font-size: 10px; margin-top: 5px; }
+      .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin: 12px 0; } .stat { background: #0b111d; border-radius: 8px; padding: 8px; text-align: center; } .stat b { display: block; font-size: 18px; } .stat small { color: #96a3bc; font-size: 10px; text-transform: uppercase; }
+      .roster { display: flex; gap: 7px; margin: 12px 0; } .fighter { flex: 1; padding: 8px; border: 1px solid #3b4863; border-radius: 8px; font-size: 11px; } .fighter.active { border-color: #f0b96c; background: #272031; } .fighter.ko { opacity: .45; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; } .choice { border-color: #c87272; background: #271720; } .choice h3 { color: #ffb1a5; } .log { max-height: 175px; overflow: auto; color: #aab5cb; font-size: 11px; line-height: 1.5; white-space: pre-wrap; }
+      .error { color: #ff9b92; min-height: 20px; } .rules-note { padding: 10px 12px; border-left: 3px solid #f0b96c; color: #bac6dc; font-size: 12px; }
+      @media (max-width: 1050px) { .game-board { grid-template-columns: 1fr 1fr; } .boss-card { grid-column: span 2; } } @media (max-width: 700px) { main { padding: 14px; } .mode-grid, .game-board { grid-template-columns: 1fr; } .boss-card { grid-column: auto; } }
+    </style>
+  </head>
+  <body><main>
+    <section id="menu" class="menu panel">
+      <span class="eyebrow">Offline game client</span><h1>Choose your fight.</h1>
+      <p class="subtle">This is the game application. The rules website is not loaded here.</p>
+      <div class="mode-grid"><button class="mode" data-mode="quick-duel"><span class="eyebrow">Two fighters</span><h2>Quick Duel</h2><p class="muted">The standard one-on-one deckbuilding fight against the computer.</p></button><button class="mode" data-mode="boss-blitz"><span class="eyebrow">Three stages · Solo</span><h2>Boss Blitz</h2><p class="muted">Rival → Mini-Boss → Final Boss. Bring three Characters and survive the Arsenal.</p></button></div>
+      <div class="seed-row"><label for="seed">Seed</label><input id="seed" type="number" min="1" value="1" /><span class="muted">Same seed = same game.</span></div>
+      <p class="rules-note">Canonical cards, artwork, combat, Boss Arsenal, Belt progression, Combos, and victory rules are bundled with the game engine.</p><p id="menu-error" class="error"></p>
+    </section>
+    <section id="game" class="hidden">
+      <header><div><span id="mode-label" class="eyebrow"></span><h2 id="game-title">Dojo Deckbuilder</h2><p id="phase" class="status"></p></div><div class="toolbar"><span id="round" class="status"></span><button id="new-game" class="secondary">Back to modes</button></div></header>
+      <div class="game-board"><section class="panel boss-card"><span id="opponent-eyebrow" class="eyebrow">Opponent</span><h2 id="opponent-name"></h2><img id="opponent-art" alt="" /><div class="stat-grid"><div class="stat"><b id="opponent-hp"></b><small>HP</small></div><div class="stat"><b id="opponent-atk"></b><small>ATK</small></div><div class="stat"><b id="opponent-def"></b><small>DEF</small></div><div class="stat"><b id="opponent-speed"></b><small>SPD</small></div></div><div id="guard"></div><p id="opponent-rules" class="muted"></p></section>
+        <section class="panel"><div id="roster"></div><div class="stat-grid"><div class="stat"><b id="player-hp"></b><small>HP</small></div><div class="stat"><b id="player-focus"></b><small>Focus</small></div><div class="stat"><b id="player-xp"></b><small>XP</small></div><div class="stat"><b id="player-belt"></b><small>Belt</small></div></div><h3>Hand</h3><div id="hand" class="card-row"></div><h3>Available actions</h3><div id="actions" class="actions"></div><div id="choice" class="choice panel hidden"></div><p id="error" class="error"></p></section>
+        <section class="panel"><h3>Scenario</h3><div id="boss-summary"></div><h3>Market</h3><div id="market" class="card-row"></div><h3>Fight log</h3><div id="log" class="log"></div></section>
+      </div>
+    </section>
+  </main><script src="game-renderer.js"></script></body>
+</html>

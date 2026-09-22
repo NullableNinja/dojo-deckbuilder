@@ -1467,7 +1467,20 @@ export class Game {
     return null;
   }
 
-  getPendingChoice() { return this.pendingChoice ? structuredClone(this.pendingChoice) : null; }
+  refreshPendingChoiceOptions() {
+    if (!this.pendingChoice) return;
+    const pending = this.pendingChoice;
+    if (pending.kind === "card-movement") {
+      const target = this.players[pending.targetPlayerId ?? pending.playerId];
+      const cards = (pending.sourceZones ?? ["hand"]).flatMap((zone) => target?.[zone] ?? []);
+      pending.options = cards.map((card) => ({ id: card.instanceId, label: card.name }));
+    } else if (pending.kind === "cycle-discard-draw") {
+      const target = this.players[pending.targetPlayerId ?? pending.playerId];
+      pending.options = [{ id: "skip", label: "Skip" }, ...(target?.hand ?? []).map((card) => ({ id: card.instanceId, label: card.name }))];
+    }
+  }
+
+  getPendingChoice() { this.refreshPendingChoiceOptions(); return this.pendingChoice ? structuredClone(this.pendingChoice) : null; }
 
   getLegalActions(playerId = this.activePlayer) {
     if (this.winner !== null || this.status !== "active") return [];
@@ -1508,6 +1521,7 @@ export class Game {
 
   resolveChoice(choice) {
     if (!this.pendingChoice) return false;
+    this.refreshPendingChoiceOptions();
     const pending = this.pendingChoice; const selected = choice?.optionId ?? choice?.id ?? choice; if (!pending.options.some((option) => option.id === selected)) return false;
     this.telemetry.choicesResolved += 1; this.lastPresentedChoice = null;
     if (pending.kind === "card-movement") return this.resolveCardMovementChoice(pending, selected);
