@@ -83,6 +83,28 @@ test("generic equipment ready and exhaust actions mutate persistent equipment st
   assert.equal(game.telemetry.unsupportedEffects, 0);
 });
 
+test("Flow and Reaction Item effects use the shared headless event path", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 106 });
+  const attacker = game.players[0];
+  const defender = game.players[1];
+  const attack = game.cardInstance(data.byId.get("DDB-STA-CORE-002"));
+  attack.tags = [...(attack.tags ?? []), "Flow"];
+  const reaction = game.cardInstance(data.byId.get("DDB-RIT-CORE-002"));
+  attacker.hand.push(attack);
+  defender.hand.push(reaction);
+  game.effects.set(reaction.catalogId, { effects: [{ id: "test-reaction", trigger: "onAttackDeclared", target: "self", amount: 3, resolver: "reaction.preventIncomingDamage", action: "custom", effect: "core.custom", conditions: [{ kind: "incomingAttackTargetsSelf" }] }] });
+  const deckBefore = attacker.deck.length;
+  assert.equal(game.beginAttack(attacker.id, attack, { zone: "Mid" }), true);
+  assert.equal(game.getPendingChoice()?.kind, "reaction");
+  assert.equal(game.resolveChoice({ optionId: reaction.instanceId }), true);
+  assert.equal(game.getPendingChoice()?.kind, "defense");
+  assert.equal(game.resolveChoice({ optionId: "pass" }), true);
+  assert.equal(attacker.turnStats.flowDrawUsed, true);
+  assert.equal(attacker.deck.length, deckBefore - 1);
+  assert.equal(game.telemetry.unsupportedEffects, 0);
+});
+
 test("batch simulation reports reproducible seeds and invariant results", async () => {
   const data = await loadGameData();
   const first = await simulateBatch({ games: 4, seedStart: 700, data });
@@ -104,8 +126,8 @@ test("headless effect coverage is explicit and machine-reportable", async () => 
   assert.ok(coverage.unsupportedEffects > 0, "remaining unsupported classes must remain visible");
   assert.ok(Object.keys(coverage.unsupportedActions).length > 0 || Object.keys(coverage.unsupportedResolvers).length > 0);
   assert.equal(coverage.scopeCounts["baseline-core"] + coverage.scopeCounts["out-of-mode"], coverage.totalEffects);
-  assert.equal(coverage.unsupportedByScope["baseline-core"], 390);
-  assert.equal(coverage.unsupportedByScope["out-of-mode"], 123);
-  assert.ok(coverage.topUnsupportedGroups["custom | equipment.structured | passive | self | whileEquipped | incomingZones"] > 0);
+  assert.equal(coverage.unsupportedByScope["baseline-core"], 198);
+  assert.equal(coverage.unsupportedByScope["out-of-mode"], 106);
+  assert.ok(Object.keys(coverage.topUnsupportedGroups).length > 0);
   assert.ok(coverage.cardsPartiallySupported.length > 0);
 });

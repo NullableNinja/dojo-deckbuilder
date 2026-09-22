@@ -2,6 +2,7 @@ export const HEADLESS_SUPPORTED_ACTIONS = new Set([
   "gainFocus", "draw", "modifyAttackPower", "modifySpeed", "modifyGuard", "modifyDefense",
   "preventDamage", "heal", "dealDamage", "minimumSpeed", "piercing", "chooseZone",
   "discard", "destroy", "ready", "exhaust",
+  "reveal", "gainXP", "spendFocus", "modifyDefenseContribution", "grantFlow", "modifyCost", "cycleDiscardDraw", "deckLook",
 ]);
 
 export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
@@ -9,12 +10,45 @@ export const HEADLESS_SUPPORTED_CONDITIONS = new Set([
   "targetHpAtMost", "hasTempo", "targetPermanentEquipmentCount", "hasFewerCardsThanTarget", "alternateZone",
   "attackZone", "attackZones", "incomingZones", "incomingAttackTargetsSelf", "sourceExhausted",
   "firstDamageThisRound", "blockedThisRound", "playedDefenseSinceLastTurn", "previousAttackHit", "differentZoneFromPreviousAttack",
+  "wasHitSinceLastTurn", "firstDefenseThisRound", "firstIncomingAttackThisRound", "firstKataThisTurn", "firstHitThisTurn",
+  "oncePerTurn", "oncePerRound", "oncePerGame", "sameRoundOnly", "sameTurnOnly", "targetSpeedHigher", "targetXpHigher", "targetTempoUsed",
+  "hasWeaponEquipped", "playedKataThisTurn", "attackUsesSourceEquipment", "incomingAttackUsesWeapon", "attackHasTag", "attackTagAny",
+  "minimumBelt", "currentAttackIsNormal", "attackIsUnarmed", "targetHasMatchingArmor",
+  "completedBeltExamThisRound", "blockedSinceLastTurn", "priorLowAttack", "previousAttackBlocked", "previousCardIsItemOrConsumable", "previousCardIsKataOrItem",
+  "previousAttackZoneMidOrHigh", "priorDifferentZoneCount", "priorPunchAttack", "priorSpinAttack", "focusGeneratedThisTurn", "hasImprovisedWeapon",
+  "dealtDamagePreviousTurn", "nextMatchingAttack", "firstAttackAfterKataThisTurn", "equippedThisTurn", "didNotAttackPreviousTurn", "hasNotAttackedThisTurn",
+  "firstAttackWithTagThisTurn", "defenseHasTag", "sameOpponentAsBlockedAttack",
+  "firstMatchingPerRound", "firstMatchingPerTurn", "targetHasTemporaryNegativeStat", "incomingAttackIsUnarmed", "firstCombatDamageThisRound",
+  "firstDamagingAttackThisRound", "combatDamageDealt", "firstHitWithSourceThisTurn", "firstCombatDamageWithSourceThisTurn", "attackHasAnyTag",
+  "damageSourceIsWeapon", "attackedThisTurn", "firstDifferentZoneSequenceThisTurn", "focusGeneratedBySingleCard", "firstQualifyingHitThisTurn",
+  "currentCardType", "cardType", "cardTypeAny", "resolvedCardType",
+  "manualActivation", "pendingFromSource", "defenseOutsideTurn", "equippedCardIsOtherPermanentEquipment",
+  "drawAfterCost", "discardCost", "draw", "discard", "grantFlowTo", "window", "nextPurchase", "discount", "minimumCost", "minimumPrintedCost", "attackZones",
+  "lookCount", "eligibleTypes", "keepCount", "restAction", "optionalKeep", "differentCardTypesFocus", "noMatchFocus",
 ]);
 
 const increment = (map, key) => { const normalized = String(key ?? "(none)"); map[normalized] = (map[normalized] ?? 0) + 1; };
 const sorted = (map) => Object.fromEntries(Object.entries(map).sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0])));
 const conditionKind = (condition) => typeof condition === "string" ? condition.match(/kind=([^;}]*)/)?.[1] ?? "(unknown)" : condition?.kind ?? "(unknown)";
 const listValue = (value) => Array.isArray(value) ? value.join(",") : String(value ?? "(none)");
+const canonicalAction = (effect) => {
+  const action = String(effect.action ?? effect.effect ?? "(none)");
+  if (action !== "custom") return action;
+  if (["attack.optionalDiscardDraw", "defense.optionalDiscardDraw"].includes(String(effect.resolver))) return "cycleDiscardDraw";
+  if (String(effect.resolver) === "kata.flowGrant") return "grantFlow";
+  if (String(effect.resolver) === "kata.purchaseDiscount") return "modifyCost";
+  if (String(effect.resolver) === "kata.deckLook") return "deckLook";
+  if (String(effect.resolver) === "reaction.preventIncomingDamage") return "preventDamage";
+  return {
+    "equipment.modifyDefenseContribution": "modifyDefenseContribution",
+    "combat.modifyDefense": "modifyDefense",
+    "combat.grantFlow": "grantFlow",
+    "core.gainXP": "gainXP",
+    "core.reveal": "reveal",
+    "economy.spendFocus": "spendFocus",
+    "economy.modifyCost": "modifyCost",
+  }[String(effect.effect ?? "")] ?? action;
+};
 
 /**
  * Card family is derived from the canonical catalog, never from a card name or
@@ -74,14 +108,14 @@ export function analyzeEffectCoverage(cardEffects, { catalog = [], definition = 
     for (const effect of effects) {
       totalEffects += 1;
       increment(scopeCounts, scope);
-      const action = String(effect.action ?? effect.effect ?? "(none)"); const resolver = String(effect.resolver ?? "(none)");
+      const action = String(effect.action ?? effect.effect ?? "(none)"); const semanticAction = canonicalAction(effect); const resolver = String(effect.resolver ?? "(none)");
       increment(actionCounts, action); increment(resolverCounts, resolver); increment(triggerCounts, effect.trigger ?? "(none)"); increment(targetCounts, effect.target ?? "(none)"); increment(durationCounts, effect.duration ?? "(none)");
       const conditions = (effect.conditions ?? []).map(conditionKind); for (const kind of conditions) increment(conditionCounts, kind);
-      let supported = HEADLESS_SUPPORTED_ACTIONS.has(action) || action === "custom" && resolver === "starter.gainFocusIfFastest";
+      let supported = HEADLESS_SUPPORTED_ACTIONS.has(semanticAction) || action === "custom" && resolver === "starter.gainFocusIfFastest";
       for (const kind of conditions) if (!HEADLESS_SUPPORTED_CONDITIONS.has(kind)) { supported = false; increment(unsupportedConditions, kind); }
       const group = supportGroup(effect);
       if (!supported) {
-        cardSupported = false; increment(unsupportedActions, action); if (action === "custom" && resolver !== "starter.gainFocusIfFastest") increment(unsupportedResolvers, resolver);
+        cardSupported = false; increment(unsupportedActions, semanticAction); if (action === "custom" && resolver !== "starter.gainFocusIfFastest") increment(unsupportedResolvers, resolver);
         increment(unsupportedGroups, group); increment(unsupportedByScope, scope); increment(unsupportedByFamily, family);
       } else { supportedEffects += 1; cardSupportedCount += 1; increment(supportedByFamily, family); }
     }
