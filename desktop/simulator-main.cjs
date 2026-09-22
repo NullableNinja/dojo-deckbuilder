@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { spawn } = require("node:child_process");
+const fs = require("node:fs");
 const path = require("node:path");
 
 let mainWindow;
@@ -31,9 +32,12 @@ function send(channel, payload) {
 
 ipcMain.handle("simulation:start", (_event, options) => {
   if (activeProcess) throw new Error("A simulation is already running.");
-  const root = app.getAppPath();
-  const nodePath = path.join(root, "runtime", "node.exe");
-  const runnerPath = path.join(root, "engine", "parallel-simulate.mjs");
+  const appRoot = app.getAppPath();
+  const packageRootCandidate = path.resolve(appRoot, "..", "..", "..", "..");
+  const root = fs.existsSync(path.join(packageRootCandidate, "mode-manifest.json")) ? packageRootCandidate : appRoot;
+  const nodePath = path.join(appRoot, "runtime", "node.exe");
+  const runnerPath = path.join(appRoot, "engine", "parallel-simulate.mjs");
+  const output = path.isAbsolute(String(options.output)) ? String(options.output) : path.resolve(root, String(options.output));
   const args = [
     runnerPath,
     `--games=${options.games}`,
@@ -43,13 +47,13 @@ ipcMain.handle("simulation:start", (_event, options) => {
     `--policy=${options.policy}`,
     `--telemetry=${options.telemetry}`,
     `--replay-every=${options.replayEvery}`,
-    `--out=${options.output}`,
+    `--out=${output}`,
   ];
   activeProcess = spawn(nodePath, args, { cwd: root, windowsHide: true });
   activeProcess.stdout.on("data", (chunk) => send("simulation:output", chunk.toString()));
   activeProcess.stderr.on("data", (chunk) => send("simulation:output", chunk.toString()));
   activeProcess.on("close", (code, signal) => {
-    const result = { code: code ?? 1, signal: signal ?? null };
+    const result = { code: code ?? 1, signal: signal ?? null, output };
     activeProcess = undefined;
     send("simulation:done", result);
   });

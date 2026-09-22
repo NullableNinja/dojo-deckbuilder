@@ -38,6 +38,7 @@
           <label for="telemetry">Telemetry detail</label><select id="telemetry"><option value="games">games — full per-game records</option><option value="full">full — decisions and lifecycle events</option><option value="summary">summary — aggregate only</option></select>
           <label for="replay">Replay check every N games</label><input id="replay" type="number" min="0" value="100" />
           <label for="output">Summary JSON path</label><input id="output" value="reports/offline-simulation.json" />
+          <p class="warning">Relative paths are saved under the package folder. Default: <code>reports/offline-simulation.json</code>.</p>
           <button id="start">Run simulation</button>
           <div class="status" id="status">Ready.</div>
         </section>
@@ -51,7 +52,7 @@
       const status = document.getElementById("status");
       const start = document.getElementById("start");
       window.simulation.onOutput((text) => { log.textContent += text; log.scrollTop = log.scrollHeight; });
-      window.simulation.onDone(({ code }) => { start.disabled = false; status.textContent = code === 0 ? "Complete. Reports were written to the selected path." : `Failed with exit code ${code}.`; });
+      window.simulation.onDone(({ code, output }) => { start.disabled = false; status.textContent = code === 0 ? `Complete. Summary saved to ${output}` : `Failed with exit code ${code}.`; });
       start.addEventListener("click", async () => {
         start.disabled = true; log.textContent = ""; status.textContent = "Running...";
         try { await window.simulation.start({ games: value("games"), workers: value("workers"), seed: value("seed"), mode: value("mode"), policy: value("policy"), telemetry: value("telemetry"), replayEvery: value("replay"), output: value("output") }); }
