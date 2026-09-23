@@ -55,6 +55,32 @@
       .belt-track { display:flex;gap:5px;align-items:center;margin:12px 0 16px; }
       .belt-step { display:grid;place-items:center;width:30px;height:24px;color:#9aa8bf;border:2px solid var(--belt-color,#526484);border-radius:4px;background:#0a111d;font-size:11px;font-weight:900; }
       .belt-step.earned { color:#17211d;background:var(--belt-color,#f5f0df); }
+      /* Compact desktop mat: keep the complete play surface in one viewport. */
+      #game { display:grid; grid-template-columns:88px minmax(0,1fr); gap:12px; align-items:start; }
+      #game > .game-topbar { grid-column:1 / -1; margin-bottom:0; }
+      #game > .turn-center { grid-column:1; grid-row:2 / span 4; position:sticky; top:76px; display:flex; flex-direction:column; gap:9px; min-height:300px; margin:0 !important; padding:12px 7px; border:1px solid #3b4968; border-radius:12px; background:linear-gradient(180deg,#16213a,#0b111d); }
+      #game > .turn-center .round-token { width:42px; height:42px; flex:0 0 auto; }
+      #game > .turn-center .turn-copy { display:grid; gap:8px; writing-mode:vertical-rl; transform:rotate(180deg); text-align:left; align-items:center; }
+      #game > .turn-center .turn-copy b { font-size:12px; }
+      #game > .turn-center .turn-copy small { font-size:10px; line-height:1.2; }
+      #game > .arena { grid-column:2; grid-row:2; min-height:0; }
+      #game > #play-area { grid-column:2; grid-row:3; }
+      #game > #secondary-panels { grid-column:2; grid-row:4; }
+      #game > .status-strip { grid-column:2; grid-row:5; }
+      .game-topbar { min-height:54px; }
+      .arena { min-height:0; grid-template-columns:minmax(250px,.78fr) minmax(0,1.7fr) minmax(250px,.78fr); }
+      .fighter-panel { min-height:0; grid-template-rows:auto auto 180px auto minmax(54px,auto) minmax(62px,auto); align-content:start; }
+      .fighter-art { height:180px; }
+      .center-stage { min-height:0; grid-template-rows:auto auto minmax(205px,1fr) auto auto auto; }
+      #secondary-panels { display:none !important; }
+      #secondary-panels.is-open { display:grid !important; }
+      .secondary-toggle { margin-left:auto; white-space:nowrap; }
+      .ascend-desk-grid .card-rail { display:flex; flex-wrap:wrap; align-items:flex-start; max-height:52vh; overflow:auto; }
+      .ascend-desk-grid .card { flex:0 0 190px; min-height:260px; }
+      .ascend-desk-grid .card img { height:145px; }
+      .ascend-next { display:flex; justify-content:flex-end; margin-top:16px; padding-top:12px; border-top:1px solid #3b4968; }
+      .ascend-next .action { min-width:210px; }
+      @media (max-width:1250px) { #game { grid-template-columns:72px minmax(0,1fr); } .arena { grid-template-columns:220px minmax(0,1fr) 220px; } .fighter-art { height:160px; } .fighter-panel { grid-template-rows:auto auto 160px auto minmax(48px,auto) minmax(58px,auto); } }
     </style>
   </head>
   <body>

@@ -7,6 +7,7 @@ let previousPhase = null;
 let previousPendingKey = null;
 let ascendDeskOpen = false;
 let ascendDeskTab = "market";
+let secondaryPanelsOpen = false;
 let previousSnapshot = null;
 let infoCardStore = new Map();
 const assets = "assets";
@@ -89,6 +90,24 @@ function showToast(title, detail) {
   const toast = document.createElement("div"); toast.className = "toast"; toast.innerHTML = `<strong>${safe(title)}</strong><br>${safe(detail)}`; stack.append(toast); setTimeout(() => toast.remove(), 3200);
 }
 
+function ensureSecondaryPanels() {
+  const panels = document.querySelector("#game > section[style]");
+  if (!panels) return;
+  panels.id = "secondary-panels";
+  panels.classList.toggle("is-open", secondaryPanelsOpen);
+  let toggle = $("secondary-toggle");
+  if (!toggle) {
+    toggle = document.createElement("button");
+    toggle.id = "secondary-toggle";
+    toggle.type = "button";
+    toggle.className = "secondary secondary-toggle";
+    document.querySelector(".game-topbar")?.append(toggle);
+    toggle.addEventListener("click", () => { secondaryPanelsOpen = !secondaryPanelsOpen; ensureSecondaryPanels(); });
+  }
+  toggle.textContent = secondaryPanelsOpen ? "Hide desks & log" : "Market, Combo & log";
+  toggle.setAttribute("aria-expanded", String(secondaryPanelsOpen));
+}
+
 function resourceToasts() {
   if (!previousSnapshot || !view?.player) return;
   const before = previousSnapshot.player;
@@ -154,7 +173,7 @@ function renderAscendDesk() {
   const next = belt.next;
   const beltTrack = (view.belts ?? []).map((entry, index) => `<span class="belt-step ${index <= player.beltIndex ? "earned" : ""}" style="--belt-color:${safe(entry.color)}" title="${safe(entry.name)} Belt">${index < player.beltIndex ? "✓" : index === player.beltIndex ? "●" : index + 1}</span>`).join("");
   const beltPage = `<section><h3>${safe(belt.current?.name ?? player.beltName)} Belt · ${player.xp} XP</h3><div class="belt-track">${beltTrack}</div><p class="rules-note">${next ? `${safe(next.name)} Belt requires ${safe(next.xp)} XP and its exam: ${safe(next.exam?.summary ?? "Complete the canonical exam")}.` : "You have reached the final canonical Belt."}</p><div class="ascend-desk-actions">${legal.filter((action) => ["promote", "recover-training-stripe", "pass"].includes(action.type)).map((action) => actionButton(action, legal.indexOf(action), action.type === "promote")).join("")}</div></section><section><h3>Certification record</h3><p>Current task: ${safe(belt.examComplete ? "Complete" : next?.exam?.title ?? "No further exam")}</p><p>Training Stripes held: <b>${safe(belt.stripes?.held ?? 0)}</b> · provisional: ${belt.stripes?.provisional ? "yes" : "no"}</p><p>Completed tasks: ${safe((belt.completedTasks ?? []).length)}</p><p class="muted">Promotion and stripe recovery remain engine actions; this desk only presents the canonical state and legal choices.</p></section>`;
-  const marketPage = `<div class="ascend-desk-grid"><section><h3>Seven-card Market · ${player.focus} Focus available</h3><div class="card-rail">${market || `<p class="muted">No Market cards are currently revealed.</p>`}</div></section><section><h3>Combo docket</h3>${combo ? `<div class="card-rail">${cardHtml(combo, comboMatch ? { actionIndex: comboMatch.index, legal: true } : {})}</div>` : `<p class="muted">No Combo offer is waiting right now.</p>`}<div class="ascend-desk-actions">${legal.filter((action) => ["learn-combo", "decline-combo", "pass"].includes(action.type)).map((action) => actionButton(action, legal.indexOf(action), action.type === "learn-combo")).join("")}</div></section></div>`;
+  const marketPage = `<div class="ascend-desk-grid"><section><h3>Seven-card Market · ${player.focus} Focus available</h3><div class="card-rail">${market || `<p class="muted">No Market cards are currently revealed.</p>`}</div></section><section><h3>Combo docket</h3>${combo ? `<div class="card-rail">${cardHtml(combo, comboMatch ? { actionIndex: comboMatch.index, legal: true } : {})}</div>` : `<p class="muted">No Combo offer is waiting right now.</p>`}<div class="ascend-desk-actions">${legal.filter((action) => ["learn-combo", "decline-combo", "pass"].includes(action.type)).map((action) => actionButton(action, legal.indexOf(action), action.type === "learn-combo")).join("")}</div></section></div><div class="ascend-next"><button type="button" class="action primary" data-ascend-tab="belt">Continue to Belt Check →</button></div>`;
   const tabs = `<nav class="ascend-tabs" aria-label="Ascend pages"><button type="button" data-ascend-tab="market" class="${ascendDeskTab === "market" ? "active" : ""}">Market & Combo</button><button type="button" data-ascend-tab="belt" class="${ascendDeskTab === "belt" ? "active" : ""}">Belt Check</button></nav>`;
   $("ascend-content").innerHTML = tabs + (ascendDeskTab === "belt" ? beltPage : marketPage);
 }
@@ -268,6 +287,7 @@ function render() {
   if (!view || view.screen === "menu") return;
   document.querySelectorAll(".health-line span").forEach((label) => { label.textContent = "HP"; });
   document.querySelectorAll(".brand-mark").forEach((mark) => { if (!mark.querySelector("img")) mark.innerHTML = `<img src="${assets}/art/brand-emblem.webp" alt="">`; });
+  ensureSecondaryPanels();
   $("menu").classList.add("hidden"); $("game").classList.remove("hidden");
   const bossMode = view.mode === "boss-blitz";
   const enemy = view.opponent;
@@ -278,7 +298,7 @@ function render() {
   const pending = view.pendingChoice;
   const pendingKey = pending ? `${pending.kind}:${pending.playerId}:${pending.cardId ?? ""}` : null;
   const choiceByCard = new Map(pending?.playerId === 0 ? pending.options.filter((option) => option.id !== "pass").map((option) => [option.id, option]) : []);
-  if (view.phase === "Ascend" && previousPhase !== "Ascend" && view.activePlayer === 0 && !winner) ascendDeskOpen = true;
+  if (view.phase === "Ascend" && previousPhase !== "Ascend" && view.activePlayer === 0 && !winner) { ascendDeskOpen = true; ascendDeskTab = "market"; }
   if (view.phase !== "Ascend") ascendDeskOpen = false;
   previousPhase = view.phase;
   actionStore = legal;
@@ -368,8 +388,8 @@ async function send(message) {
     return;
   }
   if (response.view?.info) { openInfo(response.view.info); return; }
-  if (message.type === "start") { setup = { ...message }; previousPhase = null; previousPendingKey = null; ascendDeskOpen = false; }
-  if (message.type === "reset") { setup = null; previousPhase = null; previousPendingKey = null; ascendDeskOpen = false; }
+  if (message.type === "start") { setup = { ...message }; previousPhase = null; previousPendingKey = null; ascendDeskOpen = false; ascendDeskTab = "market"; secondaryPanelsOpen = false; }
+  if (message.type === "reset") { setup = null; previousPhase = null; previousPendingKey = null; ascendDeskOpen = false; ascendDeskTab = "market"; secondaryPanelsOpen = false; }
   view = response.view; render();
 }
 
