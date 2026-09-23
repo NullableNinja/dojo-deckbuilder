@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { spawn } = require("node:child_process");
+const fs = require("node:fs");
 const path = require("node:path");
 const readline = require("node:readline");
 
@@ -9,6 +10,30 @@ let nextId = 1;
 const pending = new Map();
 const appRoot = () => app.getAppPath();
 const rootPath = (...parts) => path.join(appRoot(), ...parts);
+
+function buildArtMap() {
+  const packaged = fs.existsSync(rootPath("assets", "cards"));
+  const cardsRoot = packaged ? rootPath("assets", "cards") : rootPath("app", "assets", "cards");
+  const urlRoot = packaged ? "assets/cards" : "../app/assets/cards";
+  const map = {};
+  const visit = (directory) => {
+    if (!fs.existsSync(directory)) return;
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) { visit(absolute); continue; }
+      if (!entry.name.toLowerCase().endsWith(".webp")) continue;
+      const relative = path.relative(cardsRoot, absolute).split(path.sep).join("/");
+      const url = `${urlRoot}/${relative}`;
+      const stem = entry.name.replace(/\.webp$/i, "");
+      const catalog = stem.match(/^(ddb-[a-z0-9-]+-core-\d{3})_/i)?.[1];
+      if (catalog) map[catalog.toUpperCase()] = url;
+      map[`name:${stem.toLowerCase()}`] = url;
+      map[`name:${(stem.split("_").at(-1) ?? stem).toLowerCase()}`] = url;
+    }
+  };
+  visit(cardsRoot);
+  return map;
+}
 
 function startServer() {
   const nodeBinary = process.env.DOJO_NODE_BINARY || rootPath("runtime", "node.exe");
@@ -29,6 +54,7 @@ function createWindow() {
 app.whenReady().then(() => {
   startServer();
   ipcMain.handle("dojo-game-command", (_event, message) => new Promise((resolve) => { const id = nextId++; pending.set(id, resolve); server.stdin.write(`${JSON.stringify({ ...message, id })}\n`); }));
+  ipcMain.handle("dojo-game-art-map", () => buildArtMap());
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
