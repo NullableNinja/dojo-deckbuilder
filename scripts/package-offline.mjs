@@ -86,7 +86,10 @@ if (process.platform === "win32") {
         appId: `com.nullableninja.dojo.${outputName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
         productName,
         electronVersion,
-        asar: true,
+        // The desktop clients spawn the bundled runtime/node.exe. Keeping the
+        // app unpacked is required because Windows cannot execute a child
+        // binary from inside app.asar.
+        asar: false,
         directories: { output: outputDir },
         win: { target: [{ target: "portable", arch: ["x64"] }], artifactName },
       },
