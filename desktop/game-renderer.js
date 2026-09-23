@@ -351,7 +351,9 @@ function render() {
     return cardHtml(card, match && actionIsHandCard(match.action, player) ? { actionIndex: match.index, legal: true } : {});
   }).join("");
   $("hand").innerHTML = handCards || `<p class="muted">No cards in hand.</p>`;
-  if (pending?.playerId === 0 && pendingKey !== previousPendingKey) requestAnimationFrame(() => $("play-area")?.scrollIntoView({ block: "center", behavior: "smooth" }));
+  // The hand is a persistent bottom dock. Do not scroll the document when a
+  // response choice appears; the arena remains the stable reference point.
+  if (pending?.playerId === 0 && pendingKey !== previousPendingKey) requestAnimationFrame(() => $("play-area")?.querySelector(".card-main")?.focus({ preventScroll: true }));
   previousPendingKey = pendingKey;
   $("hand-title").textContent = view.pendingChoice ? "Resolve the choice in the arena" : view.phase === "Defense" ? "Defend the incoming strike" : view.phase === "Ascend" ? "Your hand · play is paused while you Ascend" : "Choose your next card";
   $("hand-help").textContent = phaseHint();
