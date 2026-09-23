@@ -1,8 +1,10 @@
 import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { packager } from "@electron/packager";
+import { build as electronBuilder } from "electron-builder";
 import { loadGameData } from "../engine/rules-loader.mjs";
 import { modeSummary } from "../engine/modes.mjs";
 
@@ -69,6 +71,32 @@ if (process.platform === "win32") {
   simulatorExeName = "Dojo-Deckbuilder-Simulator.exe";
   await cp(gameOutput, join(stage, "apps", gameAppName), { recursive: true });
   await cp(simulatorOutput, join(stage, "apps", simulatorAppName), { recursive: true });
+
+  // Electron Packager gives us a transparent folder build for diagnostics. The
+  // portable targets are the user-facing single-file executables that can be
+  // copied to another Windows machine without the adjacent Electron folder.
+  const portableRoot = resolve(tmpdir(), `dojo-deckbuilder-portable-${process.pid}`);
+  await rm(portableRoot, { recursive: true, force: true });
+  await mkdir(portableRoot, { recursive: true });
+  const buildPortable = async (projectDir, productName, artifactName, outputName) => {
+    const outputDir = resolve(portableRoot, outputName.replace(/\.exe$/i, ""));
+    await electronBuilder({
+      projectDir,
+      config: {
+        appId: `com.nullableninja.dojo.${outputName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+        productName,
+        electronVersion,
+        asar: true,
+        directories: { output: outputDir },
+        win: { target: [{ target: "portable", arch: ["x64"] }], artifactName },
+      },
+    });
+    const portablePath = resolve(outputDir, artifactName);
+    await cp(portablePath, resolve(stage, outputName));
+    return resolve(stage, outputName);
+  };
+  await buildPortable(gameSource, "Dojo Deckbuilder Game", "Dojo-Deckbuilder-Game-Portable.exe", "Dojo-Deckbuilder-Game-Portable.exe");
+  await buildPortable(simulatorSource, "Dojo Deckbuilder Simulator", "Dojo-Deckbuilder-Simulator-Portable.exe", "Dojo-Deckbuilder-Simulator-Portable.exe");
 }
 await mkdir(join(stage, "reports"), { recursive: true });
 await writeFile(join(stage, "package.json"), `${JSON.stringify({ type: "module", private: true }, null, 2)}\n`);
@@ -91,11 +119,12 @@ const readme = [
   "",
   "## Play locally",
   "",
-  "Run `play.cmd` or double-click `Dojo-Deckbuilder-Game.exe` under `apps`. This is the focused offline game client: it opens directly to mode selection and does not load the Dojo website, rules homepage, navigation, or browser server.",
+  "Run `play.cmd` or double-click `Dojo-Deckbuilder-Game-Portable.exe` for the single-file Windows build. The transparent folder build remains under `apps` as `Dojo-Deckbuilder-Game.exe` plus its resources. This is the focused offline game client: it opens directly to mode selection and does not load the Dojo website, rules homepage, navigation, or browser server.",
   "",
   "## Run parallel simulations",
   "",
-  "Run `simulate.cmd` or double-click the Dojo Deckbuilder Simulator executable under `apps` to use the native controls for game count, workers, seeds, mode, policy, telemetry detail, replay sampling, and output path.",
+  "Run `simulate.cmd` or double-click `Dojo-Deckbuilder-Simulator-Portable.exe` for the single-file Windows simulator. It has native controls for game count, workers, seeds, mode, policy, telemetry detail, replay sampling, and output path.",
+  "The portable executables are unsigned Windows binaries, so Windows SmartScreen may require choosing More info → Run anyway the first time. The game portable executable can be sent by itself; the simulator portable executable can also be sent by itself.",
   "",
   "For scripted runs, pass arguments to `simulate.cmd`, for example: `simulate.cmd --games=10000 --workers=8 --telemetry=games --out=reports\\baseline.json`.",
   "",

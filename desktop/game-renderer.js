@@ -9,6 +9,7 @@ let ascendDeskOpen = false;
 let ascendDeskTab = "market";
 let secondaryPanelsOpen = false;
 let previousSnapshot = null;
+let lastCelebrationKey = null;
 let infoCardStore = new Map();
 const assets = "assets";
 
@@ -90,6 +91,92 @@ function showToast(title, detail) {
   const toast = document.createElement("div"); toast.className = "toast"; toast.innerHTML = `<strong>${safe(title)}</strong><br>${safe(detail)}`; stack.append(toast); setTimeout(() => toast.remove(), 3200);
 }
 
+function animateSelector(selector, className) {
+  document.querySelectorAll(selector).forEach((element) => {
+    element.classList.remove(className);
+    void element.offsetWidth;
+    element.classList.add(className);
+    setTimeout(() => element.classList.remove(className), 1200);
+  });
+}
+
+function showFloat(text, tone = "gold", selector = "#combat-board") {
+  const anchor = document.querySelector(selector);
+  if (!anchor) return;
+  const bounds = anchor.getBoundingClientRect();
+  const element = document.createElement("div");
+  element.className = `fx-float ${tone}`;
+  element.textContent = text;
+  element.style.left = `${bounds.left + bounds.width / 2}px`;
+  element.style.top = `${Math.max(74, bounds.top + bounds.height * .38)}px`;
+  document.body.append(element);
+  setTimeout(() => element.remove(), 1300);
+}
+
+function clearCelebration() {
+  lastCelebrationKey = null;
+  $("confetti-layer")?.replaceChildren();
+  $("result-banner")?.classList.remove("visible", "victory", "defeat");
+}
+
+function showResultCelebration() {
+  if (view?.winner === null || view?.winner === undefined) return;
+  const key = `${view.seed}:${view.winner}:${view.reason}`;
+  if (lastCelebrationKey === key) return;
+  lastCelebrationKey = key;
+  const won = view.winner === 0;
+  const banner = $("result-banner");
+  if (banner) {
+    banner.classList.remove("visible", "victory", "defeat");
+    void banner.offsetWidth;
+    banner.classList.add("visible", won ? "victory" : "defeat");
+    $("result-title").textContent = won ? "Victory!" : "Defeat";
+    $("result-detail").textContent = won ? "The dojo is yours. Nice work." : "The fight is over. Restart to try another line.";
+  }
+  const layer = $("confetti-layer");
+  if (!layer || !won) return;
+  const colors = ["#f4cf7a", "#72d6ce", "#ff8f78", "#9f9cff", "#f8f4e5", "#69a8ff"];
+  layer.innerHTML = Array.from({ length: 76 }, (_, index) => {
+    const left = (index * 47 + 9) % 100;
+    const drift = ((index * 31) % 180) - 90;
+    const rotation = (index * 43) % 360;
+    const spin = index % 2 ? 720 : -720;
+    const delay = (index % 13) * .045;
+    const duration = 2.7 + (index % 8) * .16;
+    return `<i class="confetti-piece" style="--left:${left}%;--drift:${drift}px;--rotation:${rotation}deg;--spin:${spin}deg;--delay:${delay}s;--duration:${duration}s;--color:${colors[index % colors.length]}"></i>`;
+  }).join("");
+}
+
+function freshEvents() {
+  const previousEvents = previousSnapshot?.events ?? [];
+  return (view?.events ?? []).filter((event) => !previousEvents.some((old) => old.type === event.type && old.round === event.round && old.card === event.card && old.player === event.player && old.damage === event.damage));
+}
+
+function visualEffects() {
+  if (!previousSnapshot || !view) return;
+  const beforePlayer = previousSnapshot.player;
+  const afterPlayer = view.player;
+  const beforeOpponent = previousSnapshot.opponent;
+  const afterOpponent = view.opponent;
+  const playerHpDelta = Number(afterPlayer?.hp) - Number(beforePlayer?.hp);
+  const opponentHpDelta = Number(afterOpponent?.hp) - Number(beforeOpponent?.hp);
+  if (playerHpDelta < 0) { animateSelector(".fighter-panel.player, #player-art", "fx-hit"); showFloat(`${playerHpDelta} HP`, "bad", ".fighter-panel.player"); }
+  if (playerHpDelta > 0) { animateSelector(".fighter-panel.player, #player-health-bar", "fx-heal"); showFloat(`+${playerHpDelta} HP`, "good", ".fighter-panel.player"); }
+  if (opponentHpDelta < 0) { animateSelector(".fighter-panel.enemy, #opponent-art", "fx-hit"); showFloat(`${opponentHpDelta} HP`, "bad", ".fighter-panel.enemy"); }
+  if (opponentHpDelta > 0) { animateSelector(".fighter-panel.enemy, #opponent-health-bar", "fx-heal"); showFloat(`+${opponentHpDelta} HP`, "good", ".fighter-panel.enemy"); }
+  [["focus", "Focus", "#player-stats"], ["xp", "XP", "#hand-counters"]].forEach(([key, label, selector]) => {
+    const delta = Number(afterPlayer?.[key]) - Number(beforePlayer?.[key]);
+    if (delta > 0) showFloat(`+${delta} ${label}`, "gold", selector);
+  });
+  if (previousSnapshot.phase !== view.phase) animateSelector("#combat-board, #game > .turn-center", "fx-phase");
+  const events = freshEvents();
+  if (events.some((event) => event.type === "attack" || event.type === "boss-attack" || event.type === "attack-hit" || event.type === "attack-blocked")) animateSelector("#combat-board", "fx-pulse");
+  if (events.some((event) => event.type === "promotion" || event.type === "promote")) { animateSelector(".fighter-panel.player, #player-belt", "fx-heal"); showFloat("BELT UP!", "gold", ".fighter-panel.player"); }
+  if (events.some((event) => event.type === "combo-learned" || event.type === "combo-triggered")) { animateSelector("#player-played, #combat-board", "fx-pulse"); showFloat("COMBO!", "gold", "#combat-board"); }
+  if (events.some((event) => event.type === "equipment-ready")) { animateSelector("#roster", "fx-heal"); showFloat("EQUIPPED", "good", "#roster"); }
+  if (view.winner !== null && previousSnapshot.winner === null) showResultCelebration();
+}
+
 function ensureSecondaryPanels() {
   const panels = document.querySelector("#game > section[style]");
   if (!panels) return;
@@ -117,8 +204,7 @@ function resourceToasts() {
 }
 
 function eventToasts() {
-  const previousEvents = previousSnapshot?.events ?? [];
-  const fresh = (view.events ?? []).filter((event) => !previousEvents.some((old) => old.type === event.type && old.round === event.round && old.card === event.card && old.player === event.player && old.damage === event.damage));
+  const fresh = freshEvents();
   fresh.slice(-4).forEach((event) => {
     if (event.type === "attack" || event.type === "boss-attack") showToast(event.damage > 0 ? `${event.damage} Damage` : "Attack blocked", `${event.zone ?? "Any"} zone${event.cardName ? ` · ${event.cardName}` : ""}`);
     else if (event.type === "promotion") showToast("Belt promoted", `${event.belt} Belt certification complete`);
@@ -377,6 +463,7 @@ function render() {
   renderAscendDesk();
   resourceToasts();
   eventToasts();
+  visualEffects();
   previousSnapshot = structuredClone(view);
 }
 
@@ -390,8 +477,8 @@ async function send(message) {
     return;
   }
   if (response.view?.info) { openInfo(response.view.info); return; }
-  if (message.type === "start") { setup = { ...message }; previousPhase = null; previousPendingKey = null; ascendDeskOpen = false; ascendDeskTab = "market"; secondaryPanelsOpen = false; }
-  if (message.type === "reset") { setup = null; previousPhase = null; previousPendingKey = null; ascendDeskOpen = false; ascendDeskTab = "market"; secondaryPanelsOpen = false; }
+  if (message.type === "start") { setup = { ...message }; previousPhase = null; previousPendingKey = null; previousSnapshot = null; ascendDeskOpen = false; ascendDeskTab = "market"; secondaryPanelsOpen = false; clearCelebration(); }
+  if (message.type === "reset") { setup = null; previousPhase = null; previousPendingKey = null; previousSnapshot = null; ascendDeskOpen = false; ascendDeskTab = "market"; secondaryPanelsOpen = false; clearCelebration(); }
   view = response.view; render();
 }
 

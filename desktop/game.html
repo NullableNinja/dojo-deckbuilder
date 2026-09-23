@@ -94,6 +94,49 @@
       #play-area .card .rules { -webkit-line-clamp:2; }
       #play-area .card-inspect { bottom:5px; right:5px; }
       @media (max-width:1250px) { #game { grid-template-columns:72px minmax(0,1fr); } .arena { grid-template-columns:220px minmax(0,1fr) 220px; } .fighter-art { height:160px; } .fighter-panel { grid-template-rows:auto auto 160px auto minmax(48px,auto) minmax(58px,auto); } }
+      /* Game-feel layer: visual feedback never changes the authoritative state. */
+      body::before { content:""; position:fixed; z-index:-1; inset:0; pointer-events:none; background:radial-gradient(circle at 18% 18%,rgba(62,196,190,.08),transparent 27%),radial-gradient(circle at 82% 28%,rgba(240,115,97,.08),transparent 30%),radial-gradient(circle at 50% 100%,rgba(231,185,108,.07),transparent 35%); }
+      #game > .arena { transition:filter .25s ease; }
+      #game .fighter-panel.player { border-color:rgba(103,196,188,.56); box-shadow:0 18px 50px #0007, inset 0 0 0 1px rgba(103,196,188,.05); }
+      #game .fighter-panel.enemy { border-color:rgba(240,115,97,.62); box-shadow:0 18px 50px #0007, inset 0 0 0 1px rgba(240,115,97,.05); }
+      #game .center-stage { border-color:rgba(231,185,108,.46); box-shadow:0 18px 50px #0007, inset 0 0 35px rgba(56,81,133,.08); }
+      #game .combat-board { border-color:rgba(103,196,188,.46); background:radial-gradient(circle at 18% 30%,rgba(103,196,188,.12),transparent 32%),radial-gradient(circle at 82% 30%,rgba(240,115,97,.1),transparent 32%),#0b111d; }
+      #game .zone:nth-child(1) { color:#ff9f8e; border-color:rgba(240,115,97,.45); }
+      #game .zone:nth-child(2) { color:#e7b96c; border-color:rgba(231,185,108,.45); }
+      #game .zone:nth-child(3) { color:#72d6ce; border-color:rgba(103,196,188,.45); }
+      #game .zone.hot:nth-child(1) { background:rgba(240,115,97,.16); box-shadow:0 0 18px rgba(240,115,97,.2); }
+      #game .zone.hot:nth-child(2) { background:rgba(231,185,108,.16); box-shadow:0 0 18px rgba(231,185,108,.2); }
+      #game .zone.hot:nth-child(3) { background:rgba(103,196,188,.16); box-shadow:0 0 18px rgba(103,196,188,.2); }
+      #game > #play-area { border-color:rgba(103,196,188,.48); background:linear-gradient(180deg,rgba(15,30,45,.98),rgba(9,15,27,.98)); }
+      #game .action-bar { border-color:rgba(231,185,108,.5); background:linear-gradient(90deg,rgba(48,62,103,.82),rgba(13,25,39,.94)); }
+      #game .card.is-legal { animation:legal-breathe 1.9s ease-in-out infinite; }
+      #game .card.is-legal:hover { animation:none; }
+      @keyframes legal-breathe { 0%,100% { box-shadow:0 0 0 1px rgba(103,196,188,.14),0 0 0 rgba(103,196,188,0); } 50% { box-shadow:0 0 0 2px rgba(103,196,188,.25),0 0 20px rgba(103,196,188,.16); } }
+      @keyframes hit-flash { 0% { filter:brightness(1); transform:translateX(0); } 18% { filter:brightness(1.9) saturate(1.4); transform:translateX(-6px); } 35% { transform:translateX(6px); } 52% { transform:translateX(-3px); } 70%,100% { filter:brightness(1); transform:translateX(0); } }
+      @keyframes heal-glow { 0%,100% { filter:brightness(1); box-shadow:none; } 45% { filter:brightness(1.6) saturate(1.3); box-shadow:0 0 28px rgba(103,196,188,.65); } }
+      @keyframes board-pulse { 0%,100% { transform:scale(1); } 40% { transform:scale(1.012); } }
+      @keyframes phase-sweep { 0% { box-shadow:inset 0 0 0 rgba(231,185,108,0); } 35% { box-shadow:inset 0 0 48px rgba(231,185,108,.18); } 100% { box-shadow:inset 0 0 0 rgba(231,185,108,0); } }
+      @keyframes card-land { 0% { opacity:.45; transform:translateY(-12px) scale(.96) rotate(-2deg); } 100% { opacity:1; transform:none; } }
+      .fx-hit { animation:hit-flash .62s ease both; }
+      .fx-heal { animation:heal-glow .82s ease both; }
+      .fx-pulse { animation:board-pulse .48s ease both; }
+      .fx-phase { animation:phase-sweep .9s ease both; }
+      .fx-card-land { animation:card-land .42s cubic-bezier(.2,.85,.25,1.2) both; }
+      .fx-float { position:fixed; z-index:45; pointer-events:none; color:#fff; font-size:22px; font-weight:950; text-shadow:0 2px 10px #000; animation:float-up 1.15s ease-out forwards; }
+      .fx-float.good { color:#7fe0c7; } .fx-float.bad { color:#ff9a85; } .fx-float.gold { color:#ffd98e; }
+      @keyframes float-up { 0% { opacity:0; transform:translate(-50%,10px) scale(.8); } 15% { opacity:1; transform:translate(-50%,0) scale(1); } 100% { opacity:0; transform:translate(-50%,-68px) scale(1.08); } }
+      .result-banner { position:fixed; z-index:44; top:82px; left:50%; display:none; width:min(560px,calc(100vw - 40px)); padding:18px 26px; transform:translateX(-50%); text-align:center; border:2px solid var(--gold); border-radius:14px; background:linear-gradient(135deg,rgba(38,29,44,.97),rgba(12,21,36,.97)); box-shadow:0 18px 70px #000c,0 0 35px rgba(231,185,108,.22); pointer-events:none; }
+      .result-banner.visible { display:block; animation:result-in .65s cubic-bezier(.2,.9,.25,1.2) both; }
+      .result-banner.victory { border-color:#f4cf7a; background:linear-gradient(135deg,rgba(69,38,40,.98),rgba(17,35,48,.98)); }
+      .result-banner.defeat { border-color:#d45b68; }
+      .result-banner b { display:block; color:#ffe0a0; font-size:29px; letter-spacing:.09em; text-transform:uppercase; }
+      .result-banner small { color:#d7e2f5; }
+      @keyframes result-in { from { opacity:0; transform:translate(-50%,-24px) scale(.84); } to { opacity:1; transform:translate(-50%,0) scale(1); } }
+      .confetti-layer { position:fixed; z-index:43; inset:0; overflow:hidden; pointer-events:none; }
+      .confetti-piece { position:absolute; top:-24px; left:var(--left); width:10px; height:18px; opacity:0; background:var(--color); transform:rotate(var(--rotation)); animation:confetti-fall var(--duration) cubic-bezier(.12,.65,.25,1) var(--delay) forwards; }
+      .confetti-piece:nth-child(3n) { width:7px; height:12px; border-radius:50%; }
+      .confetti-piece:nth-child(4n) { width:14px; height:7px; }
+      @keyframes confetti-fall { 0% { opacity:0; transform:translate3d(0,-24px,0) rotate(0deg); } 8% { opacity:1; } 100% { opacity:0; transform:translate3d(var(--drift),calc(100vh + 48px),0) rotate(var(--spin)); } }
     </style>
   </head>
   <body>
@@ -108,9 +151,9 @@
         <header class="game-topbar"><div class="brand"><span class="brand-mark">✦</span><span><b>DOJO</b><small>DECKBUILDER</small></span></div><div class="site-nav"><button class="top-action active" data-info="library">Card library</button><button class="top-action" data-info="rulings">Rulings</button></div><div class="site-spacer"></div><span id="mode-label" class="mode-badge"></span><button id="restart-game" class="secondary">Restart</button><button id="new-game" class="secondary">Change mode</button></header>
         <div class="turn-center" style="margin-bottom:12px"><div class="round-token" id="round-number">1</div><div class="turn-copy"><b id="game-title">Your turn</b><small id="phase"></small></div></div>
         <section class="arena">
-          <section class="panel fighter-panel player"><div class="fighter-title"><div><span class="eyebrow">Your fighter</span><h2 id="player-name"></h2></div><small id="player-belt"></small></div><div class="health"><div class="health-line"><span>Vitality</span><b id="player-hp"></b></div><div class="health-track"><i id="player-health-bar"></i></div></div><img id="player-art" class="fighter-art" alt="" /><div id="player-stats" class="combat-stats"></div><div id="roster" class="roster"></div><div id="player-played" class="played-zone"></div></section>
+          <section class="panel fighter-panel player"><div class="fighter-title"><div><span class="eyebrow">Your fighter</span><h2 id="player-name"></h2></div><small id="player-belt"></small></div><div class="health"><div class="health-line"><span>HP</span><b id="player-hp"></b></div><div class="health-track"><i id="player-health-bar"></i></div></div><img id="player-art" class="fighter-art" alt="" /><div id="player-stats" class="combat-stats"></div><div id="roster" class="roster"></div><div id="player-played" class="played-zone"></div></section>
           <section class="panel center-stage"><div class="scene-bar"><div><span class="eyebrow">Current scene</span><b id="scene-name">Tournament Mat</b></div><div id="scene-rule" class="scene-rule"></div></div><div class="versus-line"><span></span><b>VS</b><span></span></div><div class="combat-board"><header><b id="combat-status">Choose an action</b><small id="combat-turn" class="muted"></small></header><div class="zones"><div class="zone" id="zone-high">High</div><div class="zone" id="zone-mid">Mid</div><div class="zone" id="zone-low">Low</div></div><div id="combat-cards" class="combat-cards"></div><div id="combat-math" class="combat-math hidden"></div><footer id="combat-help">Cards that can be played glow teal in your hand.</footer></div><div id="guard"></div><button id="ascend-toggle" type="button" class="secondary ascend-toggle hidden">Open Ascend desk</button><div id="choice" class="choice hidden"></div><div id="action-bar" class="action-bar"><div><span class="eyebrow">Action bar</span><b id="action-title">Your options</b></div><p id="action-help">Legal actions appear here and on any glowing cards.</p></div><div id="actions" class="action-dock"></div></section>
-          <section class="panel fighter-panel enemy"><div class="fighter-title"><div><span id="opponent-eyebrow" class="eyebrow">Computer opponent</span><h2 id="opponent-name"></h2></div><small>OPPONENT</small></div><div class="health"><div class="health-line"><span>Vitality</span><b id="opponent-hp"></b></div><div class="health-track"><i id="opponent-health-bar"></i></div></div><img id="opponent-art" class="fighter-art" alt="" /><div id="opponent-stats" class="combat-stats"></div><p id="opponent-rules" class="rules-note"></p><div id="opponent-played" class="played-zone"></div></section>
+          <section class="panel fighter-panel enemy"><div class="fighter-title"><div><span id="opponent-eyebrow" class="eyebrow">Computer opponent</span><h2 id="opponent-name"></h2></div><small>OPPONENT</small></div><div class="health"><div class="health-line"><span>HP</span><b id="opponent-hp"></b></div><div class="health-track"><i id="opponent-health-bar"></i></div></div><img id="opponent-art" class="fighter-art" alt="" /><div id="opponent-stats" class="combat-stats"></div><p id="opponent-rules" class="rules-note"></p><div id="opponent-played" class="played-zone"></div></section>
         </section>
         <section id="play-area" class="play-area"><div class="hand-heading"><div><span class="eyebrow">Your hand</span><h2 id="hand-title">Choose your next card</h2><p id="hand-help">Cards with a PLAY badge are legal in the current phase.</p></div><div id="hand-counters" class="hand-counters"></div></div><div id="hand" class="card-rail"></div></section>
         <section style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><section class="panel market" style="padding:12px"><h3>Market & Combo desk</h3><div id="market" class="card-rail"></div></section><section class="panel" style="padding:12px"><h3>Fight log</h3><div id="boss-summary" class="boss-summary"></div><div id="log" class="log"></div></section></section>
@@ -119,6 +162,7 @@
       <div id="inspector-backdrop" class="inspector-backdrop hidden" role="presentation"><section class="inspector" role="dialog" aria-modal="true" aria-labelledby="inspector-name"><img id="inspector-art" class="inspector-art" alt="" /><div class="inspector-copy"><button id="inspector-close" class="inspector-close" type="button" aria-label="Close card inspector">×</button><span id="inspector-type" class="eyebrow"></span><h2 id="inspector-name"></h2><div id="inspector-meta" class="inspector-meta"></div><p id="inspector-rules"></p><p id="inspector-flavor" class="muted"></p></div></section></div>
       <div id="ascend-backdrop" class="inspector-backdrop hidden" role="presentation"><section class="ascend-desk" role="dialog" aria-modal="true" aria-labelledby="ascend-title"><header><div><span class="eyebrow">Ascend phase · acquisition desk</span><h2 id="ascend-title">Market, Combo, Belt Check</h2><p class="muted">Use the same legal actions as the online playtest. Buy what you can afford, review the Combo offer, then continue.</p></div><button id="ascend-close" class="inspector-close" type="button" aria-label="Close Ascend desk">×</button></header><div id="ascend-content"></div></section></div>
       <div id="info-backdrop" class="inspector-backdrop hidden" role="presentation"><section class="info-desk" role="dialog" aria-modal="true" aria-labelledby="info-title"><header><div><span id="info-eyebrow" class="eyebrow">Offline reference</span><h2 id="info-title"></h2></div><button id="info-close" class="inspector-close" type="button" aria-label="Close reference">×</button></header><div id="info-content"></div></section></div>
+      <div id="confetti-layer" class="confetti-layer" aria-hidden="true"></div><div id="result-banner" class="result-banner" role="status" aria-live="assertive"><b id="result-title"></b><small id="result-detail"></small></div>
     </main><script src="game-renderer.js"></script>
   </body>
 </html>
