@@ -17,6 +17,7 @@ import type {
   CharacterRuntimeChoice,
   CharacterRuntimeEvent,
 } from "./character-runtime.ts";
+import { resetCharacterHostRound, resetCharacterHostTurn } from "./character-playtest-bridge.ts";
 import { publishQuickDuelCharacterEvent } from "./quick-duel-structured-host.ts";
 import { canonicalTrainingStripeConfig } from "./training-stripes-config.ts";
 import {
@@ -313,6 +314,42 @@ function publishCharacterTransitionEvent<Board extends QuickDuelTransitionBoard>
   return { match, unresolvedPlayerChoice: actor === "player" && result.choices.length > 0 };
 }
 
+function publishCharacterLifecycleTransitions<Board extends QuickDuelTransitionBoard>(
+  previous: QuickDuelTransitionMatch<Board>,
+  nextInput: QuickDuelTransitionMatch<Board>,
+  roundAdvanced: boolean,
+  turnAdvanced: boolean,
+): QuickDuelTransitionMatch<Board> {
+  let next = nextInput;
+  const turnActor = turnAdvanced ? activeActor(next) : null;
+
+  if (roundAdvanced) {
+    for (const actor of ["player", "ai"] as const) {
+      const board = actorBoard(next, actor);
+      if (!looksLikeCharacterRuntimeBoard(board)) continue;
+      next = setActorBoard(next, actor, resetCharacterHostRound(board) as Board);
+    }
+  } else if (turnActor) {
+    const board = actorBoard(next, turnActor);
+    if (looksLikeCharacterRuntimeBoard(board)) {
+      next = setActorBoard(next, turnActor, resetCharacterHostTurn(board) as Board);
+    }
+  }
+
+  if (roundAdvanced) {
+    for (const actor of ["player", "ai"] as const) {
+      const published = publishCharacterTransitionEvent(next, actor, { type: "roundStart" });
+      next = published.match;
+    }
+  }
+
+  if (turnActor) {
+    next = publishCharacterTransitionEvent(next, turnActor, { type: "turnStart" }).match;
+  }
+
+  return next;
+}
+
 function publishCardPlayedCharacterTransitions<Board extends QuickDuelTransitionBoard>(
   previous: QuickDuelTransitionMatch<Board>,
   nextInput: QuickDuelTransitionMatch<Board>,
@@ -484,6 +521,7 @@ export function applyQuickDuelStructuredTransition<Board extends QuickDuelTransi
     next = setActorBoard(next, actor, withComboHostFacts(nextBoard, facts));
   }
 
+  next = publishCharacterLifecycleTransitions(previous, next, roundAdvanced, turnAdvanced);
   next = publishCardPlayedCharacterTransitions(previous, next, lookup);
   next = publishDiscardedCharacterTransitions(previous, next, lookup, turnAdvanced);
   next = publishSpeedChangedCharacterTransitions(previous, next);
