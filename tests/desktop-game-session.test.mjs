@@ -34,6 +34,29 @@ test("desktop game session starts playable Boss Blitz without the website runtim
   } finally { game.close(); }
 });
 
+test("desktop Boss Blitz keeps its canonical three-fighter roster when a Quick Duel fighter is selected", async () => {
+  const game = session();
+  try {
+    const menu = await game.command({ type: "menu" });
+    const selectedCharacter = menu.view.characters[0];
+    const response = await game.command({ type: "start", mode: "boss-blitz", seed: 42, characterId: selectedCharacter.catalogId });
+    assert.equal(response.ok, true);
+    assert.equal(response.view.player.roster.length, 3);
+  } finally { game.close(); }
+});
+
+test("desktop Boss Blitz accepts the selected canonical team and exposes combat telemetry", async () => {
+  const game = session();
+  try {
+    const menu = await game.command({ type: "menu" });
+    const team = menu.view.characters.slice(0, 3).map((character) => character.catalogId);
+    const response = await game.command({ type: "start", mode: "boss-blitz", seed: 42, characterIds: team });
+    assert.equal(response.ok, true);
+    assert.deepEqual(response.view.player.roster.map((fighter) => fighter.character.catalogId), team);
+    assert.ok("combat" in response.view);
+  } finally { game.close(); }
+});
+
 test("desktop game session advances player actions through the shared engine", async () => {
   const game = session();
   try {
@@ -59,6 +82,7 @@ test("desktop Boss Blitz pauses for the human player's defense choice", async ()
     assert.equal(response.ok, true);
     assert.equal(response.view.pendingChoice?.playerId, 0);
     assert.ok(["reaction", "defense"].includes(response.view.pendingChoice?.kind));
+    assert.ok(response.view.combat?.pending?.card?.name);
     const firstChoice = response.view.pendingChoice.options[0];
     response = await game.command({ type: "choice", choice: { optionId: firstChoice.id } });
     assert.equal(response.ok, true);

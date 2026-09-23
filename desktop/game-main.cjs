@@ -49,6 +49,7 @@ function startServer() {
 function createWindow() {
   windowRef = new BrowserWindow({ width: 1440, height: 960, minWidth: 1080, minHeight: 720, backgroundColor: "#090c13", title: "Dojo Deckbuilder — Offline Game", autoHideMenuBar: true, webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, "game-preload.cjs") } });
   windowRef.loadFile(path.join(__dirname, "game.html"));
+  windowRef.maximize();
 }
 
 app.whenReady().then(() => {

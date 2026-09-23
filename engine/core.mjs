@@ -1407,7 +1407,7 @@ export class Game {
     if ((flow || context.flow) && !attacker.turnStats.flowDrawUsed) { this.draw(attacker, 1); attacker.turnStats.flowDrawUsed = true; }
     if (damage > 0) { this.track(card, "damageDealt", attacker, damage); this.track(card, "hits", attacker); }
     if (defenseCard) this.track(defenseCard, damage === 0 ? "blocks" : "damagePrevented", defender, damage === 0 ? 1 : Math.max(0, block - attack + damage));
-    this.emit({ type: "attack", attacker: attacker.id, defender: defender.id, card: card.catalogId, defense: defenseCard?.catalogId ?? null, attack, block, damage, defenseFocus: focus(defenseCard) }); this.checkWinner();
+    this.emit({ type: "attack", attacker: attacker.id, defender: defender.id, card: card.catalogId, defense: defenseCard?.catalogId ?? null, zone, attack, block, damage, defenseFocus: focus(defenseCard) }); this.checkWinner();
     return { attack, block, damage, defense: defenseCard };
   }
 

@@ -337,7 +337,7 @@ export class BossBlitzGame extends Game {
     if (result?.damage > 0) { this.bossStats.bossHits += 1; this.bossStats.bossDamage += result.damage; this.telemetry.boss.bossHits += 1; this.telemetry.boss.bossDamage += result.damage; this.applyBossAttackEffects(card, "onHit", { damage: result.damage, blocked: false }); }
     if (blocked) { this.bossStats.bossBlocks += 1; this.telemetry.boss.bossBlocks += 1; this.applyBossAttackEffects(card, "onBlock", { damage: 0, blocked: true }); }
     this.applyBossProfileEvent(blocked ? "boss-attack-blocked" : "boss-attack-resolved");
-    this.emit({ type: "boss-attack", card: card.catalogId, stage: this.bossStageIndex, defense: defense?.catalogId ?? null, damage: result?.damage ?? 0, blocked });
+    this.emit({ type: "boss-attack", attacker: boss.id, defender: this.players[0].id, card: card.catalogId, stage: this.bossStageIndex, zone: card.zone, defense: defense?.catalogId ?? null, attack: result?.attack ?? null, block: result?.block ?? null, damage: result?.damage ?? 0, blocked });
     return result;
   }
 
