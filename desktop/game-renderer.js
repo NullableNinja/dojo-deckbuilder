@@ -2,6 +2,10 @@ const $ = (id) => document.getElementById(id);
 let view = null;
 let actionStore = [];
 let artMap = {};
+let setup = null;
+let previousPhase = null;
+let ascendDeskOpen = false;
+let infoCardStore = new Map();
 const assets = "assets";
 
 const safe = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
@@ -9,6 +13,7 @@ const slug = (value) => String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g,
 const art = (card) => card?.image ? `${assets}${card.image}` : artMap[String(card?.catalogId ?? "").toUpperCase()] ?? artMap[`name:${slug(card?.name)}`] ?? `${assets}/art/card-placeholder-v2.webp`;
 const cardsInView = () => [
   ...(view?.player?.hand ?? []), ...(view?.player?.equipment ?? []), ...(view?.player?.learnedCombos ?? []),
+  ...(view?.player?.comboOffered ? [view.player.comboOffered] : []),
   ...(view?.market ?? []), ...(view?.opponent?.hand ?? []), ...(view?.opponent?.equipment ?? []),
 ];
 const cardName = (id) => cardsInView().find((card) => card.id === id)?.name ?? id;
@@ -70,12 +75,13 @@ function healthBar(target, current, maximum) {
 }
 
 function findCard(id) {
-  return cardsInView().find((card) => card.id === id);
+  return cardsInView().find((card) => card.id === id) ?? infoCardStore.get(id);
 }
 
 function openInspector(id) {
   const card = findCard(id);
   if (!card) return;
+  closeInfo();
   $("inspector-art").src = art(card);
   $("inspector-art").alt = card.name;
   $("inspector-type").textContent = `${card.cardType ?? "Card"}${card.subtype ? ` · ${card.subtype}` : ""}`;
@@ -95,6 +101,44 @@ function openInspector(id) {
 function closeInspector() {
   $("inspector-backdrop").classList.add("hidden");
 }
+
+function renderAscendDesk() {
+  const open = ascendDeskOpen && view?.phase === "Ascend" && view.winner === null;
+  $("ascend-backdrop").classList.toggle("hidden", !open);
+  $("ascend-toggle").classList.toggle("hidden", view?.phase !== "Ascend" || view?.winner !== null);
+  if (!open) return;
+  const player = view.player;
+  const legal = view.legalActions ?? [];
+  const byCard = new Map(legal.filter((action) => action.cardId).map((action, index) => [action.cardId, { action, index }]));
+  const market = view.market.map((card) => { const match = byCard.get(card.id); return cardHtml(card, match && actionIsMarketCard(match.action) ? { actionIndex: match.index, legal: true } : {}); }).join("");
+  const combo = player.comboOffered;
+  const comboMatch = combo ? byCard.get(combo.id) : null;
+  $("ascend-content").innerHTML = `<div class="ascend-desk-grid"><section><h3>Seven-card Market · ${player.focus} Focus available</h3><div class="card-rail">${market || `<p class="muted">No Market cards are currently revealed.</p>`}</div></section><section><h3>Combo docket</h3>${combo ? `<div class="card-rail">${cardHtml(combo, comboMatch ? { actionIndex: comboMatch.index, legal: true } : {})}</div>` : `<p class="muted">No Combo offer is waiting right now.</p>`}<div class="ascend-desk-actions">${legal.map((action, index) => actionButton(action, index, ["promote", "learn-combo", "decline-combo", "pass"].includes(action.type))).join("")}</div></section></div>`;
+}
+
+function openInfo(info) {
+  $("info-backdrop").classList.remove("hidden");
+  $("info-title").textContent = info.kind === "library" ? "Card Library" : "Rulings & Reference";
+  if (info.kind === "library") {
+    const entries = info.cards ?? [];
+    infoCardStore = new Map(entries.map((card) => [card.id, card]));
+    $("info-content").innerHTML = `<input id="library-search" class="info-search" type="search" placeholder="Search cards by name, family, or rules text…" aria-label="Search card library"><div id="info-list" class="info-list">${entries.map((card) => `<button type="button" class="info-card" data-inspect-id="${safe(card.id)}"><img src="${safe(art(card))}" alt=""><span><b>${safe(card.name)}</b><small>${safe(card.cardType)}${card.subtype ? ` · ${safe(card.subtype)}` : ""}</small></span></button>`).join("")}</div>`;
+    const search = $("library-search");
+    search.addEventListener("input", () => {
+      const query = search.value.trim().toLowerCase();
+      $("info-list").innerHTML = entries.filter((card) => `${card.name} ${card.cardType} ${card.subtype ?? ""} ${card.rulesText ?? ""}`.toLowerCase().includes(query)).map((card) => `<button type="button" class="info-card" data-inspect-id="${safe(card.id)}"><img src="${safe(art(card))}" alt=""><span><b>${safe(card.name)}</b><small>${safe(card.cardType)}${card.subtype ? ` · ${safe(card.subtype)}` : ""}</small></span></button>`).join("");
+    });
+  } else {
+    const rules = info.rules ?? {};
+    const paragraphs = (rules.chapters ?? []).slice(0, 8).map((chapter) => `<h3>${safe(chapter.fullTitle ?? chapter.title)}</h3>${(chapter.intro ?? []).slice(0, 2).map((item) => `<p>${safe(item.text ?? "")}</p>`).join("")}`).join("");
+    const rulings = (rules.officialRulings ?? []).slice(0, 20).map((ruling) => `<p><b>${safe(ruling.title ?? ruling.id ?? "Official ruling")}</b><br>${safe(ruling.text ?? ruling.ruling ?? "")}</p>`).join("");
+    $("info-content").innerHTML = `<div class="rulings-copy"><p>This reference is bundled from the canonical offline rules snapshot. It is not the live website.</p>${paragraphs}<h3>Official rulings</h3>${rulings || `<p>No official rulings are currently recorded.</p>`}</div>`;
+  }
+}
+
+function closeInfo() { $("info-backdrop").classList.add("hidden"); }
+
+function freshSeed() { return String(Math.floor(Math.random() * 2147483646) + 1); }
 
 function phaseHint() {
   if (view.winner !== null) return view.winner === 0 ? "Victory recorded. Start another game when you are ready." : "The computer won this bout. Choose Change mode for a rematch.";
@@ -117,6 +161,10 @@ function render() {
   const winner = view.winner !== null;
   const legal = view.legalActions ?? [];
   const legalByCard = new Map(legal.filter((action) => action.cardId).map((action, index) => [action.cardId, { action, index }]));
+  if (view.phase === "Ascend" && previousPhase !== "Ascend" && view.activePlayer === 0 && !winner) ascendDeskOpen = true;
+  if (view.phase !== "Ascend") ascendDeskOpen = false;
+  previousPhase = view.phase;
+  actionStore = legal;
 
   $("mode-label").textContent = bossMode ? "Solo Boss Blitz" : "Quick Duel";
   $("seed-label").textContent = `Seed ${safe($("seed").value)}`;
@@ -158,7 +206,6 @@ function render() {
   $("hand-help").textContent = phaseHint();
   $("hand-counters").innerHTML = [`Deck ${player.deckCount}`, `Discard ${player.discardCount}`, `Focus ${player.focus}`, `XP ${player.xp}`, `Combos ${player.learnedCombos.length}`].map((label) => `<span>${safe(label)}</span>`).join("");
 
-  actionStore = legal;
   $("actions").innerHTML = winner ? `<strong>${safe(view.winner === 0 ? "You won the game." : "The computer won this game.")}</strong>` : legal.map((action, index) => actionButton(action, index, ["pass", "hide", "promote", "learn-combo"].includes(action.type))).join("");
   const pending = view.pendingChoice;
   $("choice").classList.toggle("hidden", !pending);
@@ -172,6 +219,7 @@ function render() {
   const boss = view.boss;
   $("boss-summary").innerHTML = bossMode ? `<p class="rules-note">Stage ${boss.stageIndex + 1}/3 · ${boss.stats.bossAttacks} Boss attacks · ${boss.stats.bossGuardUses} Guard uses · ${boss.stats.enrageTurns} Enrage turns</p>` : `<p class="rules-note">Quick Duel · canonical rules · actions resolve through the shared engine.</p>`;
   $("log").textContent = (view.events ?? []).slice().reverse().map((event) => `${event.type}${event.card ? ` · ${event.card}` : ""}${event.stageName ? ` · ${event.stageName}` : ""}`).join("\n");
+  renderAscendDesk();
 }
 
 async function send(message) {
@@ -183,13 +231,29 @@ async function send(message) {
     if (response.view) { view = response.view; render(); }
     return;
   }
+  if (response.view?.info) { openInfo(response.view.info); return; }
+  if (message.type === "start") setup = { ...message };
+  if (message.type === "reset") { setup = null; previousPhase = null; ascendDeskOpen = false; }
   view = response.view; render();
 }
 
-document.querySelectorAll(".mode").forEach((button) => button.addEventListener("click", () => send({ type: "start", mode: button.dataset.mode, seed: $("seed").value })));
-$("new-game").addEventListener("click", async () => { await send({ type: "reset" }); view = null; $("game").classList.add("hidden"); $("menu").classList.remove("hidden"); });
+function populateCharacters(characters) {
+  const select = $("character");
+  select.innerHTML = characters.length ? characters.map((character) => `<option value="${safe(character.catalogId)}">${safe(character.name)}</option>`).join("") : `<option value="">Default fighter</option>`;
+}
+
+document.querySelectorAll(".mode").forEach((button) => button.addEventListener("click", () => send({ type: "start", mode: button.dataset.mode, seed: $("seed").value, characterId: $("character").value })));
+$("random-seed").addEventListener("click", () => { $("seed").value = freshSeed(); });
+$("restart-game").addEventListener("click", () => { if (setup) send({ ...setup }); });
+$("new-game").addEventListener("click", async () => { await send({ type: "reset" }); view = null; previousPhase = null; $("seed").value = freshSeed(); $("game").classList.add("hidden"); $("menu").classList.remove("hidden"); });
 $("inspector-close").addEventListener("click", closeInspector);
 $("inspector-backdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) closeInspector(); });
+$("ascend-toggle").addEventListener("click", () => { ascendDeskOpen = true; renderAscendDesk(); });
+$("ascend-close").addEventListener("click", () => { ascendDeskOpen = false; renderAscendDesk(); });
+$("ascend-backdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) { ascendDeskOpen = false; renderAscendDesk(); } });
+$("info-close").addEventListener("click", closeInfo);
+$("info-backdrop").addEventListener("click", (event) => { if (event.target === event.currentTarget) closeInfo(); });
+document.querySelectorAll("[data-info]").forEach((button) => button.addEventListener("click", () => send({ type: "info", kind: button.dataset.info })));
 document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeInspector(); });
 document.addEventListener("click", (event) => {
   const inspectButton = event.target.closest("[data-inspect-id]");
@@ -201,3 +265,5 @@ document.addEventListener("click", (event) => {
 });
 
 window.dojoGame.getArtMap?.().then((map) => { artMap = map ?? {}; if (view) render(); }).catch(() => {});
+window.dojoGame.command({ type: "menu" }).then((response) => { if (response.ok) { view = response.view; populateCharacters(view.characters ?? []); } }).catch(() => {});
+$("seed").value = freshSeed();

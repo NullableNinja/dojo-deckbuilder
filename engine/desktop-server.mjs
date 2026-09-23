@@ -28,7 +28,7 @@ function playerView(player) {
     xp: player.xp, beltIndex: player.beltIndex,
     beltName: data.definition.progression.belts[player.beltIndex]?.name ?? `Belt ${player.beltIndex}`,
     character: cardView(player.character), hand: cards(player.hand), equipment: cards(player.equipment), played: cards(player.played),
-    deckCount: player.deck?.length ?? 0, discardCount: player.discard?.length ?? 0, learnedCombos: cards(player.learnedCombos),
+    deckCount: player.deck?.length ?? 0, discardCount: player.discard?.length ?? 0, learnedCombos: cards(player.learnedCombos), comboOffered: cardView(player.comboOffered),
     roster: player.roster?.map((fighter) => ({ character: cardView(fighter.character), hp: fighter.hp, maxHp: fighter.maxHp })) ?? [],
   };
 }
@@ -53,7 +53,7 @@ function pumpAutomaticTurns() {
 }
 
 function view() {
-  if (!game) return { screen: "menu", modes: ["quick-duel", "boss-blitz"] };
+  if (!game) return menuView();
   const opponent = game.players[1];
   const pending = game.getPendingChoice();
   return {
@@ -67,11 +67,30 @@ function view() {
   };
 }
 
+function menuView() {
+  return {
+    screen: "menu",
+    modes: ["quick-duel", "boss-blitz"],
+    characters: data ? data.cards.filter((card) => card.cardType === "Character").map(cardView) : [],
+  };
+}
+
 async function command(message) {
+  if (message.type === "menu") {
+    data = await loadGameData();
+    game = null;
+    return menuView();
+  }
+  if (message.type === "info") {
+    data ??= await loadGameData();
+    if (message.kind === "library") return { ...view(), info: { kind: "library", cards: cards(data.cards) } };
+    return { ...view(), info: { kind: "rulings", rules: data.rules } };
+  }
   if (message.type === "start") {
     const mode = message.mode === "boss-blitz" ? "boss-blitz" : "quick-duel";
     data = await loadGameData({ modeId: mode });
-    game = createGame(data, { seed: Number(message.seed) || 1, strategies: ["human", "balanced"], interactive: mode === "boss-blitz" });
+    const selectedCharacter = data.cards.find((card) => card.cardType === "Character" && card.catalogId === message.characterId);
+    game = createGame(data, { seed: Number(message.seed) || 1, strategies: ["human", "balanced"], characters: selectedCharacter ? [selectedCharacter] : [], interactive: mode === "boss-blitz" });
     pumpAutomaticTurns();
     return view();
   }
