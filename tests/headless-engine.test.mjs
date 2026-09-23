@@ -269,6 +269,23 @@ test("Flow and Reaction Item effects use the shared headless event path", async 
   assert.equal(game.telemetry.unsupportedEffects, 0);
 });
 
+test("defense choices only expose guards matching the incoming attack zone", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 111 });
+  const attacker = game.players[0];
+  const defender = game.players[1];
+  const attack = game.cardInstance(data.cards.find((card) => card.cardType === "Starter" && Number(card.stats?.["Attack Power"]) > 0 && card.zone === "High"));
+  const high = game.cardInstance(data.cards.find((card) => card.subtype === "Defense" && String(card.zone).split(",").map((zone) => zone.trim()).includes("High")));
+  const low = game.cardInstance(data.cards.find((card) => card.subtype === "Defense" && String(card.zone).split(",").map((zone) => zone.trim()).includes("Low") && !String(card.zone).split(",").map((zone) => zone.trim()).includes("High")));
+  defender.hand = [high, low];
+  assert.equal(game.beginAttack(attacker.id, attack, { zone: "High" }), true);
+  const options = game.getPendingChoice().options.map((option) => option.id);
+  assert.ok(options.includes(high.instanceId));
+  assert.ok(!options.includes(low.instanceId));
+  assert.equal(game.resolveChoice({ optionId: low.instanceId }), false);
+  assert.equal(game.getPendingChoice()?.kind, "defense");
+});
+
 test("batch simulation reports reproducible seeds and invariant results", async () => {
   const data = await loadGameData();
   const first = await simulateBatch({ games: 4, seedStart: 700, data });

@@ -22,11 +22,14 @@ const cardView = (card) => card ? {
 const cards = (list) => (list ?? []).map(cardView).filter(Boolean);
 
 function playerView(player) {
+  const currentBelt = data.definition.progression.belts[player.beltIndex] ?? null;
+  const nextBelt = data.definition.progression.belts[player.beltIndex + 1] ?? null;
   return {
     id: player.id, name: player.name, hp: player.hp, maxHp: player.maxHp,
     atk: player.atk, def: player.def, speed: player.speed, focus: player.focus,
     xp: player.xp, beltIndex: player.beltIndex,
-    beltName: data.definition.progression.belts[player.beltIndex]?.name ?? `Belt ${player.beltIndex}`,
+    beltName: currentBelt?.name ?? `Belt ${player.beltIndex}`, beltColor: currentBelt?.color ?? "#f5f0df",
+    belt: { current: currentBelt, next: nextBelt, examComplete: game.beltExamComplete(player), canPromote: game.canPromote(player), completedTasks: [...player.completedTasks], examProgress: structuredClone(player.examProgress), stripes: structuredClone(player.trainingStripes) },
     character: cardView(player.character), hand: cards(player.hand), equipment: cards(player.equipment), played: cards(player.played),
     deckCount: player.deck?.length ?? 0, discardCount: player.discard?.length ?? 0, learnedCombos: cards(player.learnedCombos), comboOffered: cardView(player.comboOffered),
     roster: player.roster?.map((fighter) => ({ character: cardView(fighter.character), hp: fighter.hp, maxHp: fighter.maxHp })) ?? [],
@@ -69,6 +72,7 @@ function eventView(event) {
     ...event,
     cardName: event.card ? data.byId.get(event.card)?.name ?? event.card : null,
     defenseName: event.defense ? data.byId.get(event.defense)?.name ?? event.defense : null,
+    comboName: event.combo ? data.byId.get(event.combo)?.name ?? event.combo : null,
     locationName: event.location ? data.byId.get(event.location)?.name ?? event.location : null,
   };
 }
@@ -98,7 +102,7 @@ function view() {
   const pending = game.getPendingChoice();
   return {
     screen: "game", mode: game.modeId ?? game.definition.mode.id, phase: game.phase, round: game.round, turns: game.turns,
-    activePlayer: game.activePlayer, winner: game.winner, reason: game.reason, player: playerView(game.players[0]), opponent: playerView(opponent),
+    activePlayer: game.activePlayer, winner: game.winner, reason: game.reason, belts: data.definition.progression.belts, player: playerView(game.players[0]), opponent: playerView(opponent),
     boss: game.modeId === "boss-blitz" ? {
       stageIndex: game.bossStageIndex, stageName: game.currentBossStageName, profile: cardView(opponent.bossProfile), stage: cardView(opponent.bossStage),
       guard: game.bossGuard ? { card: cardView(game.bossGuard.card), zone: game.bossGuard.zone, guard: game.bossGuard.guard } : null, stats: game.bossStats,

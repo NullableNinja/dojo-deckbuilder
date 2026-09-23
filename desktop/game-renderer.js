@@ -6,6 +6,8 @@ let setup = null;
 let previousPhase = null;
 let previousPendingKey = null;
 let ascendDeskOpen = false;
+let ascendDeskTab = "market";
+let previousSnapshot = null;
 let infoCardStore = new Map();
 const assets = "assets";
 
@@ -13,6 +15,7 @@ const safe = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => (
 const slug = (value) => String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const art = (card) => card?.image ? `${assets}${card.image}` : artMap[String(card?.catalogId ?? "").toUpperCase()] ?? artMap[`name:${slug(card?.name)}`] ?? `${assets}/art/card-placeholder-v2.webp`;
 const cardsInView = () => [
+  ...(view?.player?.character ? [view.player.character] : []), ...(view?.opponent?.character ? [view.opponent.character] : []),
   ...(view?.player?.hand ?? []), ...(view?.player?.equipment ?? []), ...(view?.player?.learnedCombos ?? []),
   ...(view?.player?.comboOffered ? [view.player.comboOffered] : []),
   ...(view?.market ?? []), ...(view?.opponent?.hand ?? []), ...(view?.opponent?.equipment ?? []),
@@ -20,7 +23,8 @@ const cardsInView = () => [
 const cardName = (id) => cardsInView().find((card) => card.id === id || card.catalogId === id)?.name ?? id;
 
 function statBox(label, value) {
-  return `<div class="stat"><b>${safe(value)}</b><small>${safe(label)}</small></div>`;
+  const icons = { ATK: "⚔", DEF: "🛡", SPD: "⚡", Focus: "✦", Belt: "🥋" };
+  return `<div class="stat"><b>${safe(value)}</b><small><span class="stat-icon">${icons[label] ?? "•"}</span>${safe(label)}</small></div>`;
 }
 
 function cardHtml(card, { actionIndex = null, choiceId = null, legal = false } = {}) {
@@ -80,6 +84,33 @@ function healthBar(target, current, maximum) {
   $(target).style.width = `${Math.max(0, Math.min(100, Number(current) / Math.max(1, Number(maximum)) * 100))}%`;
 }
 
+function showToast(title, detail) {
+  const stack = $("toast-stack") ?? (() => { const element = document.createElement("div"); element.id = "toast-stack"; element.className = "toast-stack"; element.setAttribute("aria-live", "polite"); document.body.append(element); return element; })();
+  const toast = document.createElement("div"); toast.className = "toast"; toast.innerHTML = `<strong>${safe(title)}</strong><br>${safe(detail)}`; stack.append(toast); setTimeout(() => toast.remove(), 3200);
+}
+
+function resourceToasts() {
+  if (!previousSnapshot || !view?.player) return;
+  const before = previousSnapshot.player;
+  const after = view.player;
+  const changes = [["hp", "HP"], ["focus", "Focus"], ["xp", "XP"]].map(([key, label]) => [label, Number(after[key]) - Number(before[key])]).filter(([, delta]) => delta !== 0);
+  changes.forEach(([label, delta]) => showToast(`${delta > 0 ? "+" : ""}${delta} ${label}`, delta > 0 ? "Resource gained" : "Resource spent or lost"));
+}
+
+function eventToasts() {
+  const previousEvents = previousSnapshot?.events ?? [];
+  const fresh = (view.events ?? []).filter((event) => !previousEvents.some((old) => old.type === event.type && old.round === event.round && old.card === event.card && old.player === event.player && old.damage === event.damage));
+  fresh.slice(-4).forEach((event) => {
+    if (event.type === "attack" || event.type === "boss-attack") showToast(event.damage > 0 ? `${event.damage} Damage` : "Attack blocked", `${event.zone ?? "Any"} zone${event.cardName ? ` · ${event.cardName}` : ""}`);
+    else if (event.type === "promotion") showToast("Belt promoted", `${event.belt} Belt certification complete`);
+    else if (event.type === "combo-learned") showToast("Combo learned", event.comboName ?? event.combo ?? "New Combo owned");
+    else if (event.type === "combo-triggered") showToast("Combo activated", event.comboName ?? event.combo ?? "Combo effect resolved");
+    else if (event.type === "training-stripe-awarded") showToast("Training Stripe", `${event.held} held for the next Belt Check`);
+    else if (event.type === "defense-practice" || event.type === "bad-habit-focus") showToast(`+${event.focus ?? 1} Focus`, "Focus generated");
+    else if (event.type === "equipment-ready") showToast("Equipment ready", event.cardName ?? event.card ?? "Loadout updated");
+  });
+}
+
 function findCard(id) {
   return cardsInView().find((card) => card.id === id || card.catalogId === id) ?? infoCardStore.get(id);
 }
@@ -119,7 +150,13 @@ function renderAscendDesk() {
   const market = view.market.map((card) => { const match = byCard.get(card.id); return cardHtml(card, match && actionIsMarketCard(match.action) ? { actionIndex: match.index, legal: true } : {}); }).join("");
   const combo = player.comboOffered;
   const comboMatch = combo ? byCard.get(combo.id) : null;
-  $("ascend-content").innerHTML = `<div class="ascend-desk-grid"><section><h3>Seven-card Market · ${player.focus} Focus available</h3><div class="card-rail">${market || `<p class="muted">No Market cards are currently revealed.</p>`}</div></section><section><h3>Combo docket</h3>${combo ? `<div class="card-rail">${cardHtml(combo, comboMatch ? { actionIndex: comboMatch.index, legal: true } : {})}</div>` : `<p class="muted">No Combo offer is waiting right now.</p>`}<div class="ascend-desk-actions">${legal.map((action, index) => actionButton(action, index, ["promote", "learn-combo", "decline-combo", "pass"].includes(action.type))).join("")}</div></section></div>`;
+  const belt = player.belt ?? {};
+  const next = belt.next;
+  const beltTrack = (view.belts ?? []).map((entry, index) => `<span class="belt-step ${index <= player.beltIndex ? "earned" : ""}" style="--belt-color:${safe(entry.color)}" title="${safe(entry.name)} Belt">${index < player.beltIndex ? "✓" : index === player.beltIndex ? "●" : index + 1}</span>`).join("");
+  const beltPage = `<section><h3>${safe(belt.current?.name ?? player.beltName)} Belt · ${player.xp} XP</h3><div class="belt-track">${beltTrack}</div><p class="rules-note">${next ? `${safe(next.name)} Belt requires ${safe(next.xp)} XP and its exam: ${safe(next.exam?.summary ?? "Complete the canonical exam")}.` : "You have reached the final canonical Belt."}</p><div class="ascend-desk-actions">${legal.filter((action) => ["promote", "recover-training-stripe", "pass"].includes(action.type)).map((action) => actionButton(action, legal.indexOf(action), action.type === "promote")).join("")}</div></section><section><h3>Certification record</h3><p>Current task: ${safe(belt.examComplete ? "Complete" : next?.exam?.title ?? "No further exam")}</p><p>Training Stripes held: <b>${safe(belt.stripes?.held ?? 0)}</b> · provisional: ${belt.stripes?.provisional ? "yes" : "no"}</p><p>Completed tasks: ${safe((belt.completedTasks ?? []).length)}</p><p class="muted">Promotion and stripe recovery remain engine actions; this desk only presents the canonical state and legal choices.</p></section>`;
+  const marketPage = `<div class="ascend-desk-grid"><section><h3>Seven-card Market · ${player.focus} Focus available</h3><div class="card-rail">${market || `<p class="muted">No Market cards are currently revealed.</p>`}</div></section><section><h3>Combo docket</h3>${combo ? `<div class="card-rail">${cardHtml(combo, comboMatch ? { actionIndex: comboMatch.index, legal: true } : {})}</div>` : `<p class="muted">No Combo offer is waiting right now.</p>`}<div class="ascend-desk-actions">${legal.filter((action) => ["learn-combo", "decline-combo", "pass"].includes(action.type)).map((action) => actionButton(action, legal.indexOf(action), action.type === "learn-combo")).join("")}</div></section></div>`;
+  const tabs = `<nav class="ascend-tabs" aria-label="Ascend pages"><button type="button" data-ascend-tab="market" class="${ascendDeskTab === "market" ? "active" : ""}">Market & Combo</button><button type="button" data-ascend-tab="belt" class="${ascendDeskTab === "belt" ? "active" : ""}">Belt Check</button></nav>`;
+  $("ascend-content").innerHTML = tabs + (ascendDeskTab === "belt" ? beltPage : marketPage);
 }
 
 function openInfo(info) {
@@ -229,6 +266,8 @@ function renderCombat() {
 
 function render() {
   if (!view || view.screen === "menu") return;
+  document.querySelectorAll(".health-line span").forEach((label) => { label.textContent = "HP"; });
+  document.querySelectorAll(".brand-mark").forEach((mark) => { if (!mark.querySelector("img")) mark.innerHTML = `<img src="${assets}/art/brand-emblem.webp" alt="">`; });
   $("menu").classList.add("hidden"); $("game").classList.remove("hidden");
   const bossMode = view.mode === "boss-blitz";
   const enemy = view.opponent;
@@ -259,6 +298,9 @@ function render() {
   $("opponent-name").textContent = enemy.character?.name ?? enemy.name;
   $("opponent-art").src = art(bossMode ? view.boss.stage : enemy.character);
   $("opponent-art").alt = enemy.character?.name ?? enemy.name;
+  $("opponent-art").dataset.inspectId = enemy.character?.id ?? "";
+  const opponentBadge = document.querySelector("#opponent-eyebrow")?.parentElement?.nextElementSibling;
+  if (opponentBadge) opponentBadge.innerHTML = `<span class="belt-badge" style="--belt-color:${safe(enemy.beltColor)}">${safe(enemy.beltName)}<small>BELT</small></span>`;
   $("opponent-hp").textContent = `${enemy.hp}/${enemy.maxHp}`;
   healthBar("opponent-health-bar", enemy.hp, enemy.maxHp);
   renderStats("opponent-stats", enemy);
@@ -266,13 +308,15 @@ function render() {
   $("opponent-played").innerHTML = playedHtml(enemy, bossMode ? "Boss cards on the mat" : "Opponent cards in play");
 
   $("player-name").textContent = player.character?.name ?? player.name;
-  $("player-belt").textContent = `${safe(player.beltName)} BELT`;
+  $("player-belt").innerHTML = `<span class="belt-badge" style="--belt-color:${safe(player.beltColor)}">${safe(player.beltName)}<small>BELT</small></span>`;
   $("player-hp").textContent = `${player.hp}/${player.maxHp}`;
   healthBar("player-health-bar", player.hp, player.maxHp);
   $("player-art").src = art(player.character);
   $("player-art").alt = player.character?.name ?? player.name;
+  $("player-art").dataset.inspectId = player.character?.id ?? "";
   renderStats("player-stats", player, true);
-  $("roster").innerHTML = bossMode ? player.roster.map((fighter) => `<div class="fighter ${fighter.character.catalogId === player.character?.catalogId ? "active" : ""} ${fighter.hp <= 0 ? "ko" : ""}"><b>${safe(fighter.character.name)}</b><br>${fighter.hp}/${fighter.maxHp} HP</div>`).join("") : `<div class="fighter active"><b>${safe(player.character?.name ?? player.name)}</b><br>${safe(player.beltName)} Belt · ${player.learnedCombos.length} learned Combo${player.learnedCombos.length === 1 ? "" : "s"}</div>`;
+  const loadout = player.equipment?.length ? `<div class="fighter-loadout"><b>Loadout</b> · ${player.equipment.map((card) => `<button type="button" class="small-button" data-inspect-id="${safe(card.id)}">${safe(card.name)}</button>`).join(" ")}</div>` : `<div class="fighter-loadout muted">Loadout · empty</div>`;
+  $("roster").innerHTML = (bossMode ? player.roster.map((fighter) => `<div class="fighter ${fighter.character.catalogId === player.character?.catalogId ? "active" : ""} ${fighter.hp <= 0 ? "ko" : ""}"><button type="button" class="small-button" data-inspect-id="${safe(fighter.character.id)}"><b>${safe(fighter.character.name)}</b></button><br>${fighter.hp}/${fighter.maxHp} HP</div>`).join("") : `<div class="fighter active"><b>${safe(player.character?.name ?? player.name)}</b><br>${safe(player.beltName)} Belt · ${player.learnedCombos.length} learned Combo${player.learnedCombos.length === 1 ? "" : "s"}</div>`) + loadout;
   $("player-played").innerHTML = playedHtml(player, "Your cards in play");
 
   $("scene-name").textContent = bossMode ? `${view.boss.stageName} · Boss Blitz` : "Quick Duel · Tournament Mat";
@@ -293,7 +337,9 @@ function render() {
   $("hand-help").textContent = phaseHint();
   $("hand-counters").innerHTML = [`Deck ${player.deckCount}`, `Discard ${player.discardCount}`, `Focus ${player.focus}`, `XP ${player.xp}`, `Combos ${player.learnedCombos.length}`].map((label) => `<span>${safe(label)}</span>`).join("");
 
-  $("actions").innerHTML = winner ? `<strong>${safe(view.winner === 0 ? "You won the game." : "The computer won this game.")}</strong>` : legal.map((action, index) => actionButton(action, index, ["pass", "hide", "promote", "learn-combo"].includes(action.type))).join("");
+  const cardActions = new Set(["practice", "play-card", "play-attack", "purchase", "learn-combo"]);
+  const dockActions = view.phase === "Yell" && !pending ? legal.filter((action) => !cardActions.has(action.type)) : legal;
+  $("actions").innerHTML = winner ? `<strong>${safe(view.winner === 0 ? "You won the game." : "The computer won this game.")}</strong>` : dockActions.map((action) => actionButton(action, legal.indexOf(action), ["pass", "hide", "promote", "learn-combo"].includes(action.type))).join("");
   $("choice").classList.toggle("hidden", !pending);
   const choiceTitle = pending?.kind === "defense" ? "Defense response" : pending?.kind === "reaction" ? "Reaction window" : pending?.kind === "attack-zone" ? "Choose attack zone" : pending?.kind ?? "Choice";
   $("choice").innerHTML = pending ? `<h3>${safe(choiceTitle)}</h3><p>${pending.playerId === 0 ? "Choose an option to continue." : "The computer is resolving this choice."}</p><div class="actions">${pending.options.map((option) => `<button type="button" class="action" data-choice="${safe(option.id)}">${safe(option.label || option.id)}</button>`).join("")}</div>` : "";
@@ -307,6 +353,9 @@ function render() {
   $("boss-summary").innerHTML = bossMode ? `<p class="rules-note">Stage ${boss.stageIndex + 1}/3 · ${boss.stats.bossAttacks} Boss attacks · ${boss.stats.bossGuardUses} Guard uses · ${boss.stats.enrageTurns} Enrage turns</p>` : `<p class="rules-note">Quick Duel · canonical rules · actions resolve through the shared engine.</p>`;
   $("log").textContent = (view.events ?? []).slice().reverse().map(eventLabel).join("\n");
   renderAscendDesk();
+  resourceToasts();
+  eventToasts();
+  previousSnapshot = structuredClone(view);
 }
 
 async function send(message) {
@@ -349,6 +398,8 @@ $("info-backdrop").addEventListener("click", (event) => { if (event.target === e
 document.querySelectorAll("[data-info]").forEach((button) => button.addEventListener("click", () => send({ type: "info", kind: button.dataset.info })));
 document.addEventListener("keydown", (event) => { if (event.key === "Escape") { closeInspector(); closeInfo(); if (ascendDeskOpen) { ascendDeskOpen = false; renderAscendDesk(); } } });
 document.addEventListener("click", (event) => {
+  const ascendTab = event.target.closest("[data-ascend-tab]");
+  if (ascendTab) { ascendDeskTab = ascendTab.dataset.ascendTab; renderAscendDesk(); return; }
   const inspectButton = event.target.closest("[data-inspect-id]");
   if (inspectButton) { openInspector(inspectButton.dataset.inspectId); return; }
   const actionButton = event.target.closest("[data-action-index]");

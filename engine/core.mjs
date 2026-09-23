@@ -14,6 +14,8 @@ const isAttack = (card) => attackPower(card) > 0;
 const isDefense = (card) => guard(card) > 0;
 const cardType = (card) => card.subtype === "Kata" ? "Kata" : isAttack(card) ? "Attack" : card.subtype;
 const zones = ["High", "Mid", "Low"];
+const defenseZones = (card) => String(card?.zone ?? "Any").split(",").map((zone) => zone.trim()).filter(Boolean);
+const defenseMatchesAttackZone = (card, zone) => isDefense(card) && (defenseZones(card).includes("Any") || defenseZones(card).includes(zone));
 
 export const CARD_FAMILIES = Object.freeze([
   "Attacks", "Defenses", "Consumables", "Katas", "Weapons", "Defense Equipment",
@@ -140,7 +142,11 @@ export class Game {
       families: Object.fromEntries(CARD_FAMILIES.map((family) => [family, emptyFamilyTelemetry()])),
     };
     const charactersCatalog = data.cards.filter((card) => card.cardType === "Character");
-    this.players = [0, 1].map((id) => this.makePlayer(id, characters[id] ?? charactersCatalog[id], strategies[id] ?? "balanced"));
+    const selectedCharacter = characters[0] ?? charactersCatalog[this.seed % Math.max(1, charactersCatalog.length)];
+    const selectedIndex = selectedCharacter ? charactersCatalog.findIndex((card) => card.catalogId === selectedCharacter.catalogId) : 0;
+    const opponentIndex = charactersCatalog.length > 1 ? (this.seed + 1 + Math.max(0, selectedIndex)) % charactersCatalog.length : 0;
+    const opponentCharacter = characters[1] ?? charactersCatalog[opponentIndex];
+    this.players = [0, 1].map((id) => this.makePlayer(id, id === 0 ? selectedCharacter : opponentCharacter, strategies[id] ?? "balanced"));
     for (const player of this.players) {
       const passive = this.cardEffects(player.character, "passive").filter((effect) => effect.resolver === "character.cannotEquipWeapons");
       if (passive.length) this.applyCardEffects(player, player.character, "passive", { opponent: this.players[1 - player.id], sourceCard: player.character, effectOverride: passive });
@@ -961,7 +967,7 @@ export class Game {
       if (cardFamily && ![card.cardType, card.subtype, card.category].includes(cardFamily)) return false;
       if (cardType && ![card.cardType, card.subtype, card.category].includes(cardType)) return false;
       if (eligibleSubtypes.length && !eligibleSubtypes.includes(card.subtype)) return false;
-      if (permanentOnly && !["Weapon", "Gear", "Defense Equipment"].includes(card.subtype)) return false;
+      if ((permanentOnly || operation === "equip-from-hand" || operation === "equip-from-discard") && !["Weapon", "Gear", "Defense Equipment"].includes(card.subtype)) return false;
       return true;
     });
     if (!filtered.length) return false;
@@ -1511,7 +1517,8 @@ export class Game {
     this.removeStatus(this.players[playerId], "untargetable");
     if (card.zone === "Any" && !action.zone) { this.pendingChoice = { kind: "attack-zone", playerId, cardId: card.instanceId, options: zones.map((zone) => ({ id: zone, label: zone })) }; return true; }
     const defender = this.players[defenderId]; const reactionCards = defender.hand.filter((candidate) => candidate.subtype === "Reaction Item" && this.cardEffects(candidate, "onAttackDeclared").length);
-    const defense = { playerId: defenderId, attackerId: playerId, cardId: card.instanceId, zone: action.zone ?? card.zone, options: [{ id: "pass", label: "Take the hit" }, ...defender.hand.filter(isDefense).map((candidate) => ({ id: candidate.instanceId, label: candidate.name }))] };
+    const attackZone = action.zone ?? card.zone;
+    const defense = { playerId: defenderId, attackerId: playerId, cardId: card.instanceId, zone: attackZone, options: [{ id: "pass", label: "Take the hit" }, ...defender.hand.filter((candidate) => defenseMatchesAttackZone(candidate, attackZone)).map((candidate) => ({ id: candidate.instanceId, label: candidate.name }))] };
     const suppressReaction = this.hasStatus(defender, "restrictReaction");
     if (suppressReaction) this.removeStatus(defender, "restrictReaction");
     if (reactionCards.length && !suppressReaction) this.pendingChoice = { kind: "reaction", ...defense, options: [{ id: "pass", label: "Do not play a Reaction" }, ...reactionCards.map((candidate) => ({ id: candidate.instanceId, label: candidate.name }))], defenseOptions: defense.options };
@@ -1614,7 +1621,7 @@ export class Game {
       this.pendingChoice = { kind: "defense", playerId: pending.playerId, attackerId: pending.attackerId, cardId: pending.cardId, zone: pending.zone, options: pending.defenseOptions }; return true;
     }
     if (pending.kind === "attack-zone") { const card = this.cardByInstance(pending.playerId, pending.cardId); this.pendingChoice = null; return this.beginAttack(pending.playerId, card, { zone: selected }); }
-    const attacker = this.players[pending.attackerId]; const defender = this.players[pending.playerId]; const card = this.cardByInstance(pending.attackerId, pending.cardId); const defense = selected === "pass" ? null : defender.hand.find((candidate) => candidate.instanceId === selected); this.pendingChoice = null; return Boolean(this.resolveAttack(attacker, defender, card, { defenseCard: defense, zone: pending.zone, reactionPrevention: pending.reactionPrevention ?? 0, reactionAttackModifier: pending.reactionAttackModifier ?? 0, reactionDefense: pending.reactionDefense ?? 0 }));
+    const attacker = this.players[pending.attackerId]; const defender = this.players[pending.playerId]; const card = this.cardByInstance(pending.attackerId, pending.cardId); const defense = selected === "pass" ? null : defender.hand.find((candidate) => candidate.instanceId === selected); if (defense && !defenseMatchesAttackZone(defense, pending.zone)) return false; this.pendingChoice = null; return Boolean(this.resolveAttack(attacker, defender, card, { defenseCard: defense, zone: pending.zone, reactionPrevention: pending.reactionPrevention ?? 0, reactionAttackModifier: pending.reactionAttackModifier ?? 0, reactionDefense: pending.reactionDefense ?? 0 }));
   }
 
   applyAction(action) {
@@ -1661,7 +1668,11 @@ export class Game {
     if (["attack-zone", "card-movement", "cycle-discard-draw", "deck-look", "zone-choice", "hit-choice", "incoming-attack-choice", "equipment-toggle", "discard-or-destroy"].includes(this.pendingChoice?.kind)) return { optionId: this.pendingChoice.options[0].id };
     if (this.pendingChoice?.kind === "reaction") return { optionId: "pass" };
     if (this.pendingChoice?.kind === "structured") return { optionId: this.pendingChoice.options[0].id };
-    const defender = this.players[this.pendingChoice.playerId]; const defense = chooseDefense(defender.hand); return { optionId: defense?.instanceId ?? "pass" };
+    const pending = this.pendingChoice;
+    const legalIds = new Set((pending?.options ?? []).map((option) => option.id));
+    const defender = this.players[pending.playerId];
+    const defense = chooseDefense(defender.hand.filter((candidate) => legalIds.has(candidate.instanceId)));
+    return { optionId: defense?.instanceId ?? (legalIds.has("pass") ? "pass" : pending.options[0]?.id) };
   }
 
   assertInvariants(step) {
