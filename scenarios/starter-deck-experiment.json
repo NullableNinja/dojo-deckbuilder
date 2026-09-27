@@ -1,0 +1,104 @@
+{
+  "id": "starter-deck-experiment-v1",
+  "description": "Controlled starter experiment: remove one Defense and one Bad Habit; add one low-complexity Kata and one non-healing Consumable while keeping 15 cards.",
+  "baseRulesVersion": "v2.3",
+  "experiment": {
+    "hypothesis": "Reducing opening Defense/Junk density and adding one readable Kata plus one tactical non-healing Consumable will make Market deckbuilding relevant earlier without removing the starter deck's ability to function.",
+    "baselineRulesRevision": "v2.3-r5",
+    "changedVariables": ["starterDeck"],
+    "changedCards": ["DDB-STA-CORE-001", "DDB-STA-CORE-009", "DDB-STA-EXP-001", "DDB-STA-EXP-002"],
+    "controlDeckSize": 15,
+    "experimentalDeckSize": 15
+  },
+  "cardAdditions": [
+    {
+      "id": "starter-experiment-reset-stance",
+      "name": "Reset Stance",
+      "cardType": "Starter",
+      "subtype": "Kata",
+      "category": "Kata",
+      "rulesVersion": "v2.3",
+      "lineage": "starter-deck-experiment-v1",
+      "fpCost": "—",
+      "chiCost": null,
+      "focusValue": 1,
+      "zone": "—",
+      "timing": "Turn",
+      "rulesText": "Draw 1 card, then discard 1 card.",
+      "flavorText": "Clear the board. Keep the lesson.",
+      "tags": ["Kata", "Deck Control", "Starter"],
+      "buildPaths": ["Kata", "Flow"],
+      "stats": { "Value": "—" },
+      "image": null,
+      "sourceSheet": "Starter Experiment",
+      "deck": "Starter Deck",
+      "catalogOrder": 598,
+      "catalogId": "DDB-STA-EXP-001",
+      "availability": "Experiment",
+      "v2Status": "Experiment",
+      "sourceRulesVersion": "starter-deck-experiment-v1"
+    },
+    {
+      "id": "starter-experiment-tactical-refresh",
+      "name": "Tactical Refresh",
+      "cardType": "Starter",
+      "subtype": "Consumable",
+      "category": "Consumable",
+      "rulesVersion": "v2.3",
+      "lineage": "starter-deck-experiment-v1",
+      "fpCost": "—",
+      "chiCost": null,
+      "focusValue": 1,
+      "zone": "—",
+      "timing": "Turn",
+      "rulesText": "Gain 1 Focus. Your next Defense this turn gets +1 Guard. Destroy this after use.",
+      "flavorText": "A little reset. A lot less panic.",
+      "tags": ["Consumable", "Defense Setup", "Focus", "Starter"],
+      "buildPaths": ["Fortress", "Tempo"],
+      "stats": { "Value": "—" },
+      "image": null,
+      "sourceSheet": "Starter Experiment",
+      "deck": "Starter Deck",
+      "catalogOrder": 599,
+      "catalogId": "DDB-STA-EXP-002",
+      "availability": "Experiment",
+      "v2Status": "Experiment",
+      "sourceRulesVersion": "starter-deck-experiment-v1"
+    }
+  ],
+  "cardEffectsPatch": {
+    "cards": {
+      "DDB-STA-EXP-001": {
+        "name": "Reset Stance",
+        "effects": [
+          { "id": "starter-experiment-reset-stance-draw", "trigger": "onPlay", "action": "draw", "target": "self", "amount": 1 },
+          { "id": "starter-experiment-reset-stance-discard", "trigger": "onPlay", "action": "discard", "target": "self", "amount": 1 }
+        ]
+      },
+      "DDB-STA-EXP-002": {
+        "name": "Tactical Refresh",
+        "effects": [
+          { "id": "starter-experiment-refresh-focus", "trigger": "onPlay", "action": "gainFocus", "target": "self", "amount": 1 },
+          { "id": "starter-experiment-refresh-defense", "trigger": "onPlay", "action": "modifyGuard", "target": "self", "amount": 1, "duration": "nextDefense" },
+          { "id": "starter-experiment-refresh-destroy", "trigger": "onPlay", "action": "destroy", "target": "source", "amount": 1 }
+        ]
+      }
+    }
+  },
+  "definitionPatch": {
+    "starterDeck": [
+      { "catalogId": "DDB-STA-CORE-001", "copies": 4 },
+      { "catalogId": "DDB-STA-CORE-002", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-003", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-004", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-005", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-006", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-007", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-008", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-010", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-011", "copies": 1 },
+      { "catalogId": "DDB-STA-EXP-001", "copies": 1 },
+      { "catalogId": "DDB-STA-EXP-002", "copies": 1 }
+    ]
+  }
+}
