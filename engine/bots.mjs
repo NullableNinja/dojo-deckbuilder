@@ -1,5 +1,17 @@
 const number = (value) => Number.parseInt(String(value ?? 0), 10) || 0;
-export const STRATEGIES = ["balanced", "aggression", "economy", "fortress"];
+export const STRATEGY_PROFILES = Object.freeze({
+  balanced: { attack: 3.5, guard: 3, focus: 3, costPenalty: 0.35, lowHp: 4, destroy: 0, blockThreshold: 3, utilityBias: 0, family: { Attack: 4, Defense: 3, Consumable: 2, Kata: 3, Weapon: 4, Gear: 3, "Defense Equipment": 3, "Reaction Item": 2 }, tags: { draw: 2, flow: 2, focus: 1.5, speed: 1, healing: 1 } },
+  aggression: { attack: 5, guard: 1, focus: 1.5, costPenalty: 0.25, lowHp: 1, destroy: 0, blockThreshold: 4, utilityBias: -2, family: { Attack: 7, Defense: 1, Consumable: 2, Kata: 3, Weapon: 7, Gear: 2, "Defense Equipment": 1, "Reaction Item": 1 }, tags: { draw: 2, flow: 3, focus: 1, speed: 2, healing: 0.5 } },
+  economy: { attack: 2, guard: 2, focus: 5, costPenalty: 0.15, lowHp: 3, destroy: 1, blockThreshold: 4, utilityBias: 2, family: { Attack: 2, Defense: 2, Consumable: 4, Kata: 6, Weapon: 3, Gear: 6, "Defense Equipment": 3, "Reaction Item": 2 }, tags: { draw: 3, flow: 2, focus: 3, speed: 1, healing: 2 } },
+  fortress: { attack: 1.5, guard: 5, focus: 2.5, costPenalty: 0.4, lowHp: 6, destroy: 0, blockThreshold: 1, utilityBias: 1, family: { Attack: 1.5, Defense: 7, Consumable: 4, Kata: 3, Weapon: 1, Gear: 3, "Defense Equipment": 7, "Reaction Item": 5 }, tags: { draw: 2, flow: 1, focus: 2, speed: 0.5, healing: 3 } },
+  "kata-specialist": { attack: 3, guard: 2, focus: 4, costPenalty: 0.25, lowHp: 3, destroy: 2, blockThreshold: 4, utilityBias: 4, family: { Attack: 3, Defense: 2, Consumable: 4, Kata: 9, Weapon: 2, Gear: 3, "Defense Equipment": 2, "Reaction Item": 2 }, tags: { draw: 4, flow: 4, focus: 3, speed: 2, healing: 1 } },
+  tempo: { attack: 4.5, guard: 2, focus: 2.5, costPenalty: 0.2, lowHp: 2, destroy: 1, blockThreshold: 4, utilityBias: 3, family: { Attack: 6, Defense: 2, Consumable: 4, Kata: 5, Weapon: 5, Gear: 3, "Defense Equipment": 1, "Reaction Item": 2 }, tags: { draw: 5, flow: 4, focus: 2, speed: 3, healing: 1 } },
+  control: { attack: 2.5, guard: 4.5, focus: 3, costPenalty: 0.35, lowHp: 5, destroy: 1, blockThreshold: 2, utilityBias: 1, family: { Attack: 2, Defense: 6, Consumable: 3, Kata: 4, Weapon: 2, Gear: 4, "Defense Equipment": 6, "Reaction Item": 7 }, tags: { draw: 3, flow: 1, focus: 2, speed: 1, healing: 2 } },
+  cleanup: { attack: 2.5, guard: 2.5, focus: 3.5, costPenalty: 0.2, lowHp: 4, destroy: 6, blockThreshold: 3, utilityBias: 4, family: { Attack: 2, Defense: 2, Consumable: 7, Kata: 8, Weapon: 2, Gear: 2, "Defense Equipment": 2, "Reaction Item": 3 }, tags: { draw: 5, flow: 2, focus: 3, speed: 1, healing: 2 } },
+});
+export const STRATEGIES = Object.freeze(Object.keys(STRATEGY_PROFILES));
+const profileFor = (strategy) => STRATEGY_PROFILES[strategy] ?? STRATEGY_PROFILES.balanced;
+export const getStrategyProfile = (strategy) => profileFor(strategy);
 export const attackPower = (card) => number(card?.stats?.["Attack Power"]);
 export const attackBonus = (card) => number(card?.stats?.["Attack Bonus"]);
 export const guard = (card) => number(card?.stats?.Guard);
@@ -9,16 +21,11 @@ export const cost = (card) => number(card?.fpCost);
 const tags = (card) => (card?.tags ?? []).map((tag) => String(tag).toLocaleLowerCase());
 const hasTag = (card, tag) => tags(card).some((value) => value === String(tag).toLocaleLowerCase() || value.includes(String(tag).toLocaleLowerCase()));
 const permanentEquipment = (card) => ["Weapon", "Gear", "Defense Equipment"].includes(card?.subtype);
+const family = (card) => attackPower(card) > 0 ? "Attack" : guard(card) > 0 ? "Defense" : String(card?.subtype ?? "Other");
+const hasDestroyText = (card) => /\bdestroy\b/i.test(String(card?.rulesText ?? card?.details?.["Rules Text"] ?? ""));
 
 function familyWeight(card, strategy) {
-  if (card?.subtype === "Weapon") return strategy === "aggression" ? 7 : strategy === "fortress" ? 1 : 4;
-  if (card?.subtype === "Defense Equipment") return strategy === "fortress" ? 7 : 3;
-  if (card?.subtype === "Gear") return strategy === "economy" ? 6 : 3;
-  if (card?.subtype === "Consumable" || card?.subtype === "Reaction Item") return strategy === "fortress" ? 4 : 2;
-  if (card?.subtype === "Kata") return strategy === "economy" ? 5 : 3;
-  if (card?.subtype === "Defense") return strategy === "fortress" ? 7 : 3;
-  if (card?.subtype === "Attack") return strategy === "aggression" ? 7 : 4;
-  return 0;
+  return profileFor(strategy).family[family(card)] ?? 0;
 }
 
 function capacityPenalty(card, context) {
@@ -32,12 +39,13 @@ function capacityPenalty(card, context) {
 }
 
 export function cardScore(card, strategy="balanced", context = {}) {
-  const weights = strategy === "aggression" ? [5, 1, 1.5] : strategy === "economy" ? [2, 2, 5] : strategy === "fortress" ? [1.5, 5, 2.5] : [3.5, 3, 3];
-  const printedPower = attackPower(card) + attackBonus(card);
-  const effectValue = (context.effectValue ?? 0) + (hasTag(card, "draw") ? 2 : 0) + (hasTag(card, "flow") ? 2 : 0) + (hasTag(card, "healing") ? (context.lowHp ? 4 : 1) : 0) + (hasTag(card, "focus") ? 1.5 : 0);
+  const profile = profileFor(strategy); const printedPower = attackPower(card) + attackBonus(card);
+  const tagValue = Object.entries(profile.tags).reduce((sum, [tag, value]) => sum + (hasTag(card, tag) ? value : 0), 0);
+  const effectValue = (context.effectValue ?? 0) + tagValue + (hasDestroyText(card) ? profile.destroy : 0);
   const synergy = (context.deckTags ?? []).reduce((sum, tag) => sum + (hasTag(card, tag) ? 0.8 : 0), 0);
-  const survival = context.lowHp && (guard(card) > 0 || card?.subtype === "Consumable" || card?.subtype === "Defense Equipment") ? 4 : 0;
-  return printedPower * weights[0] + guard(card) * weights[1] + focus(card) * weights[2] + familyWeight(card, strategy) + effectValue + synergy + survival - cost(card) * 0.35 - capacityPenalty(card, context);
+  const survival = context.lowHp && (guard(card) > 0 || card?.subtype === "Consumable" || card?.subtype === "Defense Equipment") ? profile.lowHp : 0;
+  const densityPenalty = context.familyCounts?.[family(card)] >= 8 ? 0.8 : 0;
+  return printedPower * profile.attack + guard(card) * profile.guard + focus(card) * profile.focus + familyWeight(card, strategy) + effectValue + synergy + survival - densityPenalty - cost(card) * profile.costPenalty - capacityPenalty(card, context);
 }
 
 export const chooseAttack = (hand, strategy, context = {}) => hand.filter((c) => attackPower(c) > 0).sort((a, b) => {
@@ -46,7 +54,7 @@ export const chooseAttack = (hand, strategy, context = {}) => hand.filter((c) =>
   return lethalB + cardScore(b, strategy, context) - lethalA - cardScore(a, strategy, context);
 })[0] ?? null;
 
-export const chooseDefense = (hand, context = {}) => hand.filter((c) => guard(c) > 0).sort((a, b) => guard(b) - guard(a) || focus(b) - focus(a))[0] ?? null;
+export const chooseDefense = (hand, context = {}) => hand.filter((c) => guard(c) > 0).sort((a, b) => cardScore(b, context.strategy ?? "balanced", context) - cardScore(a, context.strategy ?? "balanced", context) || guard(b) - guard(a))[0] ?? null;
 export const choosePractice = (hand, strategy, context = {}) => hand.filter((c) => guard(c) > 0).sort((a, b) => focus(b) - focus(a) || cardScore(b, strategy, context) - cardScore(a, strategy, context))[0] ?? null;
 export const choosePurchase = (market, available, strategy, context = {}) => market.filter((c) => cost(c) <= available).sort((a, b) => cardScore(b, strategy, context) - cardScore(a, strategy, context) || cost(b) - cost(a))[0] ?? null;
 

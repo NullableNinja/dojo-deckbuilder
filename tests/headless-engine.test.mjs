@@ -311,6 +311,24 @@ test("Character Junk discard replacement exposes destroy-or-keep and Green follo
   assert.equal(game.getPendingChoice()?.kind, "card-movement");
 });
 
+test("Destroy choices prefer Junk and expose destruction telemetry", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 110, strategies: ["cleanup", "balanced"] });
+  const player = game.players[0];
+  const junk = game.cardInstance(data.byId.get("DDB-STA-CORE-001"));
+  const attack = game.cardInstance(data.byId.get("DDB-STA-CORE-002"));
+  player.hand = [attack, junk];
+  assert.equal(game.queueCardChoice(player, player, { conditions: [{ kind: "zones", value: ["hand"] }] }, "destroy", 1), true);
+  assert.equal(game.telemetry.destroyChoicesPresented, 1);
+  assert.equal(game.defaultChoice().optionId, junk.instanceId);
+  assert.equal(game.resolveChoice(game.defaultChoice()), true);
+  assert.equal(player.destroyed.includes(junk), true);
+  assert.equal(player.hand.includes(attack), true);
+  assert.equal(game.telemetry.destroyedJunk, 1);
+  assert.equal(game.telemetry.destroyedByChoice, 1);
+  assert.equal(game.telemetry.destroyChoicesResolved, 1);
+});
+
 test("Flow and Reaction Item effects use the shared headless event path", async () => {
   const data = await loadGameData();
   const game = new Game(data, { seed: 106 });

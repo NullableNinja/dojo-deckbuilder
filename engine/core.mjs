@@ -1,4 +1,4 @@
-import { attackPower, chooseAttack, chooseDefense, choosePractice, choosePurchase, comboReadiness, cost, focus, guard } from "./bots.mjs";
+import { attackPower, cardScore, chooseAttack, chooseDefense, choosePractice, choosePurchase, comboReadiness, cost, focus, getStrategyProfile, guard } from "./bots.mjs";
 import { comboTimingAllows, comboContext, evaluateCombo } from "./combo-runtime.mjs";
 
 export class Rng {
@@ -131,7 +131,7 @@ export class Game {
     this.telemetry = {
       attacks: 0, hits: 0, blocks: 0, totalDamage: 0, damagePrevented: 0,
       cardsPlayed: 0, cardsAcquired: 0, cardsDrawn: 0, cardsDiscarded: 0,
-      cardsDestroyed: 0, cardsRevealed: 0, equipmentReadied: 0,
+      cardsDestroyed: 0, destroyedJunk: 0, destroyedByChoice: 0, destroyedBySourceEffect: 0, destroyChoicesPresented: 0, destroyChoicesResolved: 0, cardsRevealed: 0, equipmentReadied: 0,
       equipmentExhausted: 0, focusGenerated: 0, focusSpent: 0, xpGenerated: 0,
       defensePractice: 0, promotions: 0, effectApplications: 0,
       comboOpportunities: 0, comboAcquisitions: 0, comboActivations: 0, comboEffectsResolved: 0,
@@ -222,10 +222,14 @@ export class Game {
     return moved;
   }
 
-  destroyCard(player, card) {
+  destroyCard(player, card, { kind = "effect" } = {}) {
+    const sourceZone = ["hand", "deck", "discard", "played", "equipment"].find((zone) => player[zone]?.includes(card)) ?? null;
     if (!this.moveCard(player, card, "destroyed")) return false;
     this.track(card, "destroyed", player);
-    this.emit({ type: "card-destroyed", player: player.id, card: card.catalogId });
+    if (card.subtype === "Junk" || card.category === "Junk" || card.cardType === "Junk") this.telemetry.destroyedJunk += 1;
+    if (kind === "choice" || kind === "discard-or-destroy") this.telemetry.destroyedByChoice += 1;
+    if (kind === "source-effect") this.telemetry.destroyedBySourceEffect += 1;
+    this.emit({ type: "card-destroyed", player: player.id, card: card.catalogId, kind, sourceZone, junk: card.subtype === "Junk" || card.category === "Junk" || card.cardType === "Junk" });
     return true;
   }
 
@@ -881,6 +885,7 @@ export class Game {
       drawAmount: num((effect.conditions ?? []).find((condition) => condition.kind === "drawAmount")?.value ?? 0),
       options,
     };
+    if (movement === "destroy") this.telemetry.destroyChoicesPresented += 1;
     return true;
   }
 
@@ -890,7 +895,7 @@ export class Game {
     const card = sourceZone ? targetPlayer[sourceZone].find((candidate) => candidate.instanceId === selected) : null;
     if (!card) return false;
     if (pending.movement === "discard") this.discardCard(targetPlayer, card);
-    else if (pending.movement === "destroy") this.destroyCard(targetPlayer, card);
+    else if (pending.movement === "destroy") { this.destroyCard(targetPlayer, card, { kind: "choice" }); this.telemetry.destroyChoicesResolved += 1; }
     else if (pending.movement === "bottom-deck") { this.removeFromPlayerZones(targetPlayer, card); targetPlayer.deck.unshift(card); }
     else return false;
     if (pending.drawIfSourceZone === sourceZone && pending.drawAmount > 0) this.draw(targetPlayer, pending.drawAmount);
@@ -930,6 +935,7 @@ export class Game {
     const card = context.discardedCard;
     if (!card || !player.discard.includes(card)) return false;
     this.pendingChoice = { kind: "discard-or-destroy", playerId: player.id, cardId: card.instanceId, effectId: effect.id ?? null, options: [{ id: "destroy", label: "Destroy the discarded Junk" }, { id: "keep", label: "Leave it in the discard pile" }] };
+    this.telemetry.destroyChoicesPresented += 1;
     return true;
   }
 
@@ -1125,7 +1131,7 @@ export class Game {
       if (params.discardedPrintedFocusValue !== undefined) { const printed = Number(context.discardedPrintedFocusValue ?? context.player.turnStats.discardedFocusValue ?? 0); if (printed === 0) { player.focus += amount || 1; player.turnStats.focusGenerated = (player.turnStats.focusGenerated ?? 0) + (amount || 1); this.telemetry.focusGenerated += amount || 1; } return true; }
       if (params.sourceAffectedCountThreshold !== undefined) {
         const count = Number(card.affectedCount ?? context.sourceAffectedCount ?? 0);
-        if (count >= Number(params.sourceAffectedCountThreshold)) this.destroyCard(player, card);
+        if (count >= Number(params.sourceAffectedCountThreshold)) this.destroyCard(player, card, { kind: "threshold" });
         return true;
       }
       if (params.selfIsLowestXp) { if (player.xp <= opponent.xp) add("modifyDefense", amount || 1); return true; }
@@ -1178,7 +1184,7 @@ export class Game {
       else if (operation === "keepUnboughtMarketCards") this.addStatus(player, { action: "keepUnboughtMarketCards", duration: "round", sourceId: card.instanceId });
       else if (operation === "drawThenDiscard" || operation === "discardJunkDrawGainFocus") this.queueDiscardDrawChoice(player, { ...effect, drawAmount: Number(params.drawCount ?? 1) });
       else if (operation === "loseFocusIfAble") target.focus = Math.max(0, target.focus - Math.max(0, amount || 1));
-      else if (operation === "destroyJunkGainFocusLoseHp") { const junk = player.hand.find((candidate) => candidate.subtype === "Junk" || candidate.category === "Junk"); if (junk) { this.destroyCard(player, junk); player.focus += Number(params.focusGain ?? 1); player.hp = Math.max(1, player.hp - Number(params.hpLoss ?? 1)); } }
+      else if (operation === "destroyJunkGainFocusLoseHp") { const junk = player.hand.find((candidate) => candidate.subtype === "Junk" || candidate.category === "Junk"); if (junk) { this.destroyCard(player, junk, { kind: "deck-thinning" }); player.focus += Number(params.focusGain ?? 1); player.hp = Math.max(1, player.hp - Number(params.hpLoss ?? 1)); } }
       else if (operation === "readyEquipmentOrSpeedChoice") { const ready = player.equipment.find((candidate) => this.equipmentIsExhausted(player, candidate)); if (ready) this.setEquipmentReady(player, ready, true); else player.tempSpeed += amount || 1; }
       else if (operation === "discardForReadyOrDefenseChoice") { const candidate = player.hand[0]; if (candidate) { this.discardCard(player, candidate); const ready = player.equipment.find((entry) => this.equipmentIsExhausted(player, entry)); if (ready) this.setEquipmentReady(player, ready, true); else add("modifyDefense", amount || 1, "nextHonor"); } }
       else if (operation === "beltExamSpeedOrCycleChoice") player.tempSpeed += amount || 1;
@@ -1341,7 +1347,7 @@ export class Game {
       else if (action === "discard" || action === "destroy") {
         const targetPlayer = effect.target === "opponent" ? effectContext.opponent : player;
         if (effect.target === "source" && effectContext.sourceCard) {
-          if (action === "discard") this.discardCard(player, effectContext.sourceCard); else this.destroyCard(player, effectContext.sourceCard);
+          if (action === "discard") this.discardCard(player, effectContext.sourceCard); else this.destroyCard(player, effectContext.sourceCard, { kind: "source-effect" });
         } else if (!this.queueCardChoice(player, targetPlayer, { ...effect, sourceCardId: effectContext.sourceCard?.instanceId }, action, Math.max(1, amount))) this.markUsedEffect(player, effect);
       }
       else if (action === "ready" || action === "exhaust") {
@@ -1593,7 +1599,8 @@ export class Game {
       const player = this.players[pending.playerId]; const card = player.discard.find((candidate) => candidate.instanceId === pending.cardId);
       if (!card) return false;
       this.pendingChoice = null;
-      if (selected === "destroy") { this.destroyCard(player, card); const followups = this.cardEffects(player.character, "passive").filter((effect) => effect.resolver === "character.green.linkedJunkDestroyCycle"); if (followups.length) this.applyCardEffects(player, player.character, "passive", { opponent: this.players[1 - player.id], sourceCard: player.character, effectOverride: followups }); }
+      this.telemetry.destroyChoicesResolved += 1;
+      if (selected === "destroy") { this.destroyCard(player, card, { kind: "discard-or-destroy" }); const followups = this.cardEffects(player.character, "passive").filter((effect) => effect.resolver === "character.green.linkedJunkDestroyCycle"); if (followups.length) this.applyCardEffects(player, player.character, "passive", { opponent: this.players[1 - player.id], sourceCard: player.character, effectOverride: followups }); }
       return true;
     }
     if (pending.kind === "cycle-discard-draw") {
@@ -1686,6 +1693,10 @@ export class Game {
       const lethal = Boolean(attack && player.atk + attackPower(attack) >= this.players[1 - player.id].hp + this.players[1 - player.id].def);
       if (attackAction && lethal) { this.lastDecisionReason = "lethal attack available"; return attackAction; }
       if (setupAction) { this.lastDecisionReason = "advance a learned Combo requirement"; return setupAction; }
+      const utility = legal.filter((action) => action.type === "play-card").map((action) => player.hand.find((card) => card.instanceId === action.cardId)).filter(Boolean).sort((a, b) => this.cardDecisionScore(b, player) - this.cardDecisionScore(a, player))[0];
+      const utilityAction = utility && legal.find((action) => action.type === "play-card" && action.cardId === utility.instanceId);
+      const profile = getStrategyProfile(player.strategy); const attackScore = attack ? this.cardDecisionScore(attack, player) : 0; const utilityScore = utility ? this.cardDecisionScore(utility, player) + profile.utilityBias : 0;
+      if (utilityAction && !lethal && (!attackAction || utilityScore >= attackScore + 1)) { this.lastDecisionReason = `${player.strategy} archetype prioritizes ${utility.name} before combat`; return utilityAction; }
       if (attackAction) { this.lastDecisionReason = "highest-value legal attack"; return attackAction; }
       const playable = legal.filter((action) => action.type === "play-card").map((action) => player.hand.find((card) => card.instanceId === action.cardId)).filter(Boolean).sort((a, b) => this.cardDecisionScore(b, player) - this.cardDecisionScore(a, player))[0];
       if (playable && this.cardDecisionScore(playable, player) > 0) { this.lastDecisionReason = `play ${playable.name} for card/effect utility`; return legal.find((action) => action.cardId === playable.instanceId); }
@@ -1710,10 +1721,32 @@ export class Game {
   }
 
   defaultChoice() {
-    if (["attack-zone", "card-movement", "cycle-discard-draw", "deck-look", "zone-choice", "hit-choice", "incoming-attack-choice", "equipment-toggle", "discard-or-destroy"].includes(this.pendingChoice?.kind)) { this.lastDecisionReason = "resolve the first legal deterministic option"; return { optionId: this.pendingChoice.options[0].id }; }
+    if (this.pendingChoice?.kind === "card-movement") {
+      const pending = this.pendingChoice; const chooser = this.players[pending.playerId]; const target = this.players[pending.targetPlayerId];
+      const options = pending.options.map((option) => target[pending.sourceZones.find((zone) => target[zone]?.some((card) => card.instanceId === option.id)) ?? "hand"]?.find((card) => card.instanceId === option.id)).filter(Boolean);
+      if (pending.movement === "destroy" && pending.targetPlayerId === pending.playerId) {
+        const chosen = options.sort((a, b) => {
+          const junkA = a.subtype === "Junk" || a.category === "Junk" || a.cardType === "Junk" ? 1 : 0;
+          const junkB = b.subtype === "Junk" || b.category === "Junk" || b.cardType === "Junk" ? 1 : 0;
+          return junkB - junkA || cardScore(a, chooser.strategy, { lowHp: chooser.hp <= chooser.maxHp / 2, deckTags: this.playerDeckTags(chooser) }) - cardScore(b, chooser.strategy, { lowHp: chooser.hp <= chooser.maxHp / 2, deckTags: this.playerDeckTags(chooser) }) || a.instanceId.localeCompare(b.instanceId);
+        })[0];
+        if (chosen) { this.lastDecisionReason = chosen.subtype === "Junk" || chosen.category === "Junk" ? "thin Junk from the deck cycle" : "destroy the lowest-value legal card"; return { optionId: chosen.instanceId }; }
+      }
+      this.lastDecisionReason = pending.movement === "destroy" ? "resolve the legal destroy target without hidden-information targeting" : "resolve the first legal card movement";
+      return { optionId: pending.options[0].id };
+    }
+    if (["attack-zone", "cycle-discard-draw", "deck-look", "zone-choice", "incoming-attack-choice", "equipment-toggle"].includes(this.pendingChoice?.kind)) { this.lastDecisionReason = "resolve the first legal deterministic option"; return { optionId: this.pendingChoice.options[0].id }; }
+    if (this.pendingChoice?.kind === "discard-or-destroy") {
+      const pending = this.pendingChoice; const player = this.players[pending.playerId]; const card = player.discard.find((candidate) => candidate.instanceId === pending.cardId);
+      const shouldDestroy = Boolean(card && (card.subtype === "Junk" || card.category === "Junk" || card.cardType === "Junk"));
+      this.lastDecisionReason = shouldDestroy ? "remove discarded Junk from the deck cycle" : "retain a non-Junk card in the discard pile";
+      return { optionId: shouldDestroy && pending.options.some((option) => option.id === "destroy") ? "destroy" : pending.options[0].id };
+    }
+    if (this.pendingChoice?.kind === "hit-choice") { this.lastDecisionReason = "choose the higher-value immediate combat option"; return { optionId: this.pendingChoice.options.find((option) => option.id === "gain-focus")?.id ?? this.pendingChoice.options[0].id }; }
     if (this.pendingChoice?.kind === "reaction") {
       const pending = this.pendingChoice; const defender = this.players[pending.playerId]; const attacker = this.players[pending.attackerId]; const attack = this.cardByInstance(pending.attackerId, pending.cardId); const estimated = Math.max(0, attackPower(attack) + attacker.atk - defender.def); const reaction = defender.hand.filter((card) => pending.options.some((option) => option.id === card.instanceId)).sort((a, b) => focus(b) - focus(a))[0];
-      if (reaction && (estimated >= defender.hp || estimated >= 3 || defender.strategy === "fortress")) { this.lastDecisionReason = "use a Reaction because the incoming Attack is dangerous"; return { optionId: reaction.instanceId }; }
+      const threshold = getStrategyProfile(defender.strategy).blockThreshold;
+      if (reaction && (estimated >= defender.hp || estimated >= threshold || defender.strategy === "fortress")) { this.lastDecisionReason = "use a Reaction because the incoming Attack is dangerous"; return { optionId: reaction.instanceId }; }
       this.lastDecisionReason = "preserve Reaction resources against a tolerable Attack"; return { optionId: "pass" };
     }
     if (this.pendingChoice?.kind === "structured") return { optionId: this.pendingChoice.options[0].id };
@@ -1721,14 +1754,14 @@ export class Game {
     const legalIds = new Set((pending?.options ?? []).map((option) => option.id));
     const defender = this.players[pending.playerId];
     const defense = chooseDefense(defender.hand.filter((candidate) => legalIds.has(candidate.instanceId)), { strategy: defender.strategy });
-    const attacker = this.players[pending.attackerId]; const attack = this.cardByInstance(pending.attackerId, pending.cardId); const incoming = Math.max(0, attackPower(attack) + attacker.atk - defender.def); const shouldBlock = Boolean(defense && (incoming >= defender.hp || incoming >= 3 || defender.strategy === "fortress"));
+    const attacker = this.players[pending.attackerId]; const attack = this.cardByInstance(pending.attackerId, pending.cardId); const incoming = Math.max(0, attackPower(attack) + attacker.atk - defender.def); const threshold = getStrategyProfile(defender.strategy).blockThreshold; const shouldBlock = Boolean(defense && (incoming >= defender.hp || incoming >= threshold || defender.strategy === "fortress"));
     this.lastDecisionReason = shouldBlock ? "play the strongest legal Defense against meaningful damage" : "preserve Defense resources against a tolerable Attack";
     return { optionId: shouldBlock ? defense.instanceId : (legalIds.has("pass") ? "pass" : pending.options[0]?.id) };
   }
 
   playerDeckTags(player) { return [...new Set([...player.hand, ...player.deck, ...player.discard, ...player.equipment].flatMap((card) => card.tags ?? []))]; }
 
-  cardDecisionScore(card, player) { return (card ? Number(card.focusValue ?? 0) + Number(card.stats?.["Attack Power"] ?? 0) + Number(card.stats?.Guard ?? 0) + (card.tags ?? []).length * 0.25 : 0) + (player.hp <= player.maxHp / 2 && ["Consumable", "Defense Equipment"].includes(card?.subtype) ? 3 : 0); }
+  cardDecisionScore(card, player, context = {}) { return cardScore(card, player.strategy, { ...context, lowHp: player.hp <= player.maxHp / 2, deckTags: context.deckTags ?? this.playerDeckTags(player), equipment: context.equipment ?? player.equipment }); }
 
   assertInvariants(step) {
     const failures = this.checkInvariants();

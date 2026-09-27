@@ -67,3 +67,9 @@ Add per-card and per-play fields for: playable-in-hand opportunities, turns held
 ## Certification health
 
 The final run completed 20,000/20,000 games with zero invariant failures, zero illegal actions, zero unsupported effects, zero unresolved choices, zero stalls, and zero replay mismatches across 200 replay checks. The raw per-game JSONL trace was intentionally removed after analysis to reclaim disk space; the compact certification summary is retained externally.
+
+## Simulator improvements
+
+The simulator now exposes eight explicit archetypes: Balanced, Aggression, Economy, Fortress, Kata Specialist, Tempo, Control, and Cleanup. They change purchase scoring, utility-card timing, defense/reaction thresholds, equipment priorities, and willingness to thin Junk. The baseline policy remains deterministic and replayable; the archetype mix supplies behavioral diversity without hidden-information targeting.
+
+Simulation runs now emit machine-readable `SIM_PROGRESS` milestones and the desktop Simulation Control displays them as a progress bar. Destruction telemetry distinguishes total destruction, Junk destruction, destruction chosen through a target choice, and source-card self-destruction. No card definitions were edited for these changes, so the card-template regeneration workflow was not invoked.
