@@ -16,10 +16,16 @@ function mergePatch(target, patch) {
 export function applyScenario(data, scenario = {}) {
   if (!scenario || typeof scenario !== "object") throw new Error("Scenario must be an object");
   if (scenario.baseRulesVersion && scenario.baseRulesVersion !== data.definition.rulesVersion) throw new Error(`Scenario ${scenario.id ?? "unknown"} expects ${scenario.baseRulesVersion}, loaded ${data.definition.rulesVersion}`);
+  const additions = (scenario.cardAdditions ?? []).map((card) => clone(card));
+  const existingIds = new Set(data.cards.map((card) => card.catalogId));
+  for (const card of additions) {
+    if (!card.catalogId || existingIds.has(card.catalogId)) throw new Error(`Scenario ${scenario.id ?? "unknown"} has duplicate or missing card addition ${card.catalogId ?? "unknown"}`);
+    existingIds.add(card.catalogId);
+  }
   const next = {
     ...data,
     definition: mergePatch(data.definition, scenario.definitionPatch ?? {}),
-    cards: data.cards.map((card) => mergePatch(card, scenario.cardPatches?.[card.catalogId] ?? {})),
+    cards: [...data.cards.map((card) => mergePatch(card, scenario.cardPatches?.[card.catalogId] ?? {})), ...additions],
     cardEffects: mergePatch(data.cardEffects, scenario.cardEffectsPatch ?? {}),
   };
   next.byId = new Map(next.cards.map((card) => [card.catalogId, card]));
@@ -39,6 +45,7 @@ export function scenarioSummary(scenario) {
     description: scenario.description ?? "",
     definitionKeys: Object.keys(scenario.definitionPatch ?? {}),
     cardPatches: Object.keys(scenario.cardPatches ?? {}).length,
+    cardAdditions: (scenario.cardAdditions ?? []).length,
     cardEffectsPatched: Object.keys(scenario.cardEffectsPatch?.cards ?? {}).length,
   };
 }

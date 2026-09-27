@@ -1,0 +1,29 @@
+{
+    "schemaVersion":  1,
+    "experiment":  "starter-deck-experiment-v1",
+    "sourceTemplates":  [
+                            "Templates/Card Templates/04_Kata.ora",
+                            "Templates/Card Templates/06_Item_Consumable.ora"
+                        ],
+    "artworkStatus":  "PENDING — official template artwork placeholder retained; replace only the artwork group before print approval.",
+    "cards":  [
+                  {
+                      "cardId":  "DDB-STA-EXP-001",
+                      "name":  "Reset Stance",
+                      "type":  "Kata",
+                      "layeredSourceArchive":  "docs\\production\\starter-experiment\\DDB-STA-EXP-001-reset-stance.ora",
+                      "preview":  "docs\\production\\starter-experiment\\previews\\DDB-STA-EXP-001-reset-stance.png",
+                      "physicalSize":  "825x1125 px template canvas",
+                      "printApproval":  "NOT READY — artwork pending"
+                  },
+                  {
+                      "cardId":  "DDB-STA-EXP-002",
+                      "name":  "Tactical Refresh",
+                      "type":  "Consumable",
+                      "layeredSourceArchive":  "docs\\production\\starter-experiment\\DDB-STA-EXP-002-tactical-refresh.ora",
+                      "preview":  "docs\\production\\starter-experiment\\previews\\DDB-STA-EXP-002-tactical-refresh.png",
+                      "physicalSize":  "825x1125 px template canvas",
+                      "printApproval":  "NOT READY — artwork pending"
+                  }
+              ]
+}

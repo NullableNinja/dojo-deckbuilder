@@ -39,6 +39,7 @@ export function cardFamily(card) {
 const cardTelemetryKeys = [
   "offered", "drawn", "purchased", "played", "discarded", "destroyed", "hits", "blocks",
   "damageDealt", "damagePrevented", "effectApplications", "equipmentReadied", "equipmentExhausted", "learned", "activated",
+  "heldTurns", "heldBeforePlay", "heldBeforeDiscard", "heldBeforeDestroy",
 ];
 
 const emptyFamilyTelemetry = () => Object.fromEntries([...cardTelemetryKeys, "winnerGames"].map((key) => [key, 0]));
@@ -137,6 +138,7 @@ export class Game {
       comboOpportunities: 0, comboAcquisitions: 0, comboActivations: 0, comboEffectsResolved: 0,
       choicesPresented: 0, choicesResolved: 0, lifecycleEvents: 0,
       unsupportedEffects: 0,
+      market: { opportunities: 0, cardsAvailable: 0, affordableCards: 0, skippedAffordableCards: 0, chosenCards: 0 },
       families: Object.fromEntries(CARD_FAMILIES.map((family) => [family, emptyFamilyTelemetry()])),
     };
     const charactersCatalog = data.cards.filter((card) => card.cardType === "Character");
@@ -164,7 +166,7 @@ export class Game {
     const deck = [];
     for (const entry of this.definition.starterDeck) for (let copy = 0; copy < entry.copies; copy += 1) deck.push(this.cardInstance(this.data.byId.get(entry.catalogId)));
     this.rng.shuffle(deck);
-    const player = { id, name: `Player ${id + 1}`, character, strategy, hp: this.definition.mode.startingHp, maxHp: this.definition.mode.startingHp, atk: num(character?.stats?.ATK), def: num(character?.stats?.DEF), speed: num(character?.stats?.Speed), deck, hand: [], discard: [], destroyed: [], played: [], equipment: [], exhaustedEquipment: [], statuses: [], revealed: [], learnedCombos: [], comboOffered: null, comboAttemptedThisTurn: false, comboTriggeredTurn: [], comboTriggeredRound: [], comboTriggeredThisGame: false, comboFacts: this.emptyComboFacts(), examProgress: { zones: [], purchasedTypes: [], koWhileBrown: false }, honorStats: { attacked: false, blocked: false }, completedTasks: [], trainingStripes: { held: 0, awarded: 0, provisional: false, spentTurnKey: null, spendsThisTurn: 0 }, beltCheckActionUsed: false, effectUsage: { turn: {}, round: {}, game: {} }, lastTurnWasHit: false, lastTurnWasBlocked: false, lastTurnAttacked: false, focus: 0, xp: 0, beltIndex: 0, tempo: true, purchases: 0, plays: 0, openingPurchase: false, badHabitFocusUsed: false, practiceUsed: false, attackCount: 0, nextAttackPower: 0, nextAttackFlow: false, tempSpeed: 0, turnStats: { zones: new Set(), attacked: false, hit: false, blocked: false, damageTaken: 0, hitCount: 0, incomingAttackCount: 0, kataCount: 0, focusGenerated: 0, playedDefenseSinceLastTurn: false, previousAttackHit: false, previousAttackBlocked: false, previousCardType: null, previousZone: null, flowDrawUsed: false, boughtCardThisTurn: false, boughtCardThisAscend: false, usedConsumableThisRound: false, consumableCount: 0, completedBeltExamThisRound: false, playsThisTurn: 0, attacksThisTurn: 0, beltCheckActionUsed: false } };
+    const player = { id, name: `Player ${id + 1}`, character, strategy, hp: this.definition.mode.startingHp, maxHp: this.definition.mode.startingHp, atk: num(character?.stats?.ATK), def: num(character?.stats?.DEF), speed: num(character?.stats?.Speed), deck, hand: [], discard: [], destroyed: [], played: [], equipment: [], exhaustedEquipment: [], statuses: [], revealed: [], learnedCombos: [], comboOffered: null, comboAttemptedThisTurn: false, comboTriggeredTurn: [], comboTriggeredRound: [], comboTriggeredThisGame: false, comboFacts: this.emptyComboFacts(), examProgress: { zones: [], purchasedTypes: [], koWhileBrown: false }, honorStats: { attacked: false, blocked: false }, completedTasks: [], trainingStripes: { held: 0, awarded: 0, provisional: false, spentTurnKey: null, spendsThisTurn: 0 }, beltCheckActionUsed: false, effectUsage: { turn: {}, round: {}, game: {} }, lastTurnWasHit: false, lastTurnWasBlocked: false, lastTurnAttacked: false, focus: 0, xp: 0, beltIndex: 0, tempo: true, purchases: 0, plays: 0, openingPurchase: false, firstMarketPurchaseRound: null, firstNonStarterCardPlayedRound: null, marketPurchasesThisAscend: 0, badHabitFocusUsed: false, practiceUsed: false, attackCount: 0, nextAttackPower: 0, nextAttackFlow: false, tempSpeed: 0, turnStats: { zones: new Set(), attacked: false, hit: false, blocked: false, damageTaken: 0, hitCount: 0, incomingAttackCount: 0, kataCount: 0, focusGenerated: 0, playedDefenseSinceLastTurn: false, previousAttackHit: false, previousAttackBlocked: false, previousCardType: null, previousZone: null, flowDrawUsed: false, boughtCardThisTurn: false, boughtCardThisAscend: false, usedConsumableThisRound: false, consumableCount: 0, completedBeltExamThisRound: false, playsThisTurn: 0, attacksThisTurn: 0, beltCheckActionUsed: false } };
     this.draw(player, this.definition.turn.handSize);
     player.promotionHistory = [];
     const required = this.definition.openingMulligan.requiredTypes;
@@ -318,12 +320,21 @@ export class Game {
       played: 0, discarded: 0, destroyed: 0, hits: 0, blocks: 0,
       damageDealt: 0, damagePrevented: 0, effectApplications: 0,
       equipmentReadied: 0, equipmentExhausted: 0, learned: 0, activated: 0, winnerOwned: 0,
+      heldTurns: 0, heldBeforePlay: 0, heldBeforeDiscard: 0, heldBeforeDestroy: 0,
     };
     stats.family = family;
     stats[key] = (stats[key] ?? 0) + amount;
+    if (key === "drawn") card._heldSinceTurn = this.turns;
+    if (player && ["played", "discarded", "destroyed"].includes(key)) {
+      stats.heldTurns += Math.max(0, this.turns - Number(card._heldSinceTurn ?? this.turns));
+      stats[key === "played" ? "heldBeforePlay" : key === "discarded" ? "heldBeforeDiscard" : "heldBeforeDestroy"] += 1;
+    }
     const familyStats = this.telemetry.families[family] ??= emptyFamilyTelemetry();
     familyStats[key] = (familyStats[key] ?? 0) + amount;
-    if (player) (player._used ??= new Set()).add(card.catalogId);
+    if (player) {
+      (player._used ??= new Set()).add(card.catalogId);
+      if (key === "played" && card.deck !== "Starter Deck" && player.firstNonStarterCardPlayedRound === null) player.firstNonStarterCardPlayedRound = this.round;
+    }
     this.cardStats.set(card.catalogId, stats);
     const telemetryKey = {
       played: "cardsPlayed", purchased: "cardsAcquired", drawn: "cardsDrawn",
@@ -469,10 +480,22 @@ export class Game {
 
   beginAscend(player) {
     player.turnStats.boughtCardThisAscend = false;
+    player.marketPurchasesThisAscend = 0;
     player.beltCheckActionUsed = false;
     player.comboAttemptedThisTurn = false;
     this.awardTrainingStripe(player);
     this.comboOffer(player);
+  }
+
+  recordMarketDecision(player, chosenCard = null) {
+    const available = [...this.market];
+    if (!available.length) return;
+    const affordable = available.filter((card) => this.purchaseCost(player, card) <= player.focus);
+    this.telemetry.market.opportunities += 1;
+    this.telemetry.market.cardsAvailable += available.length;
+    this.telemetry.market.affordableCards += affordable.length;
+    this.telemetry.market.skippedAffordableCards += affordable.filter((card) => card !== chosenCard).length;
+    if (chosenCard) this.telemetry.market.chosenCards += 1;
   }
 
   learnCombo(player) {
@@ -1443,7 +1466,7 @@ export class Game {
     if (!card || !this.market.includes(card) || finalCost > player.focus) return false;
     player.turnStats.focusSpent = (player.turnStats.focusSpent ?? 0) + finalCost;
     if (card.cardType === "Item") this.removeStatus(player, "nextItemCostPenalty");
-    player.focus -= finalCost; this.telemetry.focusSpent += finalCost; player.turnStats.boughtCardThisTurn = true; player.turnStats.boughtCardThisAscend = true; player.statuses = player.statuses.filter((status) => status.action !== "modifyCost" || status.duration === "endOfRound"); remove(this.market, card); player.discard.push(card); player.purchases += 1; this.marketPurchasedThisRound = true; if (this.round === 1) player.openingPurchase = true; this.track(card, "purchased", player); player.comboFacts.purchasesSinceLastAscend.push({ cardId: card.catalogId, tags: card.tags ?? [], family: cardType(card), window: "sinceLastAscend" }); player.examProgress.purchasedTypes = [...new Set([...player.examProgress.purchasedTypes, cardType(card)])]; this.applyCardEffects(player, card, "onPurchase", { opponent: this.players[1 - player.id], purchaseCost: finalCost, purchaseCompleted: true }); for (const equipment of player.equipment) this.applyCardEffects(player, equipment, "onPurchase", { opponent: this.players[1 - player.id], sourceCard: equipment, purchasedCard: card, purchaseCost: finalCost, purchaseCompleted: true }); this.checkBeltExam(player); this.refillMarket(false); this.emit({ type: "purchase", player: player.id, card: card.catalogId, cost: finalCost, printedCost: cost(card), focusRemaining: player.focus }); return true;
+    this.recordMarketDecision(player, card); player.marketPurchasesThisAscend += 1; player.focus -= finalCost; this.telemetry.focusSpent += finalCost; player.turnStats.boughtCardThisTurn = true; player.turnStats.boughtCardThisAscend = true; player.statuses = player.statuses.filter((status) => status.action !== "modifyCost" || status.duration === "endOfRound"); remove(this.market, card); player.discard.push(card); player.purchases += 1; this.marketPurchasedThisRound = true; if (this.round === 1) player.openingPurchase = true; if (player.firstMarketPurchaseRound === null) player.firstMarketPurchaseRound = this.round; this.track(card, "purchased", player); player.comboFacts.purchasesSinceLastAscend.push({ cardId: card.catalogId, tags: card.tags ?? [], family: cardType(card), window: "sinceLastAscend" }); player.examProgress.purchasedTypes = [...new Set([...player.examProgress.purchasedTypes, cardType(card)])]; this.applyCardEffects(player, card, "onPurchase", { opponent: this.players[1 - player.id], purchaseCost: finalCost, purchaseCompleted: true }); for (const equipment of player.equipment) this.applyCardEffects(player, equipment, "onPurchase", { opponent: this.players[1 - player.id], sourceCard: equipment, purchasedCard: card, purchaseCost: finalCost, purchaseCompleted: true }); this.checkBeltExam(player); this.refillMarket(false); this.emit({ type: "purchase", player: player.id, card: card.catalogId, cost: finalCost, printedCost: cost(card), focusRemaining: player.focus }); return true;
   }
 
   canPlayCard(player, card) {
@@ -1608,7 +1631,7 @@ export class Game {
     if (this.pendingChoice) return action.type === "resolve-choice" && this.resolveChoice(action.choice ?? action.optionId);
     if (action.playerId !== undefined && action.playerId !== this.activePlayer) return false;
     const player = this.players[this.activePlayer];
-    if (action.type === "pass") { if (this.phase === "Honor") this.phase = "Initiate"; else if (this.phase === "Initiate") { this.beginComboTurn(player); for (const card of player.equipment) this.applyCardEffects(player, card, "onInitiate", { opponent: this.players[1 - player.id] }); this.applyCharacterEffects(player, "onInitiate", { opponent: this.players[1 - player.id] }); this.phase = "Yell"; } else if (this.phase === "Yell") { this.beginAscend(player); this.phase = "Ascend"; } else if (this.phase === "Ascend") { this.returnComboOffer(player); player.trainingStripes.provisional = false; for (const card of player.equipment) this.applyCardEffects(player, card, "passive", { opponent: this.players[1 - player.id], sourceCard: card, ascendCompleted: true }); this.phase = "Hide"; } else if (this.phase === "Hide") { this.hide(player); this.finishTurn(); } return true; }
+    if (action.type === "pass") { if (this.phase === "Honor") this.phase = "Initiate"; else if (this.phase === "Initiate") { this.beginComboTurn(player); for (const card of player.equipment) this.applyCardEffects(player, card, "onInitiate", { opponent: this.players[1 - player.id] }); this.applyCharacterEffects(player, "onInitiate", { opponent: this.players[1 - player.id] }); this.phase = "Yell"; } else if (this.phase === "Yell") { this.beginAscend(player); this.phase = "Ascend"; } else if (this.phase === "Ascend") { if (player.marketPurchasesThisAscend === 0) this.recordMarketDecision(player); this.returnComboOffer(player); player.trainingStripes.provisional = false; for (const card of player.equipment) this.applyCardEffects(player, card, "passive", { opponent: this.players[1 - player.id], sourceCard: card, ascendCompleted: true }); this.phase = "Hide"; } else if (this.phase === "Hide") { this.hide(player); this.finishTurn(); } return true; }
     if (action.type === "hide" && this.phase === "Hide") { this.hide(player); this.finishTurn(); return true; }
     if (action.type === "practice" && this.phase === "Yell") return this.practice(player, player.hand.find((card) => card.instanceId === action.cardId));
     if (action.type === "activate-equipment" && this.phase === "Initiate") return this.activateEquipment(player, player.equipment.find((card) => card.instanceId === action.cardId));
@@ -1691,7 +1714,7 @@ export class Game {
     return { schemaVersion: 3, rulesVersion: this.definition.rulesVersion, seed: this.seed, round: this.round, roundLimitReached: this.roundLimitReached, turns: this.turns, phase: this.phase, activePlayer: this.activePlayer, turnOrder: [...this.turnOrder], turnOrderPosition: this.turnOrderPosition, winner: this.winner, reason: this.reason, pendingChoice: this.getPendingChoice(), market: cardIds(this.market), marketDeck: cardIds(this.marketDeck), marketDiscard: cardIds(this.marketDiscard), comboDeck: cardIds(this.comboDeck ?? []), comboDiscard: cardIds(this.comboDiscard ?? []), location: this.currentLocation?.catalogId ?? null, locationDeck: cardIds(this.locationDeck ?? []), locationDiscard: cardIds(this.locationDiscard ?? []), players: this.players.map((player) => ({ id: player.id, hp: player.hp, maxHp: player.maxHp, atk: player.atk, def: player.def, speed: player.speed, focus: player.focus, xp: player.xp, beltIndex: player.beltIndex, completedTasks: [...player.completedTasks], trainingStripes: structuredClone(player.trainingStripes), learnedCombos: cardIds(player.learnedCombos), comboOffered: player.comboOffered?.instanceId ?? null, tempo: player.tempo, exhaustedEquipment: [...player.exhaustedEquipment], statuses: structuredClone(player.statuses), cardZones: { deck: cardIds(player.deck), hand: cardIds(player.hand), discard: cardIds(player.discard), destroyed: cardIds(player.destroyed), played: cardIds(player.played), equipment: cardIds(player.equipment) } })) };
   }
 
-  result() { return { seed: this.seed, winner: this.winner, reason: this.reason, rounds: this.round, turns: this.turns, phase: this.phase, players: this.players.map((player) => ({ id: player.id, strategy: player.strategy, hp: player.hp, xp: player.xp, beltIndex: player.beltIndex, completedTasks: [...player.completedTasks], promotionHistory: structuredClone(player.promotionHistory), learnedCombos: player.learnedCombos.map((card) => card.catalogId), comboTriggered: Boolean(player.comboTriggeredThisGame), promotions: player.promotionHistory.length, purchases: player.purchases, plays: player.plays, openingPurchase: player.openingPurchase })), cards: [...this.cardStats.values()], telemetry: { ...this.telemetry }, invariantFailures: this.checkInvariants(), unsupportedEffects: this.telemetry.unsupportedEffects, decisions: this.decisions, events: this.events, state: this.getState() }; }
+  result() { return { seed: this.seed, winner: this.winner, reason: this.reason, rounds: this.round, turns: this.turns, phase: this.phase, players: this.players.map((player) => ({ id: player.id, strategy: player.strategy, hp: player.hp, xp: player.xp, beltIndex: player.beltIndex, completedTasks: [...player.completedTasks], promotionHistory: structuredClone(player.promotionHistory), learnedCombos: player.learnedCombos.map((card) => card.catalogId), comboTriggered: Boolean(player.comboTriggeredThisGame), promotions: player.promotionHistory.length, purchases: player.purchases, plays: player.plays, openingPurchase: player.openingPurchase, firstMarketPurchaseRound: player.firstMarketPurchaseRound, firstNonStarterCardPlayedRound: player.firstNonStarterCardPlayedRound })), cards: [...this.cardStats.values()], telemetry: { ...this.telemetry }, invariantFailures: this.checkInvariants(), unsupportedEffects: this.telemetry.unsupportedEffects, decisions: this.decisions, events: this.events, state: this.getState() }; }
 }
 
 export const createGame = (data, config = {}) => new Game(data, config);

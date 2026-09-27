@@ -46,4 +46,5 @@ next-env.d.ts
 /reports/*.md
 /reports/*.jsonl
 /reports/*
+/docs/production/starter-experiment/.build/
 /offline-package/
