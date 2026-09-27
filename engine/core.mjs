@@ -1,4 +1,4 @@
-import { attackPower, chooseAttack, chooseDefense, choosePractice, choosePurchase, cost, focus, guard } from "./bots.mjs";
+import { attackPower, chooseAttack, chooseDefense, choosePractice, choosePurchase, comboReadiness, cost, focus, guard } from "./bots.mjs";
 import { comboTimingAllows, comboContext, evaluateCombo } from "./combo-runtime.mjs";
 
 export class Rng {
@@ -286,7 +286,7 @@ export class Game {
 
   expireStatuses(player, duration) {
     for (const status of player.statuses) if (status.duration === duration && status.action === "speedRestore") player.speed = num(status.amount);
-    if (duration === "endOfTurn") for (const card of [...player.equipment]) if (card.temporaryUntilHide) { remove(player.equipment, card); remove(player.played, card); player.discard.push(card); delete card.temporaryUntilHide; }
+    if (duration === "endOfTurn") for (const card of [...player.equipment]) if (card.temporaryUntilHide) { remove(player.equipment, card); remove(player.exhaustedEquipment, card.instanceId); remove(player.played, card); player.discard.push(card); delete card.temporaryUntilHide; }
     player.statuses = player.statuses.filter((status) => status.duration !== duration);
   }
 
@@ -1422,6 +1422,34 @@ export class Game {
     remove(player.hand, card); player.played.push(card); player.focus += focus(card); this.telemetry.focusGenerated += focus(card); this.telemetry.defensePractice += 1; player.practiceUsed = true; player.turnStats.playedDefenseSinceLastTurn = true; player.turnStats.defenseCount = (player.turnStats.defenseCount ?? 0) + 1; this.track(card, "played", player); this.emit({ type: "defense-practice", player: player.id, card: card.catalogId, focus: focus(card) }); return true;
   }
 
+  equipmentHands(card) { return Math.max(0, num(card?.stats?.Hands ?? card?.details?.Hands)); }
+
+  equipmentSlot(card) { return String(card?.stats?.Slot ?? card?.details?.Slot ?? "").trim(); }
+
+  equipmentReplacements(player, card) {
+    if (!card || !["Weapon", "Gear", "Defense Equipment"].includes(card.subtype)) return [];
+    const slot = this.equipmentSlot(card);
+    if (card.subtype === "Weapon" || /hand/i.test(slot)) {
+      const required = this.equipmentHands(card) || (/hand/i.test(slot) ? (Number.parseInt(slot, 10) || 1) : 1);
+      let occupied = player.equipment.reduce((sum, equipped) => sum + (this.equipmentHands(equipped) || (/hand/i.test(this.equipmentSlot(equipped)) ? (Number.parseInt(this.equipmentSlot(equipped), 10) || 1) : 0)), 0);
+      const replacements = [];
+      for (const equipped of player.equipment) {
+        const equippedHands = this.equipmentHands(equipped) || (/hand/i.test(this.equipmentSlot(equipped)) ? (Number.parseInt(this.equipmentSlot(equipped), 10) || 1) : 0);
+        if (!equippedHands) continue;
+        if (required === 2 || occupied + required > 2) { replacements.push(equipped); occupied -= equippedHands; if (required === 2 || occupied + required <= 2) break; }
+      }
+      return replacements;
+    }
+    return slot ? player.equipment.filter((equipped) => this.equipmentSlot(equipped) === slot) : [];
+  }
+
+  equipPermanent(player, card) {
+    const replacements = this.equipmentReplacements(player, card);
+    for (const oldCard of replacements) this.discardCard(player, oldCard);
+    player.equipment.push(card);
+    return replacements;
+  }
+
   cashBadHabit(player) {
     const rule = this.definition.economy.badHabitFocus; if (!rule || rule.usesPerTurn < 1 || player.badHabitFocusUsed) return false;
     const card = player.hand.find((candidate) => candidate?.catalogId === rule.catalogId); if (!card) return false; remove(player.hand, card); player.discard.push(card); player.focus += Number(rule.focusGain) || 0; this.telemetry.focusGenerated += Number(rule.focusGain) || 0; player.badHabitFocusUsed = true; this.emit({ type: "bad-habit-focus", player: player.id, card: card.catalogId, focus: Number(rule.focusGain) || 0 }); return true;
@@ -1432,7 +1460,7 @@ export class Game {
     if (!card || !player.hand.includes(card) || combatTechnique && (isAttack(card) || isDefense(card))) return false;
     if (card.subtype === "Consumable" && this.hasStatus(player, "restrictConsumable")) return false;
     if (card.subtype === "Weapon" && this.hasStatus(player, "restrictWeapon")) return false;
-    remove(player.hand, card); player.played.push(card); player.focus += focus(card); this.telemetry.focusGenerated += focus(card); if (card.subtype === "Kata" && this.hasStatus(player, "kataFocusBonus")) { player.focus += this.statusValue(player, "kataFocusBonus", { consumeDuration: "endOfTurn" }); player.turnStats.focusGenerated += this.statusValue(player, "kataFocusBonus"); this.telemetry.focusGenerated += 1; this.removeStatus(player, "kataFocusBonus"); } player.plays += 1; player.turnStats.playsThisTurn = (player.turnStats.playsThisTurn ?? 0) + 1; if (card.subtype === "Consumable") { player.turnStats.usedConsumableThisTurn = true; player.turnStats.usedConsumableThisRound = true; player.turnStats.consumableCount = (player.turnStats.consumableCount ?? 0) + 1; } const equipment = ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype); if (equipment) player.equipment.push(card); player.turnStats.equippedThisTurn = equipment || player.turnStats.equippedThisTurn; this.track(card, "played", player); this.markComboCardPlayed(player, card); this.applyCardEffects(player, card, "onPlay", { opponent: this.players[1 - player.id], attackCard: null }); if (card.subtype === "Kata") player.turnStats.kataCount = (player.turnStats.kataCount ?? 0) + 1; if (equipment) this.applyCardEffects(player, card, "onEquip", { opponent: this.players[1 - player.id], sourceCard: card, equippedCard: card }); this.checkBeltExam(player); return true;
+    remove(player.hand, card); player.played.push(card); player.focus += focus(card); this.telemetry.focusGenerated += focus(card); if (card.subtype === "Kata" && this.hasStatus(player, "kataFocusBonus")) { player.focus += this.statusValue(player, "kataFocusBonus", { consumeDuration: "endOfTurn" }); player.turnStats.focusGenerated += this.statusValue(player, "kataFocusBonus"); this.telemetry.focusGenerated += 1; this.removeStatus(player, "kataFocusBonus"); } player.plays += 1; player.turnStats.playsThisTurn = (player.turnStats.playsThisTurn ?? 0) + 1; if (card.subtype === "Consumable") { player.turnStats.usedConsumableThisTurn = true; player.turnStats.usedConsumableThisRound = true; player.turnStats.consumableCount = (player.turnStats.consumableCount ?? 0) + 1; } const equipment = ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype); if (equipment) this.equipPermanent(player, card); player.turnStats.equippedThisTurn = equipment || player.turnStats.equippedThisTurn; this.track(card, "played", player); this.markComboCardPlayed(player, card); this.applyCardEffects(player, card, "onPlay", { opponent: this.players[1 - player.id], attackCard: null }); if (card.subtype === "Kata") player.turnStats.kataCount = (player.turnStats.kataCount ?? 0) + 1; if (equipment) this.applyCardEffects(player, card, "onEquip", { opponent: this.players[1 - player.id], sourceCard: card, equippedCard: card }); this.checkBeltExam(player); return true;
   }
 
   purchaseCost(player, card) {
@@ -1495,7 +1523,11 @@ export class Game {
     const player = this.players[playerId];
     if (this.phase === "Honor") return [{ type: "pass", playerId }];
     if (this.phase === "Initiate") return [{ type: "pass", playerId }, ...player.hand.filter((card) => ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype) && this.canPlayCard(player, card)).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...player.equipment.filter((card) => !this.equipmentIsExhausted(player, card) && this.equipmentHasManualActivation(card)).map((card) => ({ type: "activate-equipment", playerId, cardId: card.instanceId }))];
-    if (this.phase === "Yell") return [...(this.hasStatus(player, "restrictAttack") || this.hasStatus(this.players[1 - playerId], "untargetable") ? [] : player.hand.filter((card) => isAttack(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-attack", playerId, cardId: card.instanceId }))), ...player.hand.filter((card) => !isAttack(card) && !isDefense(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...(this.definition.economy.defensePractice.usesPerTurn > 0 && !player.practiceUsed ? player.hand.filter(isDefense).map((card) => ({ type: "practice", playerId, cardId: card.instanceId })) : []), { type: "pass", playerId }];
+    if (this.phase === "Yell") {
+      const canPlayDuringYell = (card) => !isAttack(card) && !isDefense(card) && !["Weapon", "Gear", "Defense Equipment", "Reaction Item"].includes(card.subtype) && this.canPlayCard(player, card);
+      const badHabit = !player.badHabitFocusUsed && player.hand.some((card) => card.catalogId === this.definition.economy.badHabitFocus?.catalogId) ? [{ type: "cash-bad-habit", playerId }] : [];
+      return [...(this.hasStatus(player, "restrictAttack") || this.hasStatus(this.players[1 - playerId], "untargetable") ? [] : player.hand.filter((card) => isAttack(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-attack", playerId, cardId: card.instanceId }))), ...badHabit, ...player.hand.filter(canPlayDuringYell).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...(this.definition.economy.defensePractice.usesPerTurn > 0 && !player.practiceUsed ? player.hand.filter(isDefense).map((card) => ({ type: "practice", playerId, cardId: card.instanceId })) : []), { type: "pass", playerId }];
+    }
     if (this.phase === "Ascend") return [
       ...(player.comboOffered ? [{ type: "decline-combo", playerId }, ...(cost(player.comboOffered) <= player.focus && !player.comboAttemptedThisTurn ? [{ type: "learn-combo", playerId, cardId: player.comboOffered.instanceId }] : [])] : []),
       ...(this.canPromote(player) ? [{ type: "promote", playerId }] : []),
@@ -1617,7 +1649,7 @@ export class Game {
     }
     if (pending.kind === "reaction") {
       const attacker = this.players[pending.attackerId]; const defender = this.players[pending.playerId]; const attackCard = this.cardByInstance(pending.attackerId, pending.cardId);
-      if (selected !== "pass") { const reaction = defender.hand.find((candidate) => candidate.instanceId === selected); if (!reaction || !attackCard) return false; remove(defender.hand, reaction); defender.played.push(reaction); defender.focus += focus(reaction); this.track(reaction, "played", defender); const reactionContext = this.applyCardEffects(defender, reaction, "onAttackDeclared", { opponent: attacker, attackCard, zone: pending.zone, incomingAttackTargetsSelf: true }); const equipmentReaction = this.applyEquipmentWatchers(defender, "equipment.structured", { opponent: attacker, attackCard, reactionPlayedAgainstSelf: true, scheduledTiming: "exchangeEnd" }); defender.discard.push(reaction); const defenseOptions = pending.defenseOptions; this.pendingChoice = { kind: "defense", playerId: pending.playerId, attackerId: pending.attackerId, cardId: pending.cardId, zone: pending.zone, reactionPrevention: reactionContext.damagePrevention ?? 0, reactionAttackModifier: reactionContext.opponentAttackPowerModifier ?? 0, reactionDefense: (reactionContext.defenseModifier ?? 0) + (equipmentReaction.defenseModifier ?? 0), options: defenseOptions }; return true; }
+      if (selected !== "pass") { const reaction = defender.hand.find((candidate) => candidate.instanceId === selected); if (!reaction || !attackCard) return false; remove(defender.hand, reaction); defender.played.push(reaction); defender.focus += focus(reaction); this.track(reaction, "played", defender); const reactionContext = this.applyCardEffects(defender, reaction, "onAttackDeclared", { opponent: attacker, attackCard, zone: pending.zone, incomingAttackTargetsSelf: true }); const equipmentReaction = this.applyEquipmentWatchers(defender, "equipment.structured", { opponent: attacker, attackCard, reactionPlayedAgainstSelf: true, scheduledTiming: "exchangeEnd" }); this.discardCard(defender, reaction); const defenseOptions = pending.defenseOptions; this.pendingChoice = { kind: "defense", playerId: pending.playerId, attackerId: pending.attackerId, cardId: pending.cardId, zone: pending.zone, reactionPrevention: reactionContext.damagePrevention ?? 0, reactionAttackModifier: reactionContext.opponentAttackPowerModifier ?? 0, reactionDefense: (reactionContext.defenseModifier ?? 0) + (equipmentReaction.defenseModifier ?? 0), options: defenseOptions }; return true; }
       this.pendingChoice = { kind: "defense", playerId: pending.playerId, attackerId: pending.attackerId, cardId: pending.cardId, zone: pending.zone, options: pending.defenseOptions }; return true;
     }
     if (pending.kind === "attack-zone") { const card = this.cardByInstance(pending.playerId, pending.cardId); this.pendingChoice = null; return this.beginAttack(pending.playerId, card, { zone: selected }); }
@@ -1632,9 +1664,11 @@ export class Game {
     if (action.type === "pass") { if (this.phase === "Honor") this.phase = "Initiate"; else if (this.phase === "Initiate") { this.beginComboTurn(player); for (const card of player.equipment) this.applyCardEffects(player, card, "onInitiate", { opponent: this.players[1 - player.id] }); this.applyCharacterEffects(player, "onInitiate", { opponent: this.players[1 - player.id] }); this.phase = "Yell"; } else if (this.phase === "Yell") { this.beginAscend(player); this.phase = "Ascend"; } else if (this.phase === "Ascend") { this.returnComboOffer(player); player.trainingStripes.provisional = false; for (const card of player.equipment) this.applyCardEffects(player, card, "passive", { opponent: this.players[1 - player.id], sourceCard: card, ascendCompleted: true }); this.phase = "Hide"; } else if (this.phase === "Hide") { this.hide(player); this.finishTurn(); } return true; }
     if (action.type === "hide" && this.phase === "Hide") { this.hide(player); this.finishTurn(); return true; }
     if (action.type === "practice" && this.phase === "Yell") return this.practice(player, player.hand.find((card) => card.instanceId === action.cardId));
+    if (action.type === "cash-bad-habit" && this.phase === "Yell") return this.cashBadHabit(player);
     if (action.type === "activate-equipment" && this.phase === "Initiate") return this.activateEquipment(player, player.equipment.find((card) => card.instanceId === action.cardId));
-    if (action.type === "play-card" && (this.phase === "Yell" || this.phase === "Initiate")) return this.playCard(player, player.hand.find((card) => card.instanceId === action.cardId));
-    if (action.type === "play-attack" && this.phase === "Yell") return this.beginAttack(this.activePlayer, player.hand.find((card) => card.instanceId === action.cardId), action);
+    if (action.type === "play-card" && this.phase === "Initiate") { const card = player.hand.find((candidate) => candidate.instanceId === action.cardId); return Boolean(card && ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype) && this.canPlayCard(player, card) && this.playCard(player, card)); }
+    if (action.type === "play-card" && this.phase === "Yell") { const card = player.hand.find((candidate) => candidate.instanceId === action.cardId); return Boolean(card && !isAttack(card) && !isDefense(card) && !["Weapon", "Gear", "Defense Equipment", "Reaction Item"].includes(card.subtype) && this.canPlayCard(player, card) && this.playCard(player, card)); }
+    if (action.type === "play-attack" && this.phase === "Yell") { const card = player.hand.find((candidate) => candidate.instanceId === action.cardId); return Boolean(card && isAttack(card) && this.beginAttack(this.activePlayer, card, action)); }
     if (action.type === "learn-combo" && this.phase === "Ascend" && action.cardId === player.comboOffered?.instanceId) return this.learnCombo(player);
     if (action.type === "decline-combo" && this.phase === "Ascend") { player.comboAttemptedThisTurn = true; return this.returnComboOffer(player); }
     if (action.type === "promote" && this.phase === "Ascend") return this.promote(player);
@@ -1659,21 +1693,63 @@ export class Game {
 
   defaultAction(legal) {
     const player = this.players[this.activePlayer];
-    if (this.phase === "Yell") { const setup = this.comboSetupCard(player); const setupAction = setup && legal.find((action) => action.type === "play-card" && action.cardId === setup.instanceId); if (setupAction) return setupAction; const attack = chooseAttack(player.hand, player.strategy); const attackAction = attack && legal.find((action) => action.type === "play-attack" && action.cardId === attack.instanceId); if (attackAction) return attackAction; const practice = choosePractice(player.hand, player.strategy); const practiceAction = practice && legal.find((action) => action.type === "practice" && action.cardId === practice.instanceId); if (practiceAction && !player.practiceUsed) return practiceAction; const cardAction = legal.find((action) => action.type === "play-card"); if (cardAction) return cardAction; }
-    if (this.phase === "Ascend") { const promotion = legal.find((action) => action.type === "promote"); if (promotion) return promotion; const learn = legal.find((action) => action.type === "learn-combo"); if (learn) return learn; const purchase = choosePurchase(this.market, player.focus, player.strategy); const purchaseAction = purchase && legal.find((action) => action.type === "purchase" && action.cardId === purchase.instanceId); if (purchaseAction) return purchaseAction; const recover = legal.find((action) => action.type === "recover-training-stripe"); if (recover) return recover; const decline = legal.find((action) => action.type === "decline-combo"); if (decline) return decline; }
+    this.lastDecisionReason = "fallback legal action";
+    if (this.phase === "Initiate") {
+      const equipment = legal.filter((action) => action.type === "play-card").map((action) => player.hand.find((card) => card.instanceId === action.cardId)).filter(Boolean).sort((a, b) => this.cardDecisionScore(b, player) - this.cardDecisionScore(a, player))[0];
+      if (equipment) { this.lastDecisionReason = `equip ${equipment.name} for tactical utility`; return legal.find((action) => action.cardId === equipment.instanceId); }
+    }
+    if (this.phase === "Yell") {
+      const cashBadHabit = legal.find((action) => action.type === "cash-bad-habit");
+      if (cashBadHabit) { this.lastDecisionReason = "convert Junk into Focus using its canonical once-per-turn action"; return cashBadHabit; }
+      const attack = chooseAttack(player.hand, player.strategy, { atk: player.atk, opponent: this.players[1 - player.id], equipment: player.equipment, deckTags: this.playerDeckTags(player) });
+      const attackAction = attack && legal.find((action) => action.type === "play-attack" && action.cardId === attack.instanceId);
+      const setup = this.comboSetupCard(player); const setupAction = setup && legal.find((action) => action.type === "play-card" && action.cardId === setup.instanceId);
+      const lethal = Boolean(attack && player.atk + attackPower(attack) >= this.players[1 - player.id].hp + this.players[1 - player.id].def);
+      if (attackAction && lethal) { this.lastDecisionReason = "lethal attack available"; return attackAction; }
+      if (setupAction) { this.lastDecisionReason = "advance a learned Combo requirement"; return setupAction; }
+      if (attackAction) { this.lastDecisionReason = "highest-value legal attack"; return attackAction; }
+      const playable = legal.filter((action) => action.type === "play-card").map((action) => player.hand.find((card) => card.instanceId === action.cardId)).filter(Boolean).sort((a, b) => this.cardDecisionScore(b, player) - this.cardDecisionScore(a, player))[0];
+      if (playable && this.cardDecisionScore(playable, player) > 0) { this.lastDecisionReason = `play ${playable.name} for card/effect utility`; return legal.find((action) => action.cardId === playable.instanceId); }
+      const practice = choosePractice(player.hand, player.strategy, { lowHp: player.hp <= player.maxHp / 2, deckTags: this.playerDeckTags(player) });
+      const practiceAction = practice && legal.find((action) => action.type === "practice" && action.cardId === practice.instanceId);
+      if (practiceAction && !player.practiceUsed) { this.lastDecisionReason = "convert the best Defense into Focus via Defense Practice"; return practiceAction; }
+    }
+    if (this.phase === "Ascend") {
+      const promotion = legal.find((action) => action.type === "promote");
+      if (promotion) { this.lastDecisionReason = "complete an eligible Belt promotion"; return promotion; }
+      const learn = legal.find((action) => action.type === "learn-combo");
+      if (learn && player.comboOffered && comboReadiness(player.comboOffered, player, this.data).score >= 0.25) { this.lastDecisionReason = "learn a Combo with observed card readiness"; return learn; }
+      const purchase = choosePurchase(this.market, player.focus, player.strategy, { equipment: player.equipment, lowHp: player.hp <= player.maxHp / 2, deckTags: this.playerDeckTags(player), effectValue: 1 });
+      const purchaseAction = purchase && legal.find((action) => action.type === "purchase" && action.cardId === purchase.instanceId);
+      if (purchaseAction) { this.lastDecisionReason = `buy ${purchase.name} as the highest-utility affordable Market card`; return purchaseAction; }
+      const recover = legal.find((action) => action.type === "recover-training-stripe");
+      if (recover) { this.lastDecisionReason = "recover HP with an earned Training Stripe"; return recover; }
+      const decline = legal.find((action) => action.type === "decline-combo");
+      if (decline) { this.lastDecisionReason = "decline an unaffordable or low-readiness Combo"; return decline; }
+    }
     return legal.find((action) => action.type === "pass" || action.type === "hide") ?? legal[0];
   }
 
   defaultChoice() {
-    if (["attack-zone", "card-movement", "cycle-discard-draw", "deck-look", "zone-choice", "hit-choice", "incoming-attack-choice", "equipment-toggle", "discard-or-destroy"].includes(this.pendingChoice?.kind)) return { optionId: this.pendingChoice.options[0].id };
-    if (this.pendingChoice?.kind === "reaction") return { optionId: "pass" };
+    if (["attack-zone", "card-movement", "cycle-discard-draw", "deck-look", "zone-choice", "hit-choice", "incoming-attack-choice", "equipment-toggle", "discard-or-destroy"].includes(this.pendingChoice?.kind)) { this.lastDecisionReason = "resolve the first legal deterministic option"; return { optionId: this.pendingChoice.options[0].id }; }
+    if (this.pendingChoice?.kind === "reaction") {
+      const pending = this.pendingChoice; const defender = this.players[pending.playerId]; const attacker = this.players[pending.attackerId]; const attack = this.cardByInstance(pending.attackerId, pending.cardId); const estimated = Math.max(0, attackPower(attack) + attacker.atk - defender.def); const reaction = defender.hand.filter((card) => pending.options.some((option) => option.id === card.instanceId)).sort((a, b) => focus(b) - focus(a))[0];
+      if (reaction && (estimated >= defender.hp || estimated >= 3 || defender.strategy === "fortress")) { this.lastDecisionReason = "use a Reaction because the incoming Attack is dangerous"; return { optionId: reaction.instanceId }; }
+      this.lastDecisionReason = "preserve Reaction resources against a tolerable Attack"; return { optionId: "pass" };
+    }
     if (this.pendingChoice?.kind === "structured") return { optionId: this.pendingChoice.options[0].id };
     const pending = this.pendingChoice;
     const legalIds = new Set((pending?.options ?? []).map((option) => option.id));
     const defender = this.players[pending.playerId];
-    const defense = chooseDefense(defender.hand.filter((candidate) => legalIds.has(candidate.instanceId)));
-    return { optionId: defense?.instanceId ?? (legalIds.has("pass") ? "pass" : pending.options[0]?.id) };
+    const defense = chooseDefense(defender.hand.filter((candidate) => legalIds.has(candidate.instanceId)), { strategy: defender.strategy });
+    const attacker = this.players[pending.attackerId]; const attack = this.cardByInstance(pending.attackerId, pending.cardId); const incoming = Math.max(0, attackPower(attack) + attacker.atk - defender.def); const shouldBlock = Boolean(defense && (incoming >= defender.hp || incoming >= 3 || defender.strategy === "fortress"));
+    this.lastDecisionReason = shouldBlock ? "play the strongest legal Defense against meaningful damage" : "preserve Defense resources against a tolerable Attack";
+    return { optionId: shouldBlock ? defense.instanceId : (legalIds.has("pass") ? "pass" : pending.options[0]?.id) };
   }
+
+  playerDeckTags(player) { return [...new Set([...player.hand, ...player.deck, ...player.discard, ...player.equipment].flatMap((card) => card.tags ?? []))]; }
+
+  cardDecisionScore(card, player) { return (card ? Number(card.focusValue ?? 0) + Number(card.stats?.["Attack Power"] ?? 0) + Number(card.stats?.Guard ?? 0) + (card.tags ?? []).length * 0.25 : 0) + (player.hp <= player.maxHp / 2 && ["Consumable", "Defense Equipment"].includes(card?.subtype) ? 3 : 0); }
 
   assertInvariants(step) {
     const failures = this.checkInvariants();
@@ -1689,7 +1765,7 @@ export class Game {
     // choices participate in deterministic replay instead of silently falling
     // back to a different decision source.
     this.currentPolicy = controller;
-    while (this.winner === null && steps < maxSteps) { steps += 1; this.advanceAutomaticEvents(); this.assertInvariants(steps); if (this.pendingChoice) { const pending = this.getPendingChoice(); if (this.lastPresentedChoice !== this.pendingChoice) { this.telemetry.choicesPresented += 1; this.lastPresentedChoice = this.pendingChoice; } const choice = controller.chooseChoice ? controller.chooseChoice(this, pending) : this.defaultChoice(); this.decisions.push({ step: steps, kind: "choice", pendingKind: pending.kind, choice: structuredClone(choice) }); if (!this.resolveChoice(choice)) throw new Error(`Policy selected illegal choice at seed ${this.seed}`); this.assertInvariants(steps); continue; } const legal = this.getLegalActions(); if (!legal.length) throw new Error(`No legal actions in ${this.phase} for player ${this.activePlayer}`); const action = controller.chooseAction ? controller.chooseAction(this, legal) : this.defaultAction(legal); this.decisions.push({ step: steps, kind: "action", phase: this.phase, action: structuredClone(action) }); if (!this.applyAction(action)) throw new Error(`Policy selected illegal action at seed ${this.seed}: ${JSON.stringify(action)}`); this.assertInvariants(steps); }
+    while (this.winner === null && steps < maxSteps) { steps += 1; this.advanceAutomaticEvents(); this.assertInvariants(steps); if (this.pendingChoice) { const pending = this.getPendingChoice(); if (this.lastPresentedChoice !== this.pendingChoice) { this.telemetry.choicesPresented += 1; this.lastPresentedChoice = this.pendingChoice; } const choice = controller.chooseChoice ? controller.chooseChoice(this, pending) : this.defaultChoice(); this.decisions.push({ step: steps, kind: "choice", pendingKind: pending.kind, choice: structuredClone(choice), reason: this.lastDecisionReason ?? null }); if (!this.resolveChoice(choice)) throw new Error(`Policy selected illegal choice at seed ${this.seed}`); this.assertInvariants(steps); continue; } const legal = this.getLegalActions(); if (!legal.length) throw new Error(`No legal actions in ${this.phase} for player ${this.activePlayer}`); const action = controller.chooseAction ? controller.chooseAction(this, legal) : this.defaultAction(legal); this.decisions.push({ step: steps, kind: "action", phase: this.phase, offered: legal.map((candidate) => candidate.type), action: structuredClone(action), reason: this.lastDecisionReason ?? null }); if (!this.applyAction(action)) throw new Error(`Policy selected illegal action at seed ${this.seed}: ${JSON.stringify(action)}`); this.assertInvariants(steps); }
     if (this.winner === null) throw new Error(`Game exceeded ${maxSteps} steps at seed ${this.seed}`);
     const winnerFamilies = new Set();
     for (const player of this.players) for (const id of player._used ?? []) if (player.id === this.winner && this.cardStats.has(id)) { const stats = this.cardStats.get(id); stats.winnerOwned += 1; winnerFamilies.add(stats.family); }
