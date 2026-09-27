@@ -173,7 +173,7 @@ function Build-Card {
 }
 
 $built = @()
-$built += Build-Card '04_Kata.ora' 'DDB-STA-EXP-001' 'Reset Stance' 'Clear the board. Keep the lesson.' 'Draw 1 card, then discard 1 card.' 'Kata'
+$built += Build-Card '04_Kata.ora' 'DDB-STA-EXP-001' 'Reset Stance' 'Clear the board. Keep the lesson.' 'Discard 1 card.' 'Kata'
 $built += Build-Card '06_Item_Consumable.ora' 'DDB-STA-EXP-002' 'Tactical Refresh' 'A little reset. A lot less panic.' 'Gain 1 Focus. Your next Defense this turn gets +1 Guard. Destroy this after use.' 'Consumable'
 $built | ForEach-Object {
   $previewName = "$($_.Id)-$($_.Name.ToLowerInvariant() -replace '[^a-z0-9]+', '-').png"

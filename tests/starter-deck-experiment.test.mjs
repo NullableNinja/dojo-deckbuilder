@@ -11,8 +11,8 @@ test("starter experiment is an isolated 15-card scenario with matched canonical 
   const variant = applyScenario(data, scenario);
   const starterCount = variant.definition.starterDeck.reduce((sum, entry) => sum + entry.copies, 0);
   assert.equal(starterCount, 15);
-  assert.equal(variant.definition.starterDeck.find((entry) => entry.catalogId === "DDB-STA-CORE-001").copies, 4);
-  assert.equal(variant.definition.starterDeck.some((entry) => entry.catalogId === "DDB-STA-CORE-009"), false);
+  assert.equal(variant.definition.starterDeck.find((entry) => entry.catalogId === "DDB-STA-CORE-001").copies, 3);
+  assert.equal(variant.definition.starterDeck.find((entry) => entry.catalogId === "DDB-STA-CORE-009").copies, 1);
   assert.equal(variant.definition.starterDeck.find((entry) => entry.catalogId === "DDB-STA-EXP-001").copies, 1);
   assert.equal(variant.definition.starterDeck.find((entry) => entry.catalogId === "DDB-STA-EXP-002").copies, 1);
   assert.equal(variant.byId.get("DDB-STA-EXP-001").subtype, "Kata");
@@ -22,6 +22,11 @@ test("starter experiment is an isolated 15-card scenario with matched canonical 
   const player = game.players[0];
   game.phase = "Yell";
   game.activePlayer = 0;
+  const badHabit = game.cardInstance(variant.byId.get("DDB-STA-CORE-001"));
+  player.hand.push(badHabit);
+  assert.equal(game.getLegalActions(0).some((action) => action.cardId === badHabit.instanceId), false);
+  assert.equal(game.applyAction({ type: "play-card", playerId: 0, cardId: badHabit.instanceId }), false);
+  player.hand = player.hand.filter((card) => card !== badHabit);
   const resetStance = game.cardInstance(variant.byId.get("DDB-STA-EXP-001"));
   player.hand.push(resetStance);
   assert.equal(game.playCard(player, resetStance), true);
