@@ -1476,6 +1476,10 @@ export class Game {
     return true;
   }
 
+  canPlayYellCard(card) {
+    return card?.subtype === "Kata" || card?.subtype === "Consumable" || (card?.subtype === "Starter" && (card.tags ?? []).includes("Kata"));
+  }
+
   comboSetupCard(player) {
     for (const card of player.hand) {
       if (isAttack(card) || isDefense(card)) continue;
@@ -1499,7 +1503,7 @@ export class Game {
     const player = this.players[playerId];
     if (this.phase === "Honor") return [{ type: "pass", playerId }];
     if (this.phase === "Initiate") return [{ type: "pass", playerId }, ...player.hand.filter((card) => ["Weapon", "Gear", "Defense Equipment"].includes(card.subtype) && this.canPlayCard(player, card)).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...player.equipment.filter((card) => !this.equipmentIsExhausted(player, card) && this.equipmentHasManualActivation(card)).map((card) => ({ type: "activate-equipment", playerId, cardId: card.instanceId }))];
-    if (this.phase === "Yell") return [...(this.hasStatus(player, "restrictAttack") || this.hasStatus(this.players[1 - playerId], "untargetable") ? [] : player.hand.filter((card) => isAttack(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-attack", playerId, cardId: card.instanceId }))), ...player.hand.filter((card) => !isAttack(card) && !isDefense(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...(this.definition.economy.defensePractice.usesPerTurn > 0 && !player.practiceUsed ? player.hand.filter(isDefense).map((card) => ({ type: "practice", playerId, cardId: card.instanceId })) : []), { type: "pass", playerId }];
+    if (this.phase === "Yell") return [...(this.hasStatus(player, "restrictAttack") || this.hasStatus(this.players[1 - playerId], "untargetable") ? [] : player.hand.filter((card) => isAttack(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-attack", playerId, cardId: card.instanceId }))), ...player.hand.filter((card) => this.canPlayYellCard(card) && this.canPlayCard(player, card)).map((card) => ({ type: "play-card", playerId, cardId: card.instanceId })), ...(this.definition.economy.defensePractice.usesPerTurn > 0 && !player.practiceUsed ? player.hand.filter(isDefense).map((card) => ({ type: "practice", playerId, cardId: card.instanceId })) : []), { type: "pass", playerId }];
     if (this.phase === "Ascend") return [
       ...(player.comboOffered ? [{ type: "decline-combo", playerId }, ...(cost(player.comboOffered) <= player.focus && !player.comboAttemptedThisTurn ? [{ type: "learn-combo", playerId, cardId: player.comboOffered.instanceId }] : [])] : []),
       ...(this.canPromote(player) ? [{ type: "promote", playerId }] : []),
@@ -1635,7 +1639,8 @@ export class Game {
     if (action.type === "hide" && this.phase === "Hide") { this.hide(player); this.finishTurn(); return true; }
     if (action.type === "practice" && this.phase === "Yell") return this.practice(player, player.hand.find((card) => card.instanceId === action.cardId));
     if (action.type === "activate-equipment" && this.phase === "Initiate") return this.activateEquipment(player, player.equipment.find((card) => card.instanceId === action.cardId));
-    if (action.type === "play-card" && (this.phase === "Yell" || this.phase === "Initiate")) return this.playCard(player, player.hand.find((card) => card.instanceId === action.cardId));
+    if (action.type === "play-card" && this.phase === "Yell") { const card = player.hand.find((candidate) => candidate.instanceId === action.cardId); return this.canPlayYellCard(card) && this.playCard(player, card); }
+    if (action.type === "play-card" && this.phase === "Initiate") { const card = player.hand.find((candidate) => candidate.instanceId === action.cardId); return ["Weapon", "Gear", "Defense Equipment"].includes(card?.subtype) && this.playCard(player, card); }
     if (action.type === "play-attack" && this.phase === "Yell") return this.beginAttack(this.activePlayer, player.hand.find((card) => card.instanceId === action.cardId), action);
     if (action.type === "learn-combo" && this.phase === "Ascend" && action.cardId === player.comboOffered?.instanceId) return this.learnCombo(player);
     if (action.type === "decline-combo" && this.phase === "Ascend") { player.comboAttemptedThisTurn = true; return this.returnComboOffer(player); }

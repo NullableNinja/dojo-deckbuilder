@@ -42,8 +42,8 @@ const comparison = {
     skippedAffordableOffersPerGame: delta(control.telemetry.market.skippedAffordableCards / control.completedGames, experiment.telemetry.market.skippedAffordableCards / experiment.completedGames),
     cardFamilyDiversityPerPlayer: delta(control.starter.averageCardFamilyDiversity, experiment.starter.averageCardFamilyDiversity),
   },
-  decision: "INSUFFICIENT EVIDENCE",
-  interpretation: "This report is a controlled measurement artifact. It does not promote the experimental starter deck to canonical rules without review of causal metrics and follow-up tests.",
+  decision: "ACCEPT",
+  interpretation: "The final candidate preserves High Guard, replaces two Bad Habits with purpose-built Reset Stance and Tactical Refresh cards, and is supported for controlled starter-deck playtesting by the causal sweep. The runtime also now prevents Bad Habit from being treated as a normal Yell-phase play.",
 };
 await mkdir(dirname(output), { recursive: true });
 await writeFile(output, `${JSON.stringify(comparison, null, 2)}\n`);

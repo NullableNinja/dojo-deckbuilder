@@ -1,12 +1,12 @@
 {
   "id": "starter-deck-experiment-v1",
-  "description": "Controlled starter experiment: remove one Defense and one Bad Habit; add one low-complexity Kata and one non-healing Consumable while keeping 15 cards.",
+  "description": "Controlled starter experiment: preserve High Guard, replace two Bad Habits with one low-complexity Kata and one non-healing Consumable while keeping 15 cards.",
   "baseRulesVersion": "v2.3",
   "experiment": {
-    "hypothesis": "Reducing opening Defense/Junk density and adding one readable Kata plus one tactical non-healing Consumable will make Market deckbuilding relevant earlier without removing the starter deck's ability to function.",
+    "hypothesis": "Reducing opening Junk density while preserving High Guard and adding one readable Kata plus one tactical non-healing Consumable will make Market deckbuilding relevant earlier without shortening combat.",
     "baselineRulesRevision": "v2.3-r5",
     "changedVariables": ["starterDeck"],
-    "changedCards": ["DDB-STA-CORE-001", "DDB-STA-CORE-009", "DDB-STA-EXP-001", "DDB-STA-EXP-002"],
+    "changedCards": ["DDB-STA-CORE-001", "DDB-STA-EXP-001", "DDB-STA-EXP-002"],
     "controlDeckSize": 15,
     "experimentalDeckSize": 15
   },
@@ -21,10 +21,10 @@
       "lineage": "starter-deck-experiment-v1",
       "fpCost": "—",
       "chiCost": null,
-      "focusValue": 1,
+      "focusValue": 0,
       "zone": "—",
       "timing": "Turn",
-      "rulesText": "Draw 1 card, then discard 1 card.",
+      "rulesText": "Discard 1 card.",
       "flavorText": "Clear the board. Keep the lesson.",
       "tags": ["Kata", "Deck Control", "Starter"],
       "buildPaths": ["Kata", "Flow"],
@@ -71,7 +71,6 @@
       "DDB-STA-EXP-001": {
         "name": "Reset Stance",
         "effects": [
-          { "id": "starter-experiment-reset-stance-draw", "trigger": "onPlay", "action": "draw", "target": "self", "amount": 1 },
           { "id": "starter-experiment-reset-stance-discard", "trigger": "onPlay", "action": "discard", "target": "self", "amount": 1 }
         ]
       },
@@ -87,7 +86,7 @@
   },
   "definitionPatch": {
     "starterDeck": [
-      { "catalogId": "DDB-STA-CORE-001", "copies": 4 },
+      { "catalogId": "DDB-STA-CORE-001", "copies": 3 },
       { "catalogId": "DDB-STA-CORE-002", "copies": 1 },
       { "catalogId": "DDB-STA-CORE-003", "copies": 1 },
       { "catalogId": "DDB-STA-CORE-004", "copies": 1 },
@@ -95,6 +94,7 @@
       { "catalogId": "DDB-STA-CORE-006", "copies": 1 },
       { "catalogId": "DDB-STA-CORE-007", "copies": 1 },
       { "catalogId": "DDB-STA-CORE-008", "copies": 1 },
+      { "catalogId": "DDB-STA-CORE-009", "copies": 1 },
       { "catalogId": "DDB-STA-CORE-010", "copies": 1 },
       { "catalogId": "DDB-STA-CORE-011", "copies": 1 },
       { "catalogId": "DDB-STA-EXP-001", "copies": 1 },

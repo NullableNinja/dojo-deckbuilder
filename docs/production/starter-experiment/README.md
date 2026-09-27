@@ -2,7 +2,7 @@
 
 These layered OpenRaster archives are production-ready layouts for the controlled starter-deck experiment `starter-deck-experiment-v1`:
 
-- `DDB-STA-EXP-001-reset-stance.ora` — Reset Stance, a low-complexity Kata.
+- `DDB-STA-EXP-001-reset-stance.ora` — Reset Stance, a low-complexity Kata: discard 1 card.
 - `DDB-STA-EXP-002-tactical-refresh.ora` — Tactical Refresh, a non-healing Consumable.
 
 The layouts preserve the official local masters from `Templates/Card Templates/04_Kata.ora` and `06_Item_Consumable.ora`, including the 825×1125 canvas, layer structure, card frame, type tab, starter tag, chips, and rules panel. PNG previews are provided under `previews/`.
