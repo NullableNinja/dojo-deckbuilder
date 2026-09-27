@@ -194,6 +194,70 @@ test("generic equipment ready and exhaust actions mutate persistent equipment st
   assert.equal(game.telemetry.unsupportedEffects, 0);
 });
 
+test("temporary equipped cards clear exhausted state when they leave play", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 1206 });
+  const player = game.players[0];
+  const gear = game.cardInstance(data.byId.get("DDB-GEA-CORE-001"));
+  player.played.push(gear);
+  player.equipment.push(gear);
+  gear.temporaryUntilHide = true;
+  game.setEquipmentReady(player, gear, false);
+  game.expireStatuses(player, "endOfTurn");
+  assert.equal(player.exhaustedEquipment.includes(gear.instanceId), false);
+  assert.equal(game.checkInvariants().length, 0);
+});
+
+test("Yell legal actions do not expose Equip or Reaction Item cards", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 1207 });
+  const player = game.players[0];
+  const weapon = game.cardInstance(data.cards.find((card) => card.subtype === "Weapon"));
+  const reaction = game.cardInstance(data.cards.find((card) => card.subtype === "Reaction Item"));
+  player.hand = [weapon, reaction];
+  game.phase = "Yell";
+  game.activePlayer = player.id;
+  const legal = game.getLegalActions(player.id);
+  assert.equal(legal.some((action) => action.type === "play-card"), false);
+  assert.equal(game.applyAction({ type: "play-card", playerId: player.id, cardId: weapon.instanceId }), false);
+  assert.equal(game.applyAction({ type: "play-card", playerId: player.id, cardId: reaction.instanceId }), false);
+});
+
+test("Bad Habit exposes and resolves its canonical Focus action", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 1209 });
+  const player = game.players[0];
+  const junk = game.cardInstance(data.byId.get("DDB-STA-CORE-001"));
+  player.hand = [junk];
+  game.phase = "Yell";
+  game.activePlayer = player.id;
+  assert.ok(game.getLegalActions(player.id).some((action) => action.type === "cash-bad-habit"));
+  assert.equal(game.applyAction({ type: "cash-bad-habit", playerId: player.id }), true);
+  assert.equal(player.focus, 1);
+  assert.ok(player.discard.includes(junk));
+});
+
+test("competent policy prefers lethal attacks and lethal defenses", async () => {
+  const data = await loadGameData();
+  const game = new Game(data, { seed: 1208, strategies: ["balanced", "balanced"] });
+  const attacker = game.players[0];
+  const defender = game.players[1];
+  const weak = game.cardInstance(data.cards.find((card) => card.subtype === "Attack" && Number(card.stats?.["Attack Power"]) <= 2));
+  const lethal = game.cardInstance(data.cards.find((card) => card.subtype === "Attack" && Number(card.stats?.["Attack Power"]) >= 4));
+  attacker.hand = [weak, lethal];
+  defender.hp = 1;
+  game.phase = "Yell";
+  game.activePlayer = attacker.id;
+  assert.equal(game.defaultAction(game.getLegalActions(attacker.id)).cardId, lethal.instanceId);
+
+  attacker.hand = [lethal];
+  defender.hp = 1;
+  defender.hand = [game.cardInstance(data.cards.find((card) => card.subtype === "Defense" && Number(card.stats?.Guard) >= 3))];
+  assert.equal(game.beginAttack(attacker.id, lethal, { zone: lethal.zone === "Any" ? "Mid" : lethal.zone }), true);
+  const choice = game.defaultChoice();
+  assert.equal(choice.optionId, defender.hand[0].instanceId);
+});
+
 test("status identifiers remain unique after a status is removed", async () => {
   const data = await loadGameData();
   const game = new Game(data, { seed: 107 });
