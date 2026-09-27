@@ -23,7 +23,7 @@ function parseArgs(args) {
     games: integer(positional[0] ?? option("games", 1000), 1000), seedStart: integer(option("seed", 1), 1), mode: option("mode", null),
     workers: integer(option("workers", Math.min(availableParallelism(), 8)), Math.min(availableParallelism(), 8)), policy: option("policy", "baseline"),
     detail: ["summary", "games", "full"].includes(option("telemetry", "games")) ? option("telemetry", "games") : "games",
-    replayEvery: Math.max(0, Number.parseInt(option("replay-every", 100), 10) || 0), output,
+    replayEvery: Math.max(0, Number.parseInt(option("replay-every", 100), 10) || 0), progress: option("progress", "on") !== "off", output,
     gameOutput: option("games-out", output.replace(/\.json$/i, ".games.jsonl")),
   };
 }
@@ -33,7 +33,7 @@ function makeSummary({ args, data, mode }) {
     schemaVersion: 1, runnerVersion: "parallel-simulate-v1", generatedAt: new Date().toISOString(), rulesVersion: data.definition.rulesVersion, rulesRevision: data.definition.rulesRevision,
     mode: { id: mode.id, definition: mode }, playerCount: mode.players ?? 2, policy: args.policy, gamesRequested: args.games, seedStart: args.seedStart, workers: args.workers, telemetryDetail: args.detail,
     gamesCompleted: 0, gamesFailed: 0, rounds: { sum: 0, average: 0, min: Infinity, max: 0, p50: 0, p90: 0, p95: 0, p99: 0, roundLimitGames: 0 }, turns: { sum: 0, average: 0, min: Infinity, max: 0, p50: 0, p90: 0, p95: 0, p99: 0 },
-    telemetry: { attacks: 0, hits: 0, blocks: 0, totalDamage: 0, damagePrevented: 0, cardsPlayed: 0, cardsAcquired: 0, cardsDrawn: 0, cardsDiscarded: 0, cardsDestroyed: 0, cardsRevealed: 0, equipmentReadied: 0, equipmentExhausted: 0, focusGenerated: 0, focusSpent: 0, xpGenerated: 0, defensePractice: 0, promotions: 0, comboOpportunities: 0, comboAcquisitions: 0, comboActivations: 0, comboEffectsResolved: 0, effectApplications: 0, choicesPresented: 0, choicesResolved: 0, lifecycleEvents: 0, unsupportedEffects: 0, families: emptyFamilies() },
+    telemetry: { attacks: 0, hits: 0, blocks: 0, totalDamage: 0, damagePrevented: 0, cardsPlayed: 0, cardsAcquired: 0, cardsDrawn: 0, cardsDiscarded: 0, cardsDestroyed: 0, destroyedJunk: 0, destroyedByChoice: 0, destroyedBySourceEffect: 0, destroyChoicesPresented: 0, destroyChoicesResolved: 0, cardsRevealed: 0, equipmentReadied: 0, equipmentExhausted: 0, focusGenerated: 0, focusSpent: 0, xpGenerated: 0, defensePractice: 0, promotions: 0, comboOpportunities: 0, comboAcquisitions: 0, comboActivations: 0, comboEffectsResolved: 0, effectApplications: 0, choicesPresented: 0, choicesResolved: 0, lifecycleEvents: 0, unsupportedEffects: 0, families: emptyFamilies() },
     reliability: { unsupportedEffectEvents: 0, invariantFailures: 0, replayChecks: 0, replayMismatches: 0, unresolvedChoices: 0, illegalActions: 0, stalls: 0 },
     economy: { openingPurchasePlayers: 0, openingPurchaseRate: 0, totalPurchases: 0, averagePurchasesPerPlayer: 0 }, progression: { averageXpPerPlayer: 0, maxXp: 0, promotions: 0, comboOwners: 0, comboUsers: 0, comboUses: 0, promotionByTransition: {}, beltDistribution: {} },
     boss: { stages: 0, stageTransitions: 0, arsenalRevealed: 0, bossAttacks: 0, bossHits: 0, bossBlocks: 0, bossDamage: 0, bossDamagePrevented: 0, bossGuardUses: 0, guardUses: 0, enrageTurns: 0 },
@@ -82,6 +82,14 @@ export async function writeReports(summary, output) {
 async function main(args = process.argv.slice(2)) {
   const options = parseArgs(args); const data = await loadGameData({ modeId: options.mode }); const mode = requireExecutableMode(data, options.mode); options.mode = mode.id; options.workers = Math.max(1, Math.min(options.workers, options.games));
   const summary = makeSummary({ args: options, data, mode }); const roundValues = []; const turnValues = [];
+  let progressCompleted = 0; let lastProgressCompleted = -1; let nextProgress = Math.max(1, Math.ceil(options.games / 100));
+  const reportProgress = (force = false) => {
+    if (!options.progress || progressCompleted === lastProgressCompleted || (!force && progressCompleted < nextProgress)) return;
+    const payload = { completed: progressCompleted, total: options.games, failed: summary.gamesFailed, percent: +(progressCompleted / options.games * 100).toFixed(1) };
+    process.stdout.write(`SIM_PROGRESS ${JSON.stringify(payload)}\n`);
+    lastProgressCompleted = progressCompleted;
+    while (nextProgress <= progressCompleted) nextProgress += Math.max(1, Math.ceil(options.games / 100));
+  };
   await Promise.all([mkdir(dirname(options.output), { recursive: true }), mkdir(dirname(options.gameOutput), { recursive: true })]);
   const gameStream = options.detail === "summary" ? null : createWriteStream(options.gameOutput, { encoding: "utf8" });
   if (gameStream) await new Promise((resolveStream, reject) => { gameStream.once("open", resolveStream); gameStream.once("error", reject); });
@@ -92,12 +100,14 @@ async function main(args = process.argv.slice(2)) {
         if (message.type === "game") {
           addGame(summary, message.result, roundValues, turnValues, data);
           if (gameStream) gameStream.write(`${JSON.stringify(message.result)}\n`);
+          progressCompleted += 1; reportProgress();
         }
       } catch (error) { rejectWorker(error); }
     });
     worker.once("error", rejectWorker);
     worker.once("exit", (code) => code === 0 ? resolveWorker() : rejectWorker(new Error(`Simulation worker exited with code ${code}`)));
-  })));
+  }))); 
+  reportProgress(true);
   if (gameStream) await new Promise((resolveStream, reject) => { gameStream.once("finish", resolveStream); gameStream.once("error", reject); gameStream.end(); });
   finalize(summary, roundValues, turnValues, data); await writeReports(summary, options.output); return summary;
 }

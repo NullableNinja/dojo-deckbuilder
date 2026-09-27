@@ -19,6 +19,10 @@
       button:disabled { opacity: .5; cursor: wait; }
       pre { min-height: 500px; max-height: 650px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0; padding: 16px; border-radius: 8px; background: #070910; color: #d7dcef; font: 12px/1.5 Consolas, monospace; }
       .status { margin-top: 14px; color: #aeb4ca; }
+      .progress { margin-top: 14px; }
+      .progress-row { display: flex; justify-content: space-between; gap: 12px; color: #c7cad7; font-size: 12px; margin-bottom: 6px; }
+      .progress-track { height: 10px; overflow: hidden; border: 1px solid #4b5574; border-radius: 999px; background: #0f1320; }
+      .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #72d5b4, #f0c568); transition: width .2s ease-out; }
       .warning { color: #f0c568; font-size: 12px; line-height: 1.5; }
       @media (max-width: 850px) { main { padding: 18px; } .layout { grid-template-columns: 1fr; } }
     </style>
@@ -40,6 +44,10 @@
           <label for="output">Summary JSON path</label><input id="output" value="reports/offline-simulation.json" />
           <p class="warning">Relative paths are saved under the package folder. Default: <code>reports/offline-simulation.json</code>.</p>
           <button id="start">Run simulation</button>
+          <div class="progress" aria-live="polite">
+            <div class="progress-row"><span id="progress-label">Progress</span><span id="progress-count">0 / 0</span></div>
+            <div class="progress-track" role="progressbar" aria-label="Simulation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-fill" id="progress-fill"></div></div>
+          </div>
           <div class="status" id="status">Ready.</div>
         </section>
         <section><pre id="log">Output will appear here.\n</pre></section>
@@ -51,10 +59,20 @@
       const log = document.getElementById("log");
       const status = document.getElementById("status");
       const start = document.getElementById("start");
+      const progressLabel = document.getElementById("progress-label");
+      const progressCount = document.getElementById("progress-count");
+      const progressFill = document.getElementById("progress-fill");
+      const progressBar = document.querySelector('[role="progressbar"]');
       window.simulation.onOutput((text) => { log.textContent += text; log.scrollTop = log.scrollHeight; });
-      window.simulation.onDone(({ code, output }) => { start.disabled = false; status.textContent = code === 0 ? `Complete. Summary saved to ${output}` : `Failed with exit code ${code}.`; });
+      window.simulation.onProgress(({ completed, total, failed, percent }) => {
+        progressLabel.textContent = failed ? `Running — ${failed} failed` : "Running";
+        progressCount.textContent = `${completed.toLocaleString()} / ${total.toLocaleString()}`;
+        progressFill.style.width = `${percent}%`;
+        progressBar.setAttribute("aria-valuenow", String(percent));
+      });
+      window.simulation.onDone(({ code, output }) => { start.disabled = false; status.textContent = code === 0 ? `Complete. Summary saved to ${output}` : `Failed with exit code ${code}.`; if (code === 0) { progressLabel.textContent = "Complete"; progressFill.style.width = "100%"; progressBar.setAttribute("aria-valuenow", "100"); } });
       start.addEventListener("click", async () => {
-        start.disabled = true; log.textContent = ""; status.textContent = "Running...";
+        start.disabled = true; log.textContent = ""; status.textContent = "Running..."; progressLabel.textContent = "Starting"; progressCount.textContent = `0 / ${Number(value("games")).toLocaleString()}`; progressFill.style.width = "0%"; progressBar.setAttribute("aria-valuenow", "0");
         try { await window.simulation.start({ games: value("games"), workers: value("workers"), seed: value("seed"), mode: value("mode"), policy: value("policy"), telemetry: value("telemetry"), replayEvery: value("replay"), output: value("output") }); }
         catch (error) { start.disabled = false; status.textContent = error.message; log.textContent += `${error.message}\n`; }
       });

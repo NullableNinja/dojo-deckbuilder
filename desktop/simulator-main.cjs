@@ -5,6 +5,7 @@ const path = require("node:path");
 
 let mainWindow;
 let activeProcess;
+let outputBuffer = "";
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -30,6 +31,17 @@ function send(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
 }
 
+function forwardOutput(chunk) {
+  outputBuffer += chunk;
+  const lines = outputBuffer.split(/\r?\n/);
+  outputBuffer = lines.pop() ?? "";
+  for (const line of lines) {
+    if (!line.startsWith("SIM_PROGRESS ")) continue;
+    try { send("simulation:progress", JSON.parse(line.slice("SIM_PROGRESS ".length))); } catch { /* retain raw output for diagnostics */ }
+  }
+  send("simulation:output", chunk);
+}
+
 ipcMain.handle("simulation:start", (_event, options) => {
   if (activeProcess) throw new Error("A simulation is already running.");
   const appRoot = app.getAppPath();
@@ -49,10 +61,12 @@ ipcMain.handle("simulation:start", (_event, options) => {
     `--replay-every=${options.replayEvery}`,
     `--out=${output}`,
   ];
+  outputBuffer = "";
   activeProcess = spawn(nodePath, args, { cwd: root, windowsHide: true });
-  activeProcess.stdout.on("data", (chunk) => send("simulation:output", chunk.toString()));
+  activeProcess.stdout.on("data", (chunk) => forwardOutput(chunk.toString()));
   activeProcess.stderr.on("data", (chunk) => send("simulation:output", chunk.toString()));
   activeProcess.on("close", (code, signal) => {
+    if (outputBuffer) forwardOutput("\n");
     const result = { code: code ?? 1, signal: signal ?? null, output };
     activeProcess = undefined;
     send("simulation:done", result);
