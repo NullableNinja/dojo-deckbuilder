@@ -1724,7 +1724,6 @@ export class Game {
     const attacker = this.players[pending.attackerId]; const attack = this.cardByInstance(pending.attackerId, pending.cardId); const incoming = Math.max(0, attackPower(attack) + attacker.atk - defender.def); const shouldBlock = Boolean(defense && (incoming >= defender.hp || incoming >= 3 || defender.strategy === "fortress"));
     this.lastDecisionReason = shouldBlock ? "play the strongest legal Defense against meaningful damage" : "preserve Defense resources against a tolerable Attack";
     return { optionId: shouldBlock ? defense.instanceId : (legalIds.has("pass") ? "pass" : pending.options[0]?.id) };
->>>>>>> d8eb22c (certify card family gameplay balance)
   }
 
   playerDeckTags(player) { return [...new Set([...player.hand, ...player.deck, ...player.discard, ...player.equipment].flatMap((card) => card.tags ?? []))]; }
