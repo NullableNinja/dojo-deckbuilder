@@ -3012,3 +3012,39 @@ body:has(.playtest-shell--live .match-result) { overflow: hidden; }
 :root[data-theme="dark"] .ascend-market-grid .play-card--combo { --market-type-accent: #aa9458; }
 :root[data-theme="dark"] .playtest-vfx-banner--combo { background: #467b55; }
 :root[data-theme="dark"] .playtest-shell--live .ascend-combo .combo-digital-note { border-left-color: #79b58c; background: rgba(121, 181, 140, .14); }
+
+/* Printed-effect decisions should present as a compact, stable dialog. Keep
+   long option lists scrollable inside the list instead of making the entire
+   card grow a second horizontal/vertical scrollbar. */
+.effect-choice-dialog {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+.effect-choice-dialog > .eyebrow,
+.effect-choice-dialog > h2,
+.effect-choice-dialog > p,
+.effect-choice-dialog > footer { flex: 0 0 auto; min-width: 0; }
+.effect-choice-dialog > h2,
+.effect-choice-dialog > p,
+.effect-choice-dialog > footer { overflow-wrap: anywhere; }
+.effect-choice-options {
+  min-width: 0;
+  max-height: min(48dvh, 360px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 4px 4px 0;
+}
+:root[data-theme="dark"] .effect-choice-dialog {
+  color: var(--ink);
+  border-color: var(--line);
+  background: var(--paper-light);
+}
+:root[data-theme="dark"] .effect-choice-options > button {
+  color: var(--ink);
+  border-color: rgba(121, 181, 140, .38);
+  background: rgba(121, 181, 140, .09);
+}

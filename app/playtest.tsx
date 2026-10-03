@@ -247,6 +247,7 @@ type PendingChoice =
   | { kind: "character-runtime"; event: CharacterRuntimeEvent; choice: CharacterRuntimeChoice; resume?: "player-attack" | "reversal-attack" };
 
 type CharacterRuntimePendingChoice = Extract<PendingChoice, { kind: "character-runtime" }>;
+type AttackOptionSelection = "courtesy-item" | "courtesy-defense" | "discount-tempo" | "discount-focus" | "tornado-focus" | "tornado-cycle";
 
 function characterRuntimePendingChoice(
   pendingChoice: PendingChoice | null | undefined
@@ -3741,6 +3742,34 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
     const selected = cardFor(cardId);
     if (!selected) return current;
 
+    if (choice.kind === "attack-equipment-target") {
+      if (source !== "equipment" || !choice.candidates.includes(cardId) || !current.ai.equipment.includes(cardId)) return current;
+      const player = {
+        ...current.player,
+        targetEquipmentDefPenalties: {
+          ...(current.player.targetEquipmentDefPenalties ?? {}),
+          [cardId]: choice.amount,
+        },
+      };
+      return write(current, `${cardFor(choice.sourceCardId)?.name ?? "The Attack"} suppresses ${selected.name} for this exchange; its defensive contribution is reduced by ${choice.amount}.`, { player, pendingChoice: null });
+    }
+
+    if (choice.kind === "attack-option") {
+      const sourceCard = cardFor(choice.sourceCardId);
+      const hitChoice = sourceCard ? finalAttackHitChoice(sourceCard) : null;
+      if (!hitChoice) return write(current, "The printed hit choice could not be reconstructed; the exchange continues.", { pendingChoice: null });
+      if (hitChoice.kind === "courtesy-notice") {
+        const ai = { ...current.ai, nextDefenseCardBonus: (current.ai.nextDefenseCardBonus ?? 0) - hitChoice.defenseGuardPenalty };
+        return write(current, `${sourceCard?.name ?? "Courtesy-Notice Knee"}: the target's next Defense gets -${hitChoice.defenseGuardPenalty} Guard this round.`, { ai, pendingChoice: null });
+      }
+      if (hitChoice.kind === "discount-dim-mak") return write(current, `${sourceCard?.name ?? "Discount Dim Mak"}: +${hitChoice.focusGain} Focus.`, { player: gainFocus(current.player, hitChoice.focusGain), pendingChoice: null });
+      const player = current.player;
+      const pendingChoice: PendingChoice | null = player.hand.length && hitChoice.discard
+        ? { kind: "discard-draw", sourceCardId: choice.sourceCardId, remaining: hitChoice.discard, draw: hitChoice.draw }
+        : null;
+      return write(current, `${sourceCard?.name ?? "Tornado Crescent Kick"}: choose a discard to draw ${hitChoice.draw}.`, { pendingChoice });
+    }
+
     if (choice.kind === "equipment-attack-response") {
       if (source !== "hand" || !current.player.hand.includes(cardId)) return current;
       const player = { ...current.player, hand: removeOne(current.player.hand, cardId), discard: [...current.player.discard, cardId] };
@@ -3887,6 +3916,43 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
       }
       player = drawCards(player, choice.draw);
       return write(current, `${selected.name} discarded; ${choice.draw} card${choice.draw === 1 ? "" : "s"} drawn by ${cardFor(choice.sourceCardId)?.name ?? "the printed effect"}.`, { player, pendingChoice: null });
+    }
+    return current;
+  });
+
+  const resolveAttackOption = (selection: AttackOptionSelection) => setMatch((current) => {
+    const choice = current?.pendingChoice;
+    if (!current || !choice || choice.kind !== "attack-option") return current;
+    const sourceCard = cardFor(choice.sourceCardId);
+    const hitChoice = sourceCard ? finalAttackHitChoice(sourceCard) : null;
+    if (!hitChoice) return write(current, "The printed hit choice could not be reconstructed; the exchange continues.", { pendingChoice: null });
+
+    if (hitChoice.kind === "courtesy-notice") {
+      if (selection === "courtesy-item") {
+        const ai = { ...current.ai, nextItemCostPenalty: (current.ai.nextItemCostPenalty ?? 0) + hitChoice.itemCostPenalty };
+        return write(current, `${sourceCard?.name ?? "Courtesy-Notice Knee"}: the target's next Item costs ${hitChoice.itemCostPenalty} more Focus this round.`, { ai, pendingChoice: null });
+      }
+      if (selection === "courtesy-defense") {
+        const ai = { ...current.ai, nextDefenseCardBonus: (current.ai.nextDefenseCardBonus ?? 0) - hitChoice.defenseGuardPenalty };
+        return write(current, `${sourceCard?.name ?? "Courtesy-Notice Knee"}: the target's next Defense gets -${hitChoice.defenseGuardPenalty} Guard this round.`, { ai, pendingChoice: null });
+      }
+      return current;
+    }
+
+    if (hitChoice.kind === "discount-dim-mak") {
+      if (selection === "discount-tempo") return write(current, `${sourceCard?.name ?? "Discount Dim Mak"}: the target loses Tempo for this round.`, { ai: { ...current.ai, tempo: false }, pendingChoice: null });
+      if (selection === "discount-focus") return write(current, `${sourceCard?.name ?? "Discount Dim Mak"}: +${hitChoice.focusGain} Focus.`, { player: gainFocus(current.player, hitChoice.focusGain), pendingChoice: null });
+      return current;
+    }
+
+    if (hitChoice.kind === "tornado-crescent") {
+      if (selection === "tornado-focus") return write(current, `${sourceCard?.name ?? "Tornado Crescent Kick"}: +${hitChoice.focusGain} Focus.`, { player: gainFocus(current.player, hitChoice.focusGain), pendingChoice: null });
+      if (selection === "tornado-cycle") {
+        const pendingChoice: PendingChoice | null = current.player.hand.length && hitChoice.discard
+          ? { kind: "discard-draw", sourceCardId: choice.sourceCardId, remaining: hitChoice.discard, draw: hitChoice.draw }
+          : null;
+        return write(current, `${sourceCard?.name ?? "Tornado Crescent Kick"}: draw ${hitChoice.draw}, then discard ${hitChoice.discard}.${pendingChoice ? " Choose the discard." : " No discard was available."}`, { pendingChoice });
+      }
     }
     return current;
   });
@@ -4571,6 +4637,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
                     ? match.pendingChoice.junkIds.map((id, index) => ({ id, source: "discard" as const, index }))
                     : match.pendingChoice?.kind === "equipment-attack-response"
                       ? player.hand.map((id, index) => ({ id, source: "hand" as const, index }))
+                      : match.pendingChoice?.kind === "attack-equipment-target"
+                        ? match.pendingChoice.candidates.map((id, index) => ({ id, source: "equipment" as const, index })).filter((entry) => ai.equipment.includes(entry.id))
+                    : match.pendingChoice?.kind === "attack-option"
+                      ? [{ id: match.pendingChoice.sourceCardId, source: "hand" as const, index: 0 }]
                     : [];
   const characterRuntimePending = characterRuntimePendingChoice(match.pendingChoice);
   const effectChoiceTitle = characterRuntimePending ? "Character ability"
@@ -4597,6 +4667,8 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
             : match.pendingChoice?.kind === "equipment-zone" ? "Commit your Equipment zone"
               : match.pendingChoice?.kind === "incoming-equipment-zone" ? "Call the incoming zone"
                 : match.pendingChoice?.kind === "equipment-attack-response" ? "Answer the incoming Attack"
+                : match.pendingChoice?.kind === "attack-equipment-target" ? "Choose Equipment to suppress"
+                  : match.pendingChoice?.kind === "attack-option" ? "Choose the hit effect"
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? "Reduce this damage?"
                   : match.pendingChoice?.kind === "post-block-cycle" ? "Use post-Block Equipment?"
                     : match.pendingChoice?.kind === "ready-equipment" ? "Ready Equipment?" : "Resolve printed effect";
@@ -4621,8 +4693,10 @@ export default function PlaytestView({ goTo }: { goTo: (view: "rules" | "cards")
         : match.pendingChoice?.kind === "deck-pick" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This card"} revealed ${match.pendingChoice.revealed.length} card${match.pendingChoice.revealed.length === 1 ? "" : "s"}. ${match.pendingChoice.optional ? "Take an eligible card or skip." : "Choose the eligible card to put into your hand."}`
           : match.pendingChoice?.kind === "deck-order" ? `Choose the card you want to draw ${match.pendingChoice.ordered.length ? `in position ${match.pendingChoice.ordered.length + 1}` : "first"}. ${match.pendingChoice.revealed.length} card${match.pendingChoice.revealed.length === 1 ? " remains" : "s remain"}.`
             : match.pendingChoice?.kind === "equipment-zone" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} is exhausted. Choose High, Mid, or Low for its armed next-Attack effect.`
-              : match.pendingChoice?.kind === "incoming-equipment-zone" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} is exhausted. Call High, Mid, or Low against the declared ${match.pendingStrike?.zone ?? "incoming"} Attack.`
-                : match.pendingChoice?.kind === "equipment-attack-response" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} requires the defending player to discard 1 card before ${cardFor(match.pendingChoice.attackCardId)?.name ?? "the Attack"} can be defended. Quick Duel has no alternate legal target.`
+                : match.pendingChoice?.kind === "incoming-equipment-zone" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} is exhausted. Call High, Mid, or Low against the declared ${match.pendingStrike?.zone ?? "incoming"} Attack.`
+                  : match.pendingChoice?.kind === "equipment-attack-response" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} requires the defending player to discard 1 card before ${cardFor(match.pendingChoice.attackCardId)?.name ?? "the Attack"} can be defended. Quick Duel has no alternate legal target.`
+                    : match.pendingChoice?.kind === "attack-equipment-target" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Attack"} can suppress one opposing Equipment's defensive contribution by ${match.pendingChoice.amount} for this exchange.`
+                      : match.pendingChoice?.kind === "attack-option" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Attack"} hit. Choose one of its printed on-Hit effects.`
                 : match.pendingChoice?.kind === "prevent-combat-damage" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} can exhaust now to reduce ${match.pendingChoice.damage} combat damage by ${match.pendingChoice.reduce}. Declining still consumes this round's first-damage timing window.`
                   : match.pendingChoice?.kind === "post-block-cycle" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This Equipment"} triggered after the Block. Exhaust it to draw ${match.pendingChoice.draw}, then choose ${match.pendingChoice.discard} discard${match.pendingChoice.discard === 1 ? "" : "s"}, or decline and continue combat.`
                     : match.pendingChoice?.kind === "ready-equipment" ? `${cardFor(match.pendingChoice.sourceCardId)?.name ?? "This effect"} can ready one exhausted Equipment card you control. You may decline.` : "Resolve the printed effect.";
