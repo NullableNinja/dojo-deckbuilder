@@ -3946,3 +3946,144 @@ body,
   .search-dashboard-filters { grid-template-columns: 1fr; }
   .search-results-heading { align-items: start; flex-direction: column; gap: 4px; }
 }
+
+/* Dark theme cohesion ----------------------------------------------------
+   Keep the after-hours dojo warm and grounded: ink, jade, ember, and brass.
+   This final token pass keeps the dense playtest and analysis surfaces from
+   drifting into unrelated cyan or violet accents. */
+:root[data-theme="dark"] {
+  --ink: #f2f0e7;
+  --ink-soft: #c8d0c5;
+  --paper: #101712;
+  --paper-light: #1a261e;
+  --paper-deep: #29382d;
+  --paper-green: #213428;
+  --red: #e46b50;
+  --red-dark: #b94735;
+  --gold: #e6ba58;
+  --green: #79b58c;
+  --line: rgba(235, 232, 211, .16);
+  --shadow: 0 18px 50px rgba(0, 0, 0, .44);
+  --shadow-soft: 0 8px 18px rgba(0, 0, 0, .3), 0 24px 60px rgba(0, 0, 0, .34);
+}
+
+:root[data-theme="dark"] body { background: var(--paper); }
+:root[data-theme="dark"] .site-frame {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle at 12% 2%, rgba(121, 181, 140, .14), transparent 28%),
+    radial-gradient(circle at 88% 74%, rgba(228, 107, 80, .09), transparent 26%),
+    repeating-linear-gradient(92deg, rgba(235, 232, 211, .018) 0, rgba(235, 232, 211, .018) 1px, transparent 1px, transparent 7px);
+}
+:root[data-theme="dark"] .site-frame::before {
+  background-image:
+    repeating-linear-gradient(135deg, transparent 0 46px, rgba(121, 181, 140, .045) 47px 48px, transparent 49px 96px),
+    repeating-linear-gradient(45deg, transparent 0 46px, rgba(228, 107, 80, .03) 47px 48px, transparent 49px 96px);
+}
+:root[data-theme="dark"] .site-frame::after {
+  border-color: rgba(121, 181, 140, .12);
+  background:
+    radial-gradient(circle, transparent 0 47%, rgba(121, 181, 140, .055) 47.2% 47.5%, transparent 47.8%),
+    conic-gradient(from 18deg, transparent 0 24%, rgba(228, 107, 80, .085) 24.5% 25%, transparent 25.5% 67%, rgba(121, 181, 140, .075) 67.5% 68%, transparent 68.5% 100%);
+}
+
+:root[data-theme="dark"] .site-header,
+:root[data-theme="dark"] .mobile-nav { background: rgba(9, 15, 11, .96); border-color: rgba(235, 232, 211, .14); }
+:root[data-theme="dark"] .site-header nav button { color: #b7c5b9; }
+:root[data-theme="dark"] .site-header nav button:hover,
+:root[data-theme="dark"] .site-header nav button.active { color: #f7f4e9; }
+:root[data-theme="dark"] .header-search { border-color: rgba(235, 232, 211, .17); background: rgba(255, 255, 255, .055); }
+
+:root[data-theme="dark"] .mode-card.recommended { background: #285640; }
+:root[data-theme="dark"] .mode-card.recommended::before { background: #193b2c; }
+:root[data-theme="dark"] .mode-card.recommended::after { background: #285640; }
+:root[data-theme="dark"] .mode-card.recommended p { color: #dcebdd; }
+:root[data-theme="dark"] .quick-phases { background: rgba(121, 181, 140, .075); }
+:root[data-theme="dark"] .quick-phases button { background: rgba(121, 181, 140, .09); }
+:root[data-theme="dark"] .rule-callout,
+:root[data-theme="dark"] .modal-rule,
+:root[data-theme="dark"] .card-costs span { background: #26382b; }
+:root[data-theme="dark"] .tag-row span { color: #d4e8d1; background: #2b4936; }
+:root[data-theme="dark"] .paper-stack::before { background: #101812; }
+:root[data-theme="dark"] .paper-stack::after { background: #25362a; }
+
+/* Dense playtest surfaces use the same jade hierarchy as the main site. */
+:root[data-theme="dark"] .playtest-hero { background: linear-gradient(125deg, #284333, #1c2d23); }
+:root[data-theme="dark"] .playtest-character-grid button,
+:root[data-theme="dark"] .play-card-main,
+:root[data-theme="dark"] .play-card-meta,
+:root[data-theme="dark"] .fighter-stats b,
+:root[data-theme="dark"] .combat-meters b,
+:root[data-theme="dark"] .belt-track span,
+:root[data-theme="dark"] .playtest-inspector dl > div { background: #1f3327; border-color: #48634f; }
+:root[data-theme="dark"] .play-card { border-color: #4d6a54; background: #192a20; }
+:root[data-theme="dark"] .play-card-meta { color: #e5eee4; }
+:root[data-theme="dark"] .turn-coach { background: #20372a; }
+:root[data-theme="dark"] .game-phase-rail b,
+:root[data-theme="dark"] .ducktape-tray { background: #314a39; }
+:root[data-theme="dark"] .ducktape-tray button { background: #3b5744; }
+:root[data-theme="dark"] .native-card-art { color: #e0eee0; background: linear-gradient(145deg, #355b45 0 39%, #263a2d 39% 100%); }
+:root[data-theme="dark"] .native-card-art > small { color: #c5d8c7; }
+:root[data-theme="dark"] .native-card-art > em { color: #d2be79; }
+:root[data-theme="dark"] .play-card--attack .native-card-art { color: #ffd6c1; background: linear-gradient(145deg, #6a382f 0 39%, #352c28 39% 100%); }
+:root[data-theme="dark"] .play-card--defense .native-card-art { color: #d5eadb; background: linear-gradient(145deg, #356158 0 39%, #263a31 39% 100%); }
+:root[data-theme="dark"] .play-card--combo .native-card-art,
+:root[data-theme="dark"] .combo-offer .native-card-art { color: #e5e7d5; background: linear-gradient(145deg, #526b46 0 39%, #2b3b2d 39% 100%); }
+:root[data-theme="dark"] .combo-panel,
+:root[data-theme="dark"] .simulation-lab { background: linear-gradient(140deg, #294333, #1e3025); }
+:root[data-theme="dark"] .combo-offer,
+:root[data-theme="dark"] .learned-combos button { color: #e4eee3; background: rgba(18, 31, 23, .72); border-color: #4b6a52; }
+:root[data-theme="dark"] .combo-offer p,
+:root[data-theme="dark"] .learned-combos small { color: #c5d8c7; }
+:root[data-theme="dark"] .combo-offer > div > span,
+:root[data-theme="dark"] .combo-offer > div > div b,
+:root[data-theme="dark"] .combo-offer > div > div button { color: #b9d9b8; }
+:root[data-theme="dark"] .learned-combos span { background: #3f7652; }
+:root[data-theme="dark"] .market-forecast { color: #dcebdd; background: #304a39; }
+:root[data-theme="dark"] .market-forecast small { color: #bfd2c1; }
+:root[data-theme="dark"] .reversal-actions { color: #f6ded1; background: #49322a; }
+:root[data-theme="dark"] .reversal-actions > div > span { color: #efb49a; }
+
+:root[data-theme="dark"] .rules-sync { color: #d8e8d8; background: #2a4132; }
+:root[data-theme="dark"] .rules-sync--current { color: #d5ead5; background: #2e523b; }
+:root[data-theme="dark"] .simulation-lab > p,
+:root[data-theme="dark"] .simulation-version { color: #c6d8c8; }
+:root[data-theme="dark"] .simulation-controls input,
+:root[data-theme="dark"] .simulation-kpis b,
+:root[data-theme="dark"] .simulation-curve,
+:root[data-theme="dark"] .simulation-tables table { color: #e5eee4; background: rgba(14, 25, 18, .58); border-color: #48634f; }
+:root[data-theme="dark"] .simulation-cap,
+:root[data-theme="dark"] .simulation-tables caption { background: #39724e; }
+:root[data-theme="dark"] .simulation-curve line { stroke: #627d68; }
+:root[data-theme="dark"] .simulation-curve polyline.curve-focus,
+:root[data-theme="dark"] .simulation-curve i.curve-focus { stroke: #8bc59a; background: #8bc59a; }
+:root[data-theme="dark"] .simulation-curve figcaption { color: #c5d8c7; }
+:root[data-theme="dark"] .simulation-tables th,
+:root[data-theme="dark"] .simulation-tables td { border-color: rgba(121, 181, 140, .18); }
+
+:root[data-theme="dark"] .event-log--compact { border-color: #4d6a54; background: #2a4435; }
+:root[data-theme="dark"] .fighter-panel-art { background: linear-gradient(140deg, #355b45, #293d31); }
+:root[data-theme="dark"] .fighter-panel.is-enemy .fighter-panel-art { background: linear-gradient(140deg, #583830, #3d2c2a); }
+:root[data-theme="dark"] .ascend-desk { background: #1c2d22; }
+:root[data-theme="dark"] .ascend-desk-header,
+:root[data-theme="dark"] .ascend-desk-footer { border-color: #4d6a54; background: #243a2c; }
+:root[data-theme="dark"] .ascend-desk-tabs { background: #142319; }
+:root[data-theme="dark"] .ascend-desk-tabs button { border-color: #405c48; background: #21362a; }
+:root[data-theme="dark"] .ascend-desk-tabs button.is-active { background: #2d4a38; }
+:root[data-theme="dark"] .ascend-belt { background: #294333; }
+:root[data-theme="dark"] .belt-ledger-list article { border-color: #4d6a54; background: #243a2c; }
+:root[data-theme="dark"] .belt-ledger-list .is-earned,
+:root[data-theme="dark"] .belt-ledger-list .is-current { border-color: #6a9d73; background: #2f503a; }
+:root[data-theme="dark"] .playtest-location,
+:root[data-theme="dark"] .playtest-combat-desk { background: #1f3327; }
+:root[data-theme="dark"] .combat-zone-board span { border-color: #4d6a54; background: #294333; }
+:root[data-theme="dark"] .combat-zone-board .is-hot { border-color: #d96b5a; background: #4d3130; }
+:root[data-theme="dark"] .hand-panel { background: #1c2d22; }
+:root[data-theme="dark"] .playtest-action-dock { background: rgba(10, 18, 13, .97); }
+:root[data-theme="dark"] .playtest-shell--live .fighter-equipment-rack,
+:root[data-theme="dark"] .playtest-shell--live .combat-utility-panel,
+:root[data-theme="dark"] .fight-log-dialog { background: #1f3327; }
+:root[data-theme="dark"] .fight-log-dialog li { border-color: #4d6a54; background: #2a4435; }
+:root[data-theme="dark"] .mat-lane { border-color: #45614d; background: rgba(8, 16, 10, .44); }
+:root[data-theme="dark"] .mat-lane-cards > button { border-color: #55725b; background: #294333; }
+:root[data-theme="dark"] .rule-section-nav { background: rgba(32, 54, 39, .7); }

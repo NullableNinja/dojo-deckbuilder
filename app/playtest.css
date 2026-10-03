@@ -3001,3 +3001,14 @@ body:has(.playtest-shell--live .match-result) { overflow: hidden; }
   .playtest-shell--live .ascend-combo .combo-offer { grid-template-columns: 1fr; }
   .playtest-shell--live .ascend-belt .belt-ledger-list { grid-template-columns: 1fr; }
 }
+
+/* Keep card taxonomy inside the same dark-mode palette as the board. */
+:root[data-theme="dark"] .play-card--defense .play-card-kind { background: #3d7653; }
+:root[data-theme="dark"] .play-card--combo .play-card-kind,
+:root[data-theme="dark"] .combo-limit,
+:root[data-theme="dark"] .battle-callout.is-paperwork { background: #467b55; }
+:root[data-theme="dark"] .ascend-market-grid .play-card--defense { --market-type-accent: #5e9a6c; }
+:root[data-theme="dark"] .ascend-market-grid .play-card--kata { --market-type-accent: #7d9e73; }
+:root[data-theme="dark"] .ascend-market-grid .play-card--combo { --market-type-accent: #aa9458; }
+:root[data-theme="dark"] .playtest-vfx-banner--combo { background: #467b55; }
+:root[data-theme="dark"] .playtest-shell--live .ascend-combo .combo-digital-note { border-left-color: #79b58c; background: rgba(121, 181, 140, .14); }
