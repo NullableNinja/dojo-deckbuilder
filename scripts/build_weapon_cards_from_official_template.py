@@ -26,6 +26,11 @@ BATCH_NUMBER = os.environ.get("DDB_BATCH_NUMBER", "001")
 FONT_DIR = Path("/usr/share/fonts/truetype/dejavu")
 BOLD = FONT_DIR / "DejaVuSans-Bold.ttf"
 SERIF = FONT_DIR / "DejaVuSerif.ttf"
+if not BOLD.exists() or not SERIF.exists():
+    # Keep the production renderer usable in the Windows build environment.
+    FONT_DIR = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+    BOLD = FONT_DIR / "arialbd.ttf"
+    SERIF = FONT_DIR / "times.ttf"
 INK = "#26383c"
 
 def empty(): return Image.new("RGBA", SIZE, (0, 0, 0, 0))
@@ -63,7 +68,9 @@ def art_layer(card):
     return image
 def chip_values(card):
     image = empty(); draw = ImageDraw.Draw(image)
-    stats = card.get("stats") or {}; values = [str(card["fpCost"]), f"+{stats.get('Attack Bonus', '—')}", f"{stats.get('Hands', '—')} HANDS"]
+    stats = card.get("stats") or {}; hands = str(stats.get("Hands", "—"))
+    hand_label = "HAND" if hands == "1" else "HANDS"
+    values = [str(card["fpCost"]), f"+{stats.get('Attack Bonus', '—')}", f"{hands} {hand_label}"]
     boxes = [(207,744,89,48), (410,744,112,48), (590,744,120,48)]
     for value, (x,y,w,h) in zip(values, boxes):
         value_font = font(28 if len(value) < 5 else 17)
