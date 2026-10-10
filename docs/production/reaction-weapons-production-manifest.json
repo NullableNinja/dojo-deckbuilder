@@ -10,13 +10,7 @@
         {
           "batch": "reactions-001",
           "status": "complete",
-          "cardIds": [
-            "DDB-RIT-CORE-001",
-            "DDB-RIT-CORE-002",
-            "DDB-RIT-CORE-003",
-            "DDB-RIT-CORE-004",
-            "DDB-RIT-CORE-005"
-          ],
+          "cardIds": ["DDB-RIT-CORE-001", "DDB-RIT-CORE-002", "DDB-RIT-CORE-003", "DDB-RIT-CORE-004", "DDB-RIT-CORE-005"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Reactions_Batch_001_ddb-rit-core-001_caution-wet-floor_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Reactions_Batch_001_ddb-rit-core-002_disposable-elbow-pad_Editable_ORA.zip",
@@ -25,48 +19,18 @@
             "public/downloads/Dojo_Deckbuilder_Reactions_Batch_001_ddb-rit-core-005_instant-noodle-smokescreen_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-RIT-CORE-001",
-              "name": "Caution: Wet Floor",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-001_caution-wet-floor.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-001_caution-wet-floor.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-002",
-              "name": "Disposable Elbow Pad",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-002_disposable-elbow-pad.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-002_disposable-elbow-pad.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-003",
-              "name": "Dojo Folding Mat",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-003_dojo-folding-mat.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-003_dojo-folding-mat.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-004",
-              "name": "Emergency Coupon Override",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-004_emergency-coupon-override.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-004_emergency-coupon-override.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-005",
-              "name": "Instant Noodle Smokescreen",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-005_instant-noodle-smokescreen.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-005_instant-noodle-smokescreen.webp"
-            }
+            {"cardId":"DDB-RIT-CORE-001","name":"Caution: Wet Floor","artwork":"app/assets/art/reactions/source/ddb-rit-core-001_caution-wet-floor.png","card":"app/assets/cards/reactions/ddb-rit-core-001_caution-wet-floor.webp"},
+            {"cardId":"DDB-RIT-CORE-002","name":"Disposable Elbow Pad","artwork":"app/assets/art/reactions/source/ddb-rit-core-002_disposable-elbow-pad.png","card":"app/assets/cards/reactions/ddb-rit-core-002_disposable-elbow-pad.webp"},
+            {"cardId":"DDB-RIT-CORE-003","name":"Dojo Folding Mat","artwork":"app/assets/art/reactions/source/ddb-rit-core-003_dojo-folding-mat.png","card":"app/assets/cards/reactions/ddb-rit-core-003_dojo-folding-mat.webp"},
+            {"cardId":"DDB-RIT-CORE-004","name":"Emergency Coupon Override","artwork":"app/assets/art/reactions/source/ddb-rit-core-004_emergency-coupon-override.png","card":"app/assets/cards/reactions/ddb-rit-core-004_emergency-coupon-override.webp"},
+            {"cardId":"DDB-RIT-CORE-005","name":"Instant Noodle Smokescreen","artwork":"app/assets/art/reactions/source/ddb-rit-core-005_instant-noodle-smokescreen.png","card":"app/assets/cards/reactions/ddb-rit-core-005_instant-noodle-smokescreen.webp"}
           ]
-        },
+        }
+      ,
         {
           "batch": "reactions-002",
           "status": "complete",
-          "cardIds": [
-            "DDB-RIT-CORE-006",
-            "DDB-RIT-CORE-007",
-            "DDB-RIT-CORE-008",
-            "DDB-RIT-CORE-009",
-            "DDB-RIT-CORE-010"
-          ],
+          "cardIds": ["DDB-RIT-CORE-006", "DDB-RIT-CORE-007", "DDB-RIT-CORE-008", "DDB-RIT-CORE-009", "DDB-RIT-CORE-010"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Reactions_Batch_002_ddb-rit-core-006_official-time-out-card_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Reactions_Batch_002_ddb-rit-core-007_parking-validation-stub_Editable_ORA.zip",
@@ -75,62 +39,25 @@
             "public/downloads/Dojo_Deckbuilder_Reactions_Batch_002_ddb-rit-core-010_temporary-tattoo-pass_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-RIT-CORE-006",
-              "name": "Official Time-Out Card",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-006_official-time-out-card.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-006_official-time-out-card.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-007",
-              "name": "Parking Validation Stub",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-007_parking-validation-stub.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-007_parking-validation-stub.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-008",
-              "name": "Pocket-Sand Receipt",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-008_pocket-sand-receipt.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-008_pocket-sand-receipt.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-009",
-              "name": "Pop-Up Safety Seminar",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-009_pop-up-safety-seminar.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-009_pop-up-safety-seminar.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-010",
-              "name": "Temporary Tattoo Pass",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-010_temporary-tattoo-pass.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-010_temporary-tattoo-pass.webp"
-            }
+            {"cardId":"DDB-RIT-CORE-006","name":"Official Time-Out Card","artwork":"app/assets/art/reactions/source/ddb-rit-core-006_official-time-out-card.png","card":"app/assets/cards/reactions/ddb-rit-core-006_official-time-out-card.webp"},
+            {"cardId":"DDB-RIT-CORE-007","name":"Parking Validation Stub","artwork":"app/assets/art/reactions/source/ddb-rit-core-007_parking-validation-stub.png","card":"app/assets/cards/reactions/ddb-rit-core-007_parking-validation-stub.webp"},
+            {"cardId":"DDB-RIT-CORE-008","name":"Pocket-Sand Receipt","artwork":"app/assets/art/reactions/source/ddb-rit-core-008_pocket-sand-receipt.png","card":"app/assets/cards/reactions/ddb-rit-core-008_pocket-sand-receipt.webp"},
+            {"cardId":"DDB-RIT-CORE-009","name":"Pop-Up Safety Seminar","artwork":"app/assets/art/reactions/source/ddb-rit-core-009_pop-up-safety-seminar.png","card":"app/assets/cards/reactions/ddb-rit-core-009_pop-up-safety-seminar.webp"},
+            {"cardId":"DDB-RIT-CORE-010","name":"Temporary Tattoo Pass","artwork":"app/assets/art/reactions/source/ddb-rit-core-010_temporary-tattoo-pass.png","card":"app/assets/cards/reactions/ddb-rit-core-010_temporary-tattoo-pass.webp"}
           ]
-        },
+        }
+      ,
         {
           "batch": "reactions-003",
           "status": "complete",
-          "cardIds": [
-            "DDB-RIT-CORE-011",
-            "DDB-RIT-CORE-012"
-          ],
+          "cardIds": ["DDB-RIT-CORE-011", "DDB-RIT-CORE-012"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Reactions_Batch_003_ddb-rit-core-011_witness-statement-in-crayon_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Reactions_Batch_003_ddb-rit-core-012_x-ray-paper_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-RIT-CORE-011",
-              "name": "Witness Statement in Crayon",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-011_witness-statement-in-crayon.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-011_witness-statement-in-crayon.webp"
-            },
-            {
-              "cardId": "DDB-RIT-CORE-012",
-              "name": "X-Ray Paper",
-              "artwork": "app/assets/art/reactions/source/ddb-rit-core-012_x-ray-paper.png",
-              "card": "app/assets/cards/reactions/ddb-rit-core-012_x-ray-paper.webp"
-            }
+            {"cardId":"DDB-RIT-CORE-011","name":"Witness Statement in Crayon","artwork":"app/assets/art/reactions/source/ddb-rit-core-011_witness-statement-in-crayon.png","card":"app/assets/cards/reactions/ddb-rit-core-011_witness-statement-in-crayon.webp"},
+            {"cardId":"DDB-RIT-CORE-012","name":"X-Ray Paper","artwork":"app/assets/art/reactions/source/ddb-rit-core-012_x-ray-paper.png","card":"app/assets/cards/reactions/ddb-rit-core-012_x-ray-paper.webp"}
           ]
         }
       ]
@@ -142,60 +69,24 @@
         {
           "batch": "weapons-001",
           "status": "complete",
-          "cardIds": [
-            "DDB-WPN-CORE-001",
-            "DDB-WPN-CORE-002",
-            "DDB-WPN-CORE-003",
-            "DDB-WPN-CORE-004",
-            "DDB-WPN-CORE-005"
-          ],
+          "cardIds": ["DDB-WPN-CORE-001", "DDB-WPN-CORE-002", "DDB-WPN-CORE-003", "DDB-WPN-CORE-004", "DDB-WPN-CORE-005"],
           "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_001_Editable_ORA.zip",
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-001",
-              "name": "Baseball Bat",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-001_baseball-bat.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-001_baseball-bat.webp"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-002",
-              "name": "Bo Staff (Long Staff)",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-002_bo-staff-long-staff.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-002_bo-staff-long-staff.webp"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-003",
-              "name": "Bo-Shuriken (Throwing Spikes)",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-003_bo-shuriken-throwing-spikes.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-003_bo-shuriken-throwing-spikes.webp"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-004",
-              "name": "Bokken (Wooden Sword)",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-004_bokken-wooden-sword.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-004_bokken-wooden-sword.webp"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-005",
-              "name": "Brass Knuckles",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-005_brass-knuckles.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-005_brass-knuckles.webp"
-            }
+            {"cardId":"DDB-WPN-CORE-001","name":"Baseball Bat","artwork":"app/assets/art/weapons/source/ddb-wpn-core-001_baseball-bat.png","card":"app/assets/cards/weapons/ddb-wpn-core-001_baseball-bat.webp"},
+            {"cardId":"DDB-WPN-CORE-002","name":"Bo Staff (Long Staff)","artwork":"app/assets/art/weapons/source/ddb-wpn-core-002_bo-staff-long-staff.png","card":"app/assets/cards/weapons/ddb-wpn-core-002_bo-staff-long-staff.webp"},
+            {"cardId":"DDB-WPN-CORE-003","name":"Bo-Shuriken (Throwing Spikes)","artwork":"app/assets/art/weapons/source/ddb-wpn-core-003_bo-shuriken-throwing-spikes.png","card":"app/assets/cards/weapons/ddb-wpn-core-003_bo-shuriken-throwing-spikes.webp"},
+            {"cardId":"DDB-WPN-CORE-004","name":"Bokken (Wooden Sword)","artwork":"app/assets/art/weapons/source/ddb-wpn-core-004_bokken-wooden-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-004_bokken-wooden-sword.webp"},
+            {"cardId":"DDB-WPN-CORE-005","name":"Brass Knuckles","artwork":"app/assets/art/weapons/source/ddb-wpn-core-005_brass-knuckles.png","card":"app/assets/cards/weapons/ddb-wpn-core-005_brass-knuckles.webp"}
           ]
-        },
+        }
+      ,
         {
           "batch": "weapons-002",
           "status": "complete",
           "family": "weapons",
           "template": "app/assets/templates/05_Item_Equipable.ora",
           "publishingCommit": "d3134b9ef698f51babe129ed37d08a8d93965404",
-          "cardIds": [
-            "DDB-WPN-CORE-006",
-            "DDB-WPN-CORE-007",
-            "DDB-WPN-CORE-008",
-            "DDB-WPN-CORE-009",
-            "DDB-WPN-CORE-010"
-          ],
+          "cardIds": ["DDB-WPN-CORE-006", "DDB-WPN-CORE-007", "DDB-WPN-CORE-008", "DDB-WPN-CORE-009", "DDB-WPN-CORE-010"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-006_broken-bottle_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-007_museum-gift-nunchaku_Editable_ORA.zip",
@@ -204,51 +95,11 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-010_club_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-006",
-              "name": "Broken Bottle",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-006_broken-bottle.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-006_broken-bottle.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-006_broken-bottle_Editable_ORA.zip",
-              "publishingCommit": "d3134b9ef698f51babe129ed37d08a8d93965404"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-007",
-              "name": "Museum-Gift Nunchaku",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-007_museum-gift-nunchaku.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-007_museum-gift-nunchaku.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-007_museum-gift-nunchaku_Editable_ORA.zip",
-              "publishingCommit": "d3134b9ef698f51babe129ed37d08a8d93965404"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-008",
-              "name": "Butterfly Knife (Balisong)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-008_butterfly-knife-balisong.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-008_butterfly-knife-balisong.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-008_butterfly-knife-balisong_Editable_ORA.zip",
-              "publishingCommit": "d3134b9ef698f51babe129ed37d08a8d93965404"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-009",
-              "name": "Chain Whip",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-009_chain-whip.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-009_chain-whip.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-009_chain-whip_Editable_ORA.zip",
-              "publishingCommit": "d3134b9ef698f51babe129ed37d08a8d93965404"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-010",
-              "name": "Club",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-010_club.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-010_club.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-010_club_Editable_ORA.zip",
-              "publishingCommit": "d3134b9ef698f51babe129ed37d08a8d93965404"
-            }
+            {"cardId":"DDB-WPN-CORE-006","name":"Broken Bottle","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-006_broken-bottle.png","card":"app/assets/cards/weapons/ddb-wpn-core-006_broken-bottle.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-006_broken-bottle_Editable_ORA.zip","publishingCommit":"d3134b9ef698f51babe129ed37d08a8d93965404"},
+            {"cardId":"DDB-WPN-CORE-007","name":"Museum-Gift Nunchaku","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-007_museum-gift-nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-007_museum-gift-nunchaku.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-007_museum-gift-nunchaku_Editable_ORA.zip","publishingCommit":"d3134b9ef698f51babe129ed37d08a8d93965404"},
+            {"cardId":"DDB-WPN-CORE-008","name":"Butterfly Knife (Balisong)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-008_butterfly-knife-balisong.png","card":"app/assets/cards/weapons/ddb-wpn-core-008_butterfly-knife-balisong.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-008_butterfly-knife-balisong_Editable_ORA.zip","publishingCommit":"d3134b9ef698f51babe129ed37d08a8d93965404"},
+            {"cardId":"DDB-WPN-CORE-009","name":"Chain Whip","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-009_chain-whip.png","card":"app/assets/cards/weapons/ddb-wpn-core-009_chain-whip.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-009_chain-whip_Editable_ORA.zip","publishingCommit":"d3134b9ef698f51babe129ed37d08a8d93965404"},
+            {"cardId":"DDB-WPN-CORE-010","name":"Club","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-010_club.png","card":"app/assets/cards/weapons/ddb-wpn-core-010_club.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_002_ddb-wpn-core-010_club_Editable_ORA.zip","publishingCommit":"d3134b9ef698f51babe129ed37d08a8d93965404"}
           ]
         },
         {
@@ -257,13 +108,7 @@
           "family": "weapons",
           "template": "app/assets/templates/05_Item_Equipable.ora",
           "publishingCommit": "4138dfb068860d600cdab0e7d3626e357bcdddea",
-          "cardIds": [
-            "DDB-WPN-CORE-011",
-            "DDB-WPN-CORE-012",
-            "DDB-WPN-CORE-013",
-            "DDB-WPN-CORE-014",
-            "DDB-WPN-CORE-015"
-          ],
+          "cardIds": ["DDB-WPN-CORE-011", "DDB-WPN-CORE-012", "DDB-WPN-CORE-013", "DDB-WPN-CORE-014", "DDB-WPN-CORE-015"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-011_collapsible-queue-pole_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-012_dao-chinese-saber_Editable_ORA.zip",
@@ -272,66 +117,16 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-015_dragon-sword_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-011",
-              "name": "Collapsible Queue Pole",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-011_collapsible-queue-pole.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-011_collapsible-queue-pole.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-011_collapsible-queue-pole_Editable_ORA.zip",
-              "publishingCommit": "4138dfb068860d600cdab0e7d3626e357bcdddea"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-012",
-              "name": "Dao (Chinese Saber)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-012_dao-chinese-saber.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-012_dao-chinese-saber.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-012_dao-chinese-saber_Editable_ORA.zip",
-              "publishingCommit": "4138dfb068860d600cdab0e7d3626e357bcdddea"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-013",
-              "name": "Deer Horn Knives",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-013_deer-horn-knives.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-013_deer-horn-knives.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-013_deer-horn-knives_Editable_ORA.zip",
-              "publishingCommit": "4138dfb068860d600cdab0e7d3626e357bcdddea"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-014",
-              "name": "Dojo Mop",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-014_dojo-mop.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-014_dojo-mop.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-014_dojo-mop_Editable_ORA.zip",
-              "publishingCommit": "4138dfb068860d600cdab0e7d3626e357bcdddea"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-015",
-              "name": "Dragon Sword",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-015_dragon-sword.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-015_dragon-sword.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-015_dragon-sword_Editable_ORA.zip",
-              "publishingCommit": "4138dfb068860d600cdab0e7d3626e357bcdddea"
-            }
+            {"cardId":"DDB-WPN-CORE-011","name":"Collapsible Queue Pole","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-011_collapsible-queue-pole.png","card":"app/assets/cards/weapons/ddb-wpn-core-011_collapsible-queue-pole.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-011_collapsible-queue-pole_Editable_ORA.zip","publishingCommit":"4138dfb068860d600cdab0e7d3626e357bcdddea"},
+            {"cardId":"DDB-WPN-CORE-012","name":"Dao (Chinese Saber)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-012_dao-chinese-saber.png","card":"app/assets/cards/weapons/ddb-wpn-core-012_dao-chinese-saber.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-012_dao-chinese-saber_Editable_ORA.zip","publishingCommit":"4138dfb068860d600cdab0e7d3626e357bcdddea"},
+            {"cardId":"DDB-WPN-CORE-013","name":"Deer Horn Knives","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-013_deer-horn-knives.png","card":"app/assets/cards/weapons/ddb-wpn-core-013_deer-horn-knives.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-013_deer-horn-knives_Editable_ORA.zip","publishingCommit":"4138dfb068860d600cdab0e7d3626e357bcdddea"},
+            {"cardId":"DDB-WPN-CORE-014","name":"Dojo Mop","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-014_dojo-mop.png","card":"app/assets/cards/weapons/ddb-wpn-core-014_dojo-mop.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-014_dojo-mop_Editable_ORA.zip","publishingCommit":"4138dfb068860d600cdab0e7d3626e357bcdddea"},
+            {"cardId":"DDB-WPN-CORE-015","name":"Dragon Sword","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-015_dragon-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-015_dragon-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_003_ddb-wpn-core-015_dragon-sword_Editable_ORA.zip","publishingCommit":"4138dfb068860d600cdab0e7d3626e357bcdddea"}
           ]
         },
         {
-          "batch": "weapons-004",
-          "status": "complete",
-          "family": "weapons",
-          "template": "app/assets/templates/05_Item_Equipable.ora",
-          "publishingCommit": "7869f0973d6bbd909723fe8bebc6bba6f9c61aa9",
-          "cardIds": [
-            "DDB-WPN-CORE-016",
-            "DDB-WPN-CORE-017",
-            "DDB-WPN-CORE-018",
-            "DDB-WPN-CORE-019",
-            "DDB-WPN-CORE-020"
-          ],
+          "batch": "weapons-004", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora", "publishingCommit": "7869f0973d6bbd909723fe8bebc6bba6f9c61aa9",
+          "cardIds": ["DDB-WPN-CORE-016", "DDB-WPN-CORE-017", "DDB-WPN-CORE-018", "DDB-WPN-CORE-019", "DDB-WPN-CORE-020"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-016_eko-bo-short-staff_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-017_eku-okinawan-oar_Editable_ORA.zip",
@@ -340,61 +135,17 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-020_executive-foam-sword_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-016",
-              "name": "Eko Bo (Short Staff)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-016_eko-bo-short-staff.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-016_eko-bo-short-staff.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-016_eko-bo-short-staff_Editable_ORA.zip"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-017",
-              "name": "Eku (Okinawan Oar)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-017_eku-okinawan-oar.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-017_eku-okinawan-oar.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-017_eku-okinawan-oar_Editable_ORA.zip"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-018",
-              "name": "Emotional Support Brick",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-018_emotional-support-brick.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-018_emotional-support-brick.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-018_emotional-support-brick_Editable_ORA.zip"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-019",
-              "name": "Escrima Sticks",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-019_escrima-sticks.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-019_escrima-sticks.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-019_escrima-sticks_Editable_ORA.zip"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-020",
-              "name": "Executive Foam Sword",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-020_executive-foam-sword.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-020_executive-foam-sword.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-020_executive-foam-sword_Editable_ORA.zip"
-            }
+            {"cardId":"DDB-WPN-CORE-016","name":"Eko Bo (Short Staff)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-016_eko-bo-short-staff.png","card":"app/assets/cards/weapons/ddb-wpn-core-016_eko-bo-short-staff.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-016_eko-bo-short-staff_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-017","name":"Eku (Okinawan Oar)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-017_eku-okinawan-oar.png","card":"app/assets/cards/weapons/ddb-wpn-core-017_eku-okinawan-oar.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-017_eku-okinawan-oar_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-018","name":"Emotional Support Brick","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-018_emotional-support-brick.png","card":"app/assets/cards/weapons/ddb-wpn-core-018_emotional-support-brick.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-018_emotional-support-brick_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-019","name":"Escrima Sticks","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-019_escrima-sticks.png","card":"app/assets/cards/weapons/ddb-wpn-core-019_escrima-sticks.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-019_escrima-sticks_Editable_ORA.zip"},
+            {"cardId":"DDB-WPN-CORE-020","name":"Executive Foam Sword","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-020_executive-foam-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-020_executive-foam-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_004_ddb-wpn-core-020_executive-foam-sword_Editable_ORA.zip"}
           ]
-        },
+        }
+      ,
         {
-          "batch": "weapons-005",
-          "status": "complete",
-          "family": "weapons",
-          "template": "app/assets/templates/05_Item_Equipable.ora",
-          "publishingCommit": "1c1c6f83400562432d2721fcc1f252ca78c7df2d",
-          "cardIds": [
-            "DDB-WPN-CORE-021",
-            "DDB-WPN-CORE-022",
-            "DDB-WPN-CORE-023",
-            "DDB-WPN-CORE-024",
-            "DDB-WPN-CORE-025"
-          ],
+          "batch": "weapons-005", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora", "publishingCommit": "1c1c6f83400562432d2721fcc1f252ca78c7df2d",
+          "cardIds": ["DDB-WPN-CORE-021", "DDB-WPN-CORE-022", "DDB-WPN-CORE-023", "DDB-WPN-CORE-024", "DDB-WPN-CORE-025"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-021_extension-cord-nunchaku_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-022_fan-tessen_Editable_ORA.zip",
@@ -403,66 +154,17 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-025_frozen-burrito_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-021",
-              "name": "Extension-Cord Nunchaku",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-021_extension-cord-nunchaku.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-021_extension-cord-nunchaku.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-021_extension-cord-nunchaku_Editable_ORA.zip",
-              "publishingCommit": "1c1c6f83400562432d2721fcc1f252ca78c7df2d"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-022",
-              "name": "Fan (Tessen)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-022_fan-tessen.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-022_fan-tessen.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-022_fan-tessen_Editable_ORA.zip",
-              "publishingCommit": "1c1c6f83400562432d2721fcc1f252ca78c7df2d"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-023",
-              "name": "Folding Chair of Destiny",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-023_folding-chair-of-destiny.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-023_folding-chair-of-destiny.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-023_folding-chair-of-destiny_Editable_ORA.zip",
-              "publishingCommit": "1c1c6f83400562432d2721fcc1f252ca78c7df2d"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-024",
-              "name": "Folding-Sign Staff",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-024_folding-sign-staff.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-024_folding-sign-staff.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-024_folding-sign-staff_Editable_ORA.zip",
-              "publishingCommit": "1c1c6f83400562432d2721fcc1f252ca78c7df2d"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-025",
-              "name": "Frozen Burrito",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-025_frozen-burrito.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-025_frozen-burrito.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-025_frozen-burrito_Editable_ORA.zip",
-              "publishingCommit": "1c1c6f83400562432d2721fcc1f252ca78c7df2d"
-            }
+            {"cardId":"DDB-WPN-CORE-021","name":"Extension-Cord Nunchaku","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-021_extension-cord-nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-021_extension-cord-nunchaku.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-021_extension-cord-nunchaku_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"},
+            {"cardId":"DDB-WPN-CORE-022","name":"Fan (Tessen)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-022_fan-tessen.png","card":"app/assets/cards/weapons/ddb-wpn-core-022_fan-tessen.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-022_fan-tessen_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"},
+            {"cardId":"DDB-WPN-CORE-023","name":"Folding Chair of Destiny","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-023_folding-chair-of-destiny.png","card":"app/assets/cards/weapons/ddb-wpn-core-023_folding-chair-of-destiny.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-023_folding-chair-of-destiny_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"},
+            {"cardId":"DDB-WPN-CORE-024","name":"Folding-Sign Staff","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-024_folding-sign-staff.png","card":"app/assets/cards/weapons/ddb-wpn-core-024_folding-sign-staff.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-024_folding-sign-staff_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"},
+            {"cardId":"DDB-WPN-CORE-025","name":"Frozen Burrito","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-025_frozen-burrito.png","card":"app/assets/cards/weapons/ddb-wpn-core-025_frozen-burrito.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_005_ddb-wpn-core-025_frozen-burrito_Editable_ORA.zip","publishingCommit":"1c1c6f83400562432d2721fcc1f252ca78c7df2d"}
           ]
-        },
+        }
+      ,
         {
-          "batch": "weapons-006",
-          "status": "complete",
-          "family": "weapons",
-          "template": "app/assets/templates/05_Item_Equipable.ora",
-          "publishingCommit": "c6567eec3e7c90000b852f89c715dac9fd312bd8",
-          "cardIds": [
-            "DDB-WPN-CORE-026",
-            "DDB-WPN-CORE-027",
-            "DDB-WPN-CORE-028",
-            "DDB-WPN-CORE-029",
-            "DDB-WPN-CORE-030"
-          ],
+          "batch": "weapons-006", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora", "publishingCommit": "c6567eec3e7c90000b852f89c715dac9fd312bd8",
+          "cardIds": ["DDB-WPN-CORE-026", "DDB-WPN-CORE-027", "DDB-WPN-CORE-028", "DDB-WPN-CORE-029", "DDB-WPN-CORE-030"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-026_giant-foam-finger_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-027_gladius_Editable_ORA.zip",
@@ -471,66 +173,17 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-030_hook-swords_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-026",
-              "name": "Giant Foam Finger",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-026_giant-foam-finger.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-026_giant-foam-finger.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-026_giant-foam-finger_Editable_ORA.zip",
-              "publishingCommit": "c6567eec3e7c90000b852f89c715dac9fd312bd8"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-027",
-              "name": "Gladius",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-027_gladius.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-027_gladius.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-027_gladius_Editable_ORA.zip",
-              "publishingCommit": "c6567eec3e7c90000b852f89c715dac9fd312bd8"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-028",
-              "name": "Grandma's Wooden Spoon",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-028_grandmas-wooden-spoon.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-028_grandma-s-wooden-spoon.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-028_grandma-s-wooden-spoon_Editable_ORA.zip",
-              "publishingCommit": "c6567eec3e7c90000b852f89c715dac9fd312bd8"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-029",
-              "name": "Hand Axe",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-029_hand-axe.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-029_hand-axe.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-029_hand-axe_Editable_ORA.zip",
-              "publishingCommit": "c6567eec3e7c90000b852f89c715dac9fd312bd8"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-030",
-              "name": "Hook Swords",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-030_hook-swords.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-030_hook-swords.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-030_hook-swords_Editable_ORA.zip",
-              "publishingCommit": "c6567eec3e7c90000b852f89c715dac9fd312bd8"
-            }
+            {"cardId":"DDB-WPN-CORE-026","name":"Giant Foam Finger","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-026_giant-foam-finger.png","card":"app/assets/cards/weapons/ddb-wpn-core-026_giant-foam-finger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-026_giant-foam-finger_Editable_ORA.zip","publishingCommit":"c6567eec3e7c90000b852f89c715dac9fd312bd8"},
+            {"cardId":"DDB-WPN-CORE-027","name":"Gladius","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-027_gladius.png","card":"app/assets/cards/weapons/ddb-wpn-core-027_gladius.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-027_gladius_Editable_ORA.zip","publishingCommit":"c6567eec3e7c90000b852f89c715dac9fd312bd8"},
+            {"cardId":"DDB-WPN-CORE-028","name":"Grandma's Wooden Spoon","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-028_grandmas-wooden-spoon.png","card":"app/assets/cards/weapons/ddb-wpn-core-028_grandma-s-wooden-spoon.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-028_grandma-s-wooden-spoon_Editable_ORA.zip","publishingCommit":"c6567eec3e7c90000b852f89c715dac9fd312bd8"},
+            {"cardId":"DDB-WPN-CORE-029","name":"Hand Axe","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-029_hand-axe.png","card":"app/assets/cards/weapons/ddb-wpn-core-029_hand-axe.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-029_hand-axe_Editable_ORA.zip","publishingCommit":"c6567eec3e7c90000b852f89c715dac9fd312bd8"},
+            {"cardId":"DDB-WPN-CORE-030","name":"Hook Swords","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-030_hook-swords.png","card":"app/assets/cards/weapons/ddb-wpn-core-030_hook-swords.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_006_ddb-wpn-core-030_hook-swords_Editable_ORA.zip","publishingCommit":"c6567eec3e7c90000b852f89c715dac9fd312bd8"}
           ]
-        },
+        }
+      ,
         {
-          "batch": "weapons-007",
-          "status": "complete",
-          "family": "weapons",
-          "template": "app/assets/templates/05_Item_Equipable.ora",
-          "publishingCommit": "341dd600508e3dfe1cdea35776934fcb0e8607a5",
-          "cardIds": [
-            "DDB-WPN-CORE-031",
-            "DDB-WPN-CORE-032",
-            "DDB-WPN-CORE-033",
-            "DDB-WPN-CORE-034",
-            "DDB-WPN-CORE-035"
-          ],
+          "batch": "weapons-007", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora", "publishingCommit": "341dd600508e3dfe1cdea35776934fcb0e8607a5",
+          "cardIds": ["DDB-WPN-CORE-031", "DDB-WPN-CORE-032", "DDB-WPN-CORE-033", "DDB-WPN-CORE-034", "DDB-WPN-CORE-035"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-031_jian-straight-sword_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-032_jo-staff-short-staff_Editable_ORA.zip",
@@ -539,66 +192,21 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-035_kampalan-southeast-asian-weapon_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-031",
-              "name": "Jian (Straight Sword)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-031_jian-straight-sword.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-031_jian-straight-sword.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-031_jian-straight-sword_Editable_ORA.zip",
-              "publishingCommit": "341dd600508e3dfe1cdea35776934fcb0e8607a5"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-032",
-              "name": "Jo Staff (Short Staff)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-032_jo-staff-short-staff.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-032_jo-staff-short-staff.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-032_jo-staff-short-staff_Editable_ORA.zip",
-              "publishingCommit": "341dd600508e3dfe1cdea35776934fcb0e8607a5"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-033",
-              "name": "Kali Sticks (Arnis)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-033_kali-sticks-arnis.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-033_kali-sticks-arnis.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-033_kali-sticks-arnis_Editable_ORA.zip",
-              "publishingCommit": "341dd600508e3dfe1cdea35776934fcb0e8607a5"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-034",
-              "name": "Kama (Sickle)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-034_kama-sickle.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-034_kama-sickle.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-034_kama-sickle_Editable_ORA.zip",
-              "publishingCommit": "341dd600508e3dfe1cdea35776934fcb0e8607a5"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-035",
-              "name": "Kampalan (Southeast Asian Weapon)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-035_kampalan-southeast-asian-weapon.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-035_kampalan-southeast-asian-weapon.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-035_kampalan-southeast-asian-weapon_Editable_ORA.zip",
-              "publishingCommit": "341dd600508e3dfe1cdea35776934fcb0e8607a5"
-            }
+            {"cardId":"DDB-WPN-CORE-031","name":"Jian (Straight Sword)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-031_jian-straight-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-031_jian-straight-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-031_jian-straight-sword_Editable_ORA.zip","publishingCommit":"341dd600508e3dfe1cdea35776934fcb0e8607a5"},
+            {"cardId":"DDB-WPN-CORE-032","name":"Jo Staff (Short Staff)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-032_jo-staff-short-staff.png","card":"app/assets/cards/weapons/ddb-wpn-core-032_jo-staff-short-staff.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-032_jo-staff-short-staff_Editable_ORA.zip","publishingCommit":"341dd600508e3dfe1cdea35776934fcb0e8607a5"},
+            {"cardId":"DDB-WPN-CORE-033","name":"Kali Sticks (Arnis)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-033_kali-sticks-arnis.png","card":"app/assets/cards/weapons/ddb-wpn-core-033_kali-sticks-arnis.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-033_kali-sticks-arnis_Editable_ORA.zip","publishingCommit":"341dd600508e3dfe1cdea35776934fcb0e8607a5"},
+            {"cardId":"DDB-WPN-CORE-034","name":"Kama (Sickle)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-034_kama-sickle.png","card":"app/assets/cards/weapons/ddb-wpn-core-034_kama-sickle.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-034_kama-sickle_Editable_ORA.zip","publishingCommit":"341dd600508e3dfe1cdea35776934fcb0e8607a5"},
+            {"cardId":"DDB-WPN-CORE-035","name":"Kampalan (Southeast Asian Weapon)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-035_kampalan-southeast-asian-weapon.png","card":"app/assets/cards/weapons/ddb-wpn-core-035_kampalan-southeast-asian-weapon.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_007_ddb-wpn-core-035_kampalan-southeast-asian-weapon_Editable_ORA.zip","publishingCommit":"341dd600508e3dfe1cdea35776934fcb0e8607a5"}
           ]
-        },
+        }
+      ,
         {
           "batch": "weapons-008",
           "status": "complete",
           "family": "weapons",
           "template": "app/assets/templates/05_Item_Equipable.ora",
           "publishingCommit": "3f02a2b5b8273c233c37fcfeacad7dc5804010dc",
-          "cardIds": [
-            "DDB-WPN-CORE-036",
-            "DDB-WPN-CORE-037",
-            "DDB-WPN-CORE-038",
-            "DDB-WPN-CORE-039",
-            "DDB-WPN-CORE-040"
-          ],
+          "cardIds": ["DDB-WPN-CORE-036", "DDB-WPN-CORE-037", "DDB-WPN-CORE-038", "DDB-WPN-CORE-039", "DDB-WPN-CORE-040"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-036_karambit-hooked-dagger_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-037_katana-japanese-sword_Editable_ORA.zip",
@@ -607,66 +215,21 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-040_kunai-throwing-knives_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-036",
-              "name": "Karambit (Hooked Dagger)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-036_karambit-hooked-dagger.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-036_karambit-hooked-dagger.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-036_karambit-hooked-dagger_Editable_ORA.zip",
-              "publishingCommit": "3f02a2b5b8273c233c37fcfeacad7dc5804010dc"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-037",
-              "name": "Katana (Japanese Sword)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-037_katana-japanese-sword.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-037_katana-japanese-sword.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-037_katana-japanese-sword_Editable_ORA.zip",
-              "publishingCommit": "3f02a2b5b8273c233c37fcfeacad7dc5804010dc"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-038",
-              "name": "Kris (Curved Dagger)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-038_kris-curved-dagger.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-038_kris-curved-dagger.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-038_kris-curved-dagger_Editable_ORA.zip",
-              "publishingCommit": "3f02a2b5b8273c233c37fcfeacad7dc5804010dc"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-039",
-              "name": "Kubotan",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-039_kubotan.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-039_kubotan.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-039_kubotan_Editable_ORA.zip",
-              "publishingCommit": "3f02a2b5b8273c233c37fcfeacad7dc5804010dc"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-040",
-              "name": "Kunai (Throwing Knives)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-040_kunai-throwing-knives.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-040_kunai-throwing-knives.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-040_kunai-throwing-knives_Editable_ORA.zip",
-              "publishingCommit": "3f02a2b5b8273c233c37fcfeacad7dc5804010dc"
-            }
+            {"cardId":"DDB-WPN-CORE-036","name":"Karambit (Hooked Dagger)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-036_karambit-hooked-dagger.png","card":"app/assets/cards/weapons/ddb-wpn-core-036_karambit-hooked-dagger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-036_karambit-hooked-dagger_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"},
+            {"cardId":"DDB-WPN-CORE-037","name":"Katana (Japanese Sword)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-037_katana-japanese-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-037_katana-japanese-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-037_katana-japanese-sword_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"},
+            {"cardId":"DDB-WPN-CORE-038","name":"Kris (Curved Dagger)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-038_kris-curved-dagger.png","card":"app/assets/cards/weapons/ddb-wpn-core-038_kris-curved-dagger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-038_kris-curved-dagger_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"},
+            {"cardId":"DDB-WPN-CORE-039","name":"Kubotan","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-039_kubotan.png","card":"app/assets/cards/weapons/ddb-wpn-core-039_kubotan.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-039_kubotan_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"},
+            {"cardId":"DDB-WPN-CORE-040","name":"Kunai (Throwing Knives)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-040_kunai-throwing-knives.png","card":"app/assets/cards/weapons/ddb-wpn-core-040_kunai-throwing-knives.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_008_ddb-wpn-core-040_kunai-throwing-knives_Editable_ORA.zip","publishingCommit":"3f02a2b5b8273c233c37fcfeacad7dc5804010dc"}
           ]
-        },
+        }
+      ,
         {
           "batch": "weapons-009",
           "status": "complete",
           "family": "weapons",
           "template": "app/assets/templates/05_Item_Equipable.ora",
           "publishingCommit": "f5578631664c3c587fe6d44255dab74337a0248d",
-          "cardIds": [
-            "DDB-WPN-CORE-041",
-            "DDB-WPN-CORE-042",
-            "DDB-WPN-CORE-043",
-            "DDB-WPN-CORE-044",
-            "DDB-WPN-CORE-045"
-          ],
+          "cardIds": ["DDB-WPN-CORE-041", "DDB-WPN-CORE-042", "DDB-WPN-CORE-043", "DDB-WPN-CORE-044", "DDB-WPN-CORE-045"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-041_meteor-hammer_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-042_parking-lot-patience-stick_Editable_ORA.zip",
@@ -675,66 +238,16 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-045_nunchaku_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "cardId": "DDB-WPN-CORE-041",
-              "name": "Meteor Hammer",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-041_meteor-hammer.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-041_meteor-hammer.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-041_meteor-hammer_Editable_ORA.zip",
-              "publishingCommit": "f5578631664c3c587fe6d44255dab74337a0248d"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-042",
-              "name": "Parking-Lot Patience Stick",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-042_parking-lot-patience-stick.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-042_parking-lot-patience-stick.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-042_parking-lot-patience-stick_Editable_ORA.zip",
-              "publishingCommit": "f5578631664c3c587fe6d44255dab74337a0248d"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-043",
-              "name": "Municipal Training Tonfa",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-043_municipal-training-tonfa.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-043_municipal-training-tonfa.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-043_municipal-training-tonfa_Editable_ORA.zip",
-              "publishingCommit": "f5578631664c3c587fe6d44255dab74337a0248d"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-044",
-              "name": "Naginata (Polearm)",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-044_naginata-polearm.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-044_naginata-polearm.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-044_naginata-polearm_Editable_ORA.zip",
-              "publishingCommit": "f5578631664c3c587fe6d44255dab74337a0248d"
-            },
-            {
-              "cardId": "DDB-WPN-CORE-045",
-              "name": "Nunchaku",
-              "family": "weapons",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-045_nunchaku.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-045_nunchaku.webp",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-045_nunchaku_Editable_ORA.zip",
-              "publishingCommit": "f5578631664c3c587fe6d44255dab74337a0248d"
-            }
+            {"cardId":"DDB-WPN-CORE-041","name":"Meteor Hammer","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-041_meteor-hammer.png","card":"app/assets/cards/weapons/ddb-wpn-core-041_meteor-hammer.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-041_meteor-hammer_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"},
+            {"cardId":"DDB-WPN-CORE-042","name":"Parking-Lot Patience Stick","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-042_parking-lot-patience-stick.png","card":"app/assets/cards/weapons/ddb-wpn-core-042_parking-lot-patience-stick.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-042_parking-lot-patience-stick_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"},
+            {"cardId":"DDB-WPN-CORE-043","name":"Municipal Training Tonfa","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-043_municipal-training-tonfa.png","card":"app/assets/cards/weapons/ddb-wpn-core-043_municipal-training-tonfa.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-043_municipal-training-tonfa_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"},
+            {"cardId":"DDB-WPN-CORE-044","name":"Naginata (Polearm)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-044_naginata-polearm.png","card":"app/assets/cards/weapons/ddb-wpn-core-044_naginata-polearm.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-044_naginata-polearm_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"},
+            {"cardId":"DDB-WPN-CORE-045","name":"Nunchaku","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-045_nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-045_nunchaku.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-045_nunchaku_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"}
           ]
         },
         {
-          "batch": "weapons-012",
-          "status": "complete",
-          "family": "weapons",
-          "template": "app/assets/templates/05_Item_Equipable.ora",
-          "publishingCommit": "e3e70e2134a75552939964d6ec58a94f0fab33ac",
-          "cardIds": [
-            "DDB-WPN-CORE-056",
-            "DDB-WPN-CORE-057",
-            "DDB-WPN-CORE-058",
-            "DDB-WPN-CORE-059",
-            "DDB-WPN-CORE-060"
-          ],
+          "batch": "weapons-012", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora", "publishingCommit": "e3e70e2134a75552939964d6ec58a94f0fab33ac",
+          "cardIds": ["DDB-WPN-CORE-056", "DDB-WPN-CORE-057", "DDB-WPN-CORE-058", "DDB-WPN-CORE-059", "DDB-WPN-CORE-060"],
           "layeredSourceArchives": [
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-056_short-sword_Editable_ORA.zip",
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-057_shuriken-throwing-stars_Editable_ORA.zip",
@@ -743,41 +256,11 @@
             "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-060_tanto-dagger_Editable_ORA.zip"
           ],
           "records": [
-            {
-              "name": "Short Sword",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-056_short-sword_Editable_ORA.zip",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-056_short-sword.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-056_short-sword.webp",
-              "cardId": "DDB-WPN-CORE-056"
-            },
-            {
-              "name": "Shuriken (Throwing Stars)",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-057_shuriken-throwing-stars_Editable_ORA.zip",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-057_shuriken-throwing-stars.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-057_shuriken-throwing-stars.webp",
-              "cardId": "DDB-WPN-CORE-057"
-            },
-            {
-              "name": "Staff of Questionable Lineage",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-058_staff-of-questionable-lineage_Editable_ORA.zip",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-058_staff-of-questionable-lineage.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-058_staff-of-questionable-lineage.webp",
-              "cardId": "DDB-WPN-CORE-058"
-            },
-            {
-              "name": "Tactical Baguette",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-059_tactical-baguette_Editable_ORA.zip",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-059_tactical-baguette.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-059_tactical-baguette.webp",
-              "cardId": "DDB-WPN-CORE-059"
-            },
-            {
-              "name": "Tanto (Dagger)",
-              "layeredSourceArchive": "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-060_tanto-dagger_Editable_ORA.zip",
-              "artwork": "app/assets/art/weapons/source/ddb-wpn-core-060_tanto-dagger.png",
-              "card": "app/assets/cards/weapons/ddb-wpn-core-060_tanto-dagger.webp",
-              "cardId": "DDB-WPN-CORE-060"
-            }
+            {"cardId":"DDB-WPN-CORE-056","name":"Short Sword","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-056_short-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-056_short-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-056_short-sword_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"},
+            {"cardId":"DDB-WPN-CORE-057","name":"Shuriken (Throwing Stars)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-057_shuriken-throwing-stars.png","card":"app/assets/cards/weapons/ddb-wpn-core-057_shuriken-throwing-stars.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-057_shuriken-throwing-stars_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"},
+            {"cardId":"DDB-WPN-CORE-058","name":"Staff of Questionable Lineage","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-058_staff-of-questionable-lineage.png","card":"app/assets/cards/weapons/ddb-wpn-core-058_staff-of-questionable-lineage.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-058_staff-of-questionable-lineage_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"},
+            {"cardId":"DDB-WPN-CORE-059","name":"Tactical Baguette","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-059_tactical-baguette.png","card":"app/assets/cards/weapons/ddb-wpn-core-059_tactical-baguette.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-059_tactical-baguette_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"},
+            {"cardId":"DDB-WPN-CORE-060","name":"Tanto (Dagger)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-060_tanto-dagger.png","card":"app/assets/cards/weapons/ddb-wpn-core-060_tanto-dagger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-060_tanto-dagger_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"}
           ]
         }
       ],
@@ -785,13 +268,7 @@
         "batch": "weapons-010",
         "worker": "codex",
         "status": "claimed",
-        "cardIds": [
-          "DDB-WPN-CORE-046",
-          "DDB-WPN-CORE-047",
-          "DDB-WPN-CORE-048",
-          "DDB-WPN-CORE-049",
-          "DDB-WPN-CORE-050"
-        ]
+        "cardIds": ["DDB-WPN-CORE-046", "DDB-WPN-CORE-047", "DDB-WPN-CORE-048", "DDB-WPN-CORE-049", "DDB-WPN-CORE-050"]
       }
     }
   }
