@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "canonicalSource": "content/cards.json",
-  "updated": "2026-09-14",
+  "updated": "2026-10-09",
   "families": {
     "reactionItems": {
       "expected": 12,
@@ -243,6 +243,24 @@
             {"cardId":"DDB-WPN-CORE-043","name":"Municipal Training Tonfa","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-043_municipal-training-tonfa.png","card":"app/assets/cards/weapons/ddb-wpn-core-043_municipal-training-tonfa.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-043_municipal-training-tonfa_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"},
             {"cardId":"DDB-WPN-CORE-044","name":"Naginata (Polearm)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-044_naginata-polearm.png","card":"app/assets/cards/weapons/ddb-wpn-core-044_naginata-polearm.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-044_naginata-polearm_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"},
             {"cardId":"DDB-WPN-CORE-045","name":"Nunchaku","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-045_nunchaku.png","card":"app/assets/cards/weapons/ddb-wpn-core-045_nunchaku.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_009_ddb-wpn-core-045_nunchaku_Editable_ORA.zip","publishingCommit":"f5578631664c3c587fe6d44255dab74337a0248d"}
+          ]
+        },
+        {
+          "batch": "weapons-012", "status": "complete", "family": "weapons", "template": "app/assets/templates/05_Item_Equipable.ora", "publishingCommit": "e3e70e2134a75552939964d6ec58a94f0fab33ac",
+          "cardIds": ["DDB-WPN-CORE-056", "DDB-WPN-CORE-057", "DDB-WPN-CORE-058", "DDB-WPN-CORE-059", "DDB-WPN-CORE-060"],
+          "layeredSourceArchives": [
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-056_short-sword_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-057_shuriken-throwing-stars_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-058_staff-of-questionable-lineage_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-059_tactical-baguette_Editable_ORA.zip",
+            "public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-060_tanto-dagger_Editable_ORA.zip"
+          ],
+          "records": [
+            {"cardId":"DDB-WPN-CORE-056","name":"Short Sword","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-056_short-sword.png","card":"app/assets/cards/weapons/ddb-wpn-core-056_short-sword.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-056_short-sword_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"},
+            {"cardId":"DDB-WPN-CORE-057","name":"Shuriken (Throwing Stars)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-057_shuriken-throwing-stars.png","card":"app/assets/cards/weapons/ddb-wpn-core-057_shuriken-throwing-stars.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-057_shuriken-throwing-stars_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"},
+            {"cardId":"DDB-WPN-CORE-058","name":"Staff of Questionable Lineage","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-058_staff-of-questionable-lineage.png","card":"app/assets/cards/weapons/ddb-wpn-core-058_staff-of-questionable-lineage.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-058_staff-of-questionable-lineage_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"},
+            {"cardId":"DDB-WPN-CORE-059","name":"Tactical Baguette","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-059_tactical-baguette.png","card":"app/assets/cards/weapons/ddb-wpn-core-059_tactical-baguette.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-059_tactical-baguette_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"},
+            {"cardId":"DDB-WPN-CORE-060","name":"Tanto (Dagger)","family":"weapons","artwork":"app/assets/art/weapons/source/ddb-wpn-core-060_tanto-dagger.png","card":"app/assets/cards/weapons/ddb-wpn-core-060_tanto-dagger.webp","layeredSourceArchive":"public/downloads/Dojo_Deckbuilder_Weapons_Batch_012_ddb-wpn-core-060_tanto-dagger_Editable_ORA.zip","publishingCommit":"e3e70e2134a75552939964d6ec58a94f0fab33ac"}
           ]
         }
       ],
